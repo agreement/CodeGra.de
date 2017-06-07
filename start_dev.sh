@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 STOPPING=false
 export NO_BROWSER="${1:-true}"
