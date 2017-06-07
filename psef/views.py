@@ -14,6 +14,7 @@ def get_code(id):
     if id == "0":
         return jsonify({
             "id": 0,
+            "lang": "python",
             "code": "def id0func0():\n\treturn 0\n\n\ndef id0func1():\n\treturn 1",
             "feedback": {
                 "0": "wtf",
@@ -22,9 +23,10 @@ def get_code(id):
     else:
         return jsonify({
             "id": id,
-            "code": "def some_func():\n\treturn 0\n\n\ndef other_func():\n\treturn 1",
+            "lang": "c",
+            "code": "void\nsome_func(void) {}\n\nvoid other_func(int x) {\n\treturn 2 * x;\n}",
             "feedback": {
-                "0": "slechte naam voor functie",
-                "4": "niet veel beter..."
+                "1": "slechte naam voor functie",
+                "3": "niet veel beter..."
             }
         })
