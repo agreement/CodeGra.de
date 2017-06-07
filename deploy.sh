@@ -12,6 +12,10 @@ which psql > /dev/null || install-pkg "postgresql"
 which npm > /dev/null || install-pkg "node"
 which virtualenv > /dev/null || install-pkg "virtualenv"
 
+if ! [[ -d env ]]; then
+    virtualenv env -p python3
+fi
+
 source env/bin/activate
 
 echo "Installing python requirements"
