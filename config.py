@@ -26,3 +26,9 @@ CSRF_SESSION_KEY = "secret"
 
 # Secret key for signing cookies
 SECRET_KEY = "secret"
+
+# Path for storage of uploaded files
+UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
+
+# Maximum size in bytes for uploaded files
+MAX_CONTENT_LENGTH = 1024  # 64 megabytes
