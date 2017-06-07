@@ -3,6 +3,11 @@
 STOPPING=false
 export NO_BROWSER="${1:-true}"
 
+if [[ -z "$VIRTUAL_ENV" ]]; then
+    echo "You are not in the virtual env. Execute `source env/bin/activate` first!"
+    exit 1
+fi
+
 echo "Echo starting python and NPM, press Ctrl-C to stop"
 
 ./run.py &
