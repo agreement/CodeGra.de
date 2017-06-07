@@ -18,14 +18,18 @@ export default {
     data() {
         return {
             id: this.$route.params.id,
-            input_code: '',
+            lang: '',
+            code: '',
             feedback: [],
         };
     },
 
     computed: {
         highlighted_code() {
-            const highlighted = highlight('python', this.input_code);
+            if (!this.lang || !this.code) {
+                return [];
+            }
+            const highlighted = highlight(this.lang, this.code);
             return highlighted.value.split('\n');
         },
     },
@@ -44,7 +48,8 @@ export default {
     methods: {
         getCode() {
             this.$http.get(`/api/code/${this.id}`).then((data) => {
-                this.input_code = data.body.code;
+                this.lang = data.body.lang;
+                this.code = data.body.code;
                 this.feedback = data.body.feedback;
             });
         },
