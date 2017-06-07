@@ -18,4 +18,4 @@ echo "Installing python requirements"
 pip install -r requirements.txt > /dev/null
 
 echo "Installing NPM requirements"
-npm install > /dev/nul
+npm install > /dev/null
