@@ -4,7 +4,7 @@ STOPPING=false
 export NO_BROWSER="${1:-true}"
 
 if [[ -z "$VIRTUAL_ENV" ]]; then
-    echo "You are not in the virtual env. Execute `source env/bin/activate` first!"
+    echo 'You are not in the virtual env. Execute `source env/bin/activate` first!'
     exit 1
 fi
 
