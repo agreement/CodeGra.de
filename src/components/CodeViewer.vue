@@ -22,6 +22,7 @@
 
 <script>
 import { highlight } from 'highlightjs';
+import Vue from 'vue';
 
 export default {
     name: 'code-viewer',
@@ -71,7 +72,7 @@ export default {
         },
 
         addFeedback(event, line) {
-            this.feedback[line] = '';
+            Vue.set(this.feedback, line, '');
         },
 
         submitFeedback(event, line) {
@@ -79,7 +80,7 @@ export default {
         },
 
         resetFeedback(event, line) {
-            this.feedback[line] = null;
+            Vue.set(this.feedback, line, null);
         },
     },
 };
