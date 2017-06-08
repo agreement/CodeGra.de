@@ -16,6 +16,9 @@ export default new Router({
             path: '/code/:id',
             name: 'CodeViewer',
             component: CodeViewer,
+            props: {
+                editable: true,
+            },
         },
     ],
 });
