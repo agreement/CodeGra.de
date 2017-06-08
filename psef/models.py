@@ -1,6 +1,6 @@
 from flask.ext.sqlalchemy import SQLAlchemy
+from psef import app
 
-app = Flask(__name__)
 db = SQLAlchemy(app)
 
 
