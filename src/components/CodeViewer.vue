@@ -41,7 +41,9 @@ export default {
     },
 
     mounted() {
-        this.getCode();
+        if (!this.code) {
+            this.getCode();
+        }
     },
 
     watch: {
