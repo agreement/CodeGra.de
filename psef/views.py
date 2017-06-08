@@ -30,3 +30,29 @@ def get_code(id):
                 "3": "niet veel beter..."
             }
         })
+
+
+@app.route("/api/dir/<path>")
+def get_dir_contents(path):
+    return jsonify({
+        "path": path,
+        "name": "path",
+        "entries": [
+            {
+                "name": "a",
+                "entries": [
+                    { "name": "a_1", },
+                    { "name": "a_2", },
+                    {
+                        "name": "a_3",
+                        "entries": [
+                            { "name": "a_3_1", },
+                        ],
+                    },
+                ],
+            },
+            { "name": "b", },
+            { "name": "c", },
+            { "name": "d", },
+        ]
+    })
