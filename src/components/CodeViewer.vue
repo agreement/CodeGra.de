@@ -29,8 +29,11 @@ export default {
 
     computed: {
         highlighted_code() {
-            if (!this.lang || !this.code) {
+            if (!this.code) {
                 return [];
+            }
+            if (!this.lang) {
+                return this.code.split('\n');
             }
             const highlighted = highlight(this.lang, this.code);
             return highlighted.value.split('\n');
