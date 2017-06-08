@@ -10,7 +10,7 @@ install-pkg() {
 
 which psql > /dev/null || install-pkg "postgresql"
 which npm > /dev/null || install-pkg "node"
-which virtualenv > /dev/null || install-pkg "virtualenv"
+which virtualenv > /dev/null || pip3 install "virtualenv"
 
 case "$OSTYPE" in
     darwin*) brew install bash;;
