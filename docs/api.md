@@ -1,0 +1,33 @@
+# API
+This is they API documentation for API verion 1 of the codebuil.de website.
+
+## General rules
+### URL buildup
+All API URL's should prefix `/api/v$x` where `$x` is the current version of the
+API, which is 1 at the moment of writing. After this prefix the first comes the
+first *collection*, a collection is a set of objects of something. Examples are
+schools, a set of multiple schools, feedback, a set of feedback, or users, the
+set of multiple users. All collections should always be plural nouns. When doing
+a request to the collection this should apply to all items in this collection,
+when allowed, filters can be used and should be passed as `GET` parameters.
+
+However when querying a single object, always identified by id, this id should
+be a new path in the URL. So querying a single school should use the url
+`/api/v1/schools/1`.
+
+Collections can be nested, so multiple collections in a single URL, however
+these rules should be followed. First a single directory in the URL should
+always contain only one collection. Second the URL should be read from left to
+right, so the URL `/api/v1/schools/23/teachers/3/children` should return all
+children of the teacher with id 3 of the school with id 23. Last but the last
+collection should have a id specifier when using nested collections, this means
+the pattern `(collection/id)*/collection(/id)?` should always be used. For
+example the URL `/api/v1/schools/teachers` is always illegal.
+
+To sort, filter and search `GET` parameters should be passed (see the next
+section for Http methods documentation), it should follow the `key=value` where
+the key should be generic, `category` instead of `school_category`. A special
+case is the key `sort`, where there can be multiple options (separated by
+spaces) (these are the different sort options) and each value should be
+prepended with either a `-` or a `+` meaning respectively sort descending and
+sort ascending.
