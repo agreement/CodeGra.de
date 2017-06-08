@@ -16,10 +16,6 @@ export default new Router({
             path: '/code/:id',
             name: 'CodeViewer',
             component: CodeViewer,
-            data: {
-                code: 'test',
-                feedback: [],
-            },
         },
     ],
 });
