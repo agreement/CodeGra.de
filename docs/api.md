@@ -74,3 +74,20 @@ ones:
   authorized to see the requested object(s).
 - **404**: Should be used when the requested object does not exist.
 - **410**: Should be used if the object is no longer available.
+
+#### Response
+The response of the server should always be a valid JSON object, unless the
+status code is 204, in this case there should not be a response at all.
+
+This means that even if the status code is not 2xx (so not success), there
+should be a response. In this case the response should be a JSON object with
+at least the following keys:
+- **message**: A short message that is somewhat useful for a non technical user.
+- **description**: A technical error message that is somewhat useful for
+  debugging purposes (please note that you should **NOT** send sensitive
+  information).
+- **code**: The error code that should uniquely identify the error.
+
+A error message may be nested, where the nested errors should be in an array
+behind the key `errors` and every item in the array should be a valid JSON error
+with the above specified required keys.
