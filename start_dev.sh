@@ -2,7 +2,7 @@
 
 STOPPING=false
 export NO_BROWSER="${1:-true}"
-export CODEGRADE_DATABASE_URL="postgresql://localhost/codegrade_dev"
+export CODEGRADE_DATABASE_URL="postgresql:///codegrade_dev"
 
 if [[ -z "$VIRTUAL_ENV" ]]; then
     echo 'You are not in the virtual env. Execute `source env/bin/activate` first!'
