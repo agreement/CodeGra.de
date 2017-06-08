@@ -1,19 +1,26 @@
 <template>
-    <div class="file-tree">
+    <div class="file-tree" v-bind:class="{ collapsed: isCollapsed, }">
+        <div v-on:click="toggle($event)">
+            <span class="glyphicon" v-bind:class="{
+                'glyphicon-triangle-right': isCollapsed,
+                'glyphicon-triangle-bottom': !isCollapsed,
+            }"></span>
+            <span class="glyphicon" v-bind:class="{
+                'glyphicon-folder-close': isCollapsed,
+                'glyphicon-folder-open': !isCollapsed,
+            }"></span>
+            {{ name }}
+        </div>
         <ol>
-            <li v-for="f in entries">
-                <span class="glyphicon"
-                      v-bind:class="{ 'glyphicon-folder-close': isCollapsed, 'glyphicon-folder-open': !isCollapsed }"
-                      v-if="f.entries"></span>
-                <span class="glyphicon glyphicon-file"
-                      v-else></span>
+            <li v-for="f in entries"
+                v-bind:class="{ directory: f.entries, file: !f.entries }">
 
-                <a href="#">{{ f.name }}</a>
-
-                <file-tree v-bind:class="{ collapsed: isCollapsed }"
-                           v-bind:collapsed="true"
-                           v-bind:entries="f.entries"
-                           v-if="f.entries"></file-tree>
+                <file-tree collapsed="true" v-bind:name="f.name"
+                    v-bind:entries="f.entries" v-if="f.entries"></file-tree>
+                <a href="#" v-else>
+                    <span class="glyphicon glyphicon-file"></span>
+                    {{ f.name }}
+                </a>
             </li>
         </ol>
     </div>
@@ -23,15 +30,17 @@
 export default {
     name: 'file-tree',
 
-    props: ['hidden', 'collapsed', 'entries'],
+    props: ['name', 'entries', 'collapsed'],
 
     data() {
         return {
             path: this.$route.params.path,
+            isCollapsed: false,
         };
     },
 
     mounted() {
+        console.log(this.entries);
         if (!this.entries) {
             this.getEntries();
         }
@@ -43,18 +52,34 @@ export default {
                 Object.assign(this, data.body);
             });
         },
+
+        toggle(event) {
+            event.stopPropagation();
+            console.log(this);
+            this.isCollapsed = !this.isCollapsed;
+        },
     },
 };
 </script>
 
 <style lang="less">
+.file-tree {
+    user-select: none;
+
+    * {
+        cursor: default;
+    }
+}
+
 ol {
     list-style: none;
     margin: 0;
     padding: 0;
+    padding-left: 1.5em;
+    overflow: hidden;
 
-    ol {
-        margin-left: 1.5em;
+    .file-tree.collapsed > & {
+        height: 0;
     }
 }
 

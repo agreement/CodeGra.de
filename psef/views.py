@@ -11,8 +11,7 @@ def say_hello():
 @app.route("/api/dir/<path>")
 def get_dir_contents(path):
     return jsonify({
-        "path": path,
-        "name": "path",
+        "name": path,
         "entries": [
             {
                 "name": "a",
