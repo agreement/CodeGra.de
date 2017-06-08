@@ -31,3 +31,28 @@ case is the key `sort`, where there can be multiple options (separated by
 spaces) (these are the different sort options) and each value should be
 prepended with either a `-` or a `+` meaning respectively sort descending and
 sort ascending.
+
+### Http methods
+
+Http methods should be used as the verb that can not be used in the URL. The
+possible http methods are:
+
+- **GET**: This method should be used to get something from the server. It
+  should not have any side effects, so it should not alter the database for
+  example.
+- **POST**: This method should create a new object within the given collection.
+  Once again the URL is used for filtering, for example a `POST` to
+  `/api/v1/schools/5/teacher` should create a new teacher in the school with
+  id 5. The content type should be `application/json` and the payload should be
+  a valid JSON object.
+- **PUT**: This method should be used to update an existing object or create the
+  object if it does not exist. Filtering should be done using the URL (please
+  note that `/api/v1/schools/5/teacher` is not valid as this is not a single
+  object), the content type `application/json` and the payload should be a valid
+  JSON object.
+- **DELETE**: This method should be used to delete a object. The same rules
+  apply as for the **PUT** method.
+- **PATCH**: This method is the same as the **PUT** method, however it will
+  **NOT** create a new object if the object does not exist.
+
+Other Http methods may **NOT** be used.
