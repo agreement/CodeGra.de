@@ -27,3 +27,7 @@ pip install -r requirements.txt > /dev/null
 
 echo "Installing NPM requirements"
 npm install > /dev/null
+
+echo "Initializing database"
+export CODEGRADE_DATABASE_URL="postgresql:///codegrade_dev"
+./manage.py db init
