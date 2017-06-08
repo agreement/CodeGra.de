@@ -31,4 +31,4 @@ SECRET_KEY = "secret"
 UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
 
 # Maximum size in bytes for uploaded files
-MAX_CONTENT_LENGTH = 1024  # 64 megabytes
+MAX_CONTENT_LENGTH = 64 * 2**20  # 64 megabytes

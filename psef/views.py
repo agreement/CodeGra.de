@@ -13,24 +13,29 @@ def say_hello():
 
 @app.route("/api/upload-code", methods=['POST'])
 def upload_code():
+    """
+    Saves the file on the server if the submission is valid.
 
-	# Check if a file was sent
-	try:
-		file = request.files['file']
-	except KeyError:
-		return jsonify(False)
+    For a submission to be valid there needs to be:
+        - a named file under key 'file' in the request files
+        - a value under key 'student' in the request headers
+        - a value under key 'assignment' in the request headers
+    """
 
-	# Check if file is valid
-	if file.filename == '':
-		return jsonify(False)
-	# if file.content_length > app.config['MAX_CONTENT_LENGTH']:
-	# 	return jsonify(False)
+    # Check if a valid submission was made
+    try:
+        file = request.files['file']
+        student = int(request.headers['student'])
+        assignment = int(request.headers['assignment'])
 
-	# Save file under random name
-	random_file = os.path.join(app.config['UPLOAD_DIR'], str(uuid.uuid4()))
-	# file.save(random_file)  # works but pointless at the moment
+    except (KeyError, ValueError) as e:
+        return "Invalid submission"
+    
 
-	# Add entry to database
-	pass
+    # Save file under random name
+    random_file = os.path.join(app.config['UPLOAD_DIR'], str(uuid.uuid4()))
+    file.save(random_file)
 
-	return jsonify(True)
+    # Add entry to database
+
+    return "Submission success"
