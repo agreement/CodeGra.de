@@ -91,3 +91,12 @@ at least the following keys:
 A error message may be nested, where the nested errors should be in an array
 behind the key `errors` and every item in the array should be a valid JSON error
 with the above specified required keys.
+
+### API documentation
+Every API end point for every http method should be documented. The headline
+structure should follow that of the URL but in reverse. So the API end
+`/api/v1/schools/3/teachers` should be documented under the title Teachers,
+ander **under** teachers there should be a subsection *schools*. Furthermore
+every API call should have input object, with types for every key and
+description, and an example output object. Last every API call should have a
+higher level description of the use and working.
