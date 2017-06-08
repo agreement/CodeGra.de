@@ -56,3 +56,21 @@ possible http methods are:
   **NOT** create a new object if the object does not exist.
 
 Other Http methods may **NOT** be used.
+
+### API responses
+#### Http status codes
+Http status codes should be used to convey the status of the request. The entire
+list of status codes can be found online. However these are the most important
+ones:
+- **200**: Everything is went file and the server should return a useful result.
+- **201**: This status should be used when a new resource is created after a
+  POST, PUT request.
+- **204**: This status should be used if the request was correct but no content
+  should be returned.
+- **400**: Should be signaled when a request was invalid.
+- **401**: Should be used when the user is not authorized, so if the user is not
+  logged in.
+- **403**: Should be used when the user is logged in but the user is not
+  authorized to see the requested object(s).
+- **404**: Should be used when the requested object does not exist.
+- **410**: Should be used if the object is no longer available.
