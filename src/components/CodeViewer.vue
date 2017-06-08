@@ -3,10 +3,18 @@
         <ol>
             <li v-for="(line, i) in highlighted_code">
                 <code v-html="line"></code>
-                <div class="feedback" v-if="feedback[i]">
+
+                <div class="feedback" v-if="!editable" v-show="feedback[i]">
                     {{ feedback[i] }}
                 </div>
-                <span class="add-comment" v-if="!feedback[i]">+</span>
+
+                <div class="edit-feedback" v-if="editable" v-show="feedback[i] != null">
+                    <textarea name="feedback" v-model="feedback[i]"></textarea>
+                    <button v-on:click="submitFeedback($event, i)">Submit</button>
+                    <button v-on:click="resetFeedback($event, i)">Reset</button>
+                </div>
+                <span class="add-feedback" v-if="editable" v-show="feedback[i] == null"
+                    v-on:click="addFeedback($event, i)">+</span>
             </li>
         </ol>
     </div>
@@ -17,6 +25,8 @@ import { highlight } from 'highlightjs';
 
 export default {
     name: 'code-viewer',
+
+    props: ['editable'],
 
     data() {
         return {
@@ -56,10 +66,20 @@ export default {
     methods: {
         getCode() {
             this.$http.get(`/api/code/${this.id}`).then((data) => {
-                this.lang = data.body.lang;
-                this.code = data.body.code;
-                this.feedback = data.body.feedback;
+                Object.assign(this, data.body);
             });
+        },
+
+        addFeedback(event, line) {
+            this.feedback[line] = '';
+        },
+
+        submitFeedback(event, line) {
+            console.log(event, line);
+        },
+
+        resetFeedback(event, line) {
+            this.feedback[line] = null;
         },
     },
 };
@@ -67,24 +87,24 @@ export default {
 
 <style src="../../node_modules/highlightjs/styles/github.css"></style>
 
-<style>
+<style lang="less">
+@linenr-width: 4em;
+@linenr-bg: #f8f8f8;
+@line-bg: white;
+
 ol {
     font-family: monospace;
     margin: 0;
-    margin-left: 2em;
     padding: 0;
-    background: #f8f8f8;
+    padding-left: @linenr-width;
+    background: @linenr-bg;
 }
 
 li {
     position: relative;
-    margin-left: 4em;
     padding-left: 1em;
-    background: white;
-
-    /* Prevent margin collapse. */
-    /* TODO: Find better solution. */
-    padding-bottom: 1px;
+    background: @line-bg;
+    cursor: text;
 }
 
 code {
@@ -93,39 +113,25 @@ code {
 }
 
 .feedback {
-    margin: .5em;
-    padding: 1em;
-    border: 1px solid #eee;
-    border-radius: 8px;
     font-family: sans-serif;
 }
 
+textarea {
+    display: block;
+}
+
 /* The '+' button on the left side. */
-.add-comment {
+.add-feedback {
     display: none;
     position: absolute;
     top: 0;
-    right: 100%;
-    width: 1.5em;
+    left: -@linenr-width;
     height: 100%;
-    margin-right: 4em;
-    padding: .2em .5em;
-    background: #f8f8f8;
-    border: 2px solid #f8f8f8;
-    border-right-width: 0;
-    border-radius: 35% 0 0 35%;
-    font-weight: bold;
-    text-align: center;
     cursor: pointer;
-}
 
-.add-comment:hover {
+    &:hover, li:hover & {
         display: block;
-        background: transparent;
-}
-
-li:hover .add-comment {
-    display: block;
+    }
 }
 
 /* Need this to be able to move the cursor all
@@ -136,7 +142,7 @@ li::before {
     position: absolute;
     top: 0;
     right: 100%;
-    width: 4em;
+    width: @linenr-width;
     height: 100%;
     content: '';
 }
