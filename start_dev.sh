@@ -2,11 +2,16 @@
 
 STOPPING=false
 export NO_BROWSER="${1:-true}"
+export CODEGRADE_DATABASE_URL="postgresql:///codegrade_dev"
 
 if [[ -z "$VIRTUAL_ENV" ]]; then
     echo 'You are not in the virtual env. Execute `source env/bin/activate` first!'
     exit 1
 fi
+
+echo "Migrating and upgrading database"
+./manage.py db migrate
+./manage.py db upgrade
 
 echo "Echo starting python and NPM, press Ctrl-C to stop"
 

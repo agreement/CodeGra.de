@@ -10,5 +10,7 @@ setup(
     install_requires=[
         'Flask',
         'Flask-SQLAlchemy',
+        'Flask-Migrate',
+        'Psycopg2',
     ],
 )
