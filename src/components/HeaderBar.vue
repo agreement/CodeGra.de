@@ -11,9 +11,3 @@ export default {
     name: 'header-bar',
 };
 </script>
-
-<style lang="less">
-header {
-    text-align: center;
-}
-</style>

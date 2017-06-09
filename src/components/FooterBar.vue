@@ -9,9 +9,3 @@ export default {
     name: 'footer-bar',
 };
 </script>
-
-<style lang="less">
-footer {
-    text-align: center;
-}
-</style>
