@@ -4,7 +4,7 @@
             <li><a v-bind:href="userBaseURL">{{ username }}</a></li>
             <li><a v-bind:href="userOpenURL">Open assignments</a></li>
             <li><a v-bind:href="userGradedURL">Graded assignments</a></li>
-            <li><a v-bind:href="userSettingsURL">Settings</a></li>
+            <li><a href="#/settings">Settings</a></li>
             <li><a href="#/logout">Logout</a></li>
         </ul>
         <ul v-else>
@@ -36,10 +36,6 @@ export default {
 
         userGradedURL() {
             return `${this.userBaseURL}/assignments?graded=1`;
-        },
-
-        userSettingsURL() {
-            return `${this.userBaseURL}/settings`;
         },
     },
 };
