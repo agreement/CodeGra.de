@@ -9,14 +9,13 @@
                 'glyphicon-folder-close': isCollapsed,
                 'glyphicon-folder-open': !isCollapsed,
             }"></span>
-            {{ dirName }}
+            {{ tree.name }}
         </div>
         <ol v-show="!isCollapsed">
-            <li v-for="f in dirEntries"
+            <li v-for="f in tree.entries"
                 v-bind:class="{ directory: f.entries, file: !f.entries }">
-                <file-tree :collapsed="true" v-bind:name="f.name"
-                    v-bind:entries="f.entries" v-if="f.entries"></file-tree>
-                <a href="#" v-else>
+                <file-tree v-bind:tree="f" v-if="f.entries"></file-tree>
+                <a v-bind:href="fileURL(f)" v-else>
                     <span class="glyphicon glyphicon-file"></span>
                     {{ f.name }}
                 </a>
@@ -29,35 +28,32 @@
 export default {
     name: 'file-tree',
 
-    props: ['name', 'entries', 'collapsed'],
+    props: {
+        tree: {
+            type: Object,
+            default: null,
+        },
+        collapsed: {
+            type: Boolean,
+            default: true,
+        },
+    },
 
     data() {
         return {
-            path: this.$route.params.path,
             isCollapsed: this.collapsed,
-            dirEntries: this.entries,
-            dirName: this.name,
         };
     },
 
-    mounted() {
-        if (!this.dirEntries) {
-            this.getEntries();
-        }
-    },
-
     methods: {
-        getEntries() {
-            this.$http.get(`/api/dir/${this.path}`).then((data) => {
-                console.log(data.body);
-                this.dirName = data.body.name;
-                this.dirEntries = data.body.entries;
-            });
-        },
-
         toggle(event) {
             event.stopPropagation();
             this.isCollapsed = !this.isCollapsed;
+        },
+
+        fileURL(file) {
+            const path = this.$route.path.replace(/\/files\/\d+/, '');
+            return `#${path}/files/${file.id}`;
         },
     },
 };
@@ -66,21 +62,18 @@ export default {
 <style lang="less">
 .file-tree {
     user-select: none;
+    cursor: default;
+
+    ol {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        padding-left: 1.5em;
+        overflow: hidden;
+    }
 
     .glyphicon {
         margin-right: .25em;
     }
-
-    * {
-        cursor: default;
-    }
-}
-
-ol {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    padding-left: 1.5em;
-    overflow: hidden;
 }
 </style>

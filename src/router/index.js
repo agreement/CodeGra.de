@@ -17,17 +17,14 @@ export default new Router({
             component: Login,
         },
         {
-            path: '/students/:sid/assignment/:aid',
+            path: '/students/:sid/assignments/:aid',
             name: 'Student assignment',
             component: Assignment,
         },
         {
-            path: '/code/:id',
-            name: 'CodeViewer',
-            component: CodeViewer,
-            props: {
-                editable: true,
-            },
+            path: '/students/:sid/assignments/:aid/files/:fid',
+            name: 'Student assignment',
+            component: Assignment,
         },
     ],
 });
