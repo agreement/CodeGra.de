@@ -9,12 +9,12 @@
                 'glyphicon-folder-close': isCollapsed,
                 'glyphicon-folder-open': !isCollapsed,
             }"></span>
-            {{ name }}
+            {{ dirName }}
         </div>
         <ol v-show="!isCollapsed">
-            <li v-for="f in entries"
+            <li v-for="f in dirEntries"
                 v-bind:class="{ directory: f.entries, file: !f.entries }">
-                <file-tree collapsed="true" v-bind:name="f.name"
+                <file-tree :collapsed="true" v-bind:name="f.name"
                     v-bind:entries="f.entries" v-if="f.entries"></file-tree>
                 <a href="#" v-else>
                     <span class="glyphicon glyphicon-file"></span>
@@ -34,13 +34,14 @@ export default {
     data() {
         return {
             path: this.$route.params.path,
-            isCollapsed: false,
+            isCollapsed: this.collapsed,
+            dirEntries: this.entries,
+            dirName: this.name,
         };
     },
 
     mounted() {
-        console.log(this.entries);
-        if (!this.entries) {
+        if (!this.dirEntries) {
             this.getEntries();
         }
     },
@@ -48,13 +49,14 @@ export default {
     methods: {
         getEntries() {
             this.$http.get(`/api/dir/${this.path}`).then((data) => {
-                Object.assign(this, data.body);
+                console.log(data.body);
+                this.dirName = data.body.name;
+                this.dirEntries = data.body.entries;
             });
         },
 
         toggle(event) {
             event.stopPropagation();
-            console.log(this);
             this.isCollapsed = !this.isCollapsed;
         },
     },
@@ -64,6 +66,10 @@ export default {
 <style lang="less">
 .file-tree {
     user-select: none;
+
+    .glyphicon {    
+        margin-right: .25em;
+    }
 
     * {
         cursor: default;
@@ -76,11 +82,5 @@ ol {
     padding: 0;
     padding-left: 1.5em;
     overflow: hidden;
-}
-
-li {
-    .glyphicon {
-        margin-right: .25em;
-    }
 }
 </style>
