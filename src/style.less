@@ -4,31 +4,31 @@ footer {
 }
 
 .input-group {
-    margin: .5em 0;
+    padding: .5em 0;
 }
 
 .code-viewer {
-    @linenr-width: 50px;
     @linenr-bg: #f8f8f8;
     @line-bg: white;
 
     ol {
-        padding-left: @linenr-width;
         background: @linenr-bg;
     }
 
     li {
-        background: @line-bg
+        background: @line-bg;
+
+        &:first-child {
+            border-radius: 3px 3px 0 0;
+        }
+
+        &:last-child {
+            border-radius: 0 0 3px 3px;
+        }
     }
 
     code {
         line-height: 1.5;
         background: @line-bg;
-    }
-
-    .add-feedback {
-        top: -5px;
-        left: -@linenr-width + 5px;
-        font-size: 20px;
     }
 }
