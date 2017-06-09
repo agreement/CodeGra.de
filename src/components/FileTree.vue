@@ -11,10 +11,9 @@
             }"></span>
             {{ name }}
         </div>
-        <ol>
+        <ol v-show="!isCollapsed">
             <li v-for="f in entries"
                 v-bind:class="{ directory: f.entries, file: !f.entries }">
-
                 <file-tree collapsed="true" v-bind:name="f.name"
                     v-bind:entries="f.entries" v-if="f.entries"></file-tree>
                 <a href="#" v-else>
@@ -77,10 +76,6 @@ ol {
     padding: 0;
     padding-left: 1.5em;
     overflow: hidden;
-
-    .file-tree.collapsed > & {
-        height: 0;
-    }
 }
 
 li {
