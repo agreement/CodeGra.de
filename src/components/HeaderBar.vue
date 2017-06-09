@@ -1,5 +1,9 @@
 <template>
-    <div class="header-bar"></div>
+    <header class="header-bar">
+        <h1>
+            <a href="#/">CodeGra.de</a>
+        </h1>
+    </header>
 </template>
 
 <script>
