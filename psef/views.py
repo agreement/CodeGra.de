@@ -18,7 +18,8 @@ def get_code(id):
         return jsonify({
             "id": 0,
             "lang": "python",
-            "code": "def id0func0():\n\treturn 0\n\n\ndef id0func1():\n\treturn 1",
+            "code": "def id0func0():\n\treturn 0\n\n\ndef id0func1():\n\t" +
+                    "return 1",
             "feedback": {
                 "0": "wtf",
             }
@@ -27,7 +28,8 @@ def get_code(id):
         return jsonify({
             "id": id,
             "lang": "c",
-            "code": "void\nsome_func(void) {}\n\nvoid other_func(int x) {\n\treturn 2 * x;\n}",
+            "code": "void\nsome_func(void) {}\n\nvoid other_func(int x)" +
+                    "{\n\treturn 2 * x;\n}",
             "feedback": {
                 "1": "slechte naam voor functie",
                 "3": "niet veel beter..."
@@ -37,7 +39,8 @@ def get_code(id):
 
 @app.route("/api/v1/dir/<path>")
 def get_dir_contents(path):
-    return jsonify(dir_contents(path));
+    return jsonify(dir_contents(path))
+
 
 def dir_contents(path):
     return {
@@ -46,18 +49,18 @@ def dir_contents(path):
             {
                 "name": "a",
                 "entries": [
-                    { "name": "a_1", "id": 0, },
-                    { "name": "a_2", "id": 1, },
+                    {"name": "a_1", "id": 0, },
+                    {"name": "a_2", "id": 1, },
                     {
                         "name": "a_3",
                         "entries": [
-                            { "name": "a_3_1", "id": 2 },
+                            {"name": "a_3_1", "id": 2},
                         ],
                     },
                 ],
             },
-            { "name": "b", "id": 3 },
-            { "name": "c", "id": 4 },
-            { "name": "d", "id": 5 },
+            {"name": "b", "id": 3},
+            {"name": "c", "id": 4},
+            {"name": "d", "id": 5},
         ]
     }
