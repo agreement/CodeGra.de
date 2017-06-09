@@ -19,6 +19,8 @@ export default {
 
     data() {
         return {
+
+            // dummy
             loggedIn: 1,
             userid: 0,
             username: 'Henk',
