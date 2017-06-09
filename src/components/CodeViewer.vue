@@ -11,7 +11,6 @@
                 <div class="edit-feedback input-group" v-if="editable" v-show="feedback[i] != null">
                     <input type="text" class="form-control feedback" v-model="feedback[i]"></textarea>
 
-                    <!-- submint & cancel knoppen -->
                     <div class="input-group-btn feedback-buttons" role="group">
                         <button type="button" class="btn btn-default" v-on:click="cancelFeedback($event, i)">
                             <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
