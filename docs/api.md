@@ -1,5 +1,5 @@
 # API
-This is they API documentation for API verion 1 of the codebuil.de website.
+This is the API documentation for API verion 1 of the codebuil.de website.
 
 ## General rules
 ### URL buildup
@@ -18,11 +18,13 @@ be a new path in the URL. So querying a single school should use the url
 Collections can be nested, so multiple collections in a single URL, however
 these rules should be followed. First a single directory in the URL should
 always contain only one collection. Second the URL should be read from left to
-right, so the URL `/api/v1/schools/23/teachers/3/children` should return all
-children of the teacher with id 3 of the school with id 23. Last but the last
-collection should have a id specifier when using nested collections, this means
-the pattern `(collection/id)*/collection(/id)?` should always be used. For
-example the URL `/api/v1/schools/teachers` is always illegal.
+right, so the URL `/api/v1/schools/23/teachers/3/children/` should return all
+children of the teacher with id 3 of the school with id 23 (please not the
+required trailing slash). All but the last collection should have an id
+specifier when using nested collections, this means the pattern
+`(collection/id)*/collection/(id)?` (please note that there is **no** trailing
+slash after an id) should always be used. For example the URL
+`/api/v1/schools/teachers/` is always illegal.
 
 To sort, filter and search `GET` parameters should be passed (see the next
 section for Http methods documentation), it should follow the `key=value` where
@@ -62,7 +64,7 @@ Other Http methods may **NOT** be used.
 Http status codes should be used to convey the status of the request. The entire
 list of status codes can be found online. However these are the most important
 ones:
-- **200**: Everything is went file and the server should return a useful result.
+- **200**: Everything went OK and the server should return a useful result.
 - **201**: This status should be used when a new resource is created after a
   POST, PUT request.
 - **204**: This status should be used if the request was correct but no content
