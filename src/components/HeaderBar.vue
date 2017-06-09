@@ -1,5 +1,5 @@
 <template>
-    <header class="header-bar">
+    <header>
         <h1>
             <a href="#/">CodeGra.de</a>
         </h1>
@@ -13,4 +13,7 @@ export default {
 </script>
 
 <style lang="less">
+header {
+    text-align: center;
+}
 </style>
