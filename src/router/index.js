@@ -13,7 +13,7 @@ export default new Router({
             component: Hello,
         },
         {
-            path: '/GradingAssignment',
+            path: '/GradingAssignment/:id',
             name: 'GradingAssignment',
             component: GradingAssignment,
         },
