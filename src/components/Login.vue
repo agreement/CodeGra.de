@@ -25,7 +25,7 @@
 import { bPopover, bBtn } from 'bootstrap-vue/lib/components';
 
 export default {
-    name: 'hello',
+    name: 'login',
     data() {
         return {
             email: '',
