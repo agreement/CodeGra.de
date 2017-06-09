@@ -1,8 +1,4 @@
-from flask.ext.sqlalchemy import SQLAlchemy
-from psef import app
-
-db = SQLAlchemy(app)
-
+from psef import db, app
 
 
 class User (db.Model):
@@ -11,10 +7,12 @@ class User (db.Model):
     name = db.Column('name', db.Unicode)
     role = db.Column('role', db.Integer)
 
+
 class Course (db.Model):
     __tablename__ = "Course"
     id = db.Column('id', db.Integer, primary_key = True)
     name = db.Column('name', db.Unicode)
+
 
 class Work (db.Model):
     __tablename__ = "Work"
@@ -27,6 +25,7 @@ class Work (db.Model):
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', foreign_keys=user_id)
 
+
 class File (db.Model):
     __tablename__ = "File"
     id = db.Column('id', db.Integer, primary_key = True)
@@ -35,6 +34,7 @@ class File (db.Model):
     description = db.Column('description', db.Unicode)
 
     work = db.relationship('Work', foreign_keys=work_id)
+
 
 class Comment (db.Model):
     __tablename__ = "Comment"
@@ -47,6 +47,7 @@ class Comment (db.Model):
     file = db.relationship('File', foreign_keys=file_id)
     user = db.relationship('User', foreign_keys=user_id)
 
+
 class Assignment (db.Model):
     __tablename__ = "Assignment"
     id = db.Column('id', db.Integer, primary_key = True)
@@ -54,4 +55,3 @@ class Assignment (db.Model):
     course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
 
     course = db.relationship('Course', foreign_keys=course_id)
-
