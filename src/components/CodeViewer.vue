@@ -12,10 +12,10 @@
                     <input type="text" class="form-control feedback" v-model="feedback[i]"></textarea>
 
                     <div class="input-group-btn feedback-buttons" role="group">
-                        <button type="button" class="btn btn-default" v-on:click="cancelFeedback($event, i)">
+                        <button type="button" class="btn btn-default cancel" v-on:click="cancelFeedback($event, i)">
                             <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                         </button>
-                        <button type="button" class="btn btn-primary" v-on:click="submitFeedback($event, i)">
+                        <button type="button" class="btn btn-primary submit" v-on:click="submitFeedback($event, i)">
                             <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
                         </button>
                     </div>
@@ -66,8 +66,8 @@ export default {
     },
 
     watch: {
-        id(newId) {
-            this.fileId = newId;
+        id(to) {
+            this.fileId = to;
         },
 
         fileId() {
