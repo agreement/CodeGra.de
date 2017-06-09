@@ -5,16 +5,18 @@
             <side-bar></side-bar>
             <router-view></router-view>
         </main>
+        <footer-bar></footer-bar>
     </div>
 </template>
 
 <script>
-import { HeaderBar, SideBar } from '@/components';
+import { FooterBar, HeaderBar, SideBar } from '@/components';
 
 export default {
     name: 'app',
 
     components: {
+        FooterBar,
         HeaderBar,
         SideBar,
     },
