@@ -13,12 +13,12 @@
 
                     <div class="input-group-btn">
                         <button type="button" class="btn btn-default cancel" v-on:click="cancelFeedback($event, i)">
-                            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                            <icon name="times" aria-hidden="true"></icon>
                         </button>
                     </div>
                     <div class="input-group-btn">
                         <button type="button" class="btn btn-primary submit" v-on:click="submitFeedback($event, i)">
-                            <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+                            <icon name="check" aria-hidden="true"></icon>
                         </button>
                     </div>
                 </div>
@@ -35,6 +35,10 @@
 <script>
 import { highlight } from 'highlightjs';
 import Vue from 'vue';
+
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/check';
+import 'vue-awesome/icons/times';
 
 export default {
     name: 'code-viewer',
@@ -102,6 +106,10 @@ export default {
             event.stopPropagation();
             Vue.set(this.feedback, line, null);
         },
+    },
+
+    components: {
+        Icon,
     },
 };
 </script>
