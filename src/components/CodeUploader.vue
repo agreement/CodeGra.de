@@ -9,9 +9,6 @@
           :dropzoneOptions=options
           v-on:vdropzone-error="error">
         </dropzone>
-        <ul id="uploads" class="list-group">
-
-        </ul>
         <div style='align:center'>
         <button class="btn btn-primary upload" v-on:click="submit">Upload</button>
         <button class="btn btn-danger upload" v-on:click="removeAll">Remove all</button>
@@ -24,9 +21,15 @@
 
     const htmlTemplate = `
     <li class="list-group-item s-file">
-        <span class="error label label-as-badge label-danger">Upload error</span>
-        <span class="warning label label-as-badge label-warning" data-dz-errormessage></span>
-        <span class="success label label-as-badge label-success">Uploaded</span>
+        <div class="s-status">
+            <span class="error label label-as-badge label-danger">Upload error</span>
+            <span class="warning label label-as-badge label-warning" data-dz-errormessage></span>
+            <span class="success label label-as-badge label-success">Uploaded</span>
+            <div class="progress progress-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div class="progress-bar progress-bar-success" style="width:0%;" data-dz-uploadprogress>
+                </div>
+            </div>
+        </div>
         <span class="name" data-dz-name></span>
         <span class="size" data-dz-size></span>
     </li>
@@ -65,6 +68,8 @@
                     autoProcessQueue: false,
                     addRemoveLinks: false,
                     dictDefaultMessage: 'Drop code here or click to submit',
+                    uploadMultiple: true,
+                    parallelUploads: this.maxFiles,
                     previewTemplate: htmlTemplate,
                     // previewsContainer: '#uploads',
                 },
@@ -72,6 +77,7 @@
         },
         methods: {
             submit: function submit() {
+                // this.$refs.dz.getAcceptedFiles();
                 this.$refs.dz.processQueue();
             },
             removeAll: function removeAll() {
@@ -84,8 +90,8 @@
                 } else {
                     message = response.message;
                 }
-                const child = file.previewElement.children[0];
-                child.innerText = message;
+                const errorElement = file.previewElement.children[0].children[0];
+                errorElement.innerText = message;
             },
         },
     };
@@ -133,13 +139,22 @@
     overflow: hidden;
 }
 
-.s-file.dz-error.dz-processing .warning, .s-file .warning, .s-file .success, .s-file .error {
+.s-file.dz-error.dz-processing .s-status .warning, .s-file .s-status .warning, .s-file .s-status .success, .s-file .s-status .error {
     display: none;
 }
 
-.s-file.dz-error .warning, .s-file.dz-success .success, .s-file.dz-error.dz-processing .error {
+.s-file.dz-error .s-status .warning, .s-file.dz-success .s-status .success, .s-file.dz-error.dz-processing .s-status .error {
     display: block;
 }
+
+.s-file .progress, .s-file.dz-error.dz-processing .progress, .s-file.dz-processing.dz-success .progress {
+    display: none;
+}
+
+.s-file.dz-processing .progress {
+    display: block;
+}
+
 
 .s-file.dz-success {
     background-color: #dff0d8;

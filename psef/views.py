@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import uuid
+import tempfile
 
 from flask import jsonify, make_response, request
 from psef import app
@@ -12,49 +13,57 @@ def say_hello():
     return jsonify({"msg": "Hello this is Flask."})
 
 
-@app.route("/api/v1/assignments/<int:assignment_id>"
-           "/works/<int:work_id>/file", methods=['POST'])
-def upload_file(assignment_id, work_id):
+@app.route("/api/v1/works/<int:work_id>/file", methods=['POST'])
+def upload_file(work_id):
     """
-    Saves the file on the server if the request is valid.
+    Saves the files on the server if the request is valid.
 
     For a request to be valid there needs to be:
-        - a file under key 'file' in the request files
-        - this file may not be unnamed
+        - at least one file under key 'file' in the request files
+        - all files must be named
     """
 
     # Check if a valid submission was made
+    files = []
     try:
-        file = request.files['file']
+        if len(request.files) == 0:
+            raise KeyError
+        for key in request.files:
+            if not key.startswith('file'):
+                raise ValueError(
+                    "There was some file in the http request with key {:s}, "
+                    "expected file[idx].".format(key))
 
-        if file.filename == '':
-            raise ValueError
+            file = request.files[key]
+            if file.filename == '':
+                raise ValueError(
+                    "The name of the file with key '{:s}' in the http request "
+                    "was an empty string.".format(key))
 
-    except KeyError:
+            files.append(file)
+    except KeyError as e:
         return make_response(jsonify({
-            "message": "No file was attached under the correct key",
-            "description": "There was no file in the http request with the "
-            "key 'file'.",
+            "message": "No file in HTTP request.",
+            "description": "There was no file in the HTTP request.",
             "code": None
         }), 400)
-    except ValueError:
+    except ValueError as e:
         return make_response(jsonify({
-            "message": "There was no file selected or the submitted file has "
-                       "no name.",
-            "description": "The name of the file in the http request was an "
-                           "empty string.",
+            "message": "Invalid file in HTTP request.",
+            "description": str(e),
             "code": None
         }), 400)
 
-    # Save file under random name
-    random_file = os.path.join(app.config['UPLOAD_DIR'], str(uuid.uuid4()))
-    file.save(random_file)
+    # Save files under random name
+    for file in files:
+        random_file = os.path.join(app.config['UPLOAD_DIR'], str(uuid.uuid4()))
+        file.save(random_file)
 
-    # Add entry to database
+        # TODO: Add entry to database
 
     return make_response(jsonify({
-        "message": "File was successfully uploaded",
-        "description": "The file was uploaded and is stored in the uploads "
+        "message": "Files were successfully uploaded",
+        "description": "The files were uploaded and are stored in the uploads "
                        "folder",
         "code": None
     }), 200)
