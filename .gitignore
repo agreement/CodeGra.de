@@ -10,3 +10,4 @@ selenium-debug.log
 env/
 *.pyc
 __pycache__/
+migrations/
