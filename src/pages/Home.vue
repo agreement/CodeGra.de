@@ -5,13 +5,17 @@
 </template>
 
 <script>
-import login from '@/components/Login';
+import { Login } from '@/components';
 
 export default {
     name: 'home-page',
 
+    data() {
+        return {};
+    },
+
     components: {
-        login,
+        Login,
     },
 };
 </script>

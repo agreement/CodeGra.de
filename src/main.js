@@ -8,8 +8,8 @@ import Vue from 'vue';
 import Resource from 'vue-resource';
 import BootstrapVue from 'bootstrap-vue';
 
-import App from './App';
-import router from './router';
+import App from '@/App';
+import router from '@/router';
 
 Vue.use(Resource);
 Vue.use(BootstrapVue);
