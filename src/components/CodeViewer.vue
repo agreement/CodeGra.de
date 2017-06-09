@@ -8,13 +8,15 @@
                     {{ feedback[i] }}
                 </div>
 
-                <div class="edit-feedback input-group" v-if="editable" v-show="feedback[i] != null">
-                    <input type="text" class="form-control feedback" v-model="feedback[i]"></textarea>
+                <div class="input-group" v-if="editable" v-show="feedback[i] != null">
+                    <input type="text" class="form-control" v-model="feedback[i]"></textarea>
 
-                    <div class="input-group-btn feedback-buttons" role="group">
+                    <div class="input-group-btn">
                         <button type="button" class="btn btn-default cancel" v-on:click="cancelFeedback($event, i)">
                             <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
                         </button>
+                    </div>
+                    <div class="input-group-btn">
                         <button type="button" class="btn btn-primary submit" v-on:click="submitFeedback($event, i)">
                             <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
                         </button>
@@ -24,7 +26,7 @@
                     v-on:click="addFeedback($event, i)">+</span>
             </li>
         </ol>
-        <div class="submit-all-feedback">
+        <div class="input-group">
             <button type="button" class="btn btn-primary" v-on:click="submitAllFeedback($event)">Submit All</button>
         </div>
     </div>
@@ -106,87 +108,41 @@ export default {
 
 <style src="../../node_modules/highlightjs/styles/github.css"></style>
 
-<style lang="less">
-@linenr-width: 50px;
-@linenr-bg: #f8f8f8;
-@line-bg: white;
+<style lang="less" scoped>
+@linenr-width: 40px;
 
-.code-viewer {
-    ol {
-        font-family: monospace;
-        margin: 0;
-        padding: 0;
-        padding-left: @linenr-width;
-        background: @linenr-bg;
-    }
+ol {
+    font-family: monospace;
+    margin: 0;
+    padding: 0 0 0 @linenr-width;
+}
 
-    li {
-        position: relative;
-        padding-left: 1em;
-        padding-bottom: 1px;
-        background: @line-bg;
-    }
+li {
+    position: relative;
+    padding-left: 1em;
+    padding-bottom: 1px;
+}
 
-    &.editable {
-        cursor: pointer;
-    }
+&.editable li {
+    cursor: pointer;
+}
 
-    code {
-        white-space: pre;
-        line-height: 1.5;
-        background-color: white;
-    }
+code {
+    white-space: pre;
+}
 
-    .feedback {
-        font-family: sans-serif;
-    }
+.feedback {
+    font-family: sans-serif;
+}
 
-    textarea {
-        width: 80%;
-        margin: 5px 5px 0 5px;
+.add-feedback {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: -@linenr-width;
+
+    li:hover & {
         display: block;
-        border-radius: 3px;
-        border: 1px solid #bdc3c7;
-        background-color: #e5e5e5;
-    }
-
-    textarea:focus{
-        border-color: #3aabf0;
-        outline: 0;
-        box-shadow: inset 0 1px 1px rgba(0,0,0,0,0.75),0 0 8px rgba(58, 171, 240,0.6);
-
-    }
-
-    /* The '+' button on the left side. */
-    .add-feedback {
-        display: none;
-        position: absolute;
-        top: -5px;
-        left: -@linenr-width + 5px;
-        height: 100%;
-        cursor: pointer;
-        font-size: 20px;
-
-        &:hover, li:hover & {
-            display: block;
-        }
-    }
-
-    /* Need this to be able to move the cursor all
-    * the way to the left to the '+' button without
-    * losing the hover on the li. */
-    li::before {
-        display: block;
-        position: absolute;
-        top: 0;
-        right: 100%;
-        width: @linenr-width;
-        height: 100%;
-        content: '';
-    }
-
-    .edit-feedback, .submit-all-feedback {
-        margin: 10px;
     }
 }
 

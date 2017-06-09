@@ -3,6 +3,7 @@
 
 import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap-vue/dist/bootstrap-vue.css';
+import '@/style.less';
 
 import Vue from 'vue';
 import Resource from 'vue-resource';
