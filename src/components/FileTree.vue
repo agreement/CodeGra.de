@@ -1,23 +1,17 @@
 <template>
     <div class="file-tree" v-bind:class="{ collapsed: isCollapsed, }">
         <div v-on:click="toggle($event)">
-            <span class="glyphicon" v-bind:class="{
-                'glyphicon-triangle-right': isCollapsed,
-                'glyphicon-triangle-bottom': !isCollapsed,
-            }"></span>
-            <span class="glyphicon" v-bind:class="{
-                'glyphicon-folder-close': isCollapsed,
-                'glyphicon-folder-open': !isCollapsed,
-            }"></span>
+            <icon name="caret-right" v-if="isCollapsed"></icon>
+            <icon name="caret-down" v-else></icon>
+            <icon name="folder" v-if="isCollapsed"></icon>
+            <icon name="folder-open" v-else></icon>
             {{ tree.name }}
         </div>
         <ol v-show="!isCollapsed">
-            <li v-for="f in tree.entries"
-                v-bind:class="{ directory: f.entries, file: !f.entries }">
+            <li v-for="f in tree.entries">
                 <file-tree v-bind:tree="f" v-if="f.entries"></file-tree>
                 <a v-bind:href="fileURL(f)" v-else>
-                    <span class="glyphicon glyphicon-file"></span>
-                    {{ f.name }}
+                    <icon name="file"></icon> {{ f.name }}
                 </a>
             </li>
         </ol>
@@ -25,6 +19,13 @@
 </template>
 
 <script>
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/folder';
+import 'vue-awesome/icons/folder-open';
+import 'vue-awesome/icons/file';
+import 'vue-awesome/icons/caret-right';
+import 'vue-awesome/icons/caret-down';
+
 export default {
     name: 'file-tree',
 
@@ -56,6 +57,10 @@ export default {
             return `#${path}/files/${file.id}`;
         },
     },
+
+    components: {
+        Icon,
+    },
 };
 </script>
 
@@ -70,10 +75,6 @@ export default {
         padding: 0;
         padding-left: 1.5em;
         overflow: hidden;
-    }
-
-    .glyphicon {
-        margin-right: .25em;
     }
 }
 </style>
