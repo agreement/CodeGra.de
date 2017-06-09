@@ -21,5 +21,13 @@ export default new Router({
             name: 'Student assignment',
             component: Assignment,
         },
+        {
+            path: '/code/:id',
+            name: 'CodeViewer',
+            component: CodeViewer,
+            props: {
+                editable: true,
+            },
+        },
     ],
 });

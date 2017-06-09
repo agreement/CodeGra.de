@@ -106,6 +106,11 @@ export default {
 @linenr-width: 50px;
 @linenr-bg: #f8f8f8;
 @line-bg: white;
+
+* {
+    box-sizing: border-box;
+}
+
 ol {
     font-family: monospace;
     margin: 0;
