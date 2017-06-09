@@ -1,6 +1,6 @@
 <template>
     <div class="page home">
-        <login></login>
+        <login v-if="!loggedIn"></login>
     </div>
 </template>
 
@@ -11,7 +11,11 @@ export default {
     name: 'home-page',
 
     data() {
-        return {};
+        return {
+            loggedIn: 1,
+            userid: 0,
+            username: 'Henk',
+        };
     },
 
     components: {
