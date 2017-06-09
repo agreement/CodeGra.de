@@ -22,6 +22,9 @@ export default new Router({
             path: '/dir/:path',
             name: 'FileTree',
             component: FileTree,
+            props: {
+                editable: true,
+            },
         },
     ],
 });
