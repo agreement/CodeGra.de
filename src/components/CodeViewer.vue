@@ -66,8 +66,11 @@ export default {
     },
 
     watch: {
-        $route(to) {
-            this.fileId = to.params.fid;
+        id(newId) {
+            this.fileId = newId;
+        },
+
+        fileId() {
             this.getCode();
         },
     },
