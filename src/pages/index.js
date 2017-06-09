@@ -1,9 +1,9 @@
-import Assignment from './Assignment';
+import Submission from './Submission';
 import Home from './Home';
 import Login from './Login';
 
 export {
-    Assignment,
+    Submission,
     Home,
     Login,
 };

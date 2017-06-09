@@ -1,6 +1,6 @@
 import Vue from 'vue';
 import Router from 'vue-router';
-import { Assignment, Home, Login } from '@/pages';
+import { Submission, Home, Login } from '@/pages';
 
 Vue.use(Router);
 
@@ -17,14 +17,14 @@ export default new Router({
             component: Login,
         },
         {
-            path: '/students/:sid/assignments/:aid',
+            path: '/submission/:submissionId',
             name: 'Student assignment',
-            component: Assignment,
+            component: Submission,
         },
         {
-            path: '/students/:sid/assignments/:aid/files/:fid',
+            path: '/submission/:submissionId/files/:fileId',
             name: 'Student assignment',
-            component: Assignment,
+            component: Submission,
         },
     ],
 });
