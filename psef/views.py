@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import os
-import uuid
 import tempfile
+import uuid
+from zipfile import ZipFile
 
+import patoolib
 from flask import jsonify, make_response, request
 from psef import app
 from werkzeug.utils import secure_filename
@@ -11,6 +13,22 @@ from werkzeug.utils import secure_filename
 @app.route("/api/hello")
 def say_hello():
     return jsonify({"msg": "Hello this is Flask."})
+
+
+def random_file_path():
+    "Generates a new random file path in the upload directory."
+    while True:
+        candidate = os.path.join(app.config['UPLOAD_DIR'], str(uuid.uuid4()))
+        if os.path.exists(candidate):
+            continue
+        else:
+            break
+    return candidate
+
+
+def is_archive(file):
+    return file.filename.endswith(('.zip', '.tar.gz', '.tgz', '.tbz',
+                                   '.tar.bz2'))
 
 
 @app.route("/api/v1/works/<int:work_id>/file", methods=['POST'])
@@ -55,11 +73,22 @@ def upload_file(work_id):
         }), 400)
 
     # Save files under random name
+    # TODO: Add entries to database
     for file in files:
-        random_file = os.path.join(app.config['UPLOAD_DIR'], str(uuid.uuid4()))
-        file.save(random_file)
+        # Unpack archives
+        if is_archive(file):
+            tmpmode, tmparchive = tempfile.mkstemp()
+            tmpdir = tempfile.mkdtemp()
+            file.save(tmparchive)
+            patoolib.extract_archive(tmparchive, outdir=tmpdir)
 
-        # TODO: Add entry to database
+            for root, _, filenames in os.walk(tmpdir):
+                rel_path = os.path.relpath(root, start=tmpdir)
+                for filename in filenames:
+                    os.rename(os.path.join(root, filename), random_file_path())
+
+        else:
+            file.save(random_file_path())
 
     return make_response(jsonify({
         "message": "Files were successfully uploaded",
