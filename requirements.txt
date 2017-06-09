@@ -1,4 +1,6 @@
 Flask==0.12.2
 Flask-SQLAlchemy==2.2
+Flask-Migrate
 SQLAlchemy==1.1.10
 Werkzeug==0.12.2
+Psycopg2

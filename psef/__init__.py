@@ -1,19 +1,13 @@
 # Import flask and template operators
 from flask import Flask, render_template
 # Import SQLAlchemy
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-
-
-
-#from app.mod_auth.controllers import mod_auth as auth_module
-
-# Define the WSGI application object
-
 # Configurations
 app.config.from_object('config')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Define the database object which is imported
 # by modules and controllers

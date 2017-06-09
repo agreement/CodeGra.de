@@ -3,6 +3,7 @@ import Router from 'vue-router';
 import Hello from '@/components/Hello';
 import CodeViewer from '@/components/CodeViewer';
 import FileTree from '@/components/FileTree';
+import Login from '@/components/Login';
 
 Vue.use(Router);
 
@@ -25,6 +26,11 @@ export default new Router({
             props: {
                 editable: true,
             },
+        },
+        {
+            path: '/login',
+            name: 'Login',
+            component: Login,
         },
     ],
 });
