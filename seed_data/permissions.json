@@ -1,0 +1,7 @@
+[
+    {
+        "name": "can_add_users",
+        "default_value": false,
+        "course_permission": false
+    }
+]
