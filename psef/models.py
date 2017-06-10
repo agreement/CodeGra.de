@@ -141,11 +141,11 @@ class File(db.Model):
 
 class Comment(db.Model):
     __tablename__ = "Comment"
-    id = db.Column('id', db.Integer, primary_key=True)
     file_id = db.Column('File_id', db.Integer, db.ForeignKey('File.id'))
     user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
     line = db.Column('line', db.Integer)
     comment = db.Column('comment', db.Unicode)
+    db.PrimaryKeyConstraint('file_id', 'line', name='id')
 
     file = db.relationship('File', foreign_keys=file_id)
     user = db.relationship('User', foreign_keys=user_id)
