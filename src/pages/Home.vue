@@ -1,10 +1,11 @@
 <template>
     <div class="page home">
-        <login v-if="!user.loggedIn"></login>
+        <login v-if="!loggedIn"></login>
     </div>
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import { Login } from '@/components';
 
 export default {
@@ -14,8 +15,10 @@ export default {
         Login,
     },
 
-    store: {
-        user: 'user',
+    computed: {
+        ...mapGetters([
+            'loggedIn',
+        ]),
     },
 };
 </script>

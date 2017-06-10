@@ -22,7 +22,10 @@
 
 <script>
 
+import { mapActions } from 'vuex';
 import { bPopover } from 'bootstrap-vue/lib/components';
+
+import * as error from '@/errors';
 
 export default {
     name: 'login',
@@ -45,38 +48,31 @@ export default {
                 return;
             }
 
-            this.$http.post('/api/v1/login', { email: this.email, password: this.password }).then((data) => {
-                if (data.body.success) {
-                    // eslint-disable-next-line
-                    console.log('Log in successful');
-                    this.user.loggedIn = true;
-                    this.user.email = this.email;
-
-                    this.user.id = data.body.id;
-                    this.user.name = data.body.name;
-
-                    // Clear password for security
-                    this.password = '';
-
-                    // Redirect to homepage
-                    this.$router.replace('/');
+            this.tryLogin({ email: this.email, password: this.password }).then(() => {
+                this.$router.replace('/');
+            }).catch((reason) => {
+                if (reason === error.emailDoesNotExist) {
+                    this.emailError = 'Email does not exist';
                     return;
                 }
 
+                if (reason === error.passwordIsInvalid) {
+                    this.passwordError = 'Password is invalid';
+                    return;
+                }
+
+                // TODO: toast the error
                 // eslint-disable-next-line
-                console.log('Unsucessful login:', data.body);
-            }).catch((error) => {
-                // eslint-disable-next-line
-                console.log('There was an error while logging in:', error);
+                console.log(reason);
             });
         },
         clearErrors() {
             this.emailError = '';
             this.passwordError = '';
         },
-    },
-    store: {
-        user: 'user',
+        ...mapActions({
+            tryLogin: 'login',
+        }),
     },
     components: {
         bPopover,

@@ -1,7 +1,7 @@
 <template>
     <nav class="side-bar">
-        <ul v-if="user.loggedIn">
-            <li><a v-bind:href="userBaseURL">{{ user.name }}</a></li>
+        <ul v-if="loggedIn">
+            <li><a v-bind:href="userBaseURL">{{ name }}</a></li>
             <li><a v-bind:href="userOpenURL">Open assignments</a></li>
             <li><a v-bind:href="userGradedURL">Graded assignments</a></li>
             <li><a href="#/settings">Settings</a></li>
@@ -16,12 +16,14 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
+
 export default {
     name: 'side-bar',
 
     computed: {
         userBaseURL() {
-            return `#/users/${this.user.id}`;
+            return `#/users/${this.id}`;
         },
 
         userOpenURL() {
@@ -31,20 +33,17 @@ export default {
         userGradedURL() {
             return `${this.userBaseURL}/assignments?graded=1`;
         },
+
+        ...mapGetters([
+            'loggedIn',
+            'id',
+            'name',
+        ]),
     },
 
     methods: {
         logout() {
-            this.user.loggedIn = false;
-
-            this.user.id = 0;
-            this.user.email = '';
-            this.user.name = '';
         },
-    },
-
-    store: {
-        user: 'user',
     },
 };
 </script>
