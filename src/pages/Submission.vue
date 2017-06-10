@@ -5,8 +5,9 @@
         <div class="row">
             <div class="col-10 justify-content-end">
                 <code-viewer class="" v-bind:editable="true"
-                    v-bind:id="fileId" v-if="fileId"></code-viewer>
-                <grade-viewer v-bind:id="submissionId"></grade-viewer>
+                    v-bind:id="fileId" v-if="fileId" ref="codeViewer"></code-viewer>
+                <grade-viewer v-bind:id="submissionId"
+                    v-on:submit="submitAllFeedback($event)"></grade-viewer>
             </div>
 
             <file-tree class="col-2" v-bind:collapsed="false"
@@ -51,6 +52,10 @@ export default {
                 this.grade = data.body.grade;
                 this.feedback = data.body.feedback;
             });
+        },
+
+        submitAllFeedback(event) {
+            this.$refs.codeViewer.submitAllFeedback(event);
         },
     },
 

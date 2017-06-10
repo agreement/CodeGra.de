@@ -3,8 +3,9 @@
         <div class="col-6">
             <b-input-group>
                 <b-input-group-button>
-                    <b-dropdown variant="primary" text="Submit All"
-                        v-on:click="putFeedback()"></b-dropdown>
+                    <b-button variant="primary" v-on:click="putFeedback()">
+                        Submit all
+                    </b-button>
                 </b-input-group-button>
 
                 <b-form-input type="number" step="any" min="0" max="10"
@@ -21,7 +22,7 @@
 </template>
 
 <script>
-import { bDropdown, bInputGroup, bInputGroupButton } from 'bootstrap-vue/lib/components';
+import { bButton, bInputGroup, bInputGroupButton } from 'bootstrap-vue/lib/components';
 
 export default {
     name: 'grade-viewer',
@@ -61,11 +62,12 @@ export default {
                 // eslint-disable-next-line
                 console.log('submitted grade and feedback!');
             });
+            this.$emit('submit');
         },
     },
 
     components: {
-        bDropdown,
+        bButton,
         bInputGroup,
         bInputGroupButton,
     },
