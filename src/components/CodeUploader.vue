@@ -1,17 +1,34 @@
 <template>
-    <div id='upload'>
-        <h2>Submit files: (max: {{options.maxFiles}})</h2>
-        <dropzone
-          ref='dz'
-          id='dz-upload'
-          :url=options.url
-          :useCustomDropzoneOptions=true
-          :dropzoneOptions=options
-          v-on:vdropzone-error="error">
-        </dropzone>
-        <div style='align:center'>
-        <button class="btn btn-primary upload" v-on:click="submit">Upload</button>
-        <button class="btn btn-danger upload" v-on:click="removeAll">Remove all</button>
+    <div class="panel panel-default panel-primary">
+        <div class="panel-heading">
+            <h4 class="panel-title">Submit files: (max: {{options.maxFiles}})</h4>
+        </div>
+
+        <!-- <div class="panel-body"> -->
+            <dropzone class="panel-body container"
+              ref='dz'
+              id='dz-upload'
+              v-bind:url="options.url"
+              v-bind:useCustomDropzoneOptions="true"
+              v-bind:dropzoneOptions="options"
+              v-on:vdropzone-error="error"
+              v-on:vdropzone-total-upload-progress="progress"
+              v-on:vdropzone-file-added="fileAdded"
+              v-on:vdropzone-success="success"
+              v-on:vdropzone-queue-complete="queueComplete"
+            >
+            </dropzone>
+        <!-- </div> -->
+        <div class="panel-footer">
+        <button
+          class="btn btn-primary btn-sm upload"
+          v-on:click="upload"
+          v-bind:class="{disabled: startedUpload}"
+        >Upload
+        </button>   
+        <div class="progress">
+                <div ref='progress' class="progress-bar progress-bar-info progress-bar-striped"/>
+            </div>
         </div>
     </div>
 </template>
@@ -20,18 +37,9 @@
     import Dropzone from 'vue2-dropzone';
 
     const htmlTemplate = `
-    <li class="list-group-item s-file">
-        <div class="s-status">
-            <span class="error label label-as-badge label-danger">Upload error</span>
-            <span class="warning label label-as-badge label-warning" data-dz-errormessage></span>
-            <span class="success label label-as-badge label-success">Uploaded</span>
-            <div class="progress progress-striped active" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-                <div class="progress-bar progress-bar-success" style="width:0%;" data-dz-uploadprogress>
-                </div>
-            </div>
-        </div>
-        <span class="name" data-dz-name></span>
-        <span class="size" data-dz-size></span>
+    <li class="list-group-item row file">
+        <div class="col-xs-10"><span class="name" data-dz-name></span></div>
+        <div class="col-xs-auto"><span class="size" data-dz-size></span></div>
     </li>
     `;
 
@@ -57,6 +65,7 @@
         },
         data() {
             return {
+                startedUpload: false,
                 options: {
                     url: `api/v1/works/${this.workId}/file`,
                     method: 'POST',
@@ -76,9 +85,11 @@
             };
         },
         methods: {
-            submit: function submit() {
-                // this.$refs.dz.getAcceptedFiles();
-                this.$refs.dz.processQueue();
+            upload: function upload() {
+                if (!this.startedUpload) {
+                    this.startedUpload = true;
+                    this.$refs.dz.processQueue();
+                }
             },
             removeAll: function removeAll() {
                 this.$refs.dz.removeAllFiles();
@@ -86,90 +97,50 @@
             error: function error(file, response) {
                 let message = null;
                 if (typeof response === 'string') {
+                    // Internal dropzone response
                     message = response;
                 } else {
+                    // Server response
                     message = response.message;
                 }
-                const errorElement = file.previewElement.children[0].children[0];
-                errorElement.innerText = message;
+                file.previewElement.classList.remove('list-group-item-info');
+                file.previewElement.classList.add('list-group-item-danger');
+                file.previewElement.setAttribute('title', message);
             },
+            progress: function progress(totalProgress) {
+                this.$refs.progress.style.width = `${totalProgress}%`;
+            },
+            fileAdded: function fileAdded(file) {
+                if (this.startedUpload) {
+                    this.$refs.dz.removeFile(file);
+                } else {
+                    file.previewElement.classList.add('list-group-item-info');
+                }
+            },
+            success: function success(file) {
+                file.previewElement.classList.remove('list-group-item-info');
+                file.previewElement.classList.add('list-group-item-success');
+            },
+            queueComplete: function queueComplete() {
+                this.$refs.progress.classList.remove('progress-bar-info');
+                this.$refs.progress.classList.add('progress-bar-success');
+            },
+
         },
     };
 </script>
-
 <style>
-.dz-details {
-    width: 100%;
-    background-color: lightblue;
-    padding: 5px;
-}
-
-.dz-error .dz-details {
-    background-color: yellow;
-}
-
-.dz-success .dz-details {
-    background-color: lightgreen;
-}
-/*
-.s-file {
-    padding: 5px;
-    margin: 5px;
-    background-color: lightgray;
-}
-*/
-.s-file {
+.file div.col-xs-10 {
     overflow: hidden;
     text-overflow: ellipsis;
-    padding-right: 60px;
-}
-
-.s-file .name {
     white-space: pre;
 }
-
-.s-file .size {
-    position: absolute;
-    right: 10px;
-    top: 10px;
+.file div.col-xs-auto {
+    overflow: visible;
+    white-space: pre;
 }
-
-.s-file .label {
-    text-overflow: ellipsis;
-    overflow: hidden;
+.progress {
+    height: 20px;
+    background-color: white;
 }
-
-.s-file.dz-error.dz-processing .s-status .warning, .s-file .s-status .warning, .s-file .s-status .success, .s-file .s-status .error {
-    display: none;
-}
-
-.s-file.dz-error .s-status .warning, .s-file.dz-success .s-status .success, .s-file.dz-error.dz-processing .s-status .error {
-    display: block;
-}
-
-.s-file .progress, .s-file.dz-error.dz-processing .progress, .s-file.dz-processing.dz-success .progress {
-    display: none;
-}
-
-.s-file.dz-processing .progress {
-    display: block;
-}
-
-
-.s-file.dz-success {
-    background-color: #dff0d8;
-    color: #3c763d
-}
-
-.s-file.dz-error {
-    background-color: #fcf8e3;
-    color: #8a6d3b;
-}
-
-.s-file.dz-processing.dz-error {
-    background-color: #f2dede;
-    color: #a94442;
-}
-
-
 </style>
