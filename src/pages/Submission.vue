@@ -3,13 +3,13 @@
         <h1>{{ title }}</h1>
 
         <div class="row">
-            <div class="col-lg-10 justify-content-end">
+            <div class="col-10 justify-content-end">
                 <code-viewer class="" v-bind:editable="true"
                     v-bind:id="fileId" v-if="fileId"></code-viewer>
                 <grade-viewer v-bind:id="submissionId"></grade-viewer>
             </div>
 
-            <file-tree class="col-lg-2" v-bind:collapsed="false"
+            <file-tree class="col-2" v-bind:collapsed="false"
                 v-bind:tree="fileTree" v-if="fileTree"></file-tree>
         </div>
     </div>
