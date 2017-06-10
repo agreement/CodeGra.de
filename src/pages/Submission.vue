@@ -1,15 +1,17 @@
 <template>
     <div class="page submission">
-        <h2>{{ title }}</h2>
+        <h1>{{ title }}</h1>
 
-        <div class="code-browser row">
-            <code-viewer class="col-lg-10" v-bind:editable="true"
-                v-bind:id="fileId" v-if="fileId"></code-viewer>
+        <div class="row">
+            <div class="col-lg-10 justify-content-end">
+                <code-viewer class="" v-bind:editable="true"
+                    v-bind:id="fileId" v-if="fileId"></code-viewer>
+                <grade-viewer v-bind:id="submissionId"></grade-viewer>
+            </div>
+
             <file-tree class="col-lg-2" v-bind:collapsed="false"
                 v-bind:tree="fileTree" v-if="fileTree"></file-tree>
         </div>
-
-        <grade-viewer v-bind:id="submissionId"></grade-viewer>
     </div>
 </template>
 
@@ -59,3 +61,10 @@ export default {
     },
 };
 </script>
+
+<style scoped>
+h1,
+.code-viewer {
+    margin-bottom: 30px;
+}
+</style>

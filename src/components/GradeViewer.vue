@@ -1,6 +1,6 @@
 <template>
     <div class="grade-viewer row">
-        <div class="col-lg-5">
+        <div class="col-lg-6">
             <div class="input-group">
                 <div class="input-group-btn">
                     <button type="button" class="btn btn-primary dropdown-toggle input-lg"
@@ -11,7 +11,7 @@
                     aria-label="Grade" placeholder="Grade" v-model:value="grade">
             </div>
         </div>
-        <div class="col-lg-5">
+        <div class="col-lg-6">
             <div class="input-group">
                 <textarea type="text" class="form-control" aria-label="Feedback"
                     placeholder="Feedback" rows="3" v-model="feedback">
