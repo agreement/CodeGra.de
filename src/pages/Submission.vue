@@ -2,11 +2,11 @@
     <div class="page submission">
         <h2>{{ title }}</h2>
 
-        <div class="code-browser">
-            <code-viewer v-bind:editable="true" v-bind:id="fileId"
-                v-if="fileId"></code-viewer>
-            <file-tree v-bind:collapsed="false" v-bind:tree="fileTree"
-                v-if="fileTree"></file-tree>
+        <div class="code-browser row">
+            <code-viewer class="col-lg-10" v-bind:editable="true"
+                v-bind:id="fileId" v-if="fileId"></code-viewer>
+            <file-tree class="col-lg-2" v-bind:collapsed="false"
+                v-bind:tree="fileTree" v-if="fileTree"></file-tree>
         </div>
 
         <grade-viewer v-bind:id="submissionId"></grade-viewer>
@@ -59,21 +59,3 @@ export default {
     },
 };
 </script>
-
-<style lang="less" scoped>
-@file-tree-width: 10em;
-
-.code-browser {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.code-viewer {
-    flex-grow: 1;
-    flex-shrink: 1;
-}
-
-.file-tree {
-    flex: 0 0 @file-tree-width;
-}
-</style>

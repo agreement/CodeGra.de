@@ -22,13 +22,15 @@
                         </button>
                     </div>
                 </div>
-                <span class="add-feedback" v-if="editable" v-show="feedback[i] == null"
-                    v-on:click="addFeedback($event, i)">+</span>
+
+                <icon name="plus" class="add-feedback" v-if="editable" v-show="feedback[i] == null"
+                    v-on:click="addFeedback($event, i)"></icon>
             </li>
         </ol>
-        <div class="input-group">
-            <button type="button" class="btn btn-primary" v-on:click="submitAllFeedback($event)">Submit All</button>
-        </div>
+        <!-- <div class="input-group"> -->
+        <!--     <button type="button" class="btn btn-primary" -->
+        <!--         v-on:click="submitAllFeedback($event)">Submit All</button> -->
+        <!-- </div> -->
     </div>
 </template>
 
@@ -39,6 +41,7 @@ import Vue from 'vue';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/times';
+import 'vue-awesome/icons/plus';
 
 export default {
     name: 'code-viewer',
@@ -117,18 +120,16 @@ export default {
 <style src="../../node_modules/highlightjs/styles/github.css"></style>
 
 <style lang="less" scoped>
-@linenr-width: 40px;
-
 ol {
+    position: relative;
     font-family: monospace;
+    font-size: small;
     margin: 0;
-    padding: 0 0 0 @linenr-width;
+    padding-left: 4rem;
 }
 
 li {
-    position: relative;
     padding-left: 1em;
-    padding-bottom: 1px;
 }
 
 &.editable li {
@@ -144,10 +145,10 @@ code {
 }
 
 .add-feedback {
-    display: none;
     position: absolute;
-    top: 0;
-    left: -@linenr-width;
+    right: 100%;
+    transform: translate(-50%, -100%);
+    display: none;
 
     li:hover & {
         display: block;
