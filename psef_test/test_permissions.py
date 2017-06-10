@@ -102,7 +102,9 @@ def ta_crole(db, bs_course, perms):
         course=bs_course,
         _permissions={p.name: p
                       for p in perms[3:5]})
+    ta2 = m.CourseRole(name='TA', course=None, _permissions={})
     db.session.add(ta)
+    db.session.add(ta2)
     db.session.commit()
     yield ta
 
