@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 import os
-import tempfile
 import uuid
+import tempfile
+
+from flask import jsonify, request, make_response
+from flask_login import UserMixin, login_user
 
 import patoolib
-from flask import jsonify, make_response, request
 from psef import app
 
 
@@ -12,18 +14,22 @@ from psef import app
 def get_code(id):
     if id == "0":
         return jsonify({
-            "lang": "python",
-            "code": "def id0func0():\n\treturn 0\n\n\ndef id0func1():\n\t" +
-                    "return 1",
+            "lang":
+            "python",
+            "code":
+            "def id0func0():\n\treturn 0\n\n\ndef id0func1():\n\t" +
+            "return 1",
             "feedback": {
                 "0": "wtf",
             }
         })
     else:
         return jsonify({
-            "lang": "c",
-            "code": "void\nsome_func(void) {}\n\nvoid other_func(int x)" +
-                    "{\n\treturn 2 * x;\n}",
+            "lang":
+            "c",
+            "code":
+            "void\nsome_func(void) {}\n\nvoid other_func(int x)" +
+            "{\n\treturn 2 * x;\n}",
             "feedback": {
                 "1": "slechte naam voor functie",
                 "3": "niet veel beter..."
@@ -38,24 +44,44 @@ def get_dir_contents(path):
 
 def dir_contents(path):
     return {
-        "name": path,
+        "name":
+        path,
         "entries": [
             {
-                "name": "a",
+                "name":
+                "a",
                 "entries": [
-                    {"name": "a_1", "id": 0, },
-                    {"name": "a_2", "id": 1, },
+                    {
+                        "name": "a_1",
+                        "id": 0,
+                    },
+                    {
+                        "name": "a_2",
+                        "id": 1,
+                    },
                     {
                         "name": "a_3",
                         "entries": [
-                            {"name": "a_3_1", "id": 2},
+                            {
+                                "name": "a_3_1",
+                                "id": 2
+                            },
                         ],
                     },
                 ],
             },
-            {"name": "b", "id": 3},
-            {"name": "c", "id": 4},
-            {"name": "d", "id": 5},
+            {
+                "name": "b",
+                "id": 3
+            },
+            {
+                "name": "c",
+                "id": 4
+            },
+            {
+                "name": "d",
+                "id": 5
+            },
         ]
     }
 
@@ -68,8 +94,9 @@ def get_submission(submission_id):
     })
 
 
-@app.route("/api/v1/submission/<submission_id>/general-feedback",
-           methods=['GET', 'PUT'])
+@app.route(
+    "/api/v1/submission/<submission_id>/general-feedback",
+    methods=['GET', 'PUT'])
 def get_general_feedback(submission_id):
     if request.method == 'GET':
         if id == 0:
@@ -78,10 +105,7 @@ def get_general_feedback(submission_id):
                 "feedback": "test feedback voor id nul"
             })
         else:
-            return jsonify({
-                "grade": 6.5,
-                "feedback": "test feedback"
-            })
+            return jsonify({"grade": 6.5, "feedback": "test feedback"})
     elif request.method == 'PUT':
         content = request.get_json()
 
@@ -103,6 +127,25 @@ def random_file_path():
     return candidate
 
 
+@app.route("/api/v1/login", methods=["POST"])
+def login():
+    class User(UserMixin):
+        def __init__(self, id):
+            self.id = id
+
+    data = request.get_json()
+
+    # TODO: Some authentication here
+    user = User(data["email"])
+
+    login_user(user)
+    return jsonify({
+        "success": True,
+        "id": 0,
+        "name": data["email"].partition("@")[0]
+    })
+
+
 def is_archive(file):
     "Checks whether file ends with a known archive file extension."
     return file.filename.endswith(('.zip', '.tar.gz', '.tgz', '.tbz',
@@ -116,8 +159,8 @@ def extract(archive):
     archive.save(tmparchive)
     try:
         patoolib.test_archive(tmparchive, verbosity=-1, interactive=False)
-        patoolib.extract_archive(tmparchive, verbosity=-1, outdir=tmpdir,
-                                 interactive=False)
+        patoolib.extract_archive(
+            tmparchive, verbosity=-1, outdir=tmpdir, interactive=False)
         for root, _, filenames in os.walk(tmpdir):
             rel_path = os.path.relpath(root, start=tmpdir)
             for filename in filenames:
@@ -159,17 +202,19 @@ def upload_file(work_id):
 
             files.append(file)
     except KeyError as e:
-        return make_response(jsonify({
-            "message": "No file in HTTP request.",
-            "description": "There was no file in the HTTP request.",
-            "code": None
-        }), 400)
+        return make_response(
+            jsonify({
+                "message": "No file in HTTP request.",
+                "description": "There was no file in the HTTP request.",
+                "code": None
+            }), 400)
     except ValueError as e:
-        return make_response(jsonify({
-            "message": "Invalid file in HTTP request.",
-            "description": str(e),
-            "code": None
-        }), 400)
+        return make_response(
+            jsonify({
+                "message": "Invalid file in HTTP request.",
+                "description": str(e),
+                "code": None
+            }), 400)
 
     # Save files under random name
     # TODO: Add entries to database
@@ -180,11 +225,13 @@ def upload_file(work_id):
         else:
             file.save(random_file_path())
 
-    return make_response(jsonify({
-        "message": "Files were successfully uploaded",
-        "description": "The files were uploaded and are stored in the uploads "
-                       "folder",
-        "code": None
-    }), 200)
-
-
+    return make_response(
+        jsonify({
+            "message":
+            "Files were successfully uploaded",
+            "description":
+            "The files were uploaded and are stored in the uploads "
+            "folder",
+            "code":
+            None
+        }), 200)

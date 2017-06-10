@@ -12,14 +12,13 @@ fi
 echo "Migrating and upgrading database"
 ./manage.py db migrate
 ./manage.py db upgrade
+./manage.py seed
+
+if [[ "${1:-true}" = "migrate" ]]; then
+    exit 0
+fi
 
 echo "Echo starting python and NPM, press Ctrl-C to stop"
-
-./run.py &
-python="$!"
-npm install
-npm run dev &
-npm="$!"
 
 quit() {
     STOPPING=true
@@ -28,6 +27,12 @@ quit() {
 }
 
 trap "quit" SIGINT SIGTERM
+
+./run.py &
+python="$!"
+npm install
+npm run dev &
+npm="$!"
 
 while true; do
     wait -n "$npm" "$python"

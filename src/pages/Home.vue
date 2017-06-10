@@ -1,6 +1,6 @@
 <template>
     <div class="page home">
-        <login v-if="!loggedIn"></login>
+        <login v-if="!user.loggedIn"></login>
     </div>
 </template>
 
@@ -10,18 +10,12 @@ import { Login } from '@/components';
 export default {
     name: 'home-page',
 
-    data() {
-        return {
-
-            // dummy
-            loggedIn: 1,
-            userid: 0,
-            username: 'Henk',
-        };
-    },
-
     components: {
         Login,
+    },
+
+    store: {
+        user: 'user',
     },
 };
 </script>
