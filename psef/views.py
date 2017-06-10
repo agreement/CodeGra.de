@@ -2,6 +2,8 @@
 from psef import app
 from flask import jsonify, request, make_response
 
+from psef import app
+
 
 @app.route("/api/v1/code/<id>")
 def get_code(id):
