@@ -28,13 +28,12 @@ new Vue({
     components: { App },
     data: {
         store: {
-            message: 'Hello Store!',
             user: {
-                loggedIn: false,
+                loggedIn: true,
 
-                id: '',
-                email: '',
-                name: '',
+                id: '1',
+                email: 'testo@gmail.com',
+                name: 'testo',
             },
         },
     },

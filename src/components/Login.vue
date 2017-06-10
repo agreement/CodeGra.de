@@ -13,7 +13,7 @@
                     </b-popover>
                 </div>
                 <div class="form-group">
-                    <b-form-input type="submit" value="Submit" @click="login()"></b-form-input>
+                    <input type="submit" value="Submit" @click="login()">
                 </div>
             </form>
         </div>
@@ -22,7 +22,7 @@
 
 <script>
 
-import { bFormInput, bPopover } from 'bootstrap-vue/lib/components';
+import { bPopover } from 'bootstrap-vue/lib/components';
 
 export default {
     name: 'login',
@@ -45,7 +45,7 @@ export default {
                 return;
             }
 
-            this.$http.post('/api/v1//login', { email: this.email, password: this.password }).then((data) => {
+            this.$http.post('/api/v1/login', { email: this.email, password: this.password }).then((data) => {
                 if (data.body.success) {
                     // eslint-disable-next-line
                     console.log('Log in successful');
@@ -58,11 +58,16 @@ export default {
                     // Clear password for security
                     this.password = '';
 
-                    // TODO: Redirect to somewhere
+                    // Redirect to homepage
+                    this.$router.replace('/');
+                    return;
                 }
-            }, (response) => {
+
                 // eslint-disable-next-line
-                console.log('There was an error while logging in:', response);
+                console.log('Unsucessful login:', data.body);
+            }).catch((error) => {
+                // eslint-disable-next-line
+                console.log('There was an error while logging in:', error);
             });
         },
         clearErrors() {
@@ -74,7 +79,6 @@ export default {
         user: 'user',
     },
     components: {
-        bFormInput,
         bPopover,
     },
 };
