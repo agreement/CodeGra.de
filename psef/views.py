@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 from psef import app
-from flask import jsonify, request, make_response, abort
-from flask_login import login_user, UserMixin
+from flask import jsonify, request, make_response
+
+from psef import app
 
 
 @app.route("/api/v1/code/<id>")
@@ -86,29 +87,3 @@ def get_general_feedback(submission_id):
 
         resp = make_response("grade and feedback submitted", 204)
         return resp
-
-
-class User(UserMixin):
-    def __init__(self, id):
-        self.id = id
-
-
-@app.route("/api/login", methods=["post"])
-def login():
-    data = request.get_json()
-
-    # TODO: Some authentication here
-
-    user = User(data["email"])
-
-    # Login and validate the user.
-    # user should be an instance of your `User` class
-    login_user(user)
-
-    next = request.args.get('next')
-
-    return jsonify({
-        "success": True,
-        "id": 0,
-        "name": data["email"].partition("@")[0]
-    })

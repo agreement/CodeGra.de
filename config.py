@@ -8,7 +8,10 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 # Define the database - we are working with
 # SQLite for this example
-SQLALCHEMY_DATABASE_URI = os.environ['CODEGRADE_DATABASE_URL']
+if 'CODEGRADE_DATABASE_URL' not in os.environ:
+    SQLALCHEMY_DATABASE_URI = 'postgresql:///codegrade_dev'
+else:
+    SQLALCHEMY_DATABASE_URI = os.environ['CODEGRADE_DATABASE_URL']
 DATABASE_CONNECT_OPTIONS = {}
 
 # Application threads. A common general assumption is
