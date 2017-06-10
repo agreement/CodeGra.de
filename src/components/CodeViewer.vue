@@ -4,21 +4,23 @@
             <li v-on:click="addFeedback($event, i)" v-for="(line, i) in highlighted_code">
                 <code v-html="line"></code>
 
-                <div class="feedback" v-if="!editable" v-show="feedback[i]">
-                    {{ feedback[i] }}
+                <div class="card" v-if="!editable" v-show="feedback[i]">
+                    <div class="card-block">
+                        {{ feedback[i] }}
+                    </div>
                 </div>
 
                 <div class="input-group" v-if="editable" v-show="feedback[i] != null">
                     <input type="text" class="form-control" v-model="feedback[i]"></textarea>
 
                     <div class="input-group-btn">
-                        <button type="button" class="btn btn-default cancel"
+                        <button type="button" class="btn btn-default"
                             v-on:click="cancelFeedback($event, i)">
                             <icon name="times" aria-hidden="true"></icon>
                         </button>
                     </div>
                     <div class="input-group-btn">
-                        <button type="button" class="btn btn-primary submit"
+                        <button type="button" class="btn btn-primary"
                             v-on:click="submitFeedback($event, i)">
                             <icon name="check" aria-hidden="true"></icon>
                         </button>
@@ -132,15 +134,8 @@ ol {
 }
 
 li {
-    padding: 0 1em;
-
-    &:first-child {
-        padding-top: .5em;
-    }
-
-    &:last-child {
-        padding-bottom: .5em;
-    }
+    padding-left: 1em;
+    padding-right: 1em;
 
     .editable & {
         cursor: pointer;
@@ -148,7 +143,6 @@ li {
 }
 
 code {
-    padding: 0;
     white-space: pre;
 }
 

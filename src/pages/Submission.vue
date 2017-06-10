@@ -3,7 +3,7 @@
         <h2>{{ title }}</h2>
 
         <div class="code-browser">
-            <code-viewer v-bind:editable="true" v-bind:id="fileId"
+            <code-viewer v-bind:editable="false" v-bind:id="fileId"
                 v-if="fileId"></code-viewer>
             <file-tree v-bind:collapsed="false" v-bind:tree="fileTree"
                 v-if="fileTree"></file-tree>
