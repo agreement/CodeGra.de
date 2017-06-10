@@ -11,10 +11,6 @@ export default {
 </script>
 
 <style lang="less" scoped>
-header {
-    margin: 2em 0;
-}
-
 img {
     width: 12em;
 }
