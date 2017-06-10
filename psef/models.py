@@ -43,17 +43,14 @@ class CourseRole(db.Model):
     course = db.relationship('Course', foreign_keys=course_id)
 
     def has_permission(self, permission):
-        name = permission
-        if isinstance(permission, Permission):
-            name = permission.name
-        if name in self._permissions:
-            perm = self._permissions[name]
+        if permission in self._permissions:
+            perm = self._permissions[permission]
             return perm.course_permission and not perm.default_value
         else:
-            permission = Permission.query.filter_by(name=name).first()
+            permission = Permission.query.filter_by(name=permission).first()
             if permission is None:
                 raise KeyError(
-                    'The permission "{}" does not exist'.format(name))
+                    'The permission "{}" does not exist'.format(permission))
             else:
                 return (permission.default_value and
                         permission.course_permission)
@@ -70,16 +67,13 @@ class Role(db.Model):
         backref=db.backref('roles', lazy='dynamic'))
 
     def has_permission(self, permission):
-        name = permission
-        if isinstance(permission, Permission):
-            name = permission.name
-        if name in self._permissions:
-            return not self._permissions[name].course_permission
+        if permission in self._permissions:
+            return not self._permissions[permission].course_permission
         else:
-            permission = Permission.query.filter_by(name=name).first()
+            permission = Permission.query.filter_by(name=permission).first()
             if permission is None:
                 raise KeyError(
-                    'The permission "{}" does not exist'.format(name))
+                    'The permission "{}" does not exist'.format(permission))
             else:
                 return (permission.default_value and
                         not permission.course_permission)
