@@ -100,7 +100,9 @@ export default {
         submitAllFeedback(event) {},
 
         // eslint-disable-next-line
-        submitFeedback(event, line) {},
+        submitFeedback(event, line) {
+
+        },
 
         cancelFeedback(event, line) {
             event.stopPropagation();

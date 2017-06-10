@@ -145,7 +145,7 @@ class Comment(db.Model):
     user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
     line = db.Column('line', db.Integer)
     comment = db.Column('comment', db.Unicode)
-    db.PrimaryKeyConstraint('file_id', 'line', name='id')
+    __table_args__ = (db.PrimaryKeyConstraint(file_id, line),)
 
     file = db.relationship('File', foreign_keys=file_id)
     user = db.relationship('User', foreign_keys=user_id)
