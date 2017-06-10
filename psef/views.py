@@ -87,10 +87,11 @@ def get_general_feedback(submission_id):
         resp = make_response("grade and feedback submitted", 204)
         return resp
 
-class User(UserMixin):
 
+class User(UserMixin):
     def __init__(self, id):
         self.id = id
+
 
 @app.route("/api/login", methods=["post"])
 def login():
@@ -106,4 +107,8 @@ def login():
 
     next = request.args.get('next')
 
-    return jsonify({"success": True, "id": 0, "name": data["email"].partition("@")[0]})
+    return jsonify({
+        "success": True,
+        "id": 0,
+        "name": data["email"].partition("@")[0]
+    })
