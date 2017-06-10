@@ -37,7 +37,7 @@ export default {
         logout() {
             this.user.loggedIn = false;
 
-            this.user.id = '';
+            this.user.id = 0;
             this.user.email = '';
             this.user.name = '';
         },
