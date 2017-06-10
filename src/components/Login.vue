@@ -45,7 +45,7 @@ export default {
                 return;
             }
 
-            this.$http.post('/api/login', { email: this.email, password: this.password }).then((data) => {
+            this.$http.post('/api/v1//login', { email: this.email, password: this.password }).then((data) => {
                 if (data.body.success) {
                     // eslint-disable-next-line
                     console.log('Log in successful');
