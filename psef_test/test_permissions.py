@@ -149,7 +149,8 @@ def fixed(db, fixed_role):
 
 @pytest.mark.parametrize('perm,vals', [('add_own_work', (
     False, True, False)), ('add_others_work', (True, False, False)), (
-        'remove_course', (False, False, False))])
+        'remove_course', (False, False, False)), ('add_user', (False, False,
+                                                               False))])
 def test_course_permissions(thomas, bs_course, pse_course, aco_course, perm,
                             vals, login_endpoint, test_client):
     with test_client:
@@ -166,6 +167,20 @@ def test_course_permissions(thomas, bs_course, pse_course, aco_course, perm,
         with pytest.raises(APIException) as err:
             a.ensure_permission(perm, course_id=course.id)
         assert err.value.api_code == APIException.NOT_LOGGED_IN
+
+
+@pytest.mark.parametrize('perm', ['wow_nope'])
+def test_non_existing_permission(thomas, bs_course, perm):
+    with pytest.raises(KeyError):
+        thomas.has_permission(perm)
+    with pytest.raises(KeyError):
+        thomas.has_permission(perm, course_id=bs_course.id)
+
+
+@pytest.mark.parametrize('perm', ['wow_nope', 'add_own_work', 'edit_name'])
+def test_non_existing_course(thomas, bs_course, perm):
+    assert not thomas.has_permission(perm, course_id=bs_course.id * 10)
+
 
 @pytest.mark.parametrize('perm,vals', [('edit_name', (True, True, True)), (
     'edit_email', (True, True, False)), ('add_user', (False, True, False))])
