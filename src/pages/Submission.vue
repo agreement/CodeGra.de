@@ -64,7 +64,8 @@ export default {
 
 <style scoped>
 h1,
-.code-viewer {
+.code-viewer,
+.grade-viewer {
     margin-bottom: 30px;
 }
 </style>
