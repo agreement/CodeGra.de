@@ -4,39 +4,38 @@
             <li v-on:click="addFeedback($event, i)" v-for="(line, i) in highlighted_code">
                 <code v-html="line"></code>
 
-                <div class="feedback" v-if="!editable" v-show="feedback[i]">
+                <div class="feedback" v-if="!editable && feedback[i]">
                     {{ feedback[i] }}
                 </div>
 
-                <div class="input-group" v-if="editable" v-show="feedback[i] != null">
-                    <input type="text" class="form-control" v-model="feedback[i]"></textarea>
+                <b-input-group v-if="editable && feedback[i] != null">
+                    <b-form-input v-model="feedback[i]"></b-form-input>
 
-                    <div class="input-group-btn">
-                        <button type="button" class="btn btn-default cancel" v-on:click="cancelFeedback($event, i)">
+                    <b-input-group-button>
+                        <b-button variant="default" v-on:click="cancelFeedback($event, i)">
                             <icon name="times" aria-hidden="true"></icon>
-                        </button>
-                    </div>
-                    <div class="input-group-btn">
-                        <button type="button" class="btn btn-primary submit" v-on:click="submitFeedback($event, i)">
+                        </b-button>
+                    </b-input-group-button>
+                    <b-input-group-button>
+                        <b-button variant="primary" v-on:click="submitFeedback($event, i)">
                             <icon name="check" aria-hidden="true"></icon>
-                        </button>
-                    </div>
-                </div>
+                        </b-button>
+                    </b-input-group-button>
+                </b-input-group>
 
-                <icon name="plus" class="add-feedback" v-if="editable" v-show="feedback[i] == null"
+                <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
                     v-on:click="addFeedback($event, i)"></icon>
             </li>
         </ol>
-        <!-- <div class="input-group"> -->
-        <!--     <button type="button" class="btn btn-primary" -->
-        <!--         v-on:click="submitAllFeedback($event)">Submit All</button> -->
-        <!-- </div> -->
     </div>
 </template>
 
 <script>
 import { highlight } from 'highlightjs';
 import Vue from 'vue';
+
+import { bButton, bFormInput, bInputGroup, bInputGroupButton }
+    from 'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/check';
@@ -112,6 +111,10 @@ export default {
     },
 
     components: {
+        bButton,
+        bFormInput,
+        bInputGroup,
+        bInputGroupButton,
         Icon,
     },
 };
