@@ -55,7 +55,7 @@ def dir_contents(path):
     }
 
 
-@app.route("/api/v1/students/<student_id>/assignments")
+@app.route("/api/v1/students/<student_id>/assignments/")
 def get_student_assignments(student_id):
     return jsonify([
         {

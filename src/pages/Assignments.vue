@@ -22,7 +22,7 @@ export default {
     },
 
     mounted() {
-        this.$http.get(`/api/v1/students/${this.studentId}/assignments`).then((data) => {
+        this.$http.get(`/api/v1/students/${this.studentId}/assignments/`).then((data) => {
             this.assignments = data.body;
         });
     },

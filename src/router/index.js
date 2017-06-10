@@ -27,7 +27,7 @@ export default new Router({
             component: Submission,
         },
         {
-            path: '/students/:studentId/assignments',
+            path: '/students/:studentId/assignments/',
             name: 'Student assignments',
             component: Assignments,
         },
