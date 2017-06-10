@@ -2,12 +2,10 @@
 import os
 import tempfile
 import uuid
-from zipfile import ZipFile
 
 import patoolib
 from flask import jsonify, make_response, request
 from psef import app
-from werkzeug.utils import secure_filename
 
 
 @app.route("/api/hello")
@@ -27,8 +25,27 @@ def random_file_path():
 
 
 def is_archive(file):
+    "Checks whether file ends with a known archive file extension."
     return file.filename.endswith(('.zip', '.tar.gz', '.tgz', '.tbz',
                                    '.tar.bz2'))
+
+
+def extract(archive):
+    "Extracts all files in archive with random name to uploads folder."
+    tmpmode, tmparchive = tempfile.mkstemp()
+    tmpdir = tempfile.mkdtemp()
+    archive.save(tmparchive)
+    try:
+        patoolib.test_archive(tmparchive, verbosity=-1, interactive=False)
+        patoolib.extract_archive(tmparchive, verbosity=-1, outdir=tmpdir,
+                                 interactive=False)
+        for root, _, filenames in os.walk(tmpdir):
+            rel_path = os.path.relpath(root, start=tmpdir)
+            for filename in filenames:
+                os.rename(os.path.join(root, filename), random_file_path())
+        return True
+    except:
+        return False
 
 
 @app.route("/api/v1/works/<int:work_id>/file", methods=['POST'])
@@ -44,6 +61,9 @@ def upload_file(work_id):
     # Check if a valid submission was made
     files = []
     try:
+        if (request.content_length and
+                request.content_length > app.config['MAX_UPLOAD_SIZE']):
+            raise ValueError('Request is bigger than maximum upload size.')
         if len(request.files) == 0:
             raise KeyError
         for key in request.files:
@@ -76,17 +96,8 @@ def upload_file(work_id):
     # TODO: Add entries to database
     for file in files:
         # Unpack archives
-        if is_archive(file):
-            tmpmode, tmparchive = tempfile.mkstemp()
-            tmpdir = tempfile.mkdtemp()
-            file.save(tmparchive)
-            patoolib.extract_archive(tmparchive, outdir=tmpdir)
-
-            for root, _, filenames in os.walk(tmpdir):
-                rel_path = os.path.relpath(root, start=tmpdir)
-                for filename in filenames:
-                    os.rename(os.path.join(root, filename), random_file_path())
-
+        if is_archive(file) and extract(file):
+            pass
         else:
             file.save(random_file_path())
 
