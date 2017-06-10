@@ -106,4 +106,4 @@ def login():
 
     next = request.args.get('next')
 
-    return jsonify({"success": True})
+    return jsonify({"success": True, "id": 0, "name": data["email"].partition("@")[0]})

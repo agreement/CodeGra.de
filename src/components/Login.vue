@@ -15,7 +15,6 @@
                 <div class="form-group">
                     <input type="submit" class="form-control" value="Submit" @click="login()">
                 </div>
-                {{ message }} {{ user.loggedIn }}
             </form>
         </div>
     </div>
@@ -47,10 +46,19 @@ export default {
             }
 
             this.$http.post('/api/login', { email: this.email, password: this.password }).then((data) => {
-                console.log('Log in response', data);
                 if (data.body.success) {
+                    // eslint-disable-next-line
                     console.log('Log in successful');
                     this.user.loggedIn = true;
+                    this.user.email = this.email;
+
+                    this.user.id = data.body.id;
+                    this.user.name = data.body.name;
+
+                    // Clear password for security
+                    this.password = '';
+
+                    // TODO: Redirect to somewhere
                 }
             }, (response) => {
                 // eslint-disable-next-line
@@ -63,7 +71,6 @@ export default {
         },
     },
     store: {
-        message: 'message',
         user: 'user',
     },
     components: {

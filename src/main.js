@@ -30,6 +30,8 @@ new Vue({
             message: 'Hello Store!',
             user: {
                 loggedIn: false,
+
+                id: '',
                 email: '',
                 name: '',
             },
