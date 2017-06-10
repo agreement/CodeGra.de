@@ -14,18 +14,45 @@ footer {
 .code-viewer {
     @linenr-bg: #f8f8f8;
     @line-bg: white;
+    @line-spacing: .5em;
 
     ol {
         background: @linenr-bg;
     }
 
     li {
-        background: @line-bg
+        background: @line-bg;
+        padding: @line-spacing/2 0;
+
+        /* Prevent <li> overlapping <ol> border. */
+        &:first-child {
+            padding-top: @line-spacing;
+            border-top-right-radius: inherit;
+        }
+
+        &:last-child {
+            padding-bottom: @line-spacing;
+            border-bottom-right-radius: inherit;
+        }
     }
 
     code {
-        line-height: 1.5;
-        background: @line-bg;
+        padding: 0;
+        line-height: 1;
+        background: transparent;
+    }
+
+    .input-group,
+    input {
+        font-size: 1em;
+    }
+
+    .card {
+        margin-top: @line-spacing;
+
+        .card-block {
+            padding: @line-spacing;
+        }
     }
 
     .input-group {

@@ -1,12 +1,12 @@
 <template>
     <div class="code-viewer" v-bind:class="{ editable }">
-        <ol>
+        <ol class="form-control">
             <li v-on:click="addFeedback($event, i)" v-for="(line, i) in highlighted_code">
                 <code v-html="line"></code>
 
-                <div class="feedback" v-if="!editable && feedback[i]">
+                <b-card v-if="!editable && feedback[i]">
                     {{ feedback[i] }}
-                </div>
+                </b-card>
 
                 <b-input-group v-if="editable && feedback[i] != null">
                     <b-form-input v-model="feedback[i]"></b-form-input>
@@ -120,23 +120,23 @@ export default {
 };
 </script>
 
-<style src="../../node_modules/highlightjs/styles/github.css"></style>
-
 <style lang="less" scoped>
 ol {
     position: relative;
     font-family: monospace;
     font-size: small;
     margin: 0;
+    padding: 0;
     padding-left: 4rem;
 }
 
 li {
     padding-left: 1em;
-}
+    padding-right: 1em;
 
-&.editable li {
-    cursor: pointer;
+    .editable & {
+        cursor: pointer;
+    }
 }
 
 code {
