@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-from psef import app
 from flask import jsonify
+
+from psef import app
 
 
 @app.route("/api/hello")
