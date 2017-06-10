@@ -1,19 +1,21 @@
+html {
+    box-sizing: border-box;
+}
+
+* {
+    box-sizing: inherit;
+}
+
 header,
 footer {
     text-align: center;
 }
 
-.input-group {
-    margin: .5em 0;
-}
-
 .code-viewer {
-    @linenr-width: 50px;
     @linenr-bg: #f8f8f8;
     @line-bg: white;
 
     ol {
-        padding-left: @linenr-width;
         background: @linenr-bg;
     }
 
@@ -26,9 +28,7 @@ footer {
         background: @line-bg;
     }
 
-    .add-feedback {
-        top: -5px;
-        left: -@linenr-width + 5px;
-        font-size: 20px;
+    .input-group {
+        padding: .5em 0;
     }
 }

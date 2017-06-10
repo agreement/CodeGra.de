@@ -1,6 +1,6 @@
 <template>
-    <div class="row">
-        <div class="col-md-6 col-md-offset-3">
+    <div class="row justify-content-center">
+        <div class="col-6">
             <form>
                 <div class="form-group">
                     <b-popover placement="right" :content="emailError" :show="emailError.length > 0">
@@ -13,7 +13,7 @@
                     </b-popover>
                 </div>
                 <div class="form-group">
-                    <input type="submit" class="form-control" value="Submit" @click="login()">
+                    <b-form-input type="submit" value="Submit" @click="login()"></b-form-input>
                 </div>
             </form>
         </div>
@@ -22,7 +22,7 @@
 
 <script>
 
-import { bPopover, bBtn } from 'bootstrap-vue/lib/components';
+import { bFormInput, bPopover } from 'bootstrap-vue/lib/components';
 
 export default {
     name: 'login',
@@ -74,8 +74,8 @@ export default {
         user: 'user',
     },
     components: {
+        bFormInput,
         bPopover,
-        bBtn,
     },
 };
 </script>

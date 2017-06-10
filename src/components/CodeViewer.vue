@@ -4,31 +4,29 @@
             <li v-on:click="addFeedback($event, i)" v-for="(line, i) in highlighted_code">
                 <code v-html="line"></code>
 
-                <div class="feedback" v-if="!editable" v-show="feedback[i]">
+                <div class="feedback" v-if="!editable && feedback[i]">
                     {{ feedback[i] }}
                 </div>
 
-                <div class="input-group" v-if="editable" v-show="feedback[i] != null">
-                    <input type="text" class="form-control" v-model="feedback[i]"></textarea>
+                <b-input-group v-if="editable && feedback[i] != null">
+                    <b-form-input v-model="feedback[i]"></b-form-input>
 
-                    <div class="input-group-btn">
-                        <button type="button" class="btn btn-default cancel" v-on:click="cancelFeedback($event, i)">
+                    <b-input-group-button>
+                        <b-button variant="default" v-on:click="cancelFeedback($event, i)">
                             <icon name="times" aria-hidden="true"></icon>
-                        </button>
-                    </div>
-                    <div class="input-group-btn">
-                        <button type="button" class="btn btn-primary submit" v-on:click="submitFeedback($event, i)">
+                        </b-button>
+                    </b-input-group-button>
+                    <b-input-group-button>
+                        <b-button variant="primary" v-on:click="submitFeedback($event, i)">
                             <icon name="check" aria-hidden="true"></icon>
-                        </button>
-                    </div>
-                </div>
-                <span class="add-feedback" v-if="editable" v-show="feedback[i] == null"
-                    v-on:click="addFeedback($event, i)">+</span>
+                        </b-button>
+                    </b-input-group-button>
+                </b-input-group>
+
+                <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
+                    v-on:click="addFeedback($event, i)"></icon>
             </li>
         </ol>
-        <div class="input-group">
-            <button type="button" class="btn btn-primary" v-on:click="submitAllFeedback($event)">Submit All</button>
-        </div>
     </div>
 </template>
 
@@ -36,9 +34,13 @@
 import { highlight } from 'highlightjs';
 import Vue from 'vue';
 
+import { bButton, bFormInput, bInputGroup, bInputGroupButton }
+    from 'bootstrap-vue/lib/components';
+
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/times';
+import 'vue-awesome/icons/plus';
 
 export default {
     name: 'code-viewer',
@@ -109,6 +111,10 @@ export default {
     },
 
     components: {
+        bButton,
+        bFormInput,
+        bInputGroup,
+        bInputGroupButton,
         Icon,
     },
 };
@@ -117,18 +123,16 @@ export default {
 <style src="../../node_modules/highlightjs/styles/github.css"></style>
 
 <style lang="less" scoped>
-@linenr-width: 40px;
-
 ol {
+    position: relative;
     font-family: monospace;
+    font-size: small;
     margin: 0;
-    padding: 0 0 0 @linenr-width;
+    padding-left: 4rem;
 }
 
 li {
-    position: relative;
     padding-left: 1em;
-    padding-bottom: 1px;
 }
 
 &.editable li {
@@ -144,10 +148,10 @@ code {
 }
 
 .add-feedback {
-    display: none;
     position: absolute;
-    top: 0;
-    left: -@linenr-width;
+    right: 100%;
+    transform: translate(-50%, -100%);
+    display: none;
 
     li:hover & {
         display: block;
