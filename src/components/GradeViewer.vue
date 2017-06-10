@@ -13,7 +13,7 @@
         </div>
         <div class="col-6">
             <b-input-group>
-                <b-form-input textarea="true" placeholder="Feedback" rows="3"
+                <b-form-input :textarea="true" placeholder="Feedback" :rows="3"
                     v-model="feedback"></b-form-input>
             </b-input-group>
         </div>
