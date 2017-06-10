@@ -2,7 +2,8 @@
 from psef import app
 from flask import jsonify, request, make_response
 
-from psef import app
+from psef import app, db
+from psef.models import *
 
 
 @app.route("/api/v1/code/<id>")
@@ -14,15 +15,32 @@ def get_code(id):
         line_feedback[str(comment.line)] = comment.comment
 
     # TODO: Return JSON following API
-    if code != None:
-            return jsonify(lang="python",
-                           code="def id0func0():\n\treturn 0\n\n\n" +
-                                "def id0func1():\n\t return 1",
-                           feedback=line_feedback)
+    #if code != None:
+    return jsonify(lang="python",
+                   code="def id0func0():\n\treturn 0\n\n\n" +
+                        "def id0func1():\n\t return 1",
+                   feedback=line_feedback)
 
-# @app.route("/api/v1/code/<id>/comment/<line>")
-# def put_comment(id, line):
-#
+@app.route("/api/v1/code/<id>/comment/<line>", methods=['PUT'])
+def put_comment(id, line):
+    if request.method == 'PUT':
+        content = request.get_json()
+
+        comment = db.session.query(Comment).filter(Comment.file_id==id and
+                                                   Comment.line==line).first()
+        if not comment:
+            # TODO: User id 0 for now, change later on
+            db.session.add(Comment(#file_id=id,
+                                   #user_id=0,
+                                   line=line,
+                                   comment=content['comment']))
+        else:
+            comment.comment = content['comment']
+
+        db.session.commit()
+
+        return make_response("Comment updated or inserted", 204)
+
 
 @app.route("/api/v1/dir/<path>")
 def get_dir_contents(path):

@@ -101,7 +101,17 @@ export default {
 
         // eslint-disable-next-line
         submitFeedback(event, line) {
-
+            this.$http.put(`/api/v1/code/${this.fileId}/comment/${line}`,
+                {
+                    comment: this.feedback[line],
+                },
+                {
+                    headers: { 'Content-Type': 'application/json' },
+                },
+            ).then(() => {
+                // eslint-disable-next-line
+                console.log('Comment updated or inserted!');
+            });
         },
 
         cancelFeedback(event, line) {
