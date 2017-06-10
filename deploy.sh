@@ -30,4 +30,4 @@ npm install > /dev/null
 
 echo "Initializing database"
 export CODEGRADE_DATABASE_URL="postgresql:///codegrade_dev"
-./manage.py db init
+[[ -d migrations ]] || ./manage.py db init

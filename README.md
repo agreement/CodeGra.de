@@ -15,15 +15,10 @@ Set a password for the postgres user:
 sudo passwd postgres
 ```
 
-Change to the postgres user to setup the server and database:
+Change to the postgres user to setup the server and database (only when using
+Arch):
 ```bash
-sudo -u postgres -i
-```
-
-Initialize the server and exit out of the postgres user:
-```bash
-initdb -D "/var/lib/postgres/data"
-exit
+sudo -u postgres initdb -D "/var/lib/postgres/data"
 ```
 
 Startup postgres server:
@@ -32,20 +27,24 @@ sudo systemctl enable postgresql.service
 sudo systemctl start postgresql.serive
 ```
 
-Change to the postgres user again and execute the psql shell:
+Change to the postgres user again and execute the psql shell (replace $USERNAME
+with your username):
 ```bash
-sudo -u postgres -i
-psql
+sudo -u postgres -i 
+createuser -s $USERNAME
+exit
+sudo -u postgres psql
 ```
 
 Create the database:
-```bash
+```sql
 create database codegrade_dev;
+\q
 ```
 
 ### Deploying
 
-``` bash
+```bash
 ./deploy.sh
 ```
 

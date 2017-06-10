@@ -3,14 +3,15 @@
 
 import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap-vue/dist/bootstrap-vue.css';
+import '@/style.less';
 
 import Vue from 'vue';
 import Resource from 'vue-resource';
 import BootstrapVue from 'bootstrap-vue';
 import VueStash from 'vue-stash';
 
-import App from './App';
-import router from './router';
+import App from '@/App';
+import router from '@/router';
 
 Vue.use(Resource);
 Vue.use(BootstrapVue);

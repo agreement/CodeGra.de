@@ -26,7 +26,7 @@
 import { bPopover, bBtn } from 'bootstrap-vue/lib/components';
 
 export default {
-    name: 'hello',
+    name: 'login',
     data() {
         return {
             email: '',
@@ -72,8 +72,3 @@ export default {
     },
 };
 </script>
-
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-
-</style>
