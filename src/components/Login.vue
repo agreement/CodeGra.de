@@ -15,6 +15,7 @@
                 <div class="form-group">
                     <input type="submit" class="form-control" value="Submit" @click="login()">
                 </div>
+                {{ message }} {{ user.loggedIn }}
             </form>
         </div>
     </div>
@@ -46,14 +47,24 @@ export default {
             }
 
             this.$http.post('/api/login', { email: this.email, password: this.password }).then((data) => {
+                console.log('Log in response', data);
+                if (data.body.success) {
+                    console.log('Log in successful');
+                    this.user.loggedIn = true;
+                }
+            }, (response) => {
                 // eslint-disable-next-line
-                console.log('Login response:', data);
+                console.log('There was an error while logging in:', response);
             });
         },
         clearErrors() {
             this.emailError = '';
             this.passwordError = '';
         },
+    },
+    store: {
+        message: 'message',
+        user: 'user',
     },
     components: {
         bPopover,

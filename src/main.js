@@ -7,12 +7,14 @@ import 'bootstrap-vue/dist/bootstrap-vue.css';
 import Vue from 'vue';
 import Resource from 'vue-resource';
 import BootstrapVue from 'bootstrap-vue';
+import VueStash from 'vue-stash';
 
 import App from './App';
 import router from './router';
 
 Vue.use(Resource);
 Vue.use(BootstrapVue);
+Vue.use(VueStash);
 
 Vue.config.productionTip = false;
 
@@ -22,4 +24,14 @@ new Vue({
     router,
     template: '<App/>',
     components: { App },
+    data: {
+        store: {
+            message: 'Hello Store!',
+            user: {
+                loggedIn: false,
+                email: '',
+                name: '',
+            },
+        },
+    },
 });
