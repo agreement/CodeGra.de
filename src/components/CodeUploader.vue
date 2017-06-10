@@ -1,11 +1,10 @@
 <template>
-    <div class="panel panel-default panel-primary">
-        <div class="panel-heading">
-            <h4 class="panel-title">Submit files: (max: {{options.maxFiles}})</h4>
+    <div class="card card-primary card-inverse">
+        <div class="card-block">
+            <h4 class="card-title">Submit files: (max: {{options.maxFiles}})</h4>
         </div>
-
         <!-- <div class="panel-body"> -->
-            <dropzone class="panel-body container"
+            <dropzone class="container card-block card-inverse"
               ref='dz'
               id='dz-upload'
               v-bind:url="options.url"
@@ -16,38 +15,65 @@
               v-on:vdropzone-file-added="fileAdded"
               v-on:vdropzone-success="success"
               v-on:vdropzone-queue-complete="queueComplete"
+              v-on:vdropzone-mounted="dropzoneMounted"
             >
+                <ul id="queue" class="list-group dropzone-previews">
+                    <li ref='previewTemplate' class="list-group-item row file hidden-xs-up">
+                        <div class="col-9"><span class="name" data-dz-name></span></div>
+                        <div class="col-2"><span class="size" data-dz-size></span></div>
+                        <div class="col-1">
+                            <button
+                              type="button"
+                              class="btn btn-danger btn-sm cancel"
+                              data-dz-remove>
+                                <icon name="times" aria-hidden="true"></icon>
+                            </button>
+                        </div>
+                    </li>
+                </ul>
             </dropzone>
         <!-- </div> -->
-        <div class="panel-footer">
+        <div class="card-block">
         <button
-          class="btn btn-primary btn-sm upload"
+          class="btn btn-success upload"
           v-on:click="upload"
           v-bind:class="{disabled: startedUpload}"
         >Upload
-        </button>   
+        </button>
+        <button
+          class="btn btn-warning remove"
+          v-on:click="removeRejected"
+          v-bind:class="{disabled: startedUpload}"
+        >Remove Invalid
+        </button>
+        <button
+          class="btn btn-danger remove"
+          v-on:click="removeAll"
+          v-bind:class="{disabled: startedUpload}"
+        >Remove All
+        </button>
         <div class="progress">
-                <div ref='progress' class="progress-bar progress-bar-info progress-bar-striped"/>
+                <div
+                  ref='progress'
+                  class="progress-bar bg-success progress-bar-striped progress-bar-animated"
+                  role="progressbar"/>
             </div>
+        </div>
+
         </div>
     </div>
 </template>
 
 <script>
     import Dropzone from 'vue2-dropzone';
-
-    const htmlTemplate = `
-    <li class="list-group-item row file">
-        <div class="col-xs-10"><span class="name" data-dz-name></span></div>
-        <div class="col-xs-auto"><span class="size" data-dz-size></span></div>
-    </li>
-    `;
-
+    import Icon from 'vue-awesome/components/Icon';
+    import 'vue-awesome/icons/times';
 
     export default {
         name: 'Upload',
         components: {
             Dropzone,
+            Icon,
         },
         props: {
             workId: {
@@ -79,20 +105,39 @@
                     dictDefaultMessage: 'Drop code here or click to submit',
                     uploadMultiple: true,
                     parallelUploads: this.maxFiles,
-                    previewTemplate: htmlTemplate,
-                    // previewsContainer: '#uploads',
+                    previewsContainer: '#queue',
                 },
             };
         },
         methods: {
+            dropzoneMounted: function dropzoneMounted() {
+                this.$refs.dz.setOption('previewTemplate', this.$refs.previewTemplate.outerHTML);
+            },
             upload: function upload() {
+                if (this.$refs.dz.getAcceptedFiles().length === 0) {
+                    return;
+                }
                 if (!this.startedUpload) {
+                    const acceptedFiles = this.$refs.dz.getAcceptedFiles();
+                    for (let i = 0; i < acceptedFiles.length; i += 1) {
+                        acceptedFiles[i].previewElement.children[2].children[0].classList.add('disabled');
+                    }
                     this.startedUpload = true;
                     this.$refs.dz.processQueue();
                 }
             },
             removeAll: function removeAll() {
-                this.$refs.dz.removeAllFiles();
+                if (!this.startedUpload) {
+                    this.$refs.dz.removeAllFiles();
+                }
+            },
+            removeRejected: function removeRejected() {
+                if (!this.startedUpload) {
+                    const rejectedFiles = this.$refs.dz.getRejectedFiles();
+                    for (let i = 0; i < rejectedFiles.length; i += 1) {
+                        this.$refs.dz.removeFile(rejectedFiles[i]);
+                    }
+                }
             },
             error: function error(file, response) {
                 let message = null;
@@ -104,17 +149,24 @@
                     message = response.message;
                 }
                 file.previewElement.classList.remove('list-group-item-info');
-                file.previewElement.classList.add('list-group-item-danger');
+                if (this.startedUpload) {
+                    file.previewElement.classList.add('list-group-item-danger');
+                } else {
+                    file.previewElement.classList.add('list-group-item-warning');
+                }
                 file.previewElement.setAttribute('title', message);
             },
             progress: function progress(totalProgress) {
-                this.$refs.progress.style.width = `${totalProgress}%`;
+                if (this.startedUpload) {
+                    this.$refs.progress.style.width = `${totalProgress}%`;
+                }
             },
             fileAdded: function fileAdded(file) {
                 if (this.startedUpload) {
                     this.$refs.dz.removeFile(file);
                 } else {
                     file.previewElement.classList.add('list-group-item-info');
+                    file.previewElement.classList.remove('hidden-xs-up');
                 }
             },
             success: function success(file) {
@@ -122,8 +174,9 @@
                 file.previewElement.classList.add('list-group-item-success');
             },
             queueComplete: function queueComplete() {
-                this.$refs.progress.classList.remove('progress-bar-info');
-                this.$refs.progress.classList.add('progress-bar-success');
+                this.$refs.progress.classList.remove('progress-bar-striped');
+                this.$refs.progress.classList.remove('progress-bar-animated');
+                this.$refs.progress.innerHTML = 'Done';
             },
 
         },
@@ -138,9 +191,5 @@
 .file div.col-xs-auto {
     overflow: visible;
     white-space: pre;
-}
-.progress {
-    height: 20px;
-    background-color: white;
 }
 </style>
