@@ -45,15 +45,33 @@ export default {
                 return;
             }
 
-            this.$http.post('/api/login', { email: this.email, password: this.password }).then((data) => {
+            this.$http.post('/api/v1//login', { email: this.email, password: this.password }).then((data) => {
+                if (data.body.success) {
+                    // eslint-disable-next-line
+                    console.log('Log in successful');
+                    this.user.loggedIn = true;
+                    this.user.email = this.email;
+
+                    this.user.id = data.body.id;
+                    this.user.name = data.body.name;
+
+                    // Clear password for security
+                    this.password = '';
+
+                    // TODO: Redirect to somewhere
+                }
+            }, (response) => {
                 // eslint-disable-next-line
-                console.log('Login response:', data);
+                console.log('There was an error while logging in:', response);
             });
         },
         clearErrors() {
             this.emailError = '';
             this.passwordError = '';
         },
+    },
+    store: {
+        user: 'user',
     },
     components: {
         bPopover,
