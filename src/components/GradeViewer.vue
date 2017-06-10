@@ -2,14 +2,6 @@
     <div class="grade-viewer row">
         <div class="col-lg-5">
             <div class="input-group">
-                <textarea type="text" class="form-control" aria-label="Feedback"
-                    placeholder="Feedback" rows="3" v-model="feedback">
-                    {{ feedback }}
-                </textarea>
-            </div>
-        </div>
-        <div class="col-lg-5">
-            <div class="input-group">
                 <div class="input-group-btn">
                     <button type="button" class="btn btn-primary dropdown-toggle input-lg"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
@@ -17,6 +9,14 @@
                 </div>
                 <input type="number" step="any" min="0" max="10" class="form-control input-lg"
                     aria-label="Grade" placeholder="Grade" v-model:value="grade">
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="input-group">
+                <textarea type="text" class="form-control" aria-label="Feedback"
+                    placeholder="Feedback" rows="3" v-model="feedback">
+                    {{ feedback }}
+                </textarea>
             </div>
         </div>
     </div>
