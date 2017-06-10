@@ -7,25 +7,18 @@ from psef import app
 
 @app.route("/api/v1/code/<id>")
 def get_code(id):
-    if id == "0":
-        return jsonify({
-            "lang": "python",
-            "code": "def id0func0():\n\treturn 0\n\n\ndef id0func1():\n\t" +
-                    "return 1",
-            "feedback": {
-                "0": "wtf",
-            }
-        })
-    else:
-        return jsonify({
-            "lang": "c",
-            "code": "void\nsome_func(void) {}\n\nvoid other_func(int x)" +
-                    "{\n\treturn 2 * x;\n}",
-            "feedback": {
-                "1": "slechte naam voor functie",
-                "3": "niet veel beter..."
-            }
-        })
+    # Code not used yet:
+    code = db.session.query(File).filter(File.id==id).first()
+    line_feedback = {}
+    for comment in db.session.query(Comment).filter(Comment.file_id==id):
+        line_feedback[str(comment.line)] = comment.comment
+
+    # TODO: Return JSON following API
+    if code != None:
+            return jsonify(lang="python",
+                           code="def id0func0():\n\treturn 0\n\n\n" +
+                                "def id0func1():\n\t return 1",
+                           feedback=line_feedback)
 
 
 @app.route("/api/v1/dir/<path>")
