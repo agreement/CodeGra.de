@@ -14,8 +14,18 @@ export default {
         return {};
     },
 
+    mounted() {
+        if (this.user.loggedIn) {
+            this.$router.replace('/');
+        }
+    },
+
     components: {
         Login,
+    },
+
+    store: {
+        user: 'user',
     },
 };
 </script>
