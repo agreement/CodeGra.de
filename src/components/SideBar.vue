@@ -1,21 +1,11 @@
 <template>
     <nav class="side-bar">
         <ul v-if="user.loggedIn">
-            <li>
-                <a v-bind:href="userBaseURL">{{ user.name }}</a>
-            </li>
-            <li>
-                <a v-bind:href="userOpenURL">Open assignments</a>
-            </li>
-            <li>
-                <a v-bind:href="userGradedURL">Graded assignments</a>
-            </li>
-            <li>
-                <a href="#/settings">Settings</a>
-            </li>
-            <li>
-                <a href="#/login" @click="logout()">Logout</a>
-            </li>
+            <li><a v-bind:href="userBaseURL">{{ username }}</a></li>
+            <li><a v-bind:href="userOpenURL">Open assignments</a></li>
+            <li><a v-bind:href="userGradedURL">Graded assignments</a></li>
+            <li><a href="#/settings">Settings</a></li>
+            <li><a href="#/login" @click="logout()">Logout</a></li>
         </ul>
         <ul v-else>
             <li>
