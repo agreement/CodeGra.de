@@ -1,8 +1,6 @@
 <template>
     <header>
-        <h1>
-            <a href="#/">CodeGra.de</a>
-        </h1>
+        <h1><a href="#/"><img src="/static/img/codegrade.png"></a></h1>
     </header>
 </template>
 
@@ -11,3 +9,9 @@ export default {
     name: 'header-bar',
 };
 </script>
+
+<style lang="less" scoped>
+img {
+    width: 12em;
+}
+</style>

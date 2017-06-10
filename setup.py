@@ -12,5 +12,6 @@ setup(
         'Flask-SQLAlchemy',
         'Flask-Migrate',
         'Psycopg2',
+        'Flask-Login',
     ],
 )

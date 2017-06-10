@@ -1,15 +1,18 @@
 <template>
     <div class="page submission">
-        <h2>{{ title }}</h2>
+        <h1>{{ title }}</h1>
 
-        <div class="code-browser">
-            <code-viewer v-bind:editable="false" v-bind:id="fileId"
-                v-if="fileId"></code-viewer>
-            <file-tree v-bind:collapsed="false" v-bind:tree="fileTree"
-                v-if="fileTree"></file-tree>
+        <div class="row">
+            <div class="col-10 justify-content-end">
+                <code-viewer class="" v-bind:editable="true"
+                    v-bind:id="fileId" v-if="fileId" ref="codeViewer"></code-viewer>
+                <grade-viewer v-bind:id="submissionId"
+                    v-on:submit="submitAllFeedback($event)"></grade-viewer>
+            </div>
+
+            <file-tree class="col-2" v-bind:collapsed="false"
+                v-bind:tree="fileTree" v-if="fileTree"></file-tree>
         </div>
-
-        <grade-viewer v-bind:id="submissionId"></grade-viewer>
     </div>
 </template>
 
@@ -17,7 +20,7 @@
 import { CodeViewer, FileTree, GradeViewer } from '@/components';
 
 export default {
-    name: 'assignment-page',
+    name: 'submission-page',
 
     data() {
         return {
@@ -50,6 +53,10 @@ export default {
                 this.feedback = data.body.feedback;
             });
         },
+
+        submitAllFeedback(event) {
+            this.$refs.codeViewer.submitAllFeedback(event);
+        },
     },
 
     components: {
@@ -60,20 +67,10 @@ export default {
 };
 </script>
 
-<style lang="less" scoped>
-@file-tree-width: 10em;
-
-.code-browser {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.code-viewer {
-    flex-grow: 1;
-    flex-shrink: 1;
-}
-
-.file-tree {
-    flex: 0 0 @file-tree-width;
+<style scoped>
+h1,
+.code-viewer,
+.grade-viewer {
+    margin-bottom: 30px;
 }
 </style>

@@ -1,10 +1,14 @@
+html {
+    box-sizing: border-box;
+}
+
+* {
+    box-sizing: inherit;
+}
+
 header,
 footer {
     text-align: center;
-}
-
-.input-group {
-    padding: .5em 0;
 }
 
 .code-viewer {
@@ -49,5 +53,9 @@ footer {
         .card-block {
             padding: @line-spacing;
         }
+    }
+
+    .input-group {
+        padding: .5em 0;
     }
 }
