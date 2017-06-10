@@ -127,12 +127,21 @@ ol {
     position: relative;
     font-family: monospace;
     margin: 0;
+    padding: 0;
     padding-left: @linenr-width;
     overflow: hidden;
 }
 
 li {
     padding: 0 1em;
+
+    &:first-child {
+        padding-top: .5em;
+    }
+
+    &:last-child {
+        padding-bottom: .5em;
+    }
 
     .code-viewer.editable & {
         cursor: pointer;
