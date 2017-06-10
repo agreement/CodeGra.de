@@ -20,7 +20,7 @@
 import { CodeViewer, FileTree, GradeViewer } from '@/components';
 
 export default {
-    name: 'assignment-page',
+    name: 'submission-page',
 
     data() {
         return {
