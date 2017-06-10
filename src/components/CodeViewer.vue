@@ -129,7 +129,6 @@ ol {
     margin: 0;
     padding: 0;
     padding-left: @linenr-width;
-    overflow: hidden;
 }
 
 li {
@@ -137,13 +136,15 @@ li {
 
     &:first-child {
         padding-top: .5em;
+        border-top-right-radius: inherit;
     }
 
     &:last-child {
         padding-bottom: .5em;
+        border-bottom-right-radius: inherit;
     }
 
-    .code-viewer.editable & {
+    .editable & {
         cursor: pointer;
     }
 }
@@ -160,7 +161,7 @@ code {
 .add-feedback {
     position: absolute;
     right: 100%;
-    transform: translate(50%, -100%);
+    transform: translate(-50%, -100%);
     display: none;
 
     li:hover & {
