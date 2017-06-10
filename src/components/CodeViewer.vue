@@ -136,12 +136,10 @@ li {
 
     &:first-child {
         padding-top: .5em;
-        border-top-right-radius: inherit;
     }
 
     &:last-child {
         padding-bottom: .5em;
-        border-bottom-right-radius: inherit;
     }
 
     .editable & {
