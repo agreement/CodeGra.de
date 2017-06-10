@@ -1,6 +1,6 @@
 <template>
     <footer>
-        <small>&copy; 2017 - CodeGra.de</small>
+        <small>&copy; {{ new Date().getFullYear() }} - CodeGra.de</small>
     </footer>
 </template>
 
