@@ -1,4 +1,4 @@
-import axios from 'axios';
+import Vue from 'vue';
 import * as error from '@/errors';
 import * as types from '../mutation-types';
 
@@ -11,7 +11,7 @@ const getters = {
 const actions = {
     login({ commit }, { email, password }) {
         return new Promise((resolve, reject) => {
-            axios.post('/api/v1/login', { email, password }).then((response) => {
+            Vue.http.post('/api/v1/login', { email, password }).then((response) => {
                 const body = response.data;
                 if (body.success) {
                     commit(types.LOGIN, {
@@ -35,14 +35,14 @@ const actions = {
 
                 // This should never happen
                 reject(error.apiError);
-            }).catch(() => {
+            }, () => {
                 reject(error.apiError);
             });
         });
     },
     logout({ commit }) {
         return new Promise((resolve, reject) => {
-            axios.post('/api/v1/logout').then((response) => {
+            Vue.http.post('/api/v1/logout').then((response) => {
                 const body = response.data;
                 if (body.success) {
                     commit(types.LOGOUT);
@@ -52,7 +52,7 @@ const actions = {
 
                 // This should never happen
                 reject(error.apiError);
-            }).catch(() => {
+            }, () => {
                 reject(error.apiError);
             });
         });
