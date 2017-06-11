@@ -1,30 +1,47 @@
 #!/usr/bin/env python3
 from flask import jsonify, request, make_response
 from flask_login import UserMixin, login_user, logout_user
-from psef import app
 
+from psef import app, db
+from psef.models import *
+from flask_login import UserMixin, login_user
 
-@app.route("/api/v1/code/<id>")
+@app.route("/api/v1/code/<int:id>")
 def get_code(id):
-    if id == "0":
-        return jsonify({
-            "lang": "python",
-            "code": "def id0func0():\n\treturn 0\n\n\ndef id0func1():\n\t" +
-                    "return 1",
-            "feedback": {
-                "0": "wtf",
-            }
-        })
+    # Code not used yet:
+    code = db.session.query(File).filter(File.id==id).first()
+    line_feedback = {}
+    for comment in db.session.query(Comment).filter(Comment.file_id==id):
+        line_feedback[str(comment.line)] = comment.comment
+    print(line_feedback)
+
+    # TODO: Return JSON following API
+    return jsonify(lang="python",
+                   code="def id0func0():\n\treturn 0\n\n\n" +
+                        "def id0func1():\n\t return 1",
+                   feedback=line_feedback)
+
+@app.route("/api/v1/code/<int:id>/comment/<int:line>", methods=['PUT'])
+def put_comment(id, line):
+    if request.method == 'PUT':
+        content = request.get_json()
+
+        comment = db.session.query(Comment).filter(Comment.file_id==id,
+                                                   Comment.line==line).first()
+        if not comment:
+            # TODO: User id 0 for now, change later on
+            db.session.add(Comment(file_id=id,
+                                   user_id=0,
+                                   line=line,
+                                   comment=content['comment']))
+        else:
+            comment.comment = content['comment']
+
+        db.session.commit()
+
+        return make_response("Comment updated or inserted!", 204)
     else:
-        return jsonify({
-            "lang": "c",
-            "code": "void\nsome_func(void) {}\n\nvoid other_func(int x)" +
-                    "{\n\treturn 2 * x;\n}",
-            "feedback": {
-                "1": "slechte naam voor functie",
-                "3": "niet veel beter..."
-            }
-        })
+        return make_response("Request not valid!", 400)
 
 
 @app.route("/api/v1/dir/<path>")
@@ -86,7 +103,6 @@ def get_general_feedback(submission_id):
 
         resp = make_response("grade and feedback submitted", 204)
         return resp
-
 
 @app.route("/api/v1/login", methods=["POST"])
 def login():
