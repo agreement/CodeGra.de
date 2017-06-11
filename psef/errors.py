@@ -17,7 +17,6 @@ class APICodes(IntEnum):
     INACTIVE_USER = 7
 
 
-
 class APIException(Exception):
     """The exception to use if an API call failed.
     """
