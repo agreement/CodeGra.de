@@ -13,8 +13,8 @@ def get_code(id):
     for comment in db.session.query(Comment).filter(Comment.file_id==id):
         line_feedback[str(comment.line)] = comment.comment
     print(line_feedback)
+
     # TODO: Return JSON following API
-    #if code != None:
     return jsonify(lang="python",
                    code="def id0func0():\n\treturn 0\n\n\n" +
                         "def id0func1():\n\t return 1",
