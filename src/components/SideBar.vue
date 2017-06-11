@@ -52,9 +52,9 @@ export default {
     },
 
     methods: {
-        ...mapActions('user', {
-            logout: 'logout',
-        }),
+        ...mapActions('user', [
+            'logout',
+        ]),
     },
 };
 </script>
