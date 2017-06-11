@@ -48,18 +48,26 @@ def is_archive(file):
 def extract(archive):
     "Extracts all files in archive with random name to uploads folder."
     tmpmode, tmparchive = tempfile.mkstemp()
+    os.remove(tmparchive)
+    tmparchive += '_' + os.path.basename(archive.filename)
     tmpdir = tempfile.mkdtemp()
-    archive.save(tmparchive)
-    patoolib.test_archive(tmparchive, verbosity=-1, interactive=False)
-    patoolib.extract_archive(
-        tmparchive, verbosity=-1, outdir=tmpdir, interactive=False)
-    rootdir = tmpdir.rstrip(os.sep)
-    start = rootdir.rfind(os.sep) + 1
-    res = rename_directory_structure(tmpdir)[tmpdir[start:]]
-    if len(res) > 1:
-        return {'archive': res}
-    else:
-        return res[0]
+    try:
+        archive.save(tmparchive)
+        patoolib.test_archive(tmparchive, verbosity=-1, interactive=False)
+        patoolib.extract_archive(
+            tmparchive, verbosity=-1, outdir=tmpdir, interactive=False)
+        rootdir = tmpdir.rstrip(os.sep)
+        start = rootdir.rfind(os.sep) + 1
+        res = rename_directory_structure(tmpdir)[tmpdir[start:]]
+        if len(res) > 1:
+            return {'archive': res if isinstance(res, list) else [res]}
+        elif not isinstance(res[0], dict):
+            return {'archive': res}
+        else:
+            return res[0]
+    finally:
+        os.remove(tmparchive)
+        shutil.rmtree(tmpdir)
 
 
 def random_file_path():
