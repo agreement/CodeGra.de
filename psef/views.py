@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-from psef import app
 from flask import jsonify, request, make_response
 
 from psef import app, db
 from psef.models import *
-
+from flask_login import UserMixin, login_user
 
 @app.route("/api/v1/code/<int:id>")
 def get_code(id):
@@ -103,3 +102,21 @@ def get_general_feedback(submission_id):
 
         resp = make_response("grade and feedback submitted", 204)
         return resp
+
+@app.route("/api/v1/login", methods=["POST"])
+def login():
+    class User(UserMixin):
+        def __init__(self, id):
+            self.id = id
+
+    data = request.get_json()
+
+    # TODO: Some authentication here
+    user = User(data["email"])
+
+    login_user(user)
+    return jsonify({
+        "success": True,
+        "id": 0,
+        "name": data["email"].partition("@")[0]
+    })

@@ -1,6 +1,6 @@
 <template>
-    <div class="row">
-        <div class="col-md-6 col-md-offset-3">
+    <div class="row justify-content-center">
+        <div class="col-6">
             <form>
                 <div class="form-group">
                     <b-popover placement="right" :content="emailError" :show="emailError.length > 0">
@@ -13,7 +13,7 @@
                     </b-popover>
                 </div>
                 <div class="form-group">
-                    <input type="submit" class="form-control" value="Submit" @click="login()">
+                    <input type="submit" value="Submit" @click="login()">
                 </div>
             </form>
         </div>
@@ -22,7 +22,7 @@
 
 <script>
 
-import { bPopover, bBtn } from 'bootstrap-vue/lib/components';
+import { bPopover } from 'bootstrap-vue/lib/components';
 
 export default {
     name: 'login',
@@ -45,9 +45,29 @@ export default {
                 return;
             }
 
-            this.$http.post('/api/login', { email: this.email, password: this.password }).then((data) => {
+            this.$http.post('/api/v1/login', { email: this.email, password: this.password }).then((data) => {
+                if (data.body.success) {
+                    // eslint-disable-next-line
+                    console.log('Log in successful');
+                    this.user.loggedIn = true;
+                    this.user.email = this.email;
+
+                    this.user.id = data.body.id;
+                    this.user.name = data.body.name;
+
+                    // Clear password for security
+                    this.password = '';
+
+                    // Redirect to homepage
+                    this.$router.replace('/');
+                    return;
+                }
+
                 // eslint-disable-next-line
-                console.log('Login response:', data);
+                console.log('Unsucessful login:', data.body);
+            }).catch((error) => {
+                // eslint-disable-next-line
+                console.log('There was an error while logging in:', error);
             });
         },
         clearErrors() {
@@ -55,9 +75,11 @@ export default {
             this.passwordError = '';
         },
     },
+    store: {
+        user: 'user',
+    },
     components: {
         bPopover,
-        bBtn,
     },
 };
 </script>
