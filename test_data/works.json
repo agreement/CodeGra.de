@@ -1,2 +1,29 @@
 [
+    {
+        "user": "Thomas Schaper",
+        "assignment": "Final deadline",
+        "comment": "Well done, my friend!",
+        "grade": 8.7,
+        "graded": true,
+        "state": 2,
+        "edit": 0
+    },
+    {
+        "user": "Stupid1",
+        "assignment": "Python",
+        "comment": "You suck at Python",
+        "grade": 3.2,
+        "graded": true,
+        "state": 2,
+        "edit": 0
+    },
+    {
+        "user": "Devin Hillenius",
+        "assignment": "Final deadline",
+        "comment": "Wow. Did you even try?",
+        "grade": 1.1,
+        "graded": true,
+        "state": 2,
+        "edit": 0
+    },
 ]
