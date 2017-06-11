@@ -36,8 +36,8 @@ const actions = {
     },
     verifyLogin({ commit }) {
         Vue.http.get('/api/v1/me').then((response) => {
-            // We are already logged in... Nothing to do here
-            console.log('Logged in already:', response);
+            // We are already logged in. Update state to logged in state
+            commit(types.LOGIN, response.data);
         }, () => {
             commit(types.LOGOUT);
         });

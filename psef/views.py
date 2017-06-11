@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from flask import jsonify, request, session, make_response
-from flask_login import login_user, logout_user, current_user
+from flask_login import login_user, logout_user, login_required, current_user
 
 import psef.auth as auth
 import psef.models as models
@@ -165,9 +165,10 @@ def logout():
 
 
 @app.route("/api/v1/me", methods=["GET"])
+@login_required
 def me():
-    # TODO: Check if logged in and return user data in case logged in
-    # Else return an error
-    user = current_user()
-    print(user)
-    return '', 200
+    return jsonify({
+        "id": current_user.id,
+        "name": current_user.name,
+        "email": current_user.email
+    }), 200
