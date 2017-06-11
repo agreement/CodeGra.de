@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from flask import jsonify, request, make_response
-from flask_login import UserMixin, login_user
+from flask_login import UserMixin, login_user, logout_user
 from psef import app
 
 
@@ -91,17 +91,27 @@ def get_general_feedback(submission_id):
 @app.route("/api/v1/login", methods=["POST"])
 def login():
     class User(UserMixin):
+
         def __init__(self, id):
             self.id = id
 
     data = request.get_json()
 
     # TODO: Some authentication here
-    user = User(data["email"])
+    # TODO: Get integer user id from email
+    user = User(1)
 
     login_user(user)
     return jsonify({
         "success": True,
-        "id": 0,
+        "id": 1,
         "name": data["email"].partition("@")[0]
+    })
+
+
+@app.route("/api/v1/logout", methods=["POST"])
+def logout():
+    logout_user()
+    return jsonify({
+        "success": True
     })
