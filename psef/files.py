@@ -5,6 +5,7 @@ import tempfile
 from functools import reduce
 
 import patoolib
+from werkzeug.utils import secure_filename
 
 from psef import app
 
@@ -77,7 +78,7 @@ def extract(archive):
     "Extracts all files in archive with random name to uploads folder."
     tmpmode, tmparchive = tempfile.mkstemp()
     os.remove(tmparchive)
-    tmparchive += '_' + os.path.basename(archive.filename)
+    tmparchive += '_' + os.path.basename(secure_filename(archive.filename))
     tmpdir = tempfile.mkdtemp()
     try:
         archive.save(tmparchive)
