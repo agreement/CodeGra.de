@@ -90,6 +90,19 @@ def test_data():
                     name=c['name'],
                     courses=perms,
                     role=m.Role.query.filter_by(name=c['role']).first()))
+    with open('./test_data/works.json', 'r') as c:
+        cs = json.load(c)
+        for c in cs:
+            db.session.add(
+                m.Work(
+                    assignment=m.Assignment.query.filter_by(
+                        name=c['assignment']).first(),
+                    user=m.User.query.filter_by(name=c['user']).first(),
+                    comment=c['comment'],
+                    grade=c['grade'],
+                    graded=c['graded'],
+                    state=c['state'],
+                    edit=c['edit']))
     db.session.commit()
 
 

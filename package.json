@@ -14,7 +14,7 @@
     "lint": "eslint --ext .js,.vue src test/unit/specs test/e2e/specs"
   },
   "dependencies": {
-    "bootstrap": "^4.0.0-alpha.6",
+    "bootstrap": "^3.3.7",
     "bootstrap-vue": "^0.16.1",
     "highlightjs": "^9.10.0",
     "request": "^2.81.0",

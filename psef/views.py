@@ -81,7 +81,6 @@ def get_submission(submission_id):
         "fileTree": dir_contents("abc"),
     })
 
-
 @app.route("/api/v1/submission/<int:submission_id>/general-feedback",
            methods=['GET', 'PUT'])
 def get_general_feedback(submission_id):
@@ -101,6 +100,7 @@ def get_general_feedback(submission_id):
         work = db.session.query(Work).filter(Work.id==submission_id).first()
 
         if work:
+            print('yesy')
             work.grade = content['grade']
             work.comment = content['feedback']
             work.graded = True
