@@ -66,9 +66,7 @@ def db(app, request):
     os.unlink(TESTDB_PATH)
 
 
-pytest.fixture(scope='module')
-
-
+@pytest.fixture(scope='module')
 def session(db, request):
     """Creates a new database session for a test."""
     connection = db.engine.connect()
