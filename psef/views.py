@@ -4,6 +4,7 @@ from flask_login import UserMixin, login_user, logout_user
 
 from psef import app, db
 from psef.models import *
+from psef.errors import APIException
 from flask_login import UserMixin, login_user
 
 @app.route("/api/v1/code/<int:id>")
@@ -85,7 +86,7 @@ def get_submission(submission_id):
            methods=['GET', 'PUT'])
 def get_general_feedback(submission_id):
     if request.method == 'GET':
-        work = db.session.query(Work).filter(Work.id==submission_id).first()
+        work = db.session.query(Work).get(submission_id)
 
         if work and work.is_graded:
             return jsonify({
