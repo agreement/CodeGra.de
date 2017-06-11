@@ -3,19 +3,9 @@ import * as error from '@/errors';
 import * as types from '../mutation-types';
 
 const getters = {
-    loggedIn: (state) => {
-        if (!state.id) {
-            state.id = localStorage.getItem('user_id', false);
-        }
-        return state.id || false;
-    },
-    id: state => state.id || false,
-    name: (state) => {
-        if (!state.name) {
-            state.name = localStorage.getItem('user_name', false);
-        }
-        return state.name || false;
-    },
+    loggedIn: state => state.id !== 0,
+    id: state => state.id,
+    name: state => state.name,
 };
 
 const actions = {
@@ -23,8 +13,6 @@ const actions = {
         return new Promise((resolve, reject) => {
             Vue.http.post('/api/v1/login', { email, password }).then((response) => {
                 const body = response.data;
-                localStorage.setItem('user_id', body.id);
-                localStorage.setItem('user_name', body.name);
                 commit(types.LOGIN, {
                     id: body.id,
                     name: body.name,
@@ -39,8 +27,6 @@ const actions = {
     logout({ commit }) {
         return new Promise((resolve, reject) => {
             Vue.http.post('/api/v1/logout').then(() => {
-                localStorage.removeItem('user_id');
-                localStorage.removeItem('user_name');
                 commit(types.LOGOUT);
                 resolve();
             }, () => {
@@ -57,18 +43,18 @@ const mutations = {
         state.name = userdata.name;
     },
     [types.LOGOUT](state) {
-        state.id = false;
+        state.id = 0;
         state.email = '';
-        state.name = false;
+        state.name = '';
     },
 };
 
 export default {
     namespaced: true,
     state: {
-        id: false,
+        id: 0,
         email: '',
-        name: false,
+        name: '',
     },
     getters,
     actions,
