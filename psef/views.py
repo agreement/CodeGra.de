@@ -39,7 +39,9 @@ def put_comment(id, line):
 
         db.session.commit()
 
-        return make_response("Comment updated or inserted", 204)
+        return make_response("Comment updated or inserted!", 204)
+    else:
+        return make_response("Request not valid!", 400)
 
 
 @app.route("/api/v1/dir/<path>")
