@@ -1,0 +1,42 @@
+[
+    {
+        "name": "Final deadline",
+        "description": "The final deadline",
+        "course": "Project Software Engineering"
+    },
+    {
+        "name": "Security assignment",
+        "description": "Do stupid stuff with sec",
+        "course": "Besturingssystemen"
+    },
+    {
+        "name": "Shell",
+        "description": "Create your own shell",
+        "course": "Besturingssystemen"
+    },
+    {
+        "name": "Haskell",
+        "description": "Sorry Haskell isn't lisp",
+        "course": "Programmeertalen"
+    },
+    {
+        "name": "Shell",
+        "description": "Sorry Shell isn't lisp",
+        "course": "Programmeertalen"
+    },
+    {
+        "name": "Python",
+        "description": "Sorry Python isn't lisp",
+        "course": "Programmeertalen"
+    },
+    {
+        "name": "Erlang",
+        "description": "Sorry Erlang isn't lisp",
+        "course": "Programmeertalen"
+    },
+    {
+        "name": "Go",
+        "description": "Lol no generics",
+        "course": "Programmeertalen"
+    }
+]
