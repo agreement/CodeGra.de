@@ -44,7 +44,7 @@ def test_client(app):
 @pytest.fixture(scope='session')
 def login_endpoint(app, test_client):
     @app.route('/auto_login/<int:id>')
-    def login(id):
+    def _login(id):
         user = m.User.query.get(id)
         flask_login.login_user(user, remember=True)
         return "ok"

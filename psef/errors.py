@@ -1,5 +1,21 @@
+from enum import IntEnum, unique
+
 from flask import jsonify
+
 from psef import app
+
+
+@unique
+class APICodes(IntEnum):
+    INCORRECT_PERMISSION = 0
+    NOT_LOGGED_IN = 1
+    OBJECT_ID_NOT_FOUND = 2
+    MISSING_REQUIRED_PARAM = 3
+    INVALID_PARAM = 4
+    REQUEST_TOO_LARGE = 5
+    LOGIN_FAILURE = 6
+    INACTIVE_USER = 7
+
 
 
 class APIException(Exception):

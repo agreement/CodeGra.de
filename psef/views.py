@@ -2,46 +2,49 @@
 from flask import jsonify, request, make_response
 from flask_login import UserMixin, login_user, logout_user
 
-from psef import app, db
-from psef.models import *
-from flask_login import UserMixin, login_user
+import psef.auth as auth
+import psef.models as models
+from psef import db, app
+from psef.errors import APICodes, APIException
+
 
 @app.route("/api/v1/code/<int:id>")
 def get_code(id):
     # Code not used yet:
-    code = db.session.query(File).filter(File.id==id).first()
+
+    code = db.session.query(models.File).filter(  # NOQA: F841
+        models.File.id == id).first()
     line_feedback = {}
-    for comment in db.session.query(Comment).filter(Comment.file_id==id):
+    for comment in db.session.query(models.Comment).filter(
+            models.Comment.file_id == id):
         line_feedback[str(comment.line)] = comment.comment
     print(line_feedback)
 
     # TODO: Return JSON following API
-    return jsonify(lang="python",
-                   code="def id0func0():\n\treturn 0\n\n\n" +
-                        "def id0func1():\n\t return 1",
-                   feedback=line_feedback)
+    return jsonify(
+        lang="python",
+        code="def id0func0():\n\treturn 0\n\n\n" +
+        "def id0func1():\n\t return 1",
+        feedback=line_feedback)
+
 
 @app.route("/api/v1/code/<int:id>/comment/<int:line>", methods=['PUT'])
 def put_comment(id, line):
-    if request.method == 'PUT':
-        content = request.get_json()
+    content = request.get_json()
 
-        comment = db.session.query(Comment).filter(Comment.file_id==id,
-                                                   Comment.line==line).first()
-        if not comment:
-            # TODO: User id 0 for now, change later on
-            db.session.add(Comment(file_id=id,
-                                   user_id=0,
-                                   line=line,
-                                   comment=content['comment']))
-        else:
-            comment.comment = content['comment']
-
-        db.session.commit()
-
-        return make_response("Comment updated or inserted!", 204)
+    comment = db.session.query(models.Comment).filter(
+        models.Comment.file_id == id, models.Comment.line == line).first()
+    if not comment:
+        # TODO: User id 0 for now, change later on
+        db.session.add(
+            models.Comment(
+                file_id=id, user_id=0, line=line, comment=content['comment']))
     else:
-        return make_response("Request not valid!", 400)
+        comment.comment = content['comment']
+
+    db.session.commit()
+
+    return ('', 204)
 
 
 @app.route("/api/v1/dir/<path>")
@@ -51,24 +54,44 @@ def get_dir_contents(path):
 
 def dir_contents(path):
     return {
-        "name": path,
+        "name":
+        path,
         "entries": [
             {
-                "name": "a",
+                "name":
+                "a",
                 "entries": [
-                    {"name": "a_1", "id": 0, },
-                    {"name": "a_2", "id": 1, },
+                    {
+                        "name": "a_1",
+                        "id": 0,
+                    },
+                    {
+                        "name": "a_2",
+                        "id": 1,
+                    },
                     {
                         "name": "a_3",
                         "entries": [
-                            {"name": "a_3_1", "id": 2},
+                            {
+                                "name": "a_3_1",
+                                "id": 2
+                            },
                         ],
                     },
                 ],
             },
-            {"name": "b", "id": 3},
-            {"name": "c", "id": 4},
-            {"name": "d", "id": 5},
+            {
+                "name": "b",
+                "id": 3
+            },
+            {
+                "name": "c",
+                "id": 4
+            },
+            {
+                "name": "d",
+                "id": 5
+            },
         ]
     }
 
@@ -81,8 +104,9 @@ def get_submission(submission_id):
     })
 
 
-@app.route("/api/v1/submission/<submission_id>/general-feedback",
-           methods=['GET', 'PUT'])
+@app.route(
+    "/api/v1/submission/<submission_id>/general-feedback",
+    methods=['GET', 'PUT'])
 def get_general_feedback(submission_id):
     if request.method == 'GET':
         if id == 0:
@@ -91,10 +115,7 @@ def get_general_feedback(submission_id):
                 "feedback": "test feedback voor id nul"
             })
         else:
-            return jsonify({
-                "grade": 6.5,
-                "feedback": "test feedback"
-            })
+            return jsonify({"grade": 6.5, "feedback": "test feedback"})
     elif request.method == 'PUT':
         content = request.get_json()
 
@@ -104,30 +125,34 @@ def get_general_feedback(submission_id):
         resp = make_response("grade and feedback submitted", 204)
         return resp
 
+
 @app.route("/api/v1/login", methods=["POST"])
 def login():
-    class User(UserMixin):
-
-        def __init__(self, id):
-            self.id = id
-
     data = request.get_json()
 
-    # TODO: Some authentication here
-    # TODO: Get integer user id from email
-    user = User(1)
+    if 'email' not in data or 'password' not in data:
+        raise APIException('Email and passwords are required fields',
+                           'Email or password was missing from the request',
+                           APICodes.MISSING_REQUIRED_PARAM, 400)
 
-    login_user(user)
+    user = models.User.query.filter_by(email=data['email']).first()
+    if user is None or user.password != data['password']:
+        raise APIException('User not found or password wrong', (
+            'The user with email {} does not exist ' +
+            'or has a different password').format(data['email']),
+                           APICodes.LOGIN_FAILURE, 400)
+
+    if not login_user(user):
+        raise APIException('User is not active', (
+            'The user with id "{}" is not active any more').format(user.id),
+                           APICodes.INACTIVE_USER, 403)
     return jsonify({
-        "success": True,
-        "id": 1,
-        "name": data["email"].partition("@")[0]
+        "id": user.id,
+        "name": user.name,
     })
 
 
 @app.route("/api/v1/logout", methods=["POST"])
 def logout():
     logout_user()
-    return jsonify({
-        "success": True
-    })
+    return '', 204
