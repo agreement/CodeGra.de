@@ -121,7 +121,7 @@ class User(db.Model, UserMixin):
     @staticmethod
     @login_manager.user_loader
     def load_user(user_id):
-        User.query.get(int(user_id))
+        return User.query.get(int(user_id))
 
 
 class Course(db.Model):

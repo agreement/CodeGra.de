@@ -3,9 +3,19 @@ import * as error from '@/errors';
 import * as types from '../mutation-types';
 
 const getters = {
-    loggedIn: state => state.id !== 0,
-    id: state => state.id,
-    name: state => state.name,
+    loggedIn: (state) => {
+        if (!state.id) {
+            state.id = localStorage.getItem('user_id', false);
+        }
+        return state.id || false;
+    },
+    id: state => state.id || false,
+    name: (state) => {
+        if (!state.name) {
+            state.name = localStorage.getItem('user_name', false);
+        }
+        return state.name || false;
+    },
 };
 
 const actions = {
@@ -13,45 +23,26 @@ const actions = {
         return new Promise((resolve, reject) => {
             Vue.http.post('/api/v1/login', { email, password }).then((response) => {
                 const body = response.data;
-                if (body.success) {
-                    commit(types.LOGIN, {
-                        id: body.id,
-                        name: body.name,
-                        email,
-                    });
-                    resolve();
-                    return;
-                }
-
-                if ('email_error' in body) {
-                    reject(error.emailDoesNotExist);
-                    return;
-                }
-
-                if ('password_error' in body) {
-                    reject(error.passwordIsInvalid);
-                    return;
-                }
-
-                // This should never happen
-                reject(error.apiError);
-            }, () => {
-                reject(error.apiError);
+                localStorage.setItem('user_id', body.id);
+                localStorage.setItem('user_name', body.name);
+                commit(types.LOGIN, {
+                    id: body.id,
+                    name: body.name,
+                    email,
+                });
+                resolve();
+            }, (response) => {
+                reject(response.body);
             });
         });
     },
     logout({ commit }) {
         return new Promise((resolve, reject) => {
-            Vue.http.post('/api/v1/logout').then((response) => {
-                const body = response.data;
-                if (body.success) {
-                    commit(types.LOGOUT);
-                    resolve();
-                    return;
-                }
-
-                // This should never happen
-                reject(error.apiError);
+            Vue.http.post('/api/v1/logout').then(() => {
+                localStorage.removeItem('user_id');
+                localStorage.removeItem('user_name');
+                commit(types.LOGOUT);
+                resolve();
             }, () => {
                 reject(error.apiError);
             });
@@ -66,18 +57,18 @@ const mutations = {
         state.name = userdata.name;
     },
     [types.LOGOUT](state) {
-        state.id = 0;
+        state.id = false;
         state.email = '';
-        state.name = '';
+        state.name = false;
     },
 };
 
 export default {
     namespaced: true,
     state: {
-        id: 0,
+        id: false,
         email: '',
-        name: '',
+        name: false,
     },
     getters,
     actions,

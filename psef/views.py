@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-from flask import jsonify, request, make_response
-from flask_login import UserMixin, login_user, logout_user
+from flask import jsonify, request, session, make_response
+from flask_login import login_user, logout_user
 
 import psef.auth as auth
 import psef.models as models
@@ -137,10 +137,11 @@ def login():
 
     user = models.User.query.filter_by(email=data['email']).first()
     if user is None or user.password != data['password']:
-        raise APIException('User not found or password wrong', (
-            'The user with email {} does not exist ' +
-            'or has a different password').format(data['email']),
-                           APICodes.LOGIN_FAILURE, 400)
+        raise APIException(
+            'The supplied email or password is wrong.',
+            ('The user with email {} does not exist ' +
+             'or has a different password').format(data['email']),
+            APICodes.LOGIN_FAILURE, 400)
 
     if not login_user(user):
         raise APIException('User is not active', (
