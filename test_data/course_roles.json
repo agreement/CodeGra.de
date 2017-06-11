@@ -1,0 +1,43 @@
+[
+    {
+        "name": "student",
+        "permissions": [],
+        "course": "Project Software Engineering"
+    },
+    {
+        "name": "TA",
+        "permissions": ["can_submit_own_work", "can_grade_work"],
+        "course": "Project Software Engineering"
+    },
+    {
+        "name": "student",
+        "permissions": [],
+        "course": "Besturingssystemen"
+    },
+    {
+        "name": "TA",
+        "permissions": ["can_submit_own_work", "can_grade_work"],
+        "course": "Besturingssystemen"
+    },
+    {
+        "name": "student",
+        "permissions": [],
+        "course": "Programmeertalen"
+    },
+    {
+        "name": "TA",
+        "permissions": ["can_submit_own_work", "can_grade_work"],
+        "course": "Programmeertalen"
+    },
+
+    {
+        "name": "student",
+        "permissions": [],
+        "course": "Inleiding Programmeren"
+    },
+    {
+        "name": "TA",
+        "permissions": ["can_submit_own_work", "can_grade_work"],
+        "course": "Inleiding Programmeren"
+    }
+]

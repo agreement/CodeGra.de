@@ -154,7 +154,8 @@ class Comment(db.Model):
 class Assignment(db.Model):
     __tablename__ = "Assignment"
     id = db.Column('id', db.Integer, primary_key=True)
-    description = db.Column('description', db.Unicode)
+    name = db.Column('name', db.Unicode)
+    description = db.Column('description', db.Unicode, default='')
     course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
 
     course = db.relationship('Course', foreign_keys=course_id)
