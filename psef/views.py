@@ -177,7 +177,7 @@ def upload_file(work_id):
         raise APIException(
             'Work not found',
             'The work with code {} was not found'.format(work_id),
-            APIException.OBJECT_ID_NOT_FOUND, 404)
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
     auth.ensure_permission('can_submit_own_work', work.assignment.course.id)
 
     tree = psef.files.process_files(files)
