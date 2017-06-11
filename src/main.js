@@ -7,6 +7,7 @@ import 'highlightjs/styles/github.css';
 import '@/style.less';
 
 import Vue from 'vue';
+import { mapActions } from 'vuex';
 import Resource from 'vue-resource';
 import BootstrapVue from 'bootstrap-vue';
 
@@ -26,4 +27,12 @@ new Vue({
     template: '<App/>',
     components: { App },
     store,
+    created() {
+        this.verifyLogin();
+    },
+    methods: {
+        ...mapActions('user', [
+            'verifyLogin',
+        ]),
+    },
 });

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from flask import jsonify, request, session, make_response
-from flask_login import login_user, logout_user
+from flask_login import login_user, logout_user, current_user
 
 import psef.auth as auth
 import psef.models as models
@@ -136,6 +136,9 @@ def login():
                            APICodes.MISSING_REQUIRED_PARAM, 400)
 
     user = db.session.query(models.User).filter_by(email=data['email']).first()
+
+    # TODO: Use bcrypt password validation (as soon as we got that)
+    # TODO: Return error whether user or password is wrong
     if user is None or user.password != data['password']:
         raise APIException(
             'The supplied email or password is wrong.',
@@ -143,10 +146,12 @@ def login():
              'or has a different password').format(data['email']),
             APICodes.LOGIN_FAILURE, 400)
 
-    if not login_user(user):
+    if not login_user(user, remember=True):
         raise APIException('User is not active', (
             'The user with id "{}" is not active any more').format(user.id),
-                           APICodes.INACTIVE_USER, 403)
+            APICodes.INACTIVE_USER, 403)
+
+    user.authenticated = True
     return jsonify({
         "id": user.id,
         "name": user.name,
@@ -157,3 +162,12 @@ def login():
 def logout():
     logout_user()
     return '', 204
+
+
+@app.route("/api/v1/me", methods=["GET"])
+def me():
+    # TODO: Check if logged in and return user data in case logged in
+    # Else return an error
+    user = current_user()
+    print(user)
+    return '', 200
