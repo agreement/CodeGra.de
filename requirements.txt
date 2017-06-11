@@ -12,7 +12,6 @@ Mako==1.0.6
 MarkupSafe==1.0
 passlib==1.7.1
 patool==1.12
-pkg-resources==0.0.0
 psycopg2==2.7.1
 py==1.4.34
 pyflakes==1.5.0
