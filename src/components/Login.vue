@@ -13,7 +13,7 @@
                     </b-popover>
                 </div>
                 <div class="form-group">
-                    <input type="submit" value="Submit" @click="login()">
+                    <input type="submit" class="form-control" value="Submit" @click="login()">
                 </div>
             </form>
         </div>
@@ -71,7 +71,7 @@ export default {
             this.passwordError = '';
         },
         ...mapActions({
-            tryLogin: 'login',
+            tryLogin: 'user/login',
         }),
     },
     components: {

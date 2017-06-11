@@ -1,11 +1,21 @@
 <template>
     <nav class="side-bar">
         <ul v-if="loggedIn">
-            <li><a v-bind:href="userBaseURL">{{ name }}</a></li>
-            <li><a v-bind:href="userOpenURL">Open assignments</a></li>
-            <li><a v-bind:href="userGradedURL">Graded assignments</a></li>
-            <li><a href="#/settings">Settings</a></li>
-            <li><a href="#/login" @click="logout()">Logout</a></li>
+            <li>
+                <a v-bind:href="userBaseURL">{{ username }}</a>
+            </li>
+            <li>
+                <a v-bind:href="userOpenURL">Open assignments</a>
+            </li>
+            <li>
+                <a v-bind:href="userGradedURL">Graded assignments</a>
+            </li>
+            <li>
+                <a href="#/settings">Settings</a>
+            </li>
+            <li>
+                <a href="#/login" @click="logout()">Logout</a>
+            </li>
         </ul>
         <ul v-else>
             <li>
@@ -16,14 +26,14 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 
 export default {
     name: 'side-bar',
 
     computed: {
         userBaseURL() {
-            return `#/users/${this.id}`;
+            return `#/users/${this.userid}`;
         },
 
         userOpenURL() {
@@ -34,16 +44,17 @@ export default {
             return `${this.userBaseURL}/assignments?graded=1`;
         },
 
-        ...mapGetters([
-            'loggedIn',
-            'id',
-            'name',
-        ]),
+        ...mapGetters('user', {
+            loggedIn: 'loggedIn',
+            userid: 'id',
+            username: 'name',
+        }),
     },
 
     methods: {
-        logout() {
-        },
+        ...mapActions('user', {
+            logout: 'logout',
+        }),
     },
 };
 </script>

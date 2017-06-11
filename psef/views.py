@@ -98,12 +98,13 @@ def login():
     data = request.get_json()
 
     # TODO: Some authentication here
-    user = User(data["email"])
+    # TODO: Get integer user id from email
+    user = User(1)
 
     login_user(user)
     return jsonify({
         "success": True,
-        "id": 0,
+        "id": 1,
         "name": data["email"].partition("@")[0]
     })
 
