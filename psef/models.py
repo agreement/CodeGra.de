@@ -124,10 +124,16 @@ class Work(db.Model):
     user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
     state = db.Column('state', db.Integer)
     edit = db.Column('edit', db.Integer)
+    graded = db.Column('graded', db.Boolean, default=False)
+    grade = db.Column('grade', db.Float)
+    comment = db.Column('comment', db.Unicode)
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', foreign_keys=user_id)
 
+    @property
+    def is_graded(self):
+        return self.graded
 
 class File(db.Model):
     __tablename__ = "File"
