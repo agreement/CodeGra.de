@@ -84,6 +84,10 @@ def dehead_tree(tree):
             tree[head_node] = tree[head_node][list(tree[head_node].keys())[0]]
         else:
             break
+        if not (isinstance(tree[head_node], list) or
+                isinstance(tree[head_node], dict)):
+            tree[head_node] = [tree[head_node]]
+            break
     return tree
 
 
