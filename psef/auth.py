@@ -2,7 +2,13 @@ from functools import wraps
 
 from flask_login import current_user
 
+from psef import login_manager
 from psef.errors import APIException
+
+
+def _raise_login_exception(desc='No user was logged in.'):
+    raise APIException('You need to be logged in to do this.', desc,
+                       APIException.NOT_LOGGED_IN, 401)
 
 
 def ensure_permission(permission_name, course_id=None):
@@ -31,11 +37,9 @@ def ensure_permission(permission_name, course_id=None):
                     permission_name,
                     current_user.id), APIException.INCORRECT_PERMISSION, 403)
     else:
-        raise APIException(
-            'You need to be logged in to do this.',
-            'The user was not logged in, ' +
-            'so it did not have the permission "{}"'.format(permission_name),
-            APIException.NOT_LOGGED_IN, 401)
+        _raise_login_exception(
+            ('The user was not logged in, ' +
+             'so it did not have the permission "{}"').format(permission_name))
 
 
 def permission_required(permission_name, course_id=None):
@@ -51,3 +55,5 @@ def permission_required(permission_name, course_id=None):
 
 
 permission_required.__doc__ = ensure_permission.__doc__
+
+login_manager.unauthorized_handler(_raise_login_exception)
