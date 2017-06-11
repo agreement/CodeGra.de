@@ -13,6 +13,7 @@ echo "Migrating and upgrading database"
 ./manage.py db migrate
 ./manage.py db upgrade
 ./manage.py seed
+./manage.py test_data
 
 if [[ "${1:-true}" = "migrate" ]]; then
     exit 0

@@ -1,0 +1,41 @@
+[
+    {
+        "name": "Wowsersman",
+        "role": "admin",
+        "courses": {}
+    },
+    {
+        "name": "Thomas Schaper",
+        "role": "student",
+        "courses": {
+            "Project Software Engineering": "student",
+            "Besturingssystemen": "TA",
+            "Programmeertalen": "TA"
+        }
+    },
+    {
+        "name": "Devin Hillenius",
+        "role": "student",
+        "courses": {
+            "Project Software Engineering": "student",
+            "Programmeertalen": "TA",
+            "Inleiding Programmeren": "TA"
+        }
+    },
+    {
+        "name": "Stupid1",
+        "role": "student",
+        "courses": {
+            "Programmeertalen": "student",
+            "Inleiding Programmeren": "student"
+        }
+    },
+    {
+        "name": "Stupid2",
+        "role": "student",
+        "courses": {
+            "Programmeertalen": "student",
+            "Besturingssystemen": "student"
+        }
+    }
+]
