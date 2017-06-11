@@ -81,28 +81,32 @@ def get_submission(submission_id):
     })
 
 
-@app.route("/api/v1/submission/<submission_id>/general-feedback",
+@app.route("/api/v1/submission/<int:submission_id>/general-feedback",
            methods=['GET', 'PUT'])
 def get_general_feedback(submission_id):
     if request.method == 'GET':
-        if id == 0:
+        work = db.session.query(Work).filter(Work.id==submission_id).first()
+
+        if work and work.is_graded:
             return jsonify({
-                "grade": 8.5,
-                "feedback": "test feedback voor id nul"
+                "grade": work.grade,
+                "feedback": work.comment
             })
         else:
-            return jsonify({
-                "grade": 6.5,
-                "feedback": "test feedback"
-            })
+            return ('', 404)
     elif request.method == 'PUT':
         content = request.get_json()
 
-        # Here you should connect to the database
-        print(content)
+        work = db.session.query(Work).filter(Work.id==submission_id).first()
 
-        resp = make_response("grade and feedback submitted", 204)
-        return resp
+        if work:
+            work.grade = content['grade']
+            work.comment = content['feedback']
+            work.graded = True
+            db.session.commit()
+            return ('', 204)
+        else:
+            return ('', 404)
 
 @app.route("/api/v1/login", methods=["POST"])
 def login():
