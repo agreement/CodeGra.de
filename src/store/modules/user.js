@@ -21,6 +21,8 @@ const actions = {
                 resolve();
             }, (response) => {
                 reject(response.body);
+            }).catch((e) => {
+                reject(e);
             });
         });
     },

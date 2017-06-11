@@ -135,7 +135,6 @@ def login():
                            'Email or password was missing from the request',
                            APICodes.MISSING_REQUIRED_PARAM, 400)
 
-    print(data)
     user = db.session.query(models.User).filter_by(email=data['email']).first()
     if user is None or user.password != data['password']:
         raise APIException(
