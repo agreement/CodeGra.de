@@ -204,14 +204,15 @@ class File(db.Model):
 
 class Comment(db.Model):
     __tablename__ = "Comment"
-    id = db.Column('id', db.Integer, primary_key=True)
-    file_id = db.Column('File_id', db.Integer, db.ForeignKey('File.id'))
-    user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
+    file_id = db.Column('File_id', db.Integer)#, db.ForeignKey('File.id'))
+    user_id = db.Column('User_id', db.Integer)#, db.ForeignKey('User.id'))
     line = db.Column('line', db.Integer)
     comment = db.Column('comment', db.Unicode)
+    __table_args__ = (db.PrimaryKeyConstraint(file_id, line),)
 
-    file = db.relationship('File', foreign_keys=file_id)
-    user = db.relationship('User', foreign_keys=user_id)
+    # Commented out relationships for testing purposes
+    #file = db.relationship('File', foreign_keys=file_id)
+    #user = db.relationship('User', foreign_keys=user_id)
 
 
 class Assignment(db.Model):

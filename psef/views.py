@@ -1,39 +1,52 @@
 #!/usr/bin/env python3
 from flask import jsonify, request, make_response
-from flask_login import UserMixin, login_user
+from flask_login import UserMixin, login_user, logout_user
 
 import psef.auth as auth
 import psef.files
 import psef.models as models
-from psef import app
+from psef import db, app
 from psef.errors import APICodes, APIException
+from psef.models import *
 
 
-@app.route("/api/v1/code/<id>")
+@app.route("/api/v1/code/<int:id>")
 def get_code(id):
-    if id == "0":
-        return jsonify({
-            "lang":
-            "python",
-            "code":
-            "def id0func0():\n\treturn 0\n\n\ndef id0func1():\n\t" +
-            "return 1",
-            "feedback": {
-                "0": "wtf",
-            }
-        })
+    # Code not used yet:
+
+    code = db.session.query(models.File).filter(  # NOQA: F841
+        models.File.id == id).first()
+    line_feedback = {}
+    for comment in db.session.query(models.Comment).filter(
+            models.Comment.file_id == id):
+        line_feedback[str(comment.line)] = comment.comment
+    print(line_feedback)
+
+    # TODO: Return JSON following API
+    return jsonify(
+        lang="python",
+        code="def id0func0():\n\treturn 0\n\n\n" +
+        "def id0func1():\n\t return 1",
+        feedback=line_feedback)
+
+
+@app.route("/api/v1/code/<int:id>/comment/<int:line>", methods=['PUT'])
+def put_comment(id, line):
+    content = request.get_json()
+
+    comment = db.session.query(models.Comment).filter(
+        models.Comment.file_id == id, models.Comment.line == line).first()
+    if not comment:
+        # TODO: User id 0 for now, change later on
+        db.session.add(
+            models.Comment(
+                file_id=id, user_id=0, line=line, comment=content['comment']))
     else:
-        return jsonify({
-            "lang":
-            "c",
-            "code":
-            "void\nsome_func(void) {}\n\nvoid other_func(int x)" +
-            "{\n\treturn 2 * x;\n}",
-            "feedback": {
-                "1": "slechte naam voor functie",
-                "3": "niet veel beter..."
-            }
-        })
+        comment.comment = content['comment']
+
+    db.session.commit()
+
+    return ('', 204)
 
 
 @app.route("/api/v1/dir/<path>")
@@ -124,14 +137,21 @@ def login():
     data = request.get_json()
 
     # TODO: Some authentication here
-    user = User(data["email"])
+    # TODO: Get integer user id from email
+    user = User(1)
 
     login_user(user)
     return jsonify({
         "success": True,
-        "id": 0,
+        "id": 1,
         "name": data["email"].partition("@")[0]
     })
+
+
+@app.route("/api/v1/logout", methods=["POST"])
+def logout():
+    logout_user()
+    return jsonify({"success": True})
 
 
 @app.route("/api/v1/works/<int:work_id>/file", methods=['POST'])

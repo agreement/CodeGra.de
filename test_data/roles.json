@@ -1,0 +1,4 @@
+[
+    {"name": "student", "permissions": []},
+    {"name": "admin", "permissions": ["can_add_users"]}
+]
