@@ -138,6 +138,17 @@ class Work(db.Model):
     user = db.relationship('User', foreign_keys=user_id)
 
     def add_file_tree(self, db, tree):
+        """Add the given tree to the given db.
+
+        .. warning::
+        The db session is not commited!
+
+        :param db: The db object.
+        :param tree: The file tree as described by
+                     :py:func:`psef.files.rename_directory_structure`
+        :returns: Nothing
+        :rtype: None
+        """
         assert isinstance(tree, dict)
         return self._add_file_tree(db, tree, None)
 

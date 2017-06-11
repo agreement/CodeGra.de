@@ -203,4 +203,4 @@ def test_extract(db, seq_work, files):
     1: [1, {5: 6}, 2]
 })])
 def test_dehead(tree, correct):
-    assert correct == psef.files.dehead_tree(tree)
+    assert correct == psef.files.dehead_filetree(tree)
