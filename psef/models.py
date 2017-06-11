@@ -1,3 +1,4 @@
+import os
 import enum
 
 from flask_login import UserMixin
@@ -169,11 +170,8 @@ class Work(db.Model):
                     self._add_file_tree(db, child, new_top)
                     continue
                 child, filename = child
-                splitted = child.split('.')
-                name = '.'.join(splitted[:-1])
-                if not name:
-                    name = child
-                ext = '' if len(splitted) == 1 else splitted[-1]
+                name, ext = os.path.splitext(child)
+                ext = ext[1:]
                 db.session.add(
                     File(
                         work=self,
