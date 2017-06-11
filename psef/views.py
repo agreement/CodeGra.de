@@ -6,14 +6,14 @@ from psef import app, db
 from psef.models import *
 
 
-@app.route("/api/v1/code/<id>")
+@app.route("/api/v1/code/<int:id>")
 def get_code(id):
     # Code not used yet:
     code = db.session.query(File).filter(File.id==id).first()
     line_feedback = {}
     for comment in db.session.query(Comment).filter(Comment.file_id==id):
         line_feedback[str(comment.line)] = comment.comment
-
+    print(line_feedback)
     # TODO: Return JSON following API
     #if code != None:
     return jsonify(lang="python",
@@ -21,17 +21,17 @@ def get_code(id):
                         "def id0func1():\n\t return 1",
                    feedback=line_feedback)
 
-@app.route("/api/v1/code/<id>/comment/<line>", methods=['PUT'])
+@app.route("/api/v1/code/<int:id>/comment/<int:line>", methods=['PUT'])
 def put_comment(id, line):
     if request.method == 'PUT':
         content = request.get_json()
 
-        comment = db.session.query(Comment).filter(Comment.file_id==id and
+        comment = db.session.query(Comment).filter(Comment.file_id==id,
                                                    Comment.line==line).first()
         if not comment:
             # TODO: User id 0 for now, change later on
-            db.session.add(Comment(#file_id=id,
-                                   #user_id=0,
+            db.session.add(Comment(file_id=id,
+                                   user_id=0,
                                    line=line,
                                    comment=content['comment']))
         else:
