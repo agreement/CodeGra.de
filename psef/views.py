@@ -81,8 +81,51 @@ def get_dir_contents(course_id, assignment_id, work_id, file_id):
 def get_submission(submission_id):
     return jsonify({
         "title": "Assignment 1",
-        "fileTree": dir_contents("abc"),
+        "fileTree": sample_dir_contents("abc"),
     })
+
+def sample_dir_contents(path):
+    return {
+        "name":
+        path,
+        "entries": [
+            {
+                "name":
+                "a",
+                "entries": [
+                    {
+                        "name": "a_1",
+                        "id": 0,
+                    },
+                    {
+                        "name": "a_2",
+                        "id": 1,
+                    },
+                    {
+                        "name": "a_3",
+                        "entries": [
+                            {
+                                "name": "a_3_1",
+                                "id": 2
+                            },
+                        ],
+                    },
+                ],
+            },
+            {
+                "name": "b",
+                "id": 3
+            },
+            {
+                "name": "c",
+                "id": 4
+            },
+            {
+                "name": "d",
+                "id": 5
+            },
+        ]
+    }
 
 
 @app.route(
