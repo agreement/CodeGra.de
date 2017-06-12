@@ -15,7 +15,7 @@
         <div class="col-6">
             <b-input-group>
                 <b-form-input :textarea="true" placeholder="Feedback" :rows="3"
-                    v-model="feedback"></b-form-input>
+                    v-model:value="feedback"></b-form-input>
             </b-input-group>
         </div>
     </div>
