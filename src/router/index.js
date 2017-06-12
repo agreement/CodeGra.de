@@ -28,7 +28,7 @@ export default new Router({
         },
         {
             path: '/assignments/',
-            name: 'Student assignments',
+            name: 'Assignments',
             component: Assignments,
         },
         {
