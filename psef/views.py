@@ -8,12 +8,12 @@ import psef.models as models
 from psef import db, app
 from psef.errors import APICodes, APIException
 
-@app.route("/api/v1/code/<int:id>")
+@app.route("/api/v1/code/<int:file_id>")
 def get_code(file_id):
     # Code not used yet:
 
     code = db.session.query(models.File).filter(  # NOQA: F841
-        models.File.id == id).first()
+        models.File.id == file_id).first()
     line_feedback = {}
     for comment in db.session.query(models.Comment).filter_by(
             file_id=file_id).all():
@@ -113,13 +113,15 @@ def get_general_feedback(submission_id):
             "feedback": work.comment
         })
     else:
-        return ('', 404)
+        raise APIException(
+            'Work submission not found',
+            'The work with code {} was not found'.format(submission_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 @app.route("/api/v1/submission/<int:submission_id>/general-feedback",
            methods=['PUT'])
 def set_general_feedback(submission_id):
     content = request.get_json()
-
     work = db.session.query(Work).get(submission_id)
 
     if work:
@@ -130,7 +132,10 @@ def set_general_feedback(submission_id):
         db.session.commit()
         return ('', 204)
     else:
-        return ('', 404)
+        raise APIException(
+            'Work submission not found',
+            'The work with code {} was not found'.format(submission_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 
 @app.route("/api/v1/login", methods=["POST"])
