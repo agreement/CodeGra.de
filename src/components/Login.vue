@@ -63,14 +63,7 @@ export default {
                 this.$router.replace('/');
             }).catch((reason) => {
                 this.error = reason.message;
-
-                // TODO: toast the error
-                // eslint-disable-next-line
-                console.log(reason);
             });
-        },
-        clearErrors() {
-            // this.error = '';
         },
         ...mapActions({
             tryLogin: 'user/login',
