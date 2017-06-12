@@ -123,7 +123,7 @@ def get_general_feedback(submission_id):
 @app.route("/api/v1/submission/<int:submission_id>/general-feedback",
            methods=['PUT'])
 def set_general_feedback(submission_id):
-    work = db.session.query(Work).get(submission_id)
+    work = db.session.query(models.Work).get(submission_id)
     content = request.get_json()
 
     if not work:
@@ -133,13 +133,18 @@ def set_general_feedback(submission_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     auth.ensure_permission('can_grade_work', work.assignment.course.id)
-    print(content['feedback'])
+
+    if 'grade' not in content or 'feedback' not in content:
+        raise APIException(
+            'Grade submitted not a number',
+            'Grade for work with id {} not a number'.format(submission_id),
+            APICodes.MISSING_REQUIRED_PARAM, 400)
 
     if not isinstance(content['grade'], float):
         raise APIException(
             'Grade submitted not a number',
             'Grade for work with id {} not a number'.format(submission_id),
-            APICodes.INVALID_PARAM, 404)
+            APICodes.INVALID_PARAM, 400)
 
     work.grade = content['grade']
     work.comment = content['feedback']

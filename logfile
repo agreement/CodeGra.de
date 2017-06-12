@@ -969,3 +969,6 @@ LOG:  database system is ready to accept connections
 LOG:  autovacuum launcher started
 FATAL:  lock file "postmaster.pid" already exists
 HINT:  Is another postmaster (PID 12883) running in data directory "/usr/local/bin/postgres"?
+ERROR:  update or delete on table "Assignment" violates foreign key constraint "Work_Assignment_id_fkey" on table "Work"
+DETAIL:  Key (id)=(17) is still referenced from table "Work".
+STATEMENT:  DELETE FROM "Assignment" WHERE "Assignment".name = 'Final deadline'
