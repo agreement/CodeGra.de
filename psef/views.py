@@ -97,10 +97,11 @@ def dir_contents(path):
     }
 
 
-@app.route("/api/v1/assignments/")
+@app.route("/api/v1/assignments/", methods=['GET'])
 @login_required
 def get_student_assignments():
-    perm = models.Permission.query.filter_by(name='can_see_assignments').first()
+    perm = models.Permission.query.filter_by(
+        name='can_see_assignments').first()
     courses = []
     for course_role in current_user.courses.values():
         if course_role.has_permission(perm):
@@ -113,6 +114,18 @@ def get_student_assignments():
     }
                     for assignment in models.Assignment.query.filter(
                         models.Assignment.course_id.in_(courses)).all()])
+
+
+@app.route("/api/v1/assignments/<int:assignment_id>", methods=['GET'])
+def get_assignment(assignment_id):
+    assignment = models.Assignment.query.get(assignment_id)
+    auth.ensure_permission('can_see_assignments', assignment.course_id)
+    return jsonify({
+        'name': assignment.name,
+        'description': assignment.description,
+        'course_name': assignment.course.name,
+        'course_id': assignment.course_id,
+    })
 
 
 @app.route("/api/v1/submission/<submission_id>")

@@ -65,8 +65,8 @@ def bs_course(db):
     db.session.add(bs)
     assignments = []
     assignments.append(
-        m.Assignment(name='Security', description='', course=bs))
-    assignments.append(m.Assignment(name='Shell', description='', course=bs))
+        m.Assignment(name='Security', description='AA', course=bs))
+    assignments.append(m.Assignment(name='Shell', description='BB', course=bs))
     for asig in assignments:
         db.session.add(asig)
     db.session.commit()
@@ -79,9 +79,9 @@ def aco_course(db):
     db.session.add(aco)
     assignments = []
     assignments.append(
-        m.Assignment(name='Doe assembly', description='', course=aco))
+        m.Assignment(name='Doe assembly', description='Wowser', course=aco))
     assignments.append(
-        m.Assignment(name='Doe meer assembly', description='', course=aco))
+        m.Assignment(name='Doe meer assembly', description='aa', course=aco))
     for asig in assignments:
         db.session.add(asig)
     db.session.commit()
@@ -123,3 +123,30 @@ def test_get_student_assignments(thomas, aco_course, bs_course, pse_course,
 
     rv = test_client.get('/api/v1/assignments/')
     assert rv.status_code == 401
+
+
+def test_get_student_assignment(thomas, bs_course, aco_course, login_endpoint,
+                                test_client):
+    with test_client:
+        login_endpoint(thomas.id)
+        for assignment in bs_course[1]:
+            rv = test_client.get(
+                '/api/v1/assignments/{}'.format(assignment.id))
+            data = json.loads(rv.get_data(as_text=True))
+            assert data == {
+                'name': assignment.name,
+                'description': assignment.description,
+                'course_name': assignment.course.name,
+                'course_id': assignment.course_id,
+            }
+
+        for assignment in aco_course[1]:
+            rv = test_client.get(
+                '/api/v1/assignments/{}'.format(assignment.id))
+            assert rv.status_code == 403
+
+        test_client.post('/api/v1/logout')
+
+    for assignment in bs_course[1]:
+        rv = test_client.get('/api/v1/assignments/{}'.format(assignment.id))
+        assert rv.status_code == 401
