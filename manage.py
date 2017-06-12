@@ -119,6 +119,7 @@ def test_data():
                         name=c['assignment']).first(),
                     user=m.User.query.filter_by(name=c['user']).first(),
                     comment=c['comment'],
+                    state=c['state'],
                     grade=c['grade'],
                     edit=c['edit']))
     db.session.commit()

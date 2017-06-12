@@ -1115,3 +1115,11 @@ ERROR:  invalid input syntax for integer: "initial" at character 94
 STATEMENT:  INSERT INTO "Work" ("Assignment_id", "User_id", state, edit, grade, comment) VALUES (33, 22, 'initial', 0, 8.7, 'Well done, my friend!') RETURNING "Work".id
 ERROR:  invalid input syntax for integer: "initial" at character 94
 STATEMENT:  INSERT INTO "Work" ("Assignment_id", "User_id", state, edit, grade, comment) VALUES (41, 27, 'initial', 0, 8.7, 'Well done, my friend!') RETURNING "Work".id
+ERROR:  cannot drop the currently open database
+STATEMENT:  drop database codegrade_dev
+	;
+ERROR:  invalid input syntax for integer: "done" at character 94
+STATEMENT:  INSERT INTO "Work" ("Assignment_id", "User_id", state, edit, grade, comment) VALUES (49, 32, 'done', 0, 8.7, 'Well done, my friend!') RETURNING "Work".id
+ERROR:  cannot drop the currently open database
+STATEMENT:  drop database codegrade_dev
+	;
