@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 from flask import jsonify, request, make_response
-from flask_login import UserMixin, login_user, logout_user
+from flask_login import UserMixin, login_user, logout_user, current_user
 
+import psef.auth as auth
+import psef.files
 import psef.models as models
 from psef import db, app
 from psef.errors import APICodes, APIException
@@ -10,7 +12,9 @@ from psef.errors import APICodes, APIException
 @app.route("/api/v1/code/<int:id>")
 def get_code(file_id):
     # Code not used yet:
-    code = db.session.query(models.File).get(file_id)
+
+    code = db.session.query(models.File).filter(  # NOQA: F841
+        models.File.id == id).first()
     line_feedback = {}
     for comment in db.session.query(models.Comment).filter_by(
             file_id=file_id).all():
@@ -122,6 +126,7 @@ def get_general_feedback(submission_id):
         return ('', 204)
 
 
+
 @app.route("/api/v1/login", methods=["POST"])
 def login():
     class User(UserMixin):
@@ -146,3 +151,60 @@ def login():
 def logout():
     logout_user()
     return jsonify({"success": True})
+
+
+@app.route("/api/v1/assignments/<int:assignment_id>/work", methods=['POST'])
+def upload_work(assignment_id):
+    """
+    Saves the work on the server if the request is valid.
+
+    For a request to be valid there needs to be:
+        - at least one file starting with key 'file' in the request files
+        - all files must be named
+    """
+
+    files = []
+
+    if (request.content_length and
+            request.content_length > app.config['MAX_UPLOAD_SIZE']):
+        raise APIException('Uploaded files are too big.', (
+            'Request is bigger than maximum ' +
+            'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
+            APICodes.REQUEST_TOO_LARGE, 400)
+
+    if len(request.files) == 0:
+        raise APIException("No file in HTTP request.",
+                           "There was no file in the HTTP request.",
+                           APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    for key, file in request.files.items():
+        if not key.startswith('file'):
+            raise APIException('The parameter name should start with "file".',
+                               'Expected ^file.*$ got {}.'.format(key),
+                               APICodes.INVALID_PARAM, 400)
+
+        if file.filename == '':
+            raise APIException('The filename should not be empty.',
+                               'Got an empty filename for key {}'.format(key),
+                               APICodes.INVALID_PARAM, 400)
+
+        files.append(file)
+
+    assignment = models.Assignment.query.get(assignment_id)
+    if assignment is None:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with code {} was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_submit_own_work', assignment.course.id)
+
+    work = models.Work(assignment_id=assignment_id, user_id=0)
+    db.session.add(work)
+
+    tree = psef.files.process_files(files)
+    work.add_file_tree(db, tree)
+
+    db.session.commit()
+
+    return ('', 204)
