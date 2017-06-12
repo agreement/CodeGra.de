@@ -107,7 +107,9 @@ def get_student_assignments():
             courses.append(course_role.course_id)
     return jsonify([{
         'id': assignment.id,
-        'name': assignment.name
+        'name': assignment.name,
+        'course_name': assignment.course.name,
+        'course_id': assignment.course_id,
     }
                     for assignment in models.Assignment.query.filter(
                         models.Assignment.course_id.in_(courses)).all()])

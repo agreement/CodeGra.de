@@ -109,11 +109,15 @@ def test_get_student_assignments(thomas, aco_course, bs_course, pse_course,
                                  login_endpoint, test_client):
     with test_client:
         login_endpoint(thomas.id)
-        rv = test_client.get(
-            '/api/v1/assignments/')
+        rv = test_client.get('/api/v1/assignments/')
         data = json.loads(rv.get_data(as_text=True))
         for assig in pse_course[1] + bs_course[1]:
-            assert {"id": assig.id, "name": assig.name} in data
+            assert {
+                "id": assig.id,
+                "name": assig.name,
+                'course_name': assig.course.name,
+                'course_id': assig.course.id
+            } in data
         assert len(data) == len(pse_course[1] + bs_course[1])
         test_client.post('/api/v1/logout')
 
