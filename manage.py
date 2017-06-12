@@ -18,11 +18,11 @@ def render_item(type_, col, autogen_context):
     else:
         return False
 
+
 migrate = Migrate(app, db, render_item=render_item)
 manager = Manager(app)
 
 manager.add_command('db', MigrateCommand)
-
 
 
 @manager.command
@@ -61,9 +61,9 @@ def test_data():
         cs = json.load(c)
         for c in cs:
             m.CourseRole.query.filter_by(
-                    name=c['name'],
-                    course=m.Course.query.filter_by(
-                        name=c['course']).first()).delete()
+                name=c['name'],
+                course=m.Course.query.filter_by(
+                    name=c['course']).first()).delete()
             assert m.Course.query.filter_by(name=c['course']).first()
 
             perms = {
@@ -108,10 +108,10 @@ def test_data():
         cs = json.load(c)
         for c in cs:
             if m.Work.query.filter(
-                m.Work.assignment==m.Assignment.query.filter_by(
-                name=c['assignment']).first(),
-                m.Work.user==m.User.query.filter_by(
-                name=c['user']).first()) is not None:
+                m.Work.assignment == m.Assignment.query.filter_by(
+                    name=c['assignment']).first(),
+                m.Work.user == m.User.query.filter_by(
+                    name=c['user']).first()) is not None:
                 continue
 
             db.session.add(
