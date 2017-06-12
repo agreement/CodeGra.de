@@ -4,27 +4,10 @@
             <li v-on:click="addFeedback($event, i)" v-for="(line, i) in highlighted_code">
                 <code v-html="line"></code>
 
-                <b-card v-if="!editable && feedback[i]">
-                    {{ feedback[i] }}
-                </b-card>
-
-                <b-input-group v-if="editable && feedback[i] != null">
-                    <b-form-input v-model="feedback[i]"></b-form-input>
-
-                    <b-input-group-button>
-                        <b-button variant="default" v-on:click="cancelFeedback($event, i)">
-                            <icon name="times" aria-hidden="true"></icon>
-                        </b-button>
-                    </b-input-group-button>
-                    <b-input-group-button>
-                        <b-button variant="primary" v-on:click="submitFeedback($event, i)">
-                            <icon name="check" aria-hidden="true"></icon>
-                        </b-button>
-                    </b-input-group-button>
-                </b-input-group>
+                <feedback-area :editing='feedback' :feedback='feedback[i]' v-on:feedbackChange="val => { feedbackChange(i, val); }"></feedback-area>
 
                 <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
-                    v-on:click="addFeedback($event, i)"></icon>
+                    v-on:click="addFeedback($event, value)"></icon>
             </li>
         </ol>
     </div>
@@ -41,6 +24,8 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/plus';
+
+import FeedbackArea from '@/components/FeedbackArea';
 
 export default {
     name: 'code-viewer',
@@ -98,28 +83,30 @@ export default {
             }
         },
 
+        feedbackChange(line, feedback) {
+            this.feedback[line] = feedback;
+        },
         // eslint-disable-next-line
         submitAllFeedback(event) {},
 
+        // Moved to feedbackarea.vue
         // eslint-disable-next-line
-        submitFeedback(event, line) {
-            this.$http.put(`/api/v1/code/${this.fileId}/comment/${line}`,
-                {
-                    comment: this.feedback[line],
-                },
-                {
-                    headers: { 'Content-Type': 'application/json' },
-                },
-            ).then(() => {
-                // eslint-disable-next-line
-                console.log('Comment updated or inserted!');
-            });
-        },
-
-        cancelFeedback(event, line) {
-            event.stopPropagation();
-            Vue.set(this.feedback, line, null);
-        },
+        // submitFeedback(event, line) {
+        //     this.$http.put(`/api/v1/code/${this.fileId}/comment/${line}`,
+        //         {
+        //             comment: this.feedback[line],
+        //         },
+        //         {
+        //             headers: { 'Content-Type': 'application/json' },
+        //         },
+        //     ).then(() => {
+        //         console.log('Comment updated or inserted!');
+        //     });
+        // },
+        // cancelFeedback(event, line) {
+        //     event.stopPropagation();
+        //     Vue.set(this.feedback, line, null);
+        // },
     },
 
     components: {
@@ -128,6 +115,7 @@ export default {
         bInputGroup,
         bInputGroupButton,
         Icon,
+        FeedbackArea,
     },
 };
 </script>
