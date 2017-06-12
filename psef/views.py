@@ -49,6 +49,21 @@ def put_comment(id, line):
     return ('', 204)
 
 
+@app.route("/api/v1/code/<int:id>/comment/<int:line>", methods=['DELETE'])
+def remove_comment(id, line):
+    comment = db.session.query(models.Comment).filter(
+        models.Comment.file_id == id, models.Comment.line == line).first()
+
+    if comment:
+        db.session.delete(comment)
+        db.session.commit()
+    else:
+        raise APIException(
+            'Feedback comment not found',
+            'The comment on line {} was not found'.format(line),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+
 @app.route("/api/v1/courses/<int:course_id>/assignments/<int:assignment_id>/"
            "works/<int:work_id>/dir", methods=['GET'])
 def get_dir_contents(course_id, assignment_id, work_id):
@@ -101,14 +116,6 @@ def get_dir_contents(course_id, assignment_id, work_id):
     return (dir_contents, 200)
 
 
-@app.route("/api/v1/submission/<submission_id>")
-def get_submission(submission_id):
-    return jsonify({
-        "title": "Assignment 1",
-        "fileTree": sample_dir_contents("abc"),
-    })
-
-
 def sample_dir_contents(path):
     return {
         "name":
@@ -157,7 +164,7 @@ def sample_dir_contents(path):
 def get_submission(submission_id):
     return jsonify({
         "title": "Assignment 1",
-        "fileTree": dir_contents("abc"),
+        "fileTree": sample_dir_contents("abc"),
     })
 
 
