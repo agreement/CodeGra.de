@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from flask import jsonify, request, session, make_response
-from flask_login import login_user, logout_user, login_required, current_user
+from flask_login import login_user, logout_user, current_user, login_required
 
 import psef.auth as auth
 import psef.models as models
@@ -151,20 +151,9 @@ def login():
             'The user with id "{}" is not active any more').format(user.id),
             APICodes.INACTIVE_USER, 403)
 
-    user.authenticated = True
-    return jsonify({
-        "id": user.id,
-        "name": user.name,
-    })
+    return me()
 
-
-@app.route("/api/v1/logout", methods=["POST"])
-def logout():
-    logout_user()
-    return '', 204
-
-
-@app.route("/api/v1/me", methods=["GET"])
+@app.route("/api/v1/login", methods=["GET"])
 @login_required
 def me():
     return jsonify({
@@ -172,3 +161,9 @@ def me():
         "name": current_user.name,
         "email": current_user.email
     }), 200
+
+
+@app.route("/api/v1/logout", methods=["POST"])
+def logout():
+    logout_user()
+    return '', 204
