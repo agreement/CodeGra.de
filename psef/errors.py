@@ -21,8 +21,6 @@ class APIException(Exception):
     """The exception to use if an API call failed.
     """
 
-    INCORRECT_PERMISSION, NOT_LOGGED_IN = range(2)
-
     def __init__(self, message, description, api_code, status_code, **rest):
         """
         :param str message: The user friendly message to display.

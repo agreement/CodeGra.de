@@ -33,6 +33,9 @@ login_manager.init_app(app)
 import psef.auth
 import psef.views
 import psef.models
+import psef.errors
+import psef.auth
+import psef.files
 
 
 def create_app(config=None):

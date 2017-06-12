@@ -52,7 +52,7 @@ def login_endpoint(app, test_client):
                                      follow_redirects=True)
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 def db(app, request):
     """Session-wide test database."""
     if os.path.exists(TESTDB_PATH):
@@ -66,9 +66,7 @@ def db(app, request):
     os.unlink(TESTDB_PATH)
 
 
-pytest.fixture(scope='module')
-
-
+@pytest.fixture(scope='module')
 def session(db, request):
     """Creates a new database session for a test."""
     connection = db.engine.connect()
