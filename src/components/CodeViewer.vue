@@ -119,6 +119,11 @@ export default {
         cancelFeedback(event, line) {
             event.stopPropagation();
             Vue.set(this.feedback, line, null);
+            this.$http.delete(`/api/v1/code/${this.fileId}/comment/${line}`)
+            .then(() => {
+                // eslint-disable-next-line
+                console.log('Comment removed!');
+            });
         },
     },
 
