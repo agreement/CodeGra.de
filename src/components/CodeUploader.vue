@@ -70,7 +70,7 @@
     import 'vue-awesome/icons/times';
 
     export default {
-        name: 'Upload',
+        name: 'code-uploader',
         components: {
             Dropzone,
             Icon,

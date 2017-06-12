@@ -1,7 +1,6 @@
 import Vue from 'vue';
 import Router from 'vue-router';
-import { Assignments, Submission, Home, Login } from '@/pages';
-import CodeUploader from '@/components/CodeUploader';
+import { Assignments, Submission, Home, Login, Submit } from '@/pages';
 
 Vue.use(Router);
 
@@ -33,9 +32,9 @@ export default new Router({
             component: Assignments,
         },
         {
-            path: '/upload',
-            name: 'CodeUploader',
-            component: CodeUploader,
+            path: '/assignments/:assignmentId/submit/',
+            name: 'Submit assignment',
+            component: Submit,
         },
     ],
 });
