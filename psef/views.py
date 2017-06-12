@@ -106,7 +106,7 @@ def get_submission(submission_id):
 @app.route("/api/v1/submission/<int:submission_id>/general-feedback",
            methods=['GET'])
 def get_general_feedback(submission_id):
-    work = db.session.query(Work).get(submission_id)
+    work = db.session.query(models.Work).get(submission_id)
 
     if work and work.is_graded:
         return jsonify({
