@@ -23,7 +23,7 @@ export default new Router({
         },
         {
             path: '/assignments/:assignmentId/submissions/:submissionId/files/:fileId/',
-            name: 'Assignment submission',
+            name: 'Assignment submission file',
             component: Submission,
         },
         {

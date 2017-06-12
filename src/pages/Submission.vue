@@ -30,7 +30,7 @@ export default {
             title: '',
             description: '',
             course_name: '',
-            course_id: '',
+            course_id: 0,
             fileTree: null,
             grade: 0,
             feedback: '',
@@ -39,7 +39,6 @@ export default {
 
     mounted() {
         this.getAssignment();
-        // this.getSubmission();
     },
 
     watch: {
@@ -56,15 +55,13 @@ export default {
                 this.description = data.data.description;
                 this.course_name = data.data.course_name;
                 this.course_id = data.data.course_id;
+                this.getSubmission();
             });
         },
 
         getSubmission() {
-            this.$http.get(`/api/v1/submission/${this.submissionId}`).then((data) => {
-                this.title = data.data.title;
-                this.fileTree = data.data.fileTree;
-                this.grade = data.data.grade;
-                this.feedback = data.data.feedback;
+            this.$http.get(`/api/v1/courses/${this.course_id}/assignments/${this.assignmentId}/works/${this.submissionId}/dir`).then((data) => {
+                this.fileTree = data.data;
             });
         },
 
