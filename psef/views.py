@@ -2,6 +2,8 @@
 from flask import jsonify, request
 from flask_login import login_user, logout_user, current_user, login_required
 
+from sqlalchemy_utils.functions import dependent_objects
+
 import psef.auth as auth
 import psef.files
 import psef.models as models
@@ -48,30 +50,53 @@ def put_comment(id, line):
     return ('', 204)
 
 
-@app.route("/api/v1/courses/<course_id>/assignments/<assignment_id>/"
-           "works/<work_id>/dir/<file_id>", methods=['GET'])
-def get_dir_contents(course_id, assignment_id, work_id, file_id):
+@app.route("/api/v1/courses/<int:course_id>/assignments/<int:assignment_id>/"
+           "works/<int:work_id>/dir", methods=['GET'])
+def get_dir_contents(course_id, assignment_id, work_id):
 
-    file = models.File.query.get(file_id)
-    if file is None:
+    work = models.Work.query.get(work_id)
+    if work is None:
         raise APIException(
             'File not found',
-            'The file with code {} was not found'.format(file_id),
+            'The work with code {} was not found'.format(work_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
+    if (work.assignment.course.id != course_id or
+            work.assignment.id != assignment_id):
+        raise APIException(
+            'Incorrect URL',
+            'The identifiers in the URL do no match those related to the work '
+            'with code {}'.format(work_id),
+            APICodes.INVALID_URL, 400)
+
+    if (work.user.id != current_user.id):
+        auth.ensure_permission('can_view_files', course_id)
+    else:
+        auth.ensure_permission('can_view_own_files', course_id)
+
+    file_id = request.args.get('file_id')
+    if file_id:
+        file = models.File.query.get(file_id)
+        if file is None:
+            raise APIException(
+                'File not found',
+                'The file with code {} was not found'.format(file_id),
+                APICodes.OBJECT_ID_NOT_FOUND, 404)
+        if (file.work.id != work_id):
+            raise APIException(
+                'Incorrect URL',
+                'The identifiers in the URL do no match those related to the '
+                'file with code {}'.format(file.id),
+                APICodes.INVALID_URL, 400)
+    else:
+        file = models.File.query.filter(models.File.work_id == work_id,
+                                        models.File.parent_id == None).one()
+
     if not file.is_directory:
         raise APIException(
             'File is not a directory',
-            'The file with code {} is not a directory'.format(file_id),
+            'The file with code {} is not a directory'.format(file.id),
             APICodes.OBJECT_WRONG_TYPE, 400)
-    if (file.work.id != work_id or file.work.assignment.id != assignment_id or
-            file.work.assignment.course != course_id):
-        raise APIException(
-            'Incorrect URL',
-            'The identifiers in the URL do no match those related to the file '
-            'with code {}'.format(file_id),
-            APICodes.INVALID_URL, 400)
 
-    auth.ensure_permission('can_view_submitted_files', course_id)
     dir_contents = jsonify(file.list_contents())
 
     return (dir_contents, 200)

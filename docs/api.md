@@ -112,7 +112,11 @@ higher level description of the use and working.
 ```python
 import requests
 
-requests.get('https://example.com/api/v1/courses/1/assignments/1/works/1/dir/1')
+params = {
+  'file_id': 1
+}
+requests.get('https://example.com/api/''v1/courses/1/assignments/1/'
+       'works/1/dir', params=params)
 ```
 
 > The above command returns JSON like below with a status code of 200:
@@ -141,9 +145,15 @@ requests.get('https://example.com/api/v1/courses/1/assignments/1/works/1/dir/1')
     }, 
   ], 
 }
+```
 
-####### HTTP Request
-`GET http://example.com/api/v1/courses/<ID>/assignments/<ID>/works/<ID>/dir/<ID>`
+###### HTTP Request
+`GET http://example.com/api/v1/courses/<ID>/assignments/<ID>/works/<ID>/dir`
+
+###### Query Parameters
+Parameter | Description
+--------- | -----------
+file_id | Optional parameter that can be used to show the contents of a specific directory in the work
 
 ## Works
 ### Assignment
