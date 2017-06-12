@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from flask import jsonify, request, make_response
-from flask_login import UserMixin, login_user, logout_user
+from flask_login import UserMixin, login_user, logout_user, current_user
 
 import psef.auth as auth
 import psef.files
@@ -131,6 +131,7 @@ def get_general_feedback(submission_id):
 @app.route("/api/v1/login", methods=["POST"])
 def login():
     class User(UserMixin):
+
         def __init__(self, id):
             self.id = id
 
@@ -154,17 +155,16 @@ def logout():
     return jsonify({"success": True})
 
 
-@app.route("/api/v1/works/<int:work_id>/file", methods=['POST'])
-def upload_file(work_id):
+@app.route("/api/v1/assignments/<int:assignment_id>/work", methods=['POST'])
+def upload_work(assignment_id):
     """
-    Saves the files on the server if the request is valid.
+    Saves the work on the server if the request is valid.
 
     For a request to be valid there needs to be:
-        - at least one file under key 'file' in the request files
+        - at least one file starting with key 'file' in the request files
         - all files must be named
     """
 
-    # Check if a valid submission was made
     files = []
 
     if (request.content_length and
@@ -172,7 +172,7 @@ def upload_file(work_id):
         raise APIException('Uploaded files are too big.', (
             'Request is bigger than maximum ' +
             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-                           APICodes.REQUEST_TOO_LARGE, 400)
+            APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
@@ -192,15 +192,21 @@ def upload_file(work_id):
 
         files.append(file)
 
-    work = models.Work.query.get(work_id)
-    if work is None:
+    assignment = models.Assignment.query.get(assignment_id)
+    if assignment is None:
         raise APIException(
-            'Work not found',
-            'The work with code {} was not found'.format(work_id),
+            'Assignment not found',
+            'The assignment with code {} was not found'.format(assignment_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
-    auth.ensure_permission('can_submit_own_work', work.assignment.course.id)
+
+    auth.ensure_permission('can_submit_own_work', assignment.course.id)
+
+    work = models.Work(assignment_id=assignment_id, user_id=0)
+    db.session.add(work)
 
     tree = psef.files.process_files(files)
-    work.add_file_tree(tree)
+    work.add_file_tree(db, tree)
+
+    db.session.commit()
 
     return ('', 204)

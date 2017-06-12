@@ -4,7 +4,7 @@ import shutil
 import tempfile
 from functools import reduce
 
-import patoolib
+import archive
 from werkzeug.utils import secure_filename
 
 from psef import app
@@ -74,17 +74,15 @@ def is_archive(file):
                                    '.tar.bz2'))
 
 
-def extract(archive):
+def extract(file):
     "Extracts all files in archive with random name to uploads folder."
     tmpmode, tmparchive = tempfile.mkstemp()
     os.remove(tmparchive)
-    tmparchive += '_' + os.path.basename(secure_filename(archive.filename))
+    tmparchive += '_' + os.path.basename(secure_filename(file.filename))
     tmpdir = tempfile.mkdtemp()
     try:
-        archive.save(tmparchive)
-        patoolib.test_archive(tmparchive, verbosity=-1, interactive=False)
-        patoolib.extract_archive(
-            tmparchive, verbosity=-1, outdir=tmpdir, interactive=False)
+        file.save(tmparchive)
+        archive.extract(tmparchive, to_path=tmpdir)
         rootdir = tmpdir.rstrip(os.sep)
         start = rootdir.rfind(os.sep) + 1
         res = rename_directory_structure(tmpdir)[tmpdir[start:]]

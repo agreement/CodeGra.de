@@ -76,7 +76,7 @@
             Icon,
         },
         props: {
-            workId: {
+            assignmentId: {
                 type: Number,
                 default: 0,
             },
@@ -93,7 +93,7 @@
             return {
                 startedUpload: false,
                 options: {
-                    url: `api/v1/works/${this.workId}/file`,
+                    url: `api/v1/assignments/${this.assignmentId}/work`,
                     method: 'POST',
                     maxFiles: this.maxFiles,
                     maxFilesize: this.maxFilesize,
