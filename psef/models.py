@@ -1,4 +1,8 @@
+import os
+import enum
+
 from flask_login import UserMixin
+from sqlalchemy.sql.expression import or_, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from psef import db, app, login_manager
@@ -116,13 +120,19 @@ class Course(db.Model):
     name = db.Column('name', db.Unicode)
 
 
+class WorkStateEnum(enum.Enum):
+    initial = 0
+    started = 1
+    done = 2
+
+
 class Work(db.Model):
     __tablename__ = "Work"
     id = db.Column('id', db.Integer, primary_key=True)
     assignment_id = db.Column('Assignment_id', db.Integer,
                               db.ForeignKey('Assignment.id'))
     user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
-    state = db.Column('state', db.Integer)
+    state = db.Column('state', db.Enum(WorkStateEnum))
     edit = db.Column('edit', db.Integer)
     graded = db.Column('graded', db.Boolean, default=False)
     grade = db.Column('grade', db.Float)
@@ -135,14 +145,65 @@ class Work(db.Model):
     def is_graded(self):
         return self.graded
 
+    def add_file_tree(self, db, tree):
+        """Add the given tree to the given db.
+
+        .. warning::
+        The db session is not commited!
+
+        :param db: The db object.
+        :param tree: The file tree as described by
+                     :py:func:`psef.files.rename_directory_structure`
+        :returns: Nothing
+        :rtype: None
+        """
+        assert isinstance(tree, dict)
+        return self._add_file_tree(db, tree, None)
+
+    def _add_file_tree(self, db, tree, top):
+        def ensure_list(item):
+            return item if isinstance(item, list) else [item]
+
+        for new_top, children in tree.items():
+            new_top = File(
+                work=self,
+                is_directory=True,
+                name=new_top,
+                extension=None,
+                parent=top)
+            db.session.add(new_top)
+            for child in ensure_list(children):
+                if isinstance(child, dict):
+                    self._add_file_tree(db, child, new_top)
+                    continue
+                child, filename = child
+                name, ext = os.path.splitext(child)
+                ext = ext[1:]
+                db.session.add(
+                    File(
+                        work=self,
+                        extension=ext,
+                        name=name,
+                        filename=filename,
+                        is_directory=False,
+                        parent=new_top))
+
 class File(db.Model):
     __tablename__ = "File"
     id = db.Column('id', db.Integer, primary_key=True)
     work_id = db.Column('Work_id', db.Integer, db.ForeignKey('Work.id'))
     extension = db.Column('extension', db.Unicode)
-    description = db.Column('description', db.Unicode)
+    name = db.Column('name', db.Unicode)
+    filename = db.Column('path', db.Unicode)
+    is_directory = db.Column('is_directory', db.Boolean)
+    parent_id = db.Column(db.Integer, db.ForeignKey('File.id'))
+    parent = db.relationship('File', remote_side=[id], backref='children')
 
     work = db.relationship('Work', foreign_keys=work_id)
+
+    __table_args__ = (
+        db.CheckConstraint(or_(is_directory == false(), extension == null())),
+    )
 
 
 class Comment(db.Model):

@@ -102,3 +102,31 @@ ander **under** teachers there should be a subsection *schools*. Furthermore
 every API call should have input object, with types for every key and
 description, and an example output object. Last every API call should have a
 higher level description of the use and working.
+
+## Works
+### Assignment
+#### Add new work
+
+```python
+import requests
+
+multipart_form_data = {
+    'file1': open(myarchive, 'rb'),
+    'file2': open('myfile.txt', 'rb'),
+}
+
+requests.post('https://example.com/api/v1/assignments/1/work', work=multipart_form_data)
+```
+
+> The return code will be 204 and the body will be empty if the work was added
+
+
+###### HTTP Request
+`POST http://example.com/api/v1/assignments/<ID>/work`
+
+###### Query Parameters
+Parameter | Description
+--------- | -----------
+file* | A file that should be uploaded. It can be an archive which will be
+extracted. Multiple can be specified but all keys should start will `file`
+
