@@ -5,6 +5,7 @@ import GradeViewer from './GradeViewer';
 import HeaderBar from './HeaderBar';
 import Login from './Login';
 import SideBar from './SideBar';
+import UserInfo from './UserInfo';
 
 export {
     CodeViewer,
@@ -14,4 +15,5 @@ export {
     HeaderBar,
     Login,
     SideBar,
+    UserInfo,
 };
