@@ -56,3 +56,24 @@ source env/bin/activate
 ./start_dev.sh
 ```
 
+### Resetting database
+
+Sometimes just migrating is not enough and this will fail with a bunch of errors.
+In this case we need to remove and add the database again:
+
+```bash
+sudo -u postgres psql
+```
+
+```sql
+drop database codegrade_dev;
+create database codegrade_dev;
+\q
+```
+
+Remove the migrations directory and redeploy and restart the dev server.
+```bash
+rm -rf migrations/
+./deploy.sh
+./start_dev.sh
+```
