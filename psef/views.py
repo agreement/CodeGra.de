@@ -48,6 +48,7 @@ def put_comment(id, line):
 
     return ('', 204)
 
+
 @app.route("/api/v1/code/<int:id>/comment/<int:line>", methods=['DELETE'])
 def remove_comment(id, line):
     comment = db.session.query(models.Comment).filter(
@@ -115,14 +116,6 @@ def get_dir_contents(course_id, assignment_id, work_id):
     return (dir_contents, 200)
 
 
-@app.route("/api/v1/submission/<submission_id>")
-def get_submission(submission_id):
-    return jsonify({
-        "title": "Assignment 1",
-        "fileTree": sample_dir_contents("abc"),
-    })
-
-
 def sample_dir_contents(path):
     return {
         "name":
@@ -171,7 +164,7 @@ def sample_dir_contents(path):
 def get_submission(submission_id):
     return jsonify({
         "title": "Assignment 1",
-        "fileTree": dir_contents("abc"),
+        "fileTree": sample_dir_contents("abc"),
     })
 
 
