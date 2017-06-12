@@ -93,9 +93,11 @@ def test_data():
     with open('./test_data/works.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
-            if m.Work.query.filter(assignment==m.Assignment.query.filter_by(
-                name=c['assignment']).first(), user==m.User.query.filter_by(
-                name=c['user']).first()) is not None:
+            if m.Work.query.filter(
+                m.Work.assignment == m.Assignment.query.filter_by(
+                    name=c['assignment']).first(),
+                m.Work.user == m.User.query.filter_by(
+                    name=c['user']).first()) is not None:
                 continue
 
             db.session.add(
