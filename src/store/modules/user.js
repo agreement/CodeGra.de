@@ -1,4 +1,4 @@
-import Vue from 'vue';
+import axios from 'axios';
 import * as error from '@/errors';
 import * as types from '../mutation-types';
 
@@ -11,34 +11,29 @@ const getters = {
 const actions = {
     login({ commit }, { email, password }) {
         return new Promise((resolve, reject) => {
-            Vue.http.post('/api/v1/login', { email, password }).then((response) => {
-                const body = response.data;
-                commit(types.LOGIN, {
-                    id: body.id,
-                    name: body.name,
-                    email,
-                });
+            axios.post('/api/v1/login', { email, password }).then((response) => {
+                commit(types.LOGIN, response.data);
                 resolve();
-            }, (response) => {
+            }).catch((response) => {
                 reject(response.body);
             });
         });
     },
     logout({ commit }) {
         return new Promise((resolve, reject) => {
-            Vue.http.post('/api/v1/logout').then(() => {
+            axios.post('/api/v1/logout').then(() => {
                 commit(types.LOGOUT);
                 resolve();
-            }, () => {
+            }).catch(() => {
                 reject(error.apiError);
             });
         });
     },
     verifyLogin({ commit }) {
-        Vue.http.get('/api/v1/me').then((response) => {
+        axios.get('/api/v1/login').then((response) => {
             // We are already logged in. Update state to logged in state
             commit(types.LOGIN, response.data);
-        }, () => {
+        }).catch(() => {
             commit(types.LOGOUT);
         });
     },

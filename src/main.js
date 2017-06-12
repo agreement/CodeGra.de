@@ -8,17 +8,18 @@ import '@/style.less';
 
 import Vue from 'vue';
 import { mapActions } from 'vuex';
-import Resource from 'vue-resource';
 import BootstrapVue from 'bootstrap-vue';
+import axios from 'axios';
 
 import App from '@/App';
 import router from '@/router';
 import store from './store';
 
-Vue.use(Resource);
 Vue.use(BootstrapVue);
 
 Vue.config.productionTip = false;
+
+Vue.prototype.$http = axios;
 
 /* eslint-disable no-new */
 new Vue({
