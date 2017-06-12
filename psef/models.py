@@ -140,10 +140,11 @@ class Course(db.Model):
     name = db.Column('name', db.Unicode)
 
 
+@enum.unique
 class WorkStateEnum(enum.Enum):
-    initial = 0
-    started = 1
-    done = 2
+    initial = 0  # Not looked at
+    started = 1  # The TA is working on it
+    done = 2  # This is the same as graded would be
 
 
 class Work(db.Model):
@@ -154,6 +155,8 @@ class Work(db.Model):
     user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
     state = db.Column('state', db.Enum(WorkStateEnum))
     edit = db.Column('edit', db.Integer)
+    grade = db.Column('grade', db.Float, default=None)
+    comment = db.Column('comment', db.Unicode, default=None)
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', foreign_keys=user_id)

@@ -28,5 +28,5 @@
         "name": "can_see_assignments",
         "default_value": true,
         "course_permission": true
-    },
+    }
 ]
