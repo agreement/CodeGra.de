@@ -14,7 +14,6 @@ def get_code(id):
     line_feedback = {}
     for comment in db.session.query(Comment).filter(Comment.file_id==id):
         line_feedback[str(comment.line)] = comment.comment
-    print(line_feedback)
 
     # TODO: Return JSON following API
     return jsonify(lang="python",
@@ -100,7 +99,7 @@ def get_general_feedback(submission_id):
         work = db.session.query(Work).filter(Work.id==submission_id).first()
 
         if work:
-            print('yesy')
+            print(content['feedback'])
             work.grade = content['grade']
             work.comment = content['feedback']
             work.graded = True
