@@ -102,3 +102,68 @@ ander **under** teachers there should be a subsection *schools*. Furthermore
 every API call should have input object, with types for every key and
 description, and an example output object. Last every API call should have a
 higher level description of the use and working.
+
+## User
+### Login
+#### Login a new user
+
+```python
+import requests
+
+login_data = {
+    'email: 'admin@example.com',
+    'password': 'admin',
+}
+
+requests.post('https://example.com/api/v1/login', json=json_data)
+```
+
+> The return will a json as described below in the GET request
+
+This endpoint will login a new user and return its information.
+
+###### HTTP Request
+`POST http://example.com/api/v1/login`
+
+###### Query Parameters
+Parameter | Description
+--------- | -----------
+email | The email of the user that should be logged in
+password | The password of the user identified by the email
+
+##### Get login credentials from a user
+
+```python
+import requests
+
+requests.get('https://example.com/api/v1/login')
+```
+
+> The above command returns JSON structured like this with a status code of 200:
+```json
+{
+  "id": 1,
+  "name": "John Doe" ,
+  "email": "John@example.com"
+}
+```
+
+This endpoint will get the user information of the currently logged in user.
+
+###### HTTP Request
+`GET http://example.com/api/v1/login`
+
+##### Logout a user
+
+```
+import requests
+
+requests.post('https://example.com/api/v1/logout')
+```
+
+> This will return no data and a status code of 204
+
+Logout the currently logged in user.
+
+###### HTTP Request
+`POST http://example.com/api/v1/logout`
