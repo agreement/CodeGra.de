@@ -2,28 +2,35 @@ import os
 import enum
 
 from flask_login import UserMixin
+from sqlalchemy_utils import PasswordType
 from sqlalchemy.sql.expression import or_, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
-from psef import db, app, login_manager
+from psef import db, login_manager
 
 permissions = db.Table('roles-permissions',
                        db.Column('permission_id', db.Integer,
-                                 db.ForeignKey('Permission.id')),
+                                 db.ForeignKey(
+                                     'Permission.id', ondelete='CASCADE')),
                        db.Column('role_id', db.Integer,
-                                 db.ForeignKey('Role.id')))
+                                 db.ForeignKey('Role.id', ondelete='CASCADE')))
 
 course_permissions = db.Table('course_roles-permissions',
                               db.Column('permission_id', db.Integer,
-                                        db.ForeignKey('Permission.id')),
+                                        db.ForeignKey(
+                                            'Permission.id',
+                                            ondelete='CASCADE')),
                               db.Column('course_role_id', db.Integer,
-                                        db.ForeignKey('Course_Role.id')))
+                                        db.ForeignKey(
+                                            'Course_Role.id',
+                                            ondelete='CASCADE')))
 
 user_course = db.Table('users-courses',
                        db.Column('course_id', db.Integer,
-                                 db.ForeignKey('Course_Role.id')),
+                                 db.ForeignKey(
+                                     'Course_Role.id', ondelete='CASCADE')),
                        db.Column('user_id', db.Integer,
-                                 db.ForeignKey('User.id')))
+                                 db.ForeignKey('User.id', ondelete='CASCADE')))
 
 
 class Permission(db.Model):
@@ -63,7 +70,7 @@ class CourseRole(db.Model):
 class Role(db.Model):
     __tablename__ = 'Role'
     id = db.Column('id', db.Integer, primary_key=True)
-    name = db.Column('name', db.Unicode)
+    name = db.Column('name', db.Unicode, unique=True)
     _permissions = db.relationship(
         'Permission',
         collection_class=attribute_mapped_collection('name'),
@@ -94,6 +101,13 @@ class User(db.Model, UserMixin):
         collection_class=attribute_mapped_collection('course.id'),
         secondary=user_course,
         backref=db.backref('users', lazy='dynamic'))
+    email = db.Column('email', db.Unicode, unique=True)
+    password = db.Column(
+        'password',
+        PasswordType(schemes=[
+            'pbkdf2_sha512',
+        ], deprecated=[]),
+        nullable=False)
 
     role = db.relationship('Role', foreign_keys=role_id)
 
@@ -111,7 +125,7 @@ class User(db.Model, UserMixin):
     @staticmethod
     @login_manager.user_loader
     def load_user(user_id):
-        User.query.get(int(user_id))
+        return User.query.get(int(user_id))
 
 
 class Course(db.Model):
@@ -208,15 +222,15 @@ class File(db.Model):
 
 class Comment(db.Model):
     __tablename__ = "Comment"
-    file_id = db.Column('File_id', db.Integer)#, db.ForeignKey('File.id'))
-    user_id = db.Column('User_id', db.Integer)#, db.ForeignKey('User.id'))
+    file_id = db.Column('File_id', db.Integer)  # , db.ForeignKey('File.id'))
+    user_id = db.Column('User_id', db.Integer)  # , db.ForeignKey('User.id'))
     line = db.Column('line', db.Integer)
     comment = db.Column('comment', db.Unicode)
-    __table_args__ = (db.PrimaryKeyConstraint(file_id, line),)
+    __table_args__ = (db.PrimaryKeyConstraint(file_id, line), )
 
     # Commented out relationships for testing purposes
-    #file = db.relationship('File', foreign_keys=file_id)
-    #user = db.relationship('User', foreign_keys=user_id)
+    # file = db.relationship('File', foreign_keys=file_id)
+    # user = db.relationship('User', foreign_keys=user_id)
 
 
 class Assignment(db.Model):

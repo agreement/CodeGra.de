@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-from flask import jsonify, request, make_response
-from flask_login import UserMixin, login_user, logout_user, current_user
+from flask import jsonify, request
+from flask_login import login_user, logout_user, current_user, login_required
 
 import psef.auth as auth
 import psef.files
@@ -31,7 +31,7 @@ def get_code(file_id):
 def put_comment(id, line):
     content = request.get_json()
 
-    comment = db.session.query(models.Comment).filter_by(
+    comment = db.session.query(models.Comment).filter(
         models.Comment.file_id == id, models.Comment.line == line).first()
     if not comment:
         # TODO: User id 0 for now, change later on
@@ -137,31 +137,47 @@ def set_general_feedback(submission_id):
             'The work with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-
 @app.route("/api/v1/login", methods=["POST"])
 def login():
-    class User(UserMixin):
-        def __init__(self, id):
-            self.id = id
-
     data = request.get_json()
 
-    # TODO: Some authentication here
-    # TODO: Get integer user id from email
-    user = User(1)
+    if 'email' not in data or 'password' not in data:
+        raise APIException('Email and passwords are required fields',
+                           'Email or password was missing from the request',
+                           APICodes.MISSING_REQUIRED_PARAM, 400)
 
-    login_user(user)
+    user = db.session.query(models.User).filter_by(email=data['email']).first()
+
+    # TODO: Use bcrypt password validation (as soon as we got that)
+    # TODO: Return error whether user or password is wrong
+    if user is None or user.password != data['password']:
+        raise APIException('The supplied email or password is wrong.', (
+            'The user with email {} does not exist ' +
+            'or has a different password').format(data['email']),
+                           APICodes.LOGIN_FAILURE, 400)
+
+    if not login_user(user, remember=True):
+        raise APIException('User is not active', (
+            'The user with id "{}" is not active any more').format(user.id),
+                           APICodes.INACTIVE_USER, 403)
+
+    return me()
+
+
+@app.route("/api/v1/login", methods=["GET"])
+@login_required
+def me():
     return jsonify({
-        "success": True,
-        "id": 1,
-        "name": data["email"].partition("@")[0]
-    })
+        "id": current_user.id,
+        "name": current_user.name,
+        "email": current_user.email
+    }), 200
 
 
 @app.route("/api/v1/logout", methods=["POST"])
 def logout():
     logout_user()
-    return jsonify({"success": True})
+    return '', 204
 
 
 @app.route("/api/v1/assignments/<int:assignment_id>/work", methods=['POST'])
@@ -181,7 +197,7 @@ def upload_work(assignment_id):
         raise APIException('Uploaded files are too big.', (
             'Request is bigger than maximum ' +
             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-            APICodes.REQUEST_TOO_LARGE, 400)
+                           APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",

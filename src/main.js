@@ -7,17 +7,19 @@ import 'highlightjs/styles/github.css';
 import '@/style.less';
 
 import Vue from 'vue';
-import Resource from 'vue-resource';
+import { mapActions } from 'vuex';
 import BootstrapVue from 'bootstrap-vue';
+import axios from 'axios';
 
 import App from '@/App';
 import router from '@/router';
 import store from './store';
 
-Vue.use(Resource);
 Vue.use(BootstrapVue);
 
 Vue.config.productionTip = false;
+
+Vue.prototype.$http = axios;
 
 /* eslint-disable no-new */
 new Vue({
@@ -26,4 +28,12 @@ new Vue({
     template: '<App/>',
     components: { App },
     store,
+    created() {
+        this.verifyLogin();
+    },
+    methods: {
+        ...mapActions('user', [
+            'verifyLogin',
+        ]),
+    },
 });

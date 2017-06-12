@@ -5,7 +5,6 @@
         "comment": "Well done, my friend!",
         "grade": 8.7,
         "graded": true,
-        "state": 2,
         "edit": 0
     },
     {
@@ -14,7 +13,6 @@
         "comment": "You suck at Python",
         "grade": 3.2,
         "graded": true,
-        "state": 2,
         "edit": 0
     },
     {
@@ -23,7 +21,6 @@
         "comment": "Wow. Did you even try?",
         "grade": 1.1,
         "graded": true,
-        "state": 2,
         "edit": 0
     }
 ]

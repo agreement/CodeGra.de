@@ -86,9 +86,9 @@ export default {
     methods: {
         getCode() {
             this.$http.get(`/api/v1/code/${this.fileId}`).then((data) => {
-                this.lang = data.body.lang;
-                this.code = data.body.code;
-                this.feedback = data.body.feedback;
+                this.lang = data.data.lang;
+                this.code = data.data.code;
+                this.feedback = data.data.feedback;
             });
         },
 
