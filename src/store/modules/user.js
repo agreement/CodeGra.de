@@ -12,12 +12,7 @@ const actions = {
     login({ commit }, { email, password }) {
         return new Promise((resolve, reject) => {
             axios.post('/api/v1/login', { email, password }).then((response) => {
-                const body = response.data;
-                commit(types.LOGIN, {
-                    id: body.id,
-                    name: body.name,
-                    email,
-                });
+                commit(types.LOGIN, response.data);
                 resolve();
             }).catch((response) => {
                 reject(response.body);
@@ -35,7 +30,7 @@ const actions = {
         });
     },
     verifyLogin({ commit }) {
-        axios.get('/api/v1/me').then((response) => {
+        axios.get('/api/v1/login').then((response) => {
             // We are already logged in. Update state to logged in state
             commit(types.LOGIN, response.data);
         }).catch(() => {
