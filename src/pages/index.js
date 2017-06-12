@@ -3,6 +3,7 @@ import Home from './Home';
 import Login from './Login';
 import Submission from './Submission';
 import Submit from './Submit';
+import SubmissionList from './SubmissionList';
 
 export {
     Assignments,
@@ -10,4 +11,5 @@ export {
     Login,
     Submission,
     Submit,
+    SubmissionList,
 };

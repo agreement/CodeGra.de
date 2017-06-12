@@ -7,6 +7,7 @@ import Login from './Login';
 import SideBar from './SideBar';
 import Assignments from './Assignments';
 import CodeUploader from './CodeUploader';
+import SubmissionList from './SubmissionList';
 
 export {
     CodeViewer,
@@ -18,4 +19,5 @@ export {
     SideBar,
     Assignments,
     CodeUploader,
+    SubmissionList,
 };
