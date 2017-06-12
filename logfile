@@ -1111,3 +1111,7 @@ ERROR:  invalid input syntax for integer: "initial" at character 100
 STATEMENT:  INSERT INTO "Work" ("Assignment_id", "User_id", state, edit, graded, grade, comment) VALUES (9, 7, 'initial', 0, false, 8.7, 'Well done, my friend!') RETURNING "Work".id
 ERROR:  invalid input syntax for integer: "initial" at character 94
 STATEMENT:  INSERT INTO "Work" ("Assignment_id", "User_id", state, edit, grade, comment) VALUES (17, 12, 'initial', 0, 8.7, 'Well done, my friend!') RETURNING "Work".id
+ERROR:  invalid input syntax for integer: "initial" at character 94
+STATEMENT:  INSERT INTO "Work" ("Assignment_id", "User_id", state, edit, grade, comment) VALUES (33, 22, 'initial', 0, 8.7, 'Well done, my friend!') RETURNING "Work".id
+ERROR:  invalid input syntax for integer: "initial" at character 94
+STATEMENT:  INSERT INTO "Work" ("Assignment_id", "User_id", state, edit, grade, comment) VALUES (41, 27, 'initial', 0, 8.7, 'Well done, my friend!') RETURNING "Work".id
