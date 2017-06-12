@@ -60,10 +60,12 @@ def test_data():
     with open('./test_data/course_roles.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
-            m.CourseRole.query.filter_by(
+            u = m.CourseRole.query.filter_by(
                 name=c['name'],
                 course=m.Course.query.filter_by(
-                    name=c['course']).first()).delete()
+                    name=c['course']).first()).first()
+            if u is not None:
+                db.session.delete(u)
             assert m.Course.query.filter_by(name=c['course']).first()
 
             perms = {
@@ -78,7 +80,8 @@ def test_data():
     with open('./test_data/assignments.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
-            m.Assignment.query.filter_by(name=c['name']).delete()
+            if m.Assignment.query.filter_by(name=c['name']).first() is not None:
+                continue
             db.session.add(
                 m.Assignment(
                     name=c['name'],
@@ -87,7 +90,9 @@ def test_data():
     with open('./test_data/users.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
-            m.User.query.filter_by(name=c['name']).delete()
+            u = m.User.query.filter_by(name=c['name']).first()
+            if u is not None:
+                db.session.delete(u)
             courses = {
                 m.Course.query.filter_by(name=name).first(): role
                 for name, role in c['courses'].items()
@@ -107,11 +112,10 @@ def test_data():
     with open('./test_data/works.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
-            if m.Work.query.filter(
-                m.Work.assignment == m.Assignment.query.filter_by(
-                    name=c['assignment']).first(),
-                m.Work.user == m.User.query.filter_by(
-                    name=c['user']).first()) is not None:
+            if m.Work.query.filter_by(
+                assignment=m.Assignment.query.filter_by(
+                    name=c['assignment']).first(), user=m.User.query.filter_by(
+                    name=c['user']).first()).first() is not None:
                 continue
 
             db.session.add(
@@ -120,9 +124,8 @@ def test_data():
                         name=c['assignment']).first(),
                     user=m.User.query.filter_by(name=c['user']).first(),
                     comment=c['comment'],
-                    grade=c['grade'],
-                    graded=c['graded'],
                     state=c['state'],
+                    grade=c['grade'],
                     edit=c['edit']))
     db.session.commit()
 
