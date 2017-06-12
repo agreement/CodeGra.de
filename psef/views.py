@@ -128,6 +128,30 @@ def get_assignment(assignment_id):
     })
 
 
+@app.route('/api/v1/assignments/<int:assignment_id>/works')
+def get_all_works_for_assignment(assignment_id):
+    assignment = models.Assignment.query.get(assignment_id)
+    if current_user.has_permission(
+            'can_see_others_work', course_id=assignment.course_id):
+        obj = models.Work.query.filter_by(assignment_id=assignment_id)
+    else:
+        auth.ensure_permission(
+            'can_see_own_work', course_id=assignment.course_id)
+        obj = models.Work.query.filter_by(
+            assignment_id=assignment_id, user_id=current_user.id)
+    res = obj.order_by(models.Work.created_at.desc()).all()
+
+    return jsonify([{
+        'user_id': work.user_id,
+        'user_name': work.user.name,
+        'state': work.state,
+        'edit': work.edit,
+        'grade': work.grade,
+        'comment': work.comment,
+        'created_at': work.created_at,
+    } for work in res])
+
+
 @app.route("/api/v1/submission/<submission_id>")
 def get_submission(submission_id):
     return jsonify({

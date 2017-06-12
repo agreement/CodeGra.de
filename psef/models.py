@@ -1,5 +1,6 @@
 import os
 import enum
+import datetime
 
 from flask_login import UserMixin
 from sqlalchemy_utils import PasswordType
@@ -141,7 +142,7 @@ class Course(db.Model):
 
 
 @enum.unique
-class WorkStateEnum(enum.Enum):
+class WorkStateEnum(enum.IntEnum):
     initial = 0  # Not looked at
     started = 1  # The TA is working on it
     done = 2  # This is the same as graded would be
@@ -157,6 +158,7 @@ class Work(db.Model):
     edit = db.Column('edit', db.Integer)
     grade = db.Column('grade', db.Float, default=None)
     comment = db.Column('comment', db.Unicode, default=None)
+    created_at = db.Column(db.Date, default=datetime.datetime.now)
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', foreign_keys=user_id)
