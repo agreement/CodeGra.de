@@ -2,46 +2,46 @@
 from flask import jsonify, request, make_response
 from flask_login import UserMixin, login_user, logout_user
 
-from psef import app, db
-from psef.models import *
-from flask_login import UserMixin, login_user
+import psef.models as models
+from psef import db, app
+from psef.errors import APICodes, APIException
+
 
 @app.route("/api/v1/code/<int:id>")
-def get_code(id):
+def get_code(file_id):
     # Code not used yet:
-    code = db.session.query(File).filter(File.id==id).first()
+    code = db.session.query(models.File).get(file_id)
     line_feedback = {}
-    for comment in db.session.query(Comment).filter(Comment.file_id==id):
+    for comment in db.session.query(models.Comment).filter_by(
+            file_id=file_id).all():
         line_feedback[str(comment.line)] = comment.comment
     print(line_feedback)
 
     # TODO: Return JSON following API
-    return jsonify(lang="python",
-                   code="def id0func0():\n\treturn 0\n\n\n" +
-                        "def id0func1():\n\t return 1",
-                   feedback=line_feedback)
+    return jsonify(
+        lang="python",
+        code="def id0func0():\n\treturn 0\n\n\n" +
+        "def id0func1():\n\t return 1",
+        feedback=line_feedback)
+
 
 @app.route("/api/v1/code/<int:id>/comment/<int:line>", methods=['PUT'])
 def put_comment(id, line):
-    if request.method == 'PUT':
-        content = request.get_json()
+    content = request.get_json()
 
-        comment = db.session.query(Comment).filter(Comment.file_id==id,
-                                                   Comment.line==line).first()
-        if not comment:
-            # TODO: User id 0 for now, change later on
-            db.session.add(Comment(file_id=id,
-                                   user_id=0,
-                                   line=line,
-                                   comment=content['comment']))
-        else:
-            comment.comment = content['comment']
-
-        db.session.commit()
-
-        return make_response("Comment updated or inserted!", 204)
+    comment = db.session.query(models.Comment).filter_by(
+        models.Comment.file_id == id, models.Comment.line == line).first()
+    if not comment:
+        # TODO: User id 0 for now, change later on
+        db.session.add(
+            models.Comment(
+                file_id=id, user_id=0, line=line, comment=content['comment']))
     else:
-        return make_response("Request not valid!", 400)
+        comment.comment = content['comment']
+
+    db.session.commit()
+
+    return ('', 204)
 
 
 @app.route("/api/v1/dir/<path>")
@@ -51,24 +51,44 @@ def get_dir_contents(path):
 
 def dir_contents(path):
     return {
-        "name": path,
+        "name":
+        path,
         "entries": [
             {
-                "name": "a",
+                "name":
+                "a",
                 "entries": [
-                    {"name": "a_1", "id": 0, },
-                    {"name": "a_2", "id": 1, },
+                    {
+                        "name": "a_1",
+                        "id": 0,
+                    },
+                    {
+                        "name": "a_2",
+                        "id": 1,
+                    },
                     {
                         "name": "a_3",
                         "entries": [
-                            {"name": "a_3_1", "id": 2},
+                            {
+                                "name": "a_3_1",
+                                "id": 2
+                            },
                         ],
                     },
                 ],
             },
-            {"name": "b", "id": 3},
-            {"name": "c", "id": 4},
-            {"name": "d", "id": 5},
+            {
+                "name": "b",
+                "id": 3
+            },
+            {
+                "name": "c",
+                "id": 4
+            },
+            {
+                "name": "d",
+                "id": 5
+            },
         ]
     }
 
@@ -81,8 +101,9 @@ def get_submission(submission_id):
     })
 
 
-@app.route("/api/v1/submission/<submission_id>/general-feedback",
-           methods=['GET', 'PUT'])
+@app.route(
+    "/api/v1/submission/<submission_id>/general-feedback",
+    methods=['GET', 'PUT'])
 def get_general_feedback(submission_id):
     if request.method == 'GET':
         if id == 0:
@@ -91,23 +112,19 @@ def get_general_feedback(submission_id):
                 "feedback": "test feedback voor id nul"
             })
         else:
-            return jsonify({
-                "grade": 6.5,
-                "feedback": "test feedback"
-            })
+            return jsonify({"grade": 6.5, "feedback": "test feedback"})
     elif request.method == 'PUT':
         content = request.get_json()
 
         # Here you should connect to the database
         print(content)
 
-        resp = make_response("grade and feedback submitted", 204)
-        return resp
+        return ('', 204)
+
 
 @app.route("/api/v1/login", methods=["POST"])
 def login():
     class User(UserMixin):
-
         def __init__(self, id):
             self.id = id
 
@@ -128,6 +145,4 @@ def login():
 @app.route("/api/v1/logout", methods=["POST"])
 def logout():
     logout_user()
-    return jsonify({
-        "success": True
-    })
+    return jsonify({"success": True})
