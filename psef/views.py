@@ -19,7 +19,6 @@ def get_code(file_id):
     for comment in db.session.query(models.Comment).filter_by(
             file_id=file_id).all():
         line_feedback[str(comment.line)] = comment.comment
-    print(line_feedback)
 
     # TODO: Return JSON following API
     return jsonify(
@@ -33,7 +32,7 @@ def get_code(file_id):
 def put_comment(id, line):
     content = request.get_json()
 
-    comment = db.session.query(models.Comment).filter_by(
+    comment = db.session.query(models.Comment).filter(
         models.Comment.file_id == id, models.Comment.line == line).first()
     if not comment:
         # TODO: User id 0 for now, change later on
@@ -105,25 +104,55 @@ def get_submission(submission_id):
     })
 
 
-@app.route(
-    "/api/v1/submission/<submission_id>/general-feedback",
-    methods=['GET', 'PUT'])
+@app.route("/api/v1/submission/<int:submission_id>/general-feedback",
+           methods=['GET'])
 def get_general_feedback(submission_id):
-    if request.method == 'GET':
-        if id == 0:
-            return jsonify({
-                "grade": 8.5,
-                "feedback": "test feedback voor id nul"
-            })
-        else:
-            return jsonify({"grade": 6.5, "feedback": "test feedback"})
-    elif request.method == 'PUT':
-        content = request.get_json()
+    work = db.session.query(models.Work).get(submission_id)
+    auth.ensure_permission('can_grade_work', work.assignment.course.id)
 
-        # Here you should connect to the database
-        print(content)
+    if work and work.is_graded:
+        return jsonify({
+            "grade": work.grade,
+            "feedback": work.comment
+        })
+    else:
+        raise APIException(
+            'Work submission not found',
+            'The work with code {} was not found'.format(submission_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-        return ('', 204)
+
+@app.route("/api/v1/submission/<int:submission_id>/general-feedback",
+           methods=['PUT'])
+def set_general_feedback(submission_id):
+    work = db.session.query(models.Work).get(submission_id)
+    content = request.get_json()
+
+    if not work:
+        raise APIException(
+            'Work submission not found',
+            'The work with code {} was not found'.format(submission_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_grade_work', work.assignment.course.id)
+
+    if 'grade' not in content or 'feedback' not in content:
+        raise APIException(
+            'Grade or feedback not provided',
+            'Grade and or feedback fields missing in sent JSON',
+            APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    if not isinstance(content['grade'], float):
+        raise APIException(
+            'Grade submitted not a number',
+            'Grade for work with id {} not a number'.format(submission_id),
+            APICodes.INVALID_PARAM, 400)
+
+    work.grade = content['grade']
+    work.comment = content['feedback']
+    work.state = 'done'
+    db.session.commit()
+    return ('', 204)
 
 
 @app.route("/api/v1/login", methods=["POST"])
