@@ -2,11 +2,14 @@
 from flask import jsonify, request
 from flask_login import login_user, logout_user, current_user, login_required
 
+from sqlalchemy_utils.functions import dependent_objects
+
 import psef.auth as auth
 import psef.files
 import psef.models as models
 from psef import db, app
 from psef.errors import APICodes, APIException
+
 
 @app.route("/api/v1/code/<int:file_id>")
 def get_code(file_id):
@@ -60,12 +63,67 @@ def remove_comment(id, line):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 
-@app.route("/api/v1/dir/<path>")
-def get_dir_contents(path):
-    return jsonify(dir_contents(path))
+@app.route("/api/v1/courses/<int:course_id>/assignments/<int:assignment_id>/"
+           "works/<int:work_id>/dir", methods=['GET'])
+def get_dir_contents(course_id, assignment_id, work_id):
+
+    work = models.Work.query.get(work_id)
+    if work is None:
+        raise APIException(
+            'File not found',
+            'The work with code {} was not found'.format(work_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    if (work.assignment.course.id != course_id or
+            work.assignment.id != assignment_id):
+        raise APIException(
+            'Incorrect URL',
+            'The identifiers in the URL do no match those related to the work '
+            'with code {}'.format(work_id),
+            APICodes.INVALID_URL, 400)
+
+    if (work.user.id != current_user.id):
+        auth.ensure_permission('can_view_files', course_id)
+    else:
+        auth.ensure_permission('can_view_own_files', course_id)
+
+    file_id = request.args.get('file_id')
+    if file_id:
+        file = models.File.query.get(file_id)
+        if file is None:
+            raise APIException(
+                'File not found',
+                'The file with code {} was not found'.format(file_id),
+                APICodes.OBJECT_ID_NOT_FOUND, 404)
+        if (file.work.id != work_id):
+            raise APIException(
+                'Incorrect URL',
+                'The identifiers in the URL do no match those related to the '
+                'file with code {}'.format(file.id),
+                APICodes.INVALID_URL, 400)
+    else:
+        file = models.File.query.filter(models.File.work_id == work_id,
+                                        models.File.parent_id == None).one()
+
+    if not file.is_directory:
+        raise APIException(
+            'File is not a directory',
+            'The file with code {} is not a directory'.format(file.id),
+            APICodes.OBJECT_WRONG_TYPE, 400)
+
+    dir_contents = jsonify(file.list_contents())
+
+    return (dir_contents, 200)
 
 
-def dir_contents(path):
+@app.route("/api/v1/submission/<submission_id>")
+def get_submission(submission_id):
+    return jsonify({
+        "title": "Assignment 1",
+        "fileTree": sample_dir_contents("abc"),
+    })
+
+
+def sample_dir_contents(path):
     return {
         "name":
         path,
@@ -116,10 +174,12 @@ def get_submission(submission_id):
         "fileTree": dir_contents("abc"),
     })
 
+
 @app.route("/api/v1/submission/<int:submission_id>/general-feedback",
            methods=['GET'])
 def get_general_feedback(submission_id):
     work = db.session.query(models.Work).get(submission_id)
+    auth.ensure_permission('can_grade_work', work.assignment.course.id)
 
     if work and work.is_graded:
         return jsonify({
@@ -132,24 +192,39 @@ def get_general_feedback(submission_id):
             'The work with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
+
 @app.route("/api/v1/submission/<int:submission_id>/general-feedback",
            methods=['PUT'])
 def set_general_feedback(submission_id):
-    content = request.get_json()
     work = db.session.query(models.Work).get(submission_id)
+    content = request.get_json()
 
-    if work:
-        print(content['feedback'])
-        work.grade = content['grade']
-        work.comment = content['feedback']
-        work.graded = True
-        db.session.commit()
-        return ('', 204)
-    else:
+    if not work:
         raise APIException(
             'Work submission not found',
             'The work with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_grade_work', work.assignment.course.id)
+
+    if 'grade' not in content or 'feedback' not in content:
+        raise APIException(
+            'Grade or feedback not provided',
+            'Grade and or feedback fields missing in sent JSON',
+            APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    if not isinstance(content['grade'], float):
+        raise APIException(
+            'Grade submitted not a number',
+            'Grade for work with id {} not a number'.format(submission_id),
+            APICodes.INVALID_PARAM, 400)
+
+    work.grade = content['grade']
+    work.comment = content['feedback']
+    work.state = 'done'
+    db.session.commit()
+    return ('', 204)
+
 
 @app.route("/api/v1/login", methods=["POST"])
 def login():
@@ -168,12 +243,12 @@ def login():
         raise APIException('The supplied email or password is wrong.', (
             'The user with email {} does not exist ' +
             'or has a different password').format(data['email']),
-                           APICodes.LOGIN_FAILURE, 400)
+            APICodes.LOGIN_FAILURE, 400)
 
     if not login_user(user, remember=True):
         raise APIException('User is not active', (
             'The user with id "{}" is not active any more').format(user.id),
-                           APICodes.INACTIVE_USER, 403)
+            APICodes.INACTIVE_USER, 403)
 
     return me()
 
@@ -211,7 +286,7 @@ def upload_work(assignment_id):
         raise APIException('Uploaded files are too big.', (
             'Request is bigger than maximum ' +
             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-                           APICodes.REQUEST_TOO_LARGE, 400)
+            APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
