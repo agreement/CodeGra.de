@@ -18,11 +18,11 @@ def render_item(type_, col, autogen_context):
     else:
         return False
 
+
 migrate = Migrate(app, db, render_item=render_item)
 manager = Manager(app)
 
 manager.add_command('db', MigrateCommand)
-
 
 
 @manager.command
@@ -60,10 +60,12 @@ def test_data():
     with open('./test_data/course_roles.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
-            m.CourseRole.query.filter_by(
-                    name=c['name'],
-                    course=m.Course.query.filter_by(
-                        name=c['course']).first()).delete()
+            u = m.CourseRole.query.filter_by(
+                name=c['name'],
+                course=m.Course.query.filter_by(
+                    name=c['course']).first()).first()
+            if u is not None:
+                db.session.delete(u)
             assert m.Course.query.filter_by(name=c['course']).first()
 
             perms = {
@@ -78,7 +80,8 @@ def test_data():
     with open('./test_data/assignments.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
-            m.Assignment.query.filter_by(name=c['name']).delete()
+            if m.Assignment.query.filter_by(name=c['name']).first() is not None:
+                continue
             db.session.add(
                 m.Assignment(
                     name=c['name'],
@@ -87,7 +90,9 @@ def test_data():
     with open('./test_data/users.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
-            m.User.query.filter_by(name=c['name']).delete()
+            u = m.User.query.filter_by(name=c['name']).first()
+            if u is not None:
+                db.session.delete(u)
             courses = {
                 m.Course.query.filter_by(name=name).first(): role
                 for name, role in c['courses'].items()

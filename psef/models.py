@@ -153,15 +153,21 @@ class Work(db.Model):
     id = db.Column('id', db.Integer, primary_key=True)
     assignment_id = db.Column('Assignment_id', db.Integer,
                               db.ForeignKey('Assignment.id'))
-    user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
-    state = db.Column('state', db.Enum(WorkStateEnum))
+    user_id = db.Column('User_id', db.Integer,
+                        db.ForeignKey('User.id', ondelete='SET NULL'))
+    state = db.Column(
+        'state', db.Enum(WorkStateEnum), default=WorkStateEnum.initial)
     edit = db.Column('edit', db.Integer)
     grade = db.Column('grade', db.Float, default=None)
     comment = db.Column('comment', db.Unicode, default=None)
     created_at = db.Column(db.Date, default=datetime.datetime.now)
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
-    user = db.relationship('User', foreign_keys=user_id)
+    user = db.relationship('User', single_parent=True, foreign_keys=user_id)
+
+    @property
+    def is_graded(self):
+        return self.state == WorkStateEnum.done
 
     def add_file_tree(self, db, tree):
         """Add the given tree to the given db.
@@ -223,6 +229,22 @@ class File(db.Model):
     __table_args__ = (
         db.CheckConstraint(or_(is_directory == false(), extension == null())),
     )
+
+    def get_filename(self):
+        if self.extension != None:
+            return "{}.{}".format(self.name, self.extension)
+        else:
+            return self.name
+
+    def list_contents(self):
+        if self.is_directory == False:
+            return {"name": self.get_filename(), "id": self.id}
+        else:
+            return {
+                "name": self.get_filename(),
+                "id": self.id,
+                "entries": [child.list_contents() for child in self.children]
+            }
 
 
 class Comment(db.Model):
