@@ -13,5 +13,20 @@
         "name": "can_grade_work",
         "default_value": false,
         "course_permission": true
-    }
+    },
+    {
+        "name": "can_see_others_work",
+        "default_value": true,
+        "course_permission": true
+    },
+    {
+        "name": "can_see_own_work",
+        "default_value": true,
+        "course_permission": true
+    },
+    {
+        "name": "can_see_assignments",
+        "default_value": true,
+        "course_permission": true
+    },
 ]

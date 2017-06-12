@@ -54,14 +54,20 @@ class CourseRole(db.Model):
     course = db.relationship('Course', foreign_keys=course_id)
 
     def has_permission(self, permission):
-        if permission in self._permissions:
-            perm = self._permissions[permission]
+        if isinstance(permission, Permission):
+            permission_name = permission.name
+        else:
+            permission_name = permission
+        if permission_name in self._permissions:
+            perm = self._permissions[permission_name]
             return perm.course_permission and not perm.default_value
         else:
-            permission = Permission.query.filter_by(name=permission).first()
+            if not isinstance(permission, Permission):
+                permission = Permission.query.filter_by(
+                    name=permission).first()
             if permission is None:
-                raise KeyError(
-                    'The permission "{}" does not exist'.format(permission))
+                raise KeyError('The permission "{}" does not exist'.format(
+                    permission_name))
             else:
                 return (permission.default_value and
                         permission.course_permission)

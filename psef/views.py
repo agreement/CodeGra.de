@@ -97,18 +97,20 @@ def dir_contents(path):
     }
 
 
-@app.route("/api/v1/students/<student_id>/assignments/")
-def get_student_assignments(student_id):
-    return jsonify([
-        {
-            "id": 0,
-            "name": "Assignment 1",
-        },
-        {
-            "id": 1,
-            "name": "Assignment 3",
-        }
-    ])
+@app.route("/api/v1/assignments/")
+@login_required
+def get_student_assignments():
+    perm = models.Permission.query.filter_by(name='can_see_assignments').first()
+    courses = []
+    for course_role in current_user.courses.values():
+        if course_role.has_permission(perm):
+            courses.append(course_role.course_id)
+    return jsonify([{
+        'id': assignment.id,
+        'name': assignment.name
+    }
+                    for assignment in models.Assignment.query.filter(
+                        models.Assignment.course_id.in_(courses)).all()])
 
 
 @app.route("/api/v1/submission/<submission_id>")
