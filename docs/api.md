@@ -103,6 +103,48 @@ every API call should have input object, with types for every key and
 description, and an example output object. Last every API call should have a
 higher level description of the use and working.
 
+## Directories
+### Work
+#### Assignment
+##### Course
+###### Get directory contents
+
+```python
+import requests
+
+requests.get('https://example.com/api/v1/courses/1/assignments/1/works/1/dir/1')
+```
+
+> The above command returns JSON like below with a status code of 200:
+```json
+{
+  "id": 1, 
+  "name": "rootdir"
+  "entries": [
+    {
+      "id": 2, 
+      "name": "file1.txt"
+    }, 
+    {
+      "id": 3, 
+      "name": "subdir"
+      "entries": [
+        {
+          "id": 4, 
+          "name": "file2.txt."
+        }, 
+        {
+          "id": 5, 
+          "name": "file3.txt"
+        }
+      ], 
+    }, 
+  ], 
+}
+
+####### HTTP Request
+`GET http://example.com/api/v1/courses/<ID>/assignments/<ID>/works/<ID>/dir/<ID>`
+
 ## Works
 ### Assignment
 #### Add new work

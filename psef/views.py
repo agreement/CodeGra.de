@@ -49,7 +49,7 @@ def put_comment(id, line):
 
 
 @app.route("/api/v1/courses/<course_id>/assignments/<assignment_id>/"
-           "works/<work_id>/files/<file_id>", methods=['GET'])
+           "works/<work_id>/dir/<file_id>", methods=['GET'])
 def get_dir_contents(course_id, assignment_id, work_id, file_id):
 
     file = models.File.query.get(file_id)
