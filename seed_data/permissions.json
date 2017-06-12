@@ -13,5 +13,15 @@
         "name": "can_grade_work",
         "default_value": false,
         "course_permission": true
+    },
+    {
+        "name": "can_view_files",
+        "default_value": false,
+        "course_permission": true
+    },
+    {
+        "name": "can_view_own_files",
+        "default_value": true,
+        "course_permission": true
     }
 ]

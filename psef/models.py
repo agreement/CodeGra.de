@@ -219,6 +219,25 @@ class File(db.Model):
         db.CheckConstraint(or_(is_directory == false(), extension == null())),
     )
 
+    def get_filename(self):
+        if self.extension != None:
+            return "{}.{}".format(self.name, self.extension)
+        else:
+            return self.name
+
+    def list_contents(self):
+        if self.is_directory == False:
+            return {
+                "name": self.get_filename(),
+                "id": self.id
+            }
+        else:
+            return {
+                "name": self.get_filename(),
+                "id": self.id,
+                "entries": [child.list_contents() for child in self.children]
+            }
+
 
 class Comment(db.Model):
     __tablename__ = "Comment"
