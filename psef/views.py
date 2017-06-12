@@ -31,7 +31,7 @@ def get_code(file_id):
 def put_comment(id, line):
     content = request.get_json()
 
-    comment = db.session.query(models.Comment).filter_by(
+    comment = db.session.query(models.Comment).filter(
         models.Comment.file_id == id, models.Comment.line == line).first()
     if not comment:
         # TODO: User id 0 for now, change later on
@@ -47,7 +47,7 @@ def put_comment(id, line):
 
 @app.route("/api/v1/code/<int:id>/comment/<int:line>", methods=['DELETE'])
 def remove_comment(id, line):
-    comment = db.session.query(models.Comment).filter_by(
+    comment = db.session.query(models.Comment).filter(
         models.Comment.file_id == id, models.Comment.line == line).first()
 
     if comment:
