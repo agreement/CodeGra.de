@@ -1,57 +1,223 @@
-from psef import db, app
+import os
+import enum
+
+from flask_login import UserMixin
+from sqlalchemy.sql.expression import or_, null, false
+from sqlalchemy.orm.collections import attribute_mapped_collection
+
+from psef import db, app, login_manager
+
+permissions = db.Table('roles-permissions',
+                       db.Column('permission_id', db.Integer,
+                                 db.ForeignKey('Permission.id')),
+                       db.Column('role_id', db.Integer,
+                                 db.ForeignKey('Role.id')))
+
+course_permissions = db.Table('course_roles-permissions',
+                              db.Column('permission_id', db.Integer,
+                                        db.ForeignKey('Permission.id')),
+                              db.Column('course_role_id', db.Integer,
+                                        db.ForeignKey('Course_Role.id')))
+
+user_course = db.Table('users-courses',
+                       db.Column('course_id', db.Integer,
+                                 db.ForeignKey('Course_Role.id')),
+                       db.Column('user_id', db.Integer,
+                                 db.ForeignKey('User.id')))
 
 
-class User (db.Model):
+class Permission(db.Model):
+    __tablename__ = 'Permission'
+    id = db.Column('id', db.Integer, primary_key=True)
+    name = db.Column('name', db.Unicode, unique=True)
+    default_value = db.Column('default_value', db.Boolean, default=False)
+    course_permission = db.Column('course_permission', db.Boolean)
+
+
+class CourseRole(db.Model):
+    __tablename__ = 'Course_Role'
+    id = db.Column('id', db.Integer, primary_key=True)
+    name = db.Column('name', db.Unicode)
+    course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
+    _permissions = db.relationship(
+        'Permission',
+        collection_class=attribute_mapped_collection('name'),
+        secondary=course_permissions)
+
+    course = db.relationship('Course', foreign_keys=course_id)
+
+    def has_permission(self, permission):
+        if permission in self._permissions:
+            perm = self._permissions[permission]
+            return perm.course_permission and not perm.default_value
+        else:
+            permission = Permission.query.filter_by(name=permission).first()
+            if permission is None:
+                raise KeyError(
+                    'The permission "{}" does not exist'.format(permission))
+            else:
+                return (permission.default_value and
+                        permission.course_permission)
+
+
+class Role(db.Model):
+    __tablename__ = 'Role'
+    id = db.Column('id', db.Integer, primary_key=True)
+    name = db.Column('name', db.Unicode)
+    _permissions = db.relationship(
+        'Permission',
+        collection_class=attribute_mapped_collection('name'),
+        secondary=permissions,
+        backref=db.backref('roles', lazy='dynamic'))
+
+    def has_permission(self, permission):
+        if permission in self._permissions:
+            return not self._permissions[permission].course_permission
+        else:
+            permission = Permission.query.filter_by(name=permission).first()
+            if permission is None:
+                raise KeyError(
+                    'The permission "{}" does not exist'.format(permission))
+            else:
+                return (permission.default_value and
+                        not permission.course_permission)
+
+
+class User(db.Model, UserMixin):
     __tablename__ = "User"
-    id = db.Column('id', db.Integer, primary_key = True)
+    id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode)
-    role = db.Column('role', db.Integer)
+    active = db.Column('active', db.Boolean, default=True)
+    role_id = db.Column('Role_id', db.Integer, db.ForeignKey('Role.id'))
+    courses = db.relationship(
+        'CourseRole',
+        collection_class=attribute_mapped_collection('course.id'),
+        secondary=user_course,
+        backref=db.backref('users', lazy='dynamic'))
+
+    role = db.relationship('Role', foreign_keys=role_id)
+
+    def has_permission(self, permission, course_id=None):
+        if course_id is None:
+            return self.role.has_permission(permission)
+        else:
+            return (course_id in self.courses and
+                    self.courses[course_id].has_permission(permission))
+
+    @property
+    def is_active(self):
+        return self.active
+
+    @staticmethod
+    @login_manager.user_loader
+    def load_user(user_id):
+        User.query.get(int(user_id))
 
 
-class Course (db.Model):
+class Course(db.Model):
     __tablename__ = "Course"
-    id = db.Column('id', db.Integer, primary_key = True)
+    id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode)
 
 
-class Work (db.Model):
+class WorkStateEnum(enum.Enum):
+    initial = 0
+    started = 1
+    done = 2
+
+
+class Work(db.Model):
     __tablename__ = "Work"
-    id = db.Column('id', db.Integer, primary_key = True)
-    assignment_id = db.Column('Assignment_id', db.Integer, db.ForeignKey('Assignment.id'))
+    id = db.Column('id', db.Integer, primary_key=True)
+    assignment_id = db.Column('Assignment_id', db.Integer,
+                              db.ForeignKey('Assignment.id'))
     user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
-    state = db.Column('state', db.Integer)
+    state = db.Column('state', db.Enum(WorkStateEnum))
     edit = db.Column('edit', db.Integer)
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', foreign_keys=user_id)
 
+    def add_file_tree(self, db, tree):
+        """Add the given tree to the given db.
 
-class File (db.Model):
+        .. warning::
+        The db session is not commited!
+
+        :param db: The db object.
+        :param tree: The file tree as described by
+                     :py:func:`psef.files.rename_directory_structure`
+        :returns: Nothing
+        :rtype: None
+        """
+        assert isinstance(tree, dict)
+        return self._add_file_tree(db, tree, None)
+
+    def _add_file_tree(self, db, tree, top):
+        def ensure_list(item):
+            return item if isinstance(item, list) else [item]
+
+        for new_top, children in tree.items():
+            new_top = File(
+                work=self,
+                is_directory=True,
+                name=new_top,
+                extension=None,
+                parent=top)
+            db.session.add(new_top)
+            for child in ensure_list(children):
+                if isinstance(child, dict):
+                    self._add_file_tree(db, child, new_top)
+                    continue
+                child, filename = child
+                name, ext = os.path.splitext(child)
+                ext = ext[1:]
+                db.session.add(
+                    File(
+                        work=self,
+                        extension=ext,
+                        name=name,
+                        filename=filename,
+                        is_directory=False,
+                        parent=new_top))
+
+
+class File(db.Model):
     __tablename__ = "File"
-    id = db.Column('id', db.Integer, primary_key = True)
+    id = db.Column('id', db.Integer, primary_key=True)
     work_id = db.Column('Work_id', db.Integer, db.ForeignKey('Work.id'))
     extension = db.Column('extension', db.Unicode)
-    description = db.Column('description', db.Unicode)
+    name = db.Column('name', db.Unicode)
+    filename = db.Column('path', db.Unicode)
+    is_directory = db.Column('is_directory', db.Boolean)
+    parent_id = db.Column(db.Integer, db.ForeignKey('File.id'))
+    parent = db.relationship('File', remote_side=[id], backref='children')
 
     work = db.relationship('Work', foreign_keys=work_id)
 
+    __table_args__ = (
+        db.CheckConstraint(or_(is_directory == false(), extension == null())),
+    )
 
-class Comment (db.Model):
+
+class Comment(db.Model):
     __tablename__ = "Comment"
-    id = db.Column('id', db.Integer, primary_key = True)
-    file_id = db.Column('File_id', db.Integer, db.ForeignKey('File.id'))
-    user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
+    file_id = db.Column('File_id', db.Integer)#, db.ForeignKey('File.id'))
+    user_id = db.Column('User_id', db.Integer)#, db.ForeignKey('User.id'))
     line = db.Column('line', db.Integer)
     comment = db.Column('comment', db.Unicode)
+    __table_args__ = (db.PrimaryKeyConstraint(file_id, line),)
 
-    file = db.relationship('File', foreign_keys=file_id)
-    user = db.relationship('User', foreign_keys=user_id)
+    # Commented out relationships for testing purposes
+    #file = db.relationship('File', foreign_keys=file_id)
+    #user = db.relationship('User', foreign_keys=user_id)
 
 
-class Assignment (db.Model):
+class Assignment(db.Model):
     __tablename__ = "Assignment"
-    id = db.Column('id', db.Integer, primary_key = True)
-    description = db.Column('description', db.Unicode)
+    id = db.Column('id', db.Integer, primary_key=True)
+    name = db.Column('name', db.Unicode)
+    description = db.Column('description', db.Unicode, default='')
     course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
 
     course = db.relationship('Course', foreign_keys=course_id)

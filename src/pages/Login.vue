@@ -5,6 +5,7 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import { Login } from '@/components';
 
 export default {
@@ -14,8 +15,20 @@ export default {
         return {};
     },
 
+    mounted() {
+        if (this.loggedIn) {
+            this.$router.replace('/');
+        }
+    },
+
     components: {
         Login,
+    },
+
+    computed: {
+        ...mapGetters('user', [
+            'loggedIn',
+        ]),
     },
 };
 </script>

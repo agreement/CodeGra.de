@@ -1,0 +1,17 @@
+[
+    {
+        "name": "can_add_users",
+        "default_value": false,
+        "course_permission": false
+    },
+    {
+        "name": "can_submit_own_work",
+        "default_value": true,
+        "course_permission": true
+    },
+    {
+        "name": "can_grade_work",
+        "default_value": false,
+        "course_permission": true
+    }
+]

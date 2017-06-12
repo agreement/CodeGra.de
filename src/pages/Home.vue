@@ -5,23 +5,20 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import { Login } from '@/components';
 
 export default {
     name: 'home-page',
 
-    data() {
-        return {
-
-            // dummy
-            loggedIn: 1,
-            userid: 0,
-            username: 'Henk',
-        };
-    },
-
     components: {
         Login,
+    },
+
+    computed: {
+        ...mapGetters('user', [
+            'loggedIn',
+        ]),
     },
 };
 </script>

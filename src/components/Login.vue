@@ -1,6 +1,6 @@
 <template>
-    <div class="row">
-        <div class="col-md-6 col-md-offset-3">
+    <div class="row justify-content-center">
+        <div class="col-6">
             <form>
                 <div class="form-group">
                     <b-popover placement="right" :content="emailError" :show="emailError.length > 0">
@@ -22,7 +22,10 @@
 
 <script>
 
-import { bPopover, bBtn } from 'bootstrap-vue/lib/components';
+import { mapActions } from 'vuex';
+import { bPopover } from 'bootstrap-vue/lib/components';
+
+import * as error from '@/errors';
 
 export default {
     name: 'login',
@@ -45,19 +48,34 @@ export default {
                 return;
             }
 
-            this.$http.post('/api/login', { email: this.email, password: this.password }).then((data) => {
+            this.tryLogin({ email: this.email, password: this.password }).then(() => {
+                this.$router.replace('/');
+            }).catch((reason) => {
+                if (reason === error.emailDoesNotExist) {
+                    this.emailError = 'Email does not exist';
+                    return;
+                }
+
+                if (reason === error.passwordIsInvalid) {
+                    this.passwordError = 'Password is invalid';
+                    return;
+                }
+
+                // TODO: toast the error
                 // eslint-disable-next-line
-                console.log('Login response:', data);
+                console.log(reason);
             });
         },
         clearErrors() {
             this.emailError = '';
             this.passwordError = '';
         },
+        ...mapActions({
+            tryLogin: 'user/login',
+        }),
     },
     components: {
         bPopover,
-        bBtn,
     },
 };
 </script>

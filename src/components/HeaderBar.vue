@@ -1,8 +1,8 @@
 <template>
     <header>
-        <h1>
-            <a href="#/">CodeGra.de</a>
-        </h1>
+        <a href="#/">
+            <img class="logo" src="/static/img/codegrade.png">
+        </a>
     </header>
 </template>
 
