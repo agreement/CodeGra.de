@@ -84,6 +84,7 @@ def get_submission(submission_id):
         "fileTree": sample_dir_contents("abc"),
     })
 
+
 def sample_dir_contents(path):
     return {
         "name":
