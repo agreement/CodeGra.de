@@ -102,6 +102,7 @@ def get_submission(submission_id):
         "fileTree": dir_contents("abc"),
     })
 
+
 @app.route("/api/v1/submission/<int:submission_id>/general-feedback",
            methods=['GET'])
 def get_general_feedback(submission_id):
@@ -118,24 +119,34 @@ def get_general_feedback(submission_id):
             'The work with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
+
 @app.route("/api/v1/submission/<int:submission_id>/general-feedback",
            methods=['PUT'])
 def set_general_feedback(submission_id):
+    work = db.session.query(Work).get(submission_id)
     content = request.get_json()
-    work = db.session.query(models.Work).get(submission_id)
 
-    if work:
-        print(content['feedback'])
-        work.grade = content['grade']
-        work.comment = content['feedback']
-        work.graded = True
-        db.session.commit()
-        return ('', 204)
-    else:
+    if not work:
         raise APIException(
             'Work submission not found',
             'The work with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_grade_work', work.assignment.course.id)
+    print(content['feedback'])
+
+    if not isinstance(content['grade'], float):
+        raise APIException(
+            'Grade submitted not a number',
+            'Grade for work with id {} not a number'.format(submission_id),
+            APICodes.INVALID_PARAM, 404)
+
+    work.grade = content['grade']
+    work.comment = content['feedback']
+    work.graded = True
+    db.session.commit()
+    return ('', 204)
+
 
 @app.route("/api/v1/login", methods=["POST"])
 def login():
