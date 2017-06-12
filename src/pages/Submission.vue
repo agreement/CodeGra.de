@@ -47,10 +47,10 @@ export default {
     methods: {
         getSubmission() {
             this.$http.get(`/api/v1/submission/${this.submissionId}`).then((data) => {
-                this.title = data.body.title;
-                this.fileTree = data.body.fileTree;
-                this.grade = data.body.grade;
-                this.feedback = data.body.feedback;
+                this.title = data.data.title;
+                this.fileTree = data.data.fileTree;
+                this.grade = data.data.grade;
+                this.feedback = data.data.feedback;
             });
         },
 
