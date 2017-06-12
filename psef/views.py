@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from flask import jsonify, request
 from flask_login import login_user, logout_user, current_user, login_required
-
 from sqlalchemy_utils.functions import dependent_objects
 
 import psef.auth as auth
@@ -58,14 +57,15 @@ def remove_comment(id, line):
         db.session.delete(comment)
         db.session.commit()
     else:
-        raise APIException(
-            'Feedback comment not found',
-            'The comment on line {} was not found'.format(line),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+        raise APIException('Feedback comment not found',
+                           'The comment on line {} was not found'.format(line),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 
-@app.route("/api/v1/courses/<int:course_id>/assignments/<int:assignment_id>/"
-           "works/<int:work_id>/dir", methods=['GET'])
+@app.route(
+    "/api/v1/courses/<int:course_id>/assignments/<int:assignment_id>/"
+    "works/<int:work_id>/dir",
+    methods=['GET'])
 def get_dir_contents(course_id, assignment_id, work_id):
 
     work = models.Work.query.get(work_id)
@@ -79,8 +79,7 @@ def get_dir_contents(course_id, assignment_id, work_id):
         raise APIException(
             'Incorrect URL',
             'The identifiers in the URL do no match those related to the work '
-            'with code {}'.format(work_id),
-            APICodes.INVALID_URL, 400)
+            'with code {}'.format(work_id), APICodes.INVALID_URL, 400)
 
     if (work.user.id != current_user.id):
         auth.ensure_permission('can_view_files', course_id)
@@ -99,8 +98,7 @@ def get_dir_contents(course_id, assignment_id, work_id):
             raise APIException(
                 'Incorrect URL',
                 'The identifiers in the URL do no match those related to the '
-                'file with code {}'.format(file.id),
-                APICodes.INVALID_URL, 400)
+                'file with code {}'.format(file.id), APICodes.INVALID_URL, 400)
     else:
         file = models.File.query.filter(models.File.work_id == work_id,
                                         models.File.parent_id == None).one()
@@ -114,50 +112,6 @@ def get_dir_contents(course_id, assignment_id, work_id):
     dir_contents = jsonify(file.list_contents())
 
     return (dir_contents, 200)
-
-
-def sample_dir_contents(path):
-    return {
-        "name":
-        path,
-        "entries": [
-            {
-                "name":
-                "a",
-                "entries": [
-                    {
-                        "name": "a_1",
-                        "id": 0,
-                    },
-                    {
-                        "name": "a_2",
-                        "id": 1,
-                    },
-                    {
-                        "name": "a_3",
-                        "entries": [
-                            {
-                                "name": "a_3_1",
-                                "id": 2
-                            },
-                        ],
-                    },
-                ],
-            },
-            {
-                "name": "b",
-                "id": 3
-            },
-            {
-                "name": "c",
-                "id": 4
-            },
-            {
-                "name": "d",
-                "id": 5
-            },
-        ]
-    }
 
 
 @app.route("/api/v1/assignments/", methods=['GET'])
@@ -215,25 +169,14 @@ def get_all_works_for_assignment(assignment_id):
     } for work in res])
 
 
-@app.route("/api/v1/submission/<submission_id>")
-def get_submission(submission_id):
-    return jsonify({
-        "title": "Assignment 1",
-        "fileTree": sample_dir_contents("abc"),
-    })
-
-
-@app.route("/api/v1/submission/<int:submission_id>/general-feedback",
-           methods=['GET'])
+@app.route(
+    "/api/v1/submission/<int:submission_id>/general-feedback", methods=['GET'])
 def get_general_feedback(submission_id):
     work = db.session.query(models.Work).get(submission_id)
     auth.ensure_permission('can_grade_work', work.assignment.course.id)
 
     if work and work.is_graded:
-        return jsonify({
-            "grade": work.grade,
-            "feedback": work.comment
-        })
+        return jsonify({"grade": work.grade, "feedback": work.comment})
     else:
         raise APIException(
             'Work submission not found',
@@ -241,8 +184,8 @@ def get_general_feedback(submission_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 
-@app.route("/api/v1/submission/<int:submission_id>/general-feedback",
-           methods=['PUT'])
+@app.route(
+    "/api/v1/submission/<int:submission_id>/general-feedback", methods=['PUT'])
 def set_general_feedback(submission_id):
     work = db.session.query(models.Work).get(submission_id)
     content = request.get_json()
@@ -256,10 +199,9 @@ def set_general_feedback(submission_id):
     auth.ensure_permission('can_grade_work', work.assignment.course.id)
 
     if 'grade' not in content or 'feedback' not in content:
-        raise APIException(
-            'Grade or feedback not provided',
-            'Grade and or feedback fields missing in sent JSON',
-            APICodes.MISSING_REQUIRED_PARAM, 400)
+        raise APIException('Grade or feedback not provided',
+                           'Grade and or feedback fields missing in sent JSON',
+                           APICodes.MISSING_REQUIRED_PARAM, 400)
 
     if not isinstance(content['grade'], float):
         raise APIException(
@@ -291,12 +233,12 @@ def login():
         raise APIException('The supplied email or password is wrong.', (
             'The user with email {} does not exist ' +
             'or has a different password').format(data['email']),
-            APICodes.LOGIN_FAILURE, 400)
+                           APICodes.LOGIN_FAILURE, 400)
 
     if not login_user(user, remember=True):
         raise APIException('User is not active', (
             'The user with id "{}" is not active any more').format(user.id),
-            APICodes.INACTIVE_USER, 403)
+                           APICodes.INACTIVE_USER, 403)
 
     return me()
 
@@ -334,7 +276,7 @@ def upload_work(assignment_id):
         raise APIException('Uploaded files are too big.', (
             'Request is bigger than maximum ' +
             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-            APICodes.REQUEST_TOO_LARGE, 400)
+                           APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
