@@ -35,6 +35,7 @@ def put_comment(id, line):
                                    line=line,
                                    comment=content['comment']))
         else:
+            print('sdd', content, request.data)
             comment.comment = content['comment']
 
         db.session.commit()

@@ -4,7 +4,8 @@
             <li v-on:click="addFeedback($event, i)" v-for="(line, i) in highlighted_code">
                 <code v-html="line"></code>
 
-                <feedback-area :editing='feedback' :feedback='feedback[i]' v-on:feedbackChange="val => { feedbackChange(i, val); }"></feedback-area>
+
+                <feedback-area :editing="editing[i] === true" :feedback='feedback[i]' :editable='editable' :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }" v-if="feedback[i] != null"></feedback-area>
 
                 <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
                     v-on:click="addFeedback($event, value)"></icon>
@@ -37,7 +38,8 @@ export default {
             fileId: this.id,
             lang: '',
             code: '',
-            feedback: [],
+            editing: {},
+            feedback: {},
         };
     },
 
@@ -79,11 +81,13 @@ export default {
 
         addFeedback(event, line) {
             if (this.feedback[line] == null) {
+                Vue.set(this.editing, line, true);
                 Vue.set(this.feedback, line, '');
             }
         },
 
         feedbackChange(line, feedback) {
+            this.editing[line] = false;
             this.feedback[line] = feedback;
         },
         // eslint-disable-next-line
