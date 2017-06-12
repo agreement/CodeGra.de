@@ -7,18 +7,17 @@ import psef.files
 import psef.models as models
 from psef import db, app
 from psef.errors import APICodes, APIException
-from psef.models import *
 
 
 @app.route("/api/v1/code/<int:id>")
-def get_code(id):
+def get_code(file_id):
     # Code not used yet:
 
     code = db.session.query(models.File).filter(  # NOQA: F841
         models.File.id == id).first()
     line_feedback = {}
-    for comment in db.session.query(models.Comment).filter(
-            models.Comment.file_id == id):
+    for comment in db.session.query(models.Comment).filter_by(
+            file_id=file_id).all():
         line_feedback[str(comment.line)] = comment.comment
     print(line_feedback)
 
@@ -34,7 +33,7 @@ def get_code(id):
 def put_comment(id, line):
     content = request.get_json()
 
-    comment = db.session.query(models.Comment).filter(
+    comment = db.session.query(models.Comment).filter_by(
         models.Comment.file_id == id, models.Comment.line == line).first()
     if not comment:
         # TODO: User id 0 for now, change later on
@@ -124,14 +123,13 @@ def get_general_feedback(submission_id):
         # Here you should connect to the database
         print(content)
 
-        resp = make_response("grade and feedback submitted", 204)
-        return resp
+        return ('', 204)
+
 
 
 @app.route("/api/v1/login", methods=["POST"])
 def login():
     class User(UserMixin):
-
         def __init__(self, id):
             self.id = id
 
