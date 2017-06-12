@@ -146,9 +146,8 @@ class Work(db.Model):
     assignment_id = db.Column('Assignment_id', db.Integer,
                               db.ForeignKey('Assignment.id'))
     user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
-    state = db.Column('state', db.Enum(WorkStateEnum))
+    state = db.Column('state', db.Enum(WorkStateEnum), default='initial')
     edit = db.Column('edit', db.Integer)
-    graded = db.Column('graded', db.Boolean, default=False)
     grade = db.Column('grade', db.Float)
     comment = db.Column('comment', db.Unicode)
 
@@ -157,7 +156,7 @@ class Work(db.Model):
 
     @property
     def is_graded(self):
-        return self.graded
+        return self.state == 'done'
 
     def add_file_tree(self, db, tree):
         """Add the given tree to the given db.

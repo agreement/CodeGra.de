@@ -8,6 +8,7 @@ import psef.models as models
 from psef import db, app
 from psef.errors import APICodes, APIException
 
+
 @app.route("/api/v1/code/<int:file_id>")
 def get_code(file_id):
     # Code not used yet:
@@ -106,8 +107,8 @@ def get_submission(submission_id):
 @app.route("/api/v1/submission/<int:submission_id>/general-feedback",
            methods=['GET'])
 def get_general_feedback(submission_id):
-    auth.ensure_permission('can_grade_work', work.assignment.course.id)
     work = db.session.query(models.Work).get(submission_id)
+    auth.ensure_permission('can_grade_work', work.assignment.course.id)
 
     if work and work.is_graded:
         return jsonify({
@@ -149,7 +150,7 @@ def set_general_feedback(submission_id):
 
     work.grade = content['grade']
     work.comment = content['feedback']
-    work.graded = True
+    work.state = 'done'
     db.session.commit()
     return ('', 204)
 

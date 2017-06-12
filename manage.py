@@ -120,7 +120,6 @@ def test_data():
                     user=m.User.query.filter_by(name=c['user']).first(),
                     comment=c['comment'],
                     grade=c['grade'],
-                    graded=c['graded'],
                     edit=c['edit']))
     db.session.commit()
 
