@@ -145,7 +145,7 @@ class Work(db.Model):
     id = db.Column('id', db.Integer, primary_key=True)
     assignment_id = db.Column('Assignment_id', db.Integer,
                               db.ForeignKey('Assignment.id'))
-    user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
+    user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id', ondelete='SET NULL'))
     state = db.Column('state', db.Enum(WorkStateEnum),
                       default=WorkStateEnum.initial)
     edit = db.Column('edit', db.Integer)
@@ -153,7 +153,7 @@ class Work(db.Model):
     comment = db.Column('comment', db.Unicode)
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
-    user = db.relationship('User', foreign_keys=user_id)
+    user = db.relationship('User', single_parent=True, foreign_keys=user_id)
 
     @property
     def is_graded(self):
