@@ -1,8 +1,5 @@
 require('./check-versions')()
 
-const httpProxy = require('http-proxy');
-const proxy = httpProxy.createProxyServer({});
-
 
 var config = require('../config')
 if (!process.env.NODE_ENV) {
@@ -84,10 +81,6 @@ devMiddleware.waitUntilValid(() => {
   }
   _resolve()
 })
-
-app.all(/^\/api\/(.*)/, (req, res) => {
-    proxy.web(req, res, { target: 'http://localhost:5000' });
-});
 
 var server = app.listen(port)
 

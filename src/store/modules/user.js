@@ -1,4 +1,4 @@
-import Vue from 'vue';
+import axios from 'axios';
 import * as error from '@/errors';
 import * as types from '../mutation-types';
 
@@ -11,50 +11,30 @@ const getters = {
 const actions = {
     login({ commit }, { email, password }) {
         return new Promise((resolve, reject) => {
-            Vue.http.post('/api/v1/login', { email, password }).then((response) => {
-                const body = response.data;
-                if (body.success) {
-                    commit(types.LOGIN, {
-                        id: body.id,
-                        name: body.name,
-                        email,
-                    });
-                    resolve();
-                    return;
-                }
-
-                if ('email_error' in body) {
-                    reject(error.emailDoesNotExist);
-                    return;
-                }
-
-                if ('password_error' in body) {
-                    reject(error.passwordIsInvalid);
-                    return;
-                }
-
-                // This should never happen
-                reject(error.apiError);
-            }, () => {
-                reject(error.apiError);
+            axios.post('/api/v1/login', { email, password }).then((response) => {
+                commit(types.LOGIN, response.data);
+                resolve();
+            }).catch((response) => {
+                reject(response.body);
             });
         });
     },
     logout({ commit }) {
         return new Promise((resolve, reject) => {
-            Vue.http.post('/api/v1/logout').then((response) => {
-                const body = response.data;
-                if (body.success) {
-                    commit(types.LOGOUT);
-                    resolve();
-                    return;
-                }
-
-                // This should never happen
-                reject(error.apiError);
-            }, () => {
+            axios.post('/api/v1/logout').then(() => {
+                commit(types.LOGOUT);
+                resolve();
+            }).catch(() => {
                 reject(error.apiError);
             });
+        });
+    },
+    verifyLogin({ commit }) {
+        axios.get('/api/v1/login').then((response) => {
+            // We are already logged in. Update state to logged in state
+            commit(types.LOGIN, response.data);
+        }).catch(() => {
+            commit(types.LOGOUT);
         });
     },
 };

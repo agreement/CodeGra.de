@@ -23,12 +23,14 @@ def not_found(error):
 
 
 login_manager = LoginManager()
+login_manager.init_app(app)
 
 # Register blueprint(s)
 # app.register_blueprint(auth_module)
 # app.register_blueprint(xyz_module)
 # ..
 
+import psef.auth
 import psef.views
 import psef.models
 import psef.errors
