@@ -137,8 +137,8 @@ def set_general_feedback(submission_id):
 
     if 'grade' not in content or 'feedback' not in content:
         raise APIException(
-            'Grade submitted not a number',
-            'Grade for work with id {} not a number'.format(submission_id),
+            'Grade or feedback not provided',
+            'Grade and or feedback fields missing in sent JSON',
             APICodes.MISSING_REQUIRED_PARAM, 400)
 
     if not isinstance(content['grade'], float):
