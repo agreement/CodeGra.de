@@ -48,53 +48,33 @@ def put_comment(id, line):
     return ('', 204)
 
 
-@app.route("/api/v1/dir/<path>")
-def get_dir_contents(path):
-    return jsonify(dir_contents(path))
+@app.route("/api/v1/courses/<course_id>/assignments/<assignment_id>/"
+           "works/<work_id>/files/<file_id>", methods=['GET'])
+def get_dir_contents(course_id, assignment_id, work_id, file_id):
 
+    file = models.File.query.get(file_id)
+    if file is None:
+        raise APIException(
+            'File not found',
+            'The file with code {} was not found'.format(file_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    if not file.is_directory:
+        raise APIException(
+            'File is not a directory',
+            'The file with code {} is not a directory'.format(file_id),
+            APICodes.OBJECT_WRONG_TYPE, 400)
+    if (file.work.id != work_id or file.work.assignment.id != assignment_id or
+            file.work.assignment.course != course_id):
+        raise APIException(
+            'Incorrect URL',
+            'The identifiers in the URL do no match those related to the file '
+            'with code {}'.format(file_id),
+            APICodes.INVALID_URL, 400)
 
-def dir_contents(path):
-    return {
-        "name":
-        path,
-        "entries": [
-            {
-                "name":
-                "a",
-                "entries": [
-                    {
-                        "name": "a_1",
-                        "id": 0,
-                    },
-                    {
-                        "name": "a_2",
-                        "id": 1,
-                    },
-                    {
-                        "name": "a_3",
-                        "entries": [
-                            {
-                                "name": "a_3_1",
-                                "id": 2
-                            },
-                        ],
-                    },
-                ],
-            },
-            {
-                "name": "b",
-                "id": 3
-            },
-            {
-                "name": "c",
-                "id": 4
-            },
-            {
-                "name": "d",
-                "id": 5
-            },
-        ]
-    }
+    auth.ensure_permission('can_view_submitted_files', course_id)
+    dir_contents = jsonify(file.list_contents())
+
+    return (dir_contents, 200)
 
 
 @app.route("/api/v1/submission/<submission_id>")
@@ -143,12 +123,12 @@ def login():
         raise APIException('The supplied email or password is wrong.', (
             'The user with email {} does not exist ' +
             'or has a different password').format(data['email']),
-                           APICodes.LOGIN_FAILURE, 400)
+            APICodes.LOGIN_FAILURE, 400)
 
     if not login_user(user, remember=True):
         raise APIException('User is not active', (
             'The user with id "{}" is not active any more').format(user.id),
-                           APICodes.INACTIVE_USER, 403)
+            APICodes.INACTIVE_USER, 403)
 
     return me()
 
@@ -186,7 +166,7 @@ def upload_work(assignment_id):
         raise APIException('Uploaded files are too big.', (
             'Request is bigger than maximum ' +
             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-                           APICodes.REQUEST_TOO_LARGE, 400)
+            APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
