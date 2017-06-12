@@ -233,7 +233,7 @@ def upload_work(assignment_id):
 
     auth.ensure_permission('can_submit_own_work', assignment.course.id)
 
-    work = models.Work(assignment_id=assignment_id, user_id=0)
+    work = models.Work(assignment_id=assignment_id, user_id=current_user.id)
     db.session.add(work)
 
     tree = psef.files.process_files(files)
