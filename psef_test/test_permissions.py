@@ -122,6 +122,8 @@ def thomas(db, perms, student_role, bs_course, student_crole, pse_course,
            ta_crole):
     thomas = m.User(
         name='Thomas Schaper',
+        password='',
+        email='th',
         role=student_role,
         courses={bs_course.id: ta_crole,
                  pse_course.id: student_crole})
@@ -133,7 +135,7 @@ def thomas(db, perms, student_role, bs_course, student_crole, pse_course,
 
 @pytest.fixture(scope='module')
 def superuser(db, admin_role):
-    suser = m.User(name='Super User', role=admin_role)
+    suser = m.User(name='Super User', role=admin_role, password='', email='su')
     db.session.add(suser)
     db.session.commit()
     yield m.User.query.filter_by(name='Super User').first()
@@ -141,7 +143,7 @@ def superuser(db, admin_role):
 
 @pytest.fixture(scope='module')
 def fixed(db, fixed_role):
-    suser = m.User(name='Fixed', role=fixed_role)
+    suser = m.User(name='Fixed', role=fixed_role, password='', email='f')
     db.session.add(suser)
     db.session.commit()
     yield m.User.query.filter_by(name='Fixed').first()

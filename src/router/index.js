@@ -1,6 +1,7 @@
 import Vue from 'vue';
 import Router from 'vue-router';
 import { Submission, Home, Login, User } from '@/pages';
+import CodeUploader from '@/components/CodeUploader';
 
 Vue.use(Router);
 
@@ -30,6 +31,11 @@ export default new Router({
             path: '/user',
             name: 'User',
             component: User,
+        },
+        {
+            path: '/upload',
+            name: 'CodeUploader',
+            component: CodeUploader,
         },
     ],
 });
