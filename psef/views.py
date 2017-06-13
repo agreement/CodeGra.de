@@ -319,3 +319,19 @@ def upload_work(assignment_id):
     db.session.commit()
 
     return ('', 204)
+
+@app.route('/api/v1/permissions/', methods=['GET'])
+@login_required
+def get_permissions():
+    if 'course_id' in request.args:
+        try:
+            course_id = int(request.args['course_id'])
+        except ValueError:
+            raise APIException(
+                'The specified course id was invalid',
+                'The course id should be a number but '
+                '{} is not a number'.format(request.args['course_id']),
+                APICodes.INVALID_PARAM, 400)
+    else:
+        course_id = None
+    return jsonify(current_user.get_all_permissions(course_id=course_id))
