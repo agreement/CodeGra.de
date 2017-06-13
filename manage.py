@@ -30,7 +30,11 @@ def seed():
     with open('./seed_data/permissions.json', 'r') as perms:
         perms = json.load(perms)
         for perm in perms:
-            if m.Permission.query.filter_by(name=perm['name']).first() is None:
+            old_perm = m.Permission.query.filter_by(name=perm['name']).first()
+            if old_perm is not None:
+                old_perm.default_value = perm['default_value']
+                old_perm.course_permission = perm['course_permission']
+            else:
                 db.session.add(m.Permission(**perm))
     db.session.commit()
 
