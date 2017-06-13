@@ -3,12 +3,12 @@
         <div class="row">
             <div class="col-md-6">
                 <h1>Submissions</h1>
-                <submission-list v-bind:assignmentId="assignmentId"></submission-list>
+                <submission-list :submissions="submissions"></submission-list>
             </div>
 
             <div class="col-md-6">
                 <h1>Submit work for assignment {{ assignmentId }}</h1>
-                <code-uploader v-bind:assignmentId="assignmentId"></code-uploader>
+                <code-uploader :assignmentId="assignmentId"></code-uploader>
             </div>
         </div>
     </div>
@@ -23,7 +23,14 @@ export default {
     data() {
         return {
             assignmentId: this.$route.params.assignmentId,
+            submissions: [],
         };
+    },
+
+    mounted() {
+        this.$http.get(`/api/v1/assignments/${this.assignmentId}/works`).then((data) => {
+            this.submissions = data.data;
+        });
     },
 
     components: {

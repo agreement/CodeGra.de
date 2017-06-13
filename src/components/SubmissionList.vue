@@ -11,13 +11,15 @@
         <b-form-input v-model="filter" placeholder="Type to Search"></b-form-input>
       </b-form-fieldset>
 
-      <b-form-checkbox v-model="latestOnly" class="col-2 text-right" v-if="latest.length !== items.length">
+      <b-form-checkbox v-model="latestOnly" class="col-2 text-right"
+          v-if="latest.length !== submissions.length">
         Only show latest assignments
       </b-form-checkbox>
     </div>
 
     <!-- Main table element -->
-    <b-table striped hover v-on:row-clicked='gotoSubmission' :items="latestOnly ? latest : items" :fields="fields" :current-page="currentPage" :per-page="perPage" :filter="filter">
+    <b-table striped hover v-on:row-clicked='gotoSubmission' :items="latestOnly
+        ? latest : submissions" :fields="fields" :current-page="currentPage" :per-page="perPage" :filter="filter">
       <template slot="user_name" scope="item">
         {{item.value ? item.value : '-'}}
       </template>
@@ -27,7 +29,7 @@
     </b-table>
 
     <div class="justify-content-center row my-1">
-      <b-pagination size="md" :total-rows="this.items.length" :per-page="perPage" v-model="currentPage" />
+      <b-pagination size="md" :total-rows="this.submissions.length" :per-page="perPage" v-model="currentPage" />
     </div>
   </div>
 </template>
@@ -37,9 +39,9 @@ export default {
     name: 'submission-list',
 
     props: {
-        assignmentId: {
-            type: Number,
-            default: 0,
+        submissions: {
+            type: Array,
+            default: [],
         },
     },
 
@@ -49,7 +51,6 @@ export default {
             currentPage: 1,
             perPage: 15,
             filter: null,
-            items: [],
             latest: [],
             fields: {
                 user_name: {
@@ -64,19 +65,18 @@ export default {
         };
     },
 
-    mounted() {
-        this.$http.get(`/api/v1/assignments/${this.assignmentId}/works`).then((data) => {
+    watch: {
+        submissions(data) {
             this.latest = [];
-            this.items = data.data;
             const seen = {};
-            const len = data.data.length;
+            const len = data.length;
             for (let i = 0; i < len; i += 1) {
-                if (seen[this.items[i].user_id] !== true) {
-                    this.latest.push(this.items[i]);
-                    seen[this.items[i].user_id] = true;
+                if (seen[this.submissions[i].user_id] !== true) {
+                    this.latest.push(this.submissions[i]);
+                    seen[this.submissions[i].user_id] = true;
                 }
             }
-        });
+        },
     },
 
     methods: {
@@ -84,8 +84,7 @@ export default {
             return `/assignments/${this.assignmentId}/submissions/${submission.id}/`;
         },
         gotoSubmission(_, i) {
-            console.log(this.submissionURL(this.items[i]));
-            this.$router.push(this.submissionURL(this.items[i]));
+            this.$router.push(this.submissionURL(this.submissions[i]));
         },
     },
 };
