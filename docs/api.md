@@ -286,12 +286,10 @@ for this course. However when getting a single permission you <b>WILL</b> get a
 `GET https://example.com/api/v1/permissions/`
 
 ##### Query Parameters
-Parameter | Description
---------- | -----------
-course_id | The id of the course if you want course permissions, if not
-specified general permissions are returned.
-permission | The name of the specific permission you want. This changes the
-resulting JSON to a boolean indicating if you have this permission or not.
+| Parameter  | Description                                                                                                                               |
+| ---------  | -----------                                                                                                                               |
+| course_id  | The id of the course if you want course permissions, if not specified general permissions are returned.                                   |
+| permission | The name of the specific permission you want. This changes the resulting JSON to a boolean indicating if you have this permission or not. |
 
 ## Assignments
 ### Listing all assignments
