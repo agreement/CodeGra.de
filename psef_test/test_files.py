@@ -27,47 +27,52 @@ def ensure_list(item):
 
 
 @pytest.fixture(scope='module')
-def pse_course(db):
+def pse_course(session):
     pse = m.Course(name='Project Software Engineering')
-    db.session.add(pse)
-    db.session.commit()
+    session.add(pse)
+    session.commit()
     yield pse
 
 
 @pytest.fixture(scope='module')
-def bs_course(db):
+def bs_course(session):
     bs = m.Course(name='Besturingssystemen')
-    db.session.add(bs)
-    db.session.commit()
+    session.add(bs)
+    session.commit()
     yield bs
 
 
 @pytest.fixture(scope='module')
-def seq_assignment(db, bs_course):
+def seq_assignment(session, bs_course):
     sec = m.Assignment(name='Security assignment', course=bs_course)
-    db.session.add(sec)
-    db.session.commit()
+    session.add(sec)
+    session.commit()
     yield sec
 
 
 @pytest.fixture(scope='module')
-def thomas(db, bs_course):
-    thomas = m.User(name='Thomas Schaper', role=None, courses={})
+def thomas(session, bs_course):
+    thomas = m.User(
+        name='Thomas Schaper',
+        role=None,
+        courses={},
+        password='',
+        email='thas')
 
-    db.session.add(thomas)
-    db.session.commit()
+    session.add(thomas)
+    session.commit()
     yield m.User.query.filter_by(name='Thomas Schaper').first()
 
 
 @pytest.fixture(scope='module')
-def seq_work(db, seq_assignment, thomas):
+def seq_work(session, seq_assignment, thomas):
     work = m.Work(
         assignment=seq_assignment,
         user=thomas,
         edit=0,
         state=m.WorkStateEnum.initial)
-    db.session.add(work)
-    db.session.commit()
+    session.add(work)
+    session.commit()
     yield work
 
 
@@ -80,7 +85,7 @@ def seq_work(db, seq_assignment, thomas):
         }]
     }]
 }])
-def test_file_tree(db, seq_work, files):
+def test_file_tree(session, seq_work, files):
     def tree_to_dict(tree):
         if tree.is_directory:
             assert not tree.extension
@@ -95,13 +100,13 @@ def test_file_tree(db, seq_work, files):
                 assert tree.name.find('.') == -1
                 return (tree.name, tree.filename)
 
-    seq_work.add_file_tree(db, files)
-    db.session.commit()
+    seq_work.add_file_tree(session, files)
+    session.commit()
     tree = m.File.query.filter(m.File.work == seq_work and
                                m.File.parent is None).first()
     assert (tree_to_dict(tree) == files)
     m.File.query.filter_by(work_id=seq_work.id).delete()
-    db.session.commit()
+    session.commit()
 
 
 @pytest.mark.parametrize('files', [{
@@ -123,7 +128,7 @@ def test_file_tree(db, seq_work, files):
         }
     ]
 }])
-def test_extract(db, seq_work, files):
+def test_extract(session, seq_work, files):
     def create_tree(tree, parent):
         for item in ensure_list(tree):
             if isinstance(item, dict):
@@ -195,12 +200,16 @@ def test_extract(db, seq_work, files):
     1: {
         2: {
             3: {
-                4: [1, {5 : 6}, 2]
+                4: [1, {
+                    5: 6
+                }, 2]
             }
         }
     }
 }, {
-    1: [1, {5: 6}, 2]
+    1: [1, {
+        5: 6
+    }, 2]
 })])
 def test_dehead(tree, correct):
     assert correct == psef.files.dehead_filetree(tree)

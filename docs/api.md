@@ -245,3 +245,42 @@ Logout the currently logged in user.
 
 ###### HTTP Request
 `POST http://example.com/api/v1/logout`
+
+## Assignments
+### Listing all assignments
+
+```python
+import requests
+
+# As logged in user
+requests.get('/api/v1/assignments/')
+```
+
+> The above code returns JSON structured like this with a status code of 200:
+```json
+[
+  {
+    "id": 1,
+    "name": "Security",
+    "course_name": "Besturingssystemen",
+    "course_id": 1
+  },
+  {
+    "id": 2,
+    "name": "Shell",
+    "course_name": "Besturingssystemen",
+    "course_id": 1
+  },
+  {
+    "id": 3,
+    "name": "Final deadline",
+    "course_name": "Project Software Engineering",
+    "course_id": 2
+  }
+]
+```
+
+Get all assignments that the current user can see.
+
+###### HTTP Request
+`GET http://example.com/api/v1/assignments/`

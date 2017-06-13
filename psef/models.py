@@ -1,5 +1,6 @@
 import os
 import enum
+import datetime
 
 from flask_login import UserMixin
 from sqlalchemy_utils import PasswordType
@@ -54,14 +55,20 @@ class CourseRole(db.Model):
     course = db.relationship('Course', foreign_keys=course_id)
 
     def has_permission(self, permission):
-        if permission in self._permissions:
-            perm = self._permissions[permission]
+        if isinstance(permission, Permission):
+            permission_name = permission.name
+        else:
+            permission_name = permission
+        if permission_name in self._permissions:
+            perm = self._permissions[permission_name]
             return perm.course_permission and not perm.default_value
         else:
-            permission = Permission.query.filter_by(name=permission).first()
+            if not isinstance(permission, Permission):
+                permission = Permission.query.filter_by(
+                    name=permission).first()
             if permission is None:
-                raise KeyError(
-                    'The permission "{}" does not exist'.format(permission))
+                raise KeyError('The permission "{}" does not exist'.format(
+                    permission_name))
             else:
                 return (permission.default_value and
                         permission.course_permission)
@@ -134,10 +141,11 @@ class Course(db.Model):
     name = db.Column('name', db.Unicode)
 
 
-class WorkStateEnum(enum.Enum):
-    initial = 0
-    started = 1
-    done = 2
+@enum.unique
+class WorkStateEnum(enum.IntEnum):
+    initial = 0  # Not looked at
+    started = 1  # The TA is working on it
+    done = 2  # This is the same as graded would be
 
 
 class Work(db.Model):
@@ -145,12 +153,14 @@ class Work(db.Model):
     id = db.Column('id', db.Integer, primary_key=True)
     assignment_id = db.Column('Assignment_id', db.Integer,
                               db.ForeignKey('Assignment.id'))
-    user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id', ondelete='SET NULL'))
-    state = db.Column('state', db.Enum(WorkStateEnum),
-                      default=WorkStateEnum.initial)
+    user_id = db.Column('User_id', db.Integer,
+                        db.ForeignKey('User.id', ondelete='CASCADE'))
+    state = db.Column(
+        'state', db.Enum(WorkStateEnum), default=WorkStateEnum.initial)
     edit = db.Column('edit', db.Integer)
-    grade = db.Column('grade', db.Float)
-    comment = db.Column('comment', db.Unicode)
+    grade = db.Column('grade', db.Float, default=None)
+    comment = db.Column('comment', db.Unicode, default=None)
+    created_at = db.Column(db.Date, default=datetime.datetime.now)
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', single_parent=True, foreign_keys=user_id)
@@ -159,7 +169,7 @@ class Work(db.Model):
     def is_graded(self):
         return self.state == WorkStateEnum.done
 
-    def add_file_tree(self, db, tree):
+    def add_file_tree(self, session, tree):
         """Add the given tree to the given db.
 
         .. warning::
@@ -172,9 +182,9 @@ class Work(db.Model):
         :rtype: None
         """
         assert isinstance(tree, dict)
-        return self._add_file_tree(db, tree, None)
+        return self._add_file_tree(session, tree, None)
 
-    def _add_file_tree(self, db, tree, top):
+    def _add_file_tree(self, session, tree, top):
         def ensure_list(item):
             return item if isinstance(item, list) else [item]
 
@@ -185,15 +195,15 @@ class Work(db.Model):
                 name=new_top,
                 extension=None,
                 parent=top)
-            db.session.add(new_top)
+            session.add(new_top)
             for child in ensure_list(children):
                 if isinstance(child, dict):
-                    self._add_file_tree(db, child, new_top)
+                    self._add_file_tree(session, child, new_top)
                     continue
                 child, filename = child
                 name, ext = os.path.splitext(child)
                 ext = ext[1:]
-                db.session.add(
+                session.add(
                     File(
                         work=self,
                         extension=ext,
@@ -201,6 +211,7 @@ class Work(db.Model):
                         filename=filename,
                         is_directory=False,
                         parent=new_top))
+
 
 class File(db.Model):
     __tablename__ = "File"
@@ -227,10 +238,7 @@ class File(db.Model):
 
     def list_contents(self):
         if self.is_directory == False:
-            return {
-                "name": self.get_filename(),
-                "id": self.id
-            }
+            return {"name": self.get_filename(), "id": self.id}
         else:
             return {
                 "name": self.get_filename(),

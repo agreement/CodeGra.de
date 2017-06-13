@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from flask import jsonify, request
 from flask_login import login_user, logout_user, current_user, login_required
-
 from sqlalchemy_utils.functions import dependent_objects
 
 import psef.auth as auth
@@ -24,9 +23,8 @@ def get_code(file_id):
 
     # TODO: Return JSON following API
     return jsonify(
-        lang="python",
-        code="def id0func0():\n\treturn 0\n\n\n" +
-        "def id0func1():\n\t return 1",
+        lang="python",  # TODO Detect the language automatically
+        code=psef.files.get_file_contents(code),
         feedback=line_feedback)
 
 
@@ -58,14 +56,15 @@ def remove_comment(id, line):
         db.session.delete(comment)
         db.session.commit()
     else:
-        raise APIException(
-            'Feedback comment not found',
-            'The comment on line {} was not found'.format(line),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+        raise APIException('Feedback comment not found',
+                           'The comment on line {} was not found'.format(line),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 
-@app.route("/api/v1/courses/<int:course_id>/assignments/<int:assignment_id>/"
-           "works/<int:work_id>/dir", methods=['GET'])
+@app.route(
+    "/api/v1/courses/<int:course_id>/assignments/<int:assignment_id>/"
+    "works/<int:work_id>/dir",
+    methods=['GET'])
 def get_dir_contents(course_id, assignment_id, work_id):
 
     work = models.Work.query.get(work_id)
@@ -79,8 +78,7 @@ def get_dir_contents(course_id, assignment_id, work_id):
         raise APIException(
             'Incorrect URL',
             'The identifiers in the URL do no match those related to the work '
-            'with code {}'.format(work_id),
-            APICodes.INVALID_URL, 400)
+            'with code {}'.format(work_id), APICodes.INVALID_URL, 400)
 
     if (work.user.id != current_user.id):
         auth.ensure_permission('can_view_files', course_id)
@@ -99,8 +97,7 @@ def get_dir_contents(course_id, assignment_id, work_id):
             raise APIException(
                 'Incorrect URL',
                 'The identifiers in the URL do no match those related to the '
-                'file with code {}'.format(file.id),
-                APICodes.INVALID_URL, 400)
+                'file with code {}'.format(file.id), APICodes.INVALID_URL, 400)
     else:
         file = models.File.query.filter(models.File.work_id == work_id,
                                         models.File.parent_id == None).one()
@@ -116,69 +113,72 @@ def get_dir_contents(course_id, assignment_id, work_id):
     return (dir_contents, 200)
 
 
-def sample_dir_contents(path):
-    return {
-        "name":
-        path,
-        "entries": [
-            {
-                "name":
-                "a",
-                "entries": [
-                    {
-                        "name": "a_1",
-                        "id": 0,
-                    },
-                    {
-                        "name": "a_2",
-                        "id": 1,
-                    },
-                    {
-                        "name": "a_3",
-                        "entries": [
-                            {
-                                "name": "a_3_1",
-                                "id": 2
-                            },
-                        ],
-                    },
-                ],
-            },
-            {
-                "name": "b",
-                "id": 3
-            },
-            {
-                "name": "c",
-                "id": 4
-            },
-            {
-                "name": "d",
-                "id": 5
-            },
-        ]
-    }
+@app.route("/api/v1/assignments/", methods=['GET'])
+@login_required
+def get_student_assignments():
+    perm = models.Permission.query.filter_by(
+        name='can_see_assignments').first()
+    courses = []
+    for course_role in current_user.courses.values():
+        if course_role.has_permission(perm):
+            courses.append(course_role.course_id)
+    if courses:
+        return jsonify([{
+            'id': assignment.id,
+            'name': assignment.name,
+            'course_name': assignment.course.name,
+            'course_id': assignment.course_id,
+        }
+            for assignment in models.Assignment.query.filter(
+            models.Assignment.course_id.in_(courses)).all()])
+    else:
+        return jsonify([])
 
 
-@app.route("/api/v1/submission/<submission_id>")
-def get_submission(submission_id):
+@app.route("/api/v1/assignments/<int:assignment_id>", methods=['GET'])
+def get_assignment(assignment_id):
+    assignment = models.Assignment.query.get(assignment_id)
+    auth.ensure_permission('can_see_assignments', assignment.course_id)
     return jsonify({
-        "title": "Assignment 1",
-        "fileTree": sample_dir_contents("abc"),
+        'name': assignment.name,
+        'description': assignment.description,
+        'course_name': assignment.course.name,
+        'course_id': assignment.course_id,
     })
 
 
-@app.route("/api/v1/submission/<int:submission_id>/general-feedback",
-           methods=['GET'])
+@app.route('/api/v1/assignments/<int:assignment_id>/works')
+def get_all_works_for_assignment(assignment_id):
+    assignment = models.Assignment.query.get(assignment_id)
+    if current_user.has_permission(
+            'can_see_others_work', course_id=assignment.course_id):
+        obj = models.Work.query.filter_by(assignment_id=assignment_id)
+    else:
+        auth.ensure_permission(
+            'can_see_own_work', course_id=assignment.course_id)
+        obj = models.Work.query.filter_by(
+            assignment_id=assignment_id, user_id=current_user.id)
+    res = obj.order_by(models.Work.created_at.desc()).all()
+
+    return jsonify([{
+        'id': work.id,
+        'user_id': work.user_id,
+        'state': work.state,
+        'edit': work.edit,
+        'grade': work.grade,
+        'comment': work.comment,
+        'created_at': work.created_at,
+    } for work in res])
+
+
+@app.route(
+    "/api/v1/submission/<int:submission_id>/general-feedback", methods=['GET'])
 def get_general_feedback(submission_id):
     work = db.session.query(models.Work).get(submission_id)
     auth.ensure_permission('can_grade_work', work.assignment.course.id)
 
     if work and work.is_graded:
-        return jsonify({
-            "grade": work.grade,
-            "feedback": work.comment
-        })
+        return jsonify({"grade": work.grade, "feedback": work.comment})
     else:
         raise APIException(
             'Work submission not found',
@@ -186,8 +186,8 @@ def get_general_feedback(submission_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 
-@app.route("/api/v1/submission/<int:submission_id>/general-feedback",
-           methods=['PUT'])
+@app.route(
+    "/api/v1/submission/<int:submission_id>/general-feedback", methods=['PUT'])
 def set_general_feedback(submission_id):
     work = db.session.query(models.Work).get(submission_id)
     content = request.get_json()
@@ -201,16 +201,18 @@ def set_general_feedback(submission_id):
     auth.ensure_permission('can_grade_work', work.assignment.course.id)
 
     if 'grade' not in content or 'feedback' not in content:
-        raise APIException(
-            'Grade or feedback not provided',
-            'Grade and or feedback fields missing in sent JSON',
-            APICodes.MISSING_REQUIRED_PARAM, 400)
+        raise APIException('Grade or feedback not provided',
+                           'Grade and or feedback fields missing in sent JSON',
+                           APICodes.MISSING_REQUIRED_PARAM, 400)
 
     if not isinstance(content['grade'], float):
-        raise APIException(
-            'Grade submitted not a number',
-            'Grade for work with id {} not a number'.format(submission_id),
-            APICodes.INVALID_PARAM, 400)
+        try:
+            content['grade'] = float(content['grade'])
+        except ValueError:
+            raise APIException(
+                'Grade submitted not a number',
+                'Grade for work with id {} not a number'.format(submission_id),
+                APICodes.INVALID_PARAM, 400)
 
     work.grade = content['grade']
     work.comment = content['feedback']
@@ -308,11 +310,11 @@ def upload_work(assignment_id):
 
     auth.ensure_permission('can_submit_own_work', assignment.course.id)
 
-    work = models.Work(assignment_id=assignment_id, user_id=0)
+    work = models.Work(assignment_id=assignment_id, user_id=current_user.id)
     db.session.add(work)
 
     tree = psef.files.process_files(files)
-    work.add_file_tree(db, tree)
+    work.add_file_tree(db.session, tree)
 
     db.session.commit()
 
