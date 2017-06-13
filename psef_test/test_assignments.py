@@ -14,7 +14,7 @@ import psef.views as v
 
 
 @pytest.fixture(scope='module')
-def perms(db):
+def perms(session):
     perms = []
     perms.append(
         m.Permission(
@@ -33,13 +33,13 @@ def perms(db):
             course_permission=True))
 
     for perm in perms:
-        db.session.add(perm)
-    db.session.commit()
+        session.add(perm)
+    session.commit()
     yield perms
 
 
 @pytest.fixture(scope='module')
-def bs_works(db, bs_course, thomas, other):
+def bs_works(session, bs_course, thomas, other):
     works = []
     assig = bs_course[1][0]
     works.append(
@@ -59,89 +59,89 @@ def bs_works(db, bs_course, thomas, other):
             grade=10,
             comment='none'))
     for perm in works:
-        db.session.add(perm)
-    db.session.commit()
+        session.add(perm)
+    session.commit()
     yield works
 
 
 @pytest.fixture(scope='module')
-def student_crole2(db, pse_course, bs_course):
+def student_crole2(session, pse_course, bs_course):
     student = m.CourseRole(name='student2', course=pse_course[0])
-    db.session.add(student)
+    session.add(student)
     student2 = m.CourseRole(name='student2', course=bs_course[0])
-    db.session.add(student2)
-    db.session.commit()
+    session.add(student2)
+    session.commit()
     yield student2, student
 
 
 @pytest.fixture(scope='module')
-def student_crole(db, pse_course, bs_course, perms):
+def student_crole(session, pse_course, bs_course, perms):
     student = m.CourseRole(
         name='student',
         course=pse_course[0],
         _permissions={perms[1].name: perms[1]})
-    db.session.add(student)
+    session.add(student)
     student2 = m.CourseRole(
         name='student',
         course=bs_course[0],
         _permissions={perms[1].name: perms[1]})
-    db.session.add(student2)
-    db.session.commit()
+    session.add(student2)
+    session.commit()
     yield student2, student
 
 
 @pytest.fixture(scope='module')
-def student_role(db):
+def student_role(session):
     role = m.Role(name='student', _permissions={})
-    db.session.add(role)
-    db.session.commit()
+    session.add(role)
+    session.commit()
     yield role
 
 
 @pytest.fixture(scope='module')
-def pse_course(db):
+def pse_course(session):
     pse = m.Course(name='Project Software Engineering')
-    db.session.add(pse)
+    session.add(pse)
     assignments = []
     assignments.append(
         m.Assignment(name='Final deadline', description='', course=pse))
     for asig in assignments:
-        db.session.add(asig)
-    db.session.commit()
+        session.add(asig)
+    session.commit()
     yield pse, assignments
 
 
 @pytest.fixture(scope='module')
-def bs_course(db):
+def bs_course(session):
     bs = m.Course(name='Besturingssystemen')
-    db.session.add(bs)
+    session.add(bs)
     assignments = []
     assignments.append(
         m.Assignment(name='Security', description='AA', course=bs))
     assignments.append(m.Assignment(name='Shell', description='BB', course=bs))
     for asig in assignments:
-        db.session.add(asig)
-    db.session.commit()
+        session.add(asig)
+    session.commit()
     yield bs, assignments
 
 
 @pytest.fixture(scope='module')
-def aco_course(db):
+def aco_course(session):
     aco = m.Course(name='Architectuur en Computerarchitectuur')
-    db.session.add(aco)
+    session.add(aco)
     assignments = []
     assignments.append(
         m.Assignment(name='Doe assembly', description='Wowser', course=aco))
     assignments.append(
         m.Assignment(name='Doe meer assembly', description='aa', course=aco))
     for asig in assignments:
-        db.session.add(asig)
-    db.session.commit()
+        session.add(asig)
+    session.commit()
     yield aco, assignments
 
 
 @pytest.fixture(scope='module')
-def thomas(db, perms, student_role, bs_course, student_crole, pse_course):
+def thomas(session, perms, student_role, bs_course, student_crole, pse_course):
     thomas = m.User(
         name='Thomas Schaper',
         password='',
@@ -152,13 +152,13 @@ def thomas(db, perms, student_role, bs_course, student_crole, pse_course):
             pse_course[0].id: student_crole[1]
         })
 
-    db.session.add(thomas)
-    db.session.commit()
+    session.add(thomas)
+    session.commit()
     yield m.User.query.filter_by(name='Thomas Schaper').first()
 
 
 @pytest.fixture(scope='module')
-def other(db, perms, student_role, bs_course, student_crole2, pse_course):
+def other(session, perms, student_role, bs_course, student_crole2, pse_course):
     student_crole = student_crole2
     thomas = m.User(
         name='Other',
@@ -170,8 +170,8 @@ def other(db, perms, student_role, bs_course, student_crole2, pse_course):
             pse_course[0].id: student_crole[1]
         })
 
-    db.session.add(thomas)
-    db.session.commit()
+    session.add(thomas)
+    session.commit()
     yield m.User.query.filter_by(name='Other').first()
 
 
@@ -230,8 +230,8 @@ def test_get_all_works(thomas, other, bs_course, login_endpoint, test_client,
         rv = test_client.get('/api/v1/assignments/{}/works'.format(assig.id))
         data = json.loads(rv.get_data(as_text=True))
         print(data)
-        assert data[0]['user_name'] == thomas.name
-        assert data[1]['user_name'] == other.name
+        assert data[0]['user_id'] == thomas.id
+        assert data[1]['user_id'] == other.id
         assert len(data) == 2
 
         test_client.post('/api/v1/logout')
@@ -240,5 +240,5 @@ def test_get_all_works(thomas, other, bs_course, login_endpoint, test_client,
         rv = test_client.get('/api/v1/assignments/{}/works'.format(assig.id))
         data = json.loads(rv.get_data(as_text=True))
         print(data)
-        assert data[0]['user_name'] == other.name
+        assert data[0]['user_id'] == other.id
         assert len(data) == 1
