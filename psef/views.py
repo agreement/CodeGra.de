@@ -162,6 +162,7 @@ def get_all_works_for_assignment(assignment_id):
 
     return jsonify([{
         'id': work.id,
+        'user_name': work.user.name if work.user else "Unknown",
         'user_id': work.user_id,
         'state': work.state,
         'edit': work.edit,
