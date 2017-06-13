@@ -60,7 +60,7 @@ export default {
         },
 
         getSubmission() {
-            this.$http.get(`/api/v1/courses/${this.course_id}/assignments/${this.assignmentId}/works/${this.submissionId}/dir`).then((data) => {
+            this.$http.get(`/api/v1/submissions/${this.submissionId}/dir`).then((data) => {
                 this.fileTree = data.data;
             });
         },

@@ -26,7 +26,7 @@ export default {
     },
 
     mounted() {
-        this.$http.get(`/api/v1/assignments/${this.assignmentId}/works`).then((data) => {
+        this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then((data) => {
             this.submissions = data.data;
         });
     },
