@@ -59,6 +59,7 @@ def remove_comment(id, line):
         raise APIException('Feedback comment not found',
                            'The comment on line {} was not found'.format(line),
                            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    return ('', 204)
 
 
 @app.route(
@@ -66,7 +67,6 @@ def remove_comment(id, line):
     "works/<int:work_id>/dir",
     methods=['GET'])
 def get_dir_contents(course_id, assignment_id, work_id):
-
     work = models.Work.query.get(work_id)
     if work is None:
         raise APIException(
