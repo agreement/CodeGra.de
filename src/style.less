@@ -1,3 +1,50 @@
+/* Page layout styling */
+
+html,
+body,
+#app {
+    height: 100%;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+}
+
+header,
+footer {
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
+.page.submission {
+    display: flex;
+    flex-direction: column;
+
+    h1 {
+        flex-grow: 0;
+        flex-shrink: 0;
+    }
+
+    .code-and-grade {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .code-viewer {
+        flex-grow: 1;
+        flex-shrink: 1;
+        overflow: auto;
+    }
+
+    .grade-viewer {
+        flex-grow: 0;
+        flex-shrink: 0;
+    }
+}
+
+/* Presentational styling. */
+
 html {
     box-sizing: border-box;
 }
@@ -20,9 +67,7 @@ header .logo {
     @line-bg: white;
     @line-spacing: .5em;
 
-    ol {
-        background: @linenr-bg;
-    }
+    background: @linenr-bg;
 
     li {
         background: @line-bg;
