@@ -73,6 +73,23 @@ class CourseRole(db.Model):
                 return (permission.default_value and
                         permission.course_permission)
 
+    def get_all_permissions(self):
+        """Get all course permissions for this course role.
+
+        :returns: A name boolean mapping where the name is the name of the
+                  permission and the value indicates if this user has this
+                  permission.
+        :rtype: dict[str, bool]
+        """
+        perms = Permission.query.filter_by(course_permission=True).all()
+        result = {}
+        for perm in perms:
+            if perm.name in self._permissions:
+                result[perm.name] = not perm.default_value
+            else:
+                result[perm.name] = perm.default_value
+        return result
+
 
 class Role(db.Model):
     __tablename__ = 'Role'
@@ -95,6 +112,23 @@ class Role(db.Model):
             else:
                 return (permission.default_value and
                         not permission.course_permission)
+
+    def get_all_permissions(self):
+        """Get all course permissions for this role.
+
+        :returns: A name boolean mapping where the name is the name of the
+                  permission and the value indicates if this user has this
+                  permission.
+        :rtype: dict[str, bool]
+        """
+        perms = Permission.query.filter_by(course_permission=False).all()
+        result = {}
+        for perm in perms:
+            if perm.name in self._permissions:
+                result[perm.name] = not perm.default_value
+            else:
+                result[perm.name] = perm.default_value
+        return result
 
 
 class User(db.Model, UserMixin):
@@ -124,6 +158,18 @@ class User(db.Model, UserMixin):
         else:
             return (course_id in self.courses and
                     self.courses[course_id].has_permission(permission))
+
+    def get_all_permissions(self, course_id=None):
+        if course_id is None:
+            return self.role.get_all_permissions()
+        elif course_id in self.courses:
+            return self.courses[course_id].get_all_permissions()
+        else:
+            return {
+                perm.name: False
+                for perm in Permission.query.filter_by(course_permission=True)
+                .all()
+            }
 
     @property
     def is_active(self):
