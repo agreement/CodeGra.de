@@ -4,27 +4,11 @@
             <li v-on:click="addFeedback($event, i)" v-for="(line, i) in highlighted_code">
                 <code v-html="line"></code>
 
-                <b-card v-if="!editable && feedback[i]">
-                    {{ feedback[i] }}
-                </b-card>
 
-                <b-input-group v-if="editable && feedback[i] != null">
-                    <b-form-input v-model="feedback[i]"></b-form-input>
-
-                    <b-input-group-button>
-                        <b-button variant="default" v-on:click="cancelFeedback($event, i)">
-                            <icon name="times" aria-hidden="true"></icon>
-                        </b-button>
-                    </b-input-group-button>
-                    <b-input-group-button>
-                        <b-button variant="primary" v-on:click="submitFeedback($event, i)">
-                            <icon name="check" aria-hidden="true"></icon>
-                        </b-button>
-                    </b-input-group-button>
-                </b-input-group>
+                <feedback-area :editing="editing[i] === true" :feedback='feedback[i]' :editable='editable' :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }" v-on:cancel='onChildCancel' v-if="feedback[i] != null"></feedback-area>
 
                 <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
-                    v-on:click="addFeedback($event, i)"></icon>
+                    v-on:click="addFeedback($event, value)"></icon>
             </li>
         </ol>
     </div>
@@ -42,6 +26,8 @@ import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/plus';
 
+import FeedbackArea from '@/components/FeedbackArea';
+
 export default {
     name: 'code-viewer',
 
@@ -52,7 +38,9 @@ export default {
             fileId: this.id,
             lang: '',
             code: '',
-            feedback: [],
+            editing: {},
+            feedback: {},
+            clicks: {},
         };
     },
 
@@ -92,39 +80,27 @@ export default {
             });
         },
 
+        onChildCancel(line) {
+            this.clicks[line] = true;
+            Vue.set(this.editing, line, false);
+            Vue.set(this.feedback, line, null);
+        },
+
         addFeedback(event, line) {
-            if (this.feedback[line] == null) {
+            if (this.clicks[line] === true) {
+                delete this.clicks[line];
+            } else if (this.feedback[line] == null) {
+                Vue.set(this.editing, line, true);
                 Vue.set(this.feedback, line, '');
             }
         },
 
+        feedbackChange(line, feedback) {
+            this.editing[line] = false;
+            this.feedback[line] = feedback;
+        },
         // eslint-disable-next-line
         submitAllFeedback(event) {},
-
-        // eslint-disable-next-line
-        submitFeedback(event, line) {
-            this.$http.put(`/api/v1/code/${this.fileId}/comment/${line}`,
-                {
-                    comment: this.feedback[line],
-                },
-                {
-                    headers: { 'Content-Type': 'application/json' },
-                },
-            ).then(() => {
-                // eslint-disable-next-line
-                console.log('Comment updated or inserted!');
-            });
-        },
-
-        cancelFeedback(event, line) {
-            event.stopPropagation();
-            Vue.set(this.feedback, line, null);
-            this.$http.delete(`/api/v1/code/${this.fileId}/comment/${line}`)
-            .then(() => {
-                // eslint-disable-next-line
-                console.log('Comment removed!');
-            });
-        },
     },
 
     components: {
@@ -133,6 +109,7 @@ export default {
         bInputGroup,
         bInputGroupButton,
         Icon,
+        FeedbackArea,
     },
 };
 </script>
