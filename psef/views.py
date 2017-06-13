@@ -312,8 +312,8 @@ def upload_work(assignment_id):
     db.session.add(work)
 
     tree = psef.files.process_files(files)
-    work.add_file_tree(db, tree)
+    work.add_file_tree(db.session, tree)
 
-    session.commit()
+    db.session.commit()
 
     return ('', 204)
