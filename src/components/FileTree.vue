@@ -54,7 +54,8 @@ export default {
 
         fileURL(file) {
             const path = this.$route.path.replace(/\/files\/\d+/, '');
-            return `#${path}/files/${file.id}`;
+            const path2 = path.replace(/\/$/, '');
+            return `#${path2}/files/${file.id}`;
         },
     },
 

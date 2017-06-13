@@ -154,7 +154,7 @@ class Work(db.Model):
     assignment_id = db.Column('Assignment_id', db.Integer,
                               db.ForeignKey('Assignment.id'))
     user_id = db.Column('User_id', db.Integer,
-                        db.ForeignKey('User.id', ondelete='SET NULL'))
+                        db.ForeignKey('User.id', ondelete='CASCADE'))
     state = db.Column(
         'state', db.Enum(WorkStateEnum), default=WorkStateEnum.initial)
     edit = db.Column('edit', db.Integer)
