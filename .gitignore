@@ -11,3 +11,5 @@ env/
 *.pyc
 __pycache__/
 migrations/
+uploads/
+package-lock.json

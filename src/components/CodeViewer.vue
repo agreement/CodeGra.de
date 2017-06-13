@@ -5,7 +5,7 @@
                 <code v-html="line"></code>
 
 
-                <feedback-area :editing="editing[i] === true" :feedback='feedback[i]' :editable='editable' :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }" v-if="feedback[i] != null"></feedback-area>
+                <feedback-area :editing="editing[i] === true" :feedback='feedback[i]' :editable='editable' :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }" v-on:cancel='onChildCancel' v-if="feedback[i] != null"></feedback-area>
 
                 <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
                     v-on:click="addFeedback($event, value)"></icon>
@@ -40,6 +40,7 @@ export default {
             code: '',
             editing: {},
             feedback: {},
+            clicks: {},
         };
     },
 
@@ -73,14 +74,22 @@ export default {
     methods: {
         getCode() {
             this.$http.get(`/api/v1/code/${this.fileId}`).then((data) => {
-                this.lang = data.body.lang;
-                this.code = data.body.code;
-                this.feedback = data.body.feedback;
+                this.lang = data.data.lang;
+                this.code = data.data.code;
+                this.feedback = data.data.feedback;
             });
         },
 
+        onChildCancel(line) {
+            this.clicks[line] = true;
+            Vue.set(this.editing, line, false);
+            Vue.set(this.feedback, line, null);
+        },
+
         addFeedback(event, line) {
-            if (this.feedback[line] == null) {
+            if (this.clicks[line] === true) {
+                delete this.clicks[line];
+            } else if (this.feedback[line] == null) {
                 Vue.set(this.editing, line, true);
                 Vue.set(this.feedback, line, '');
             }
@@ -92,25 +101,6 @@ export default {
         },
         // eslint-disable-next-line
         submitAllFeedback(event) {},
-
-        // Moved to feedbackarea.vue
-        // eslint-disable-next-line
-        // submitFeedback(event, line) {
-        //     this.$http.put(`/api/v1/code/${this.fileId}/comment/${line}`,
-        //         {
-        //             comment: this.feedback[line],
-        //         },
-        //         {
-        //             headers: { 'Content-Type': 'application/json' },
-        //         },
-        //     ).then(() => {
-        //         console.log('Comment updated or inserted!');
-        //     });
-        // },
-        // cancelFeedback(event, line) {
-        //     event.stopPropagation();
-        //     Vue.set(this.feedback, line, null);
-        // },
     },
 
     components: {

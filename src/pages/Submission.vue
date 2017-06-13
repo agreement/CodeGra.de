@@ -24,9 +24,13 @@ export default {
 
     data() {
         return {
+            assignmentId: this.$route.params.assignmentId,
             submissionId: this.$route.params.submissionId,
             fileId: this.$route.params.fileId,
             title: '',
+            description: '',
+            course_name: '',
+            course_id: 0,
             fileTree: null,
             grade: 0,
             feedback: '',
@@ -34,7 +38,7 @@ export default {
     },
 
     mounted() {
-        this.getSubmission();
+        this.getAssignment();
     },
 
     watch: {
@@ -45,12 +49,19 @@ export default {
     },
 
     methods: {
+        getAssignment() {
+            this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then((data) => {
+                this.title = data.data.name;
+                this.description = data.data.description;
+                this.course_name = data.data.course_name;
+                this.course_id = data.data.course_id;
+                this.getSubmission();
+            });
+        },
+
         getSubmission() {
-            this.$http.get(`/api/v1/submission/${this.submissionId}`).then((data) => {
-                this.title = data.body.title;
-                this.fileTree = data.body.fileTree;
-                this.grade = data.body.grade;
-                this.feedback = data.body.feedback;
+            this.$http.get(`/api/v1/courses/${this.course_id}/assignments/${this.assignmentId}/works/${this.submissionId}/dir`).then((data) => {
+                this.fileTree = data.data;
             });
         },
 

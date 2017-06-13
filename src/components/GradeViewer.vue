@@ -15,7 +15,7 @@
         <div class="col-6">
             <b-input-group>
                 <b-form-input :textarea="true" placeholder="Feedback" :rows="3"
-                    v-model="feedback"></b-form-input>
+                    v-model:value="feedback"></b-form-input>
             </b-input-group>
         </div>
     </div>
@@ -44,8 +44,8 @@ export default {
     methods: {
         getFeedback() {
             this.$http.get(`/api/v1/submission/${this.submissionId}/general-feedback`).then((data) => {
-                this.grade = data.body.grade;
-                this.feedback = data.body.feedback;
+                this.grade = data.data.grade;
+                this.feedback = data.data.feedback;
             });
         },
 

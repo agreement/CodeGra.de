@@ -50,11 +50,13 @@ export default {
             });
         },
         cancelFeedback() {
-            this.internalFeedback = null;
-            // lelijke 'fix' die lege string naar database stuurt.
-            this.submitFeedback();
-            console.log('TODO:remove comment from database');
-            // TODO:remove comment from database
+            // TODO: collaps textarea
+            this.$http.delete(`/api/v1/code/${this.fileId}/comment/${this.line}`)
+            .then(() => {
+                // eslint-disable-next-line
+                console.log('Comment removed!');
+            }, () => null);
+            this.$emit('cancel', this.line);
         },
     },
     components: {
