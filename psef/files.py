@@ -17,7 +17,7 @@ def get_file_contents(code):
     :returns: The contents of the file with newlines.
     :rtype: str
     """
-    filename = os.path.join(app.config['UPLOAD_DIR'], code.name)
+    filename = os.path.join(app.config['UPLOAD_DIR'], code.filename)
     with open(filename, 'r') as codefile:
         return codefile.read()
 
