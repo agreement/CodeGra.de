@@ -177,9 +177,6 @@
                 this.$refs.progress.classList.remove('progress-bar-striped');
                 this.$refs.progress.classList.remove('progress-bar-animated');
                 this.$refs.progress.innerHTML = 'Done';
-
-                // Redirect back to assignments page
-                this.$router.push({ path: '/assignments' });
             },
 
         },
