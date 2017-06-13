@@ -10,9 +10,22 @@ from werkzeug.utils import secure_filename
 from psef import app
 
 
+def get_file_contents(code):
+    """Get the contents of the given file.
+
+    :param models.File code: The file object to read.
+    :returns: The contents of the file with newlines.
+    :rtype: str
+    """
+    filename = os.path.join(app.config['UPLOAD_DIR'], code.name)
+    with open(filename, 'r') as codefile:
+        return codefile.read()
+
+
 def rename_directory_structure(rootdir):
     """
-    Creates a nested dictionary that represents the folder structure of rootdir.
+    Creates a nested dictionary that represents the folder structure of
+    rootdir.
 
     A tree like:
     + dir1
@@ -21,7 +34,8 @@ def rename_directory_structure(rootdir):
         - file 2
       - file 3
     will be moved to files given by :py:func:`random_file_path` and the object
-    returned will represent the file structure, which will be something like this:
+    returned will represent the file structure, which will be something like
+    this:
     ```
     {
         'dir1': {
