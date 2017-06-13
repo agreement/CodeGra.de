@@ -37,9 +37,9 @@ user_course = db.Table('users-courses',
 class Permission(db.Model):
     __tablename__ = 'Permission'
     id = db.Column('id', db.Integer, primary_key=True)
-    name = db.Column('name', db.Unicode, unique=True)
+    name = db.Column('name', db.Unicode, unique=True, index=True)
     default_value = db.Column('default_value', db.Boolean, default=False)
-    course_permission = db.Column('course_permission', db.Boolean)
+    course_permission = db.Column('course_permission', db.Boolean, index=True)
 
 
 class CourseRole(db.Model):
