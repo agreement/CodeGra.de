@@ -6,7 +6,7 @@
     },
     {
         "name": "TA",
-        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work"],
+        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files"],
         "course": "Project Software Engineering"
     },
     {
@@ -16,7 +16,7 @@
     },
     {
         "name": "TA",
-        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work"],
+        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files"],
         "course": "Besturingssystemen"
     },
     {
@@ -26,7 +26,7 @@
     },
     {
         "name": "TA",
-        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work"],
+        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files"],
         "course": "Programmeertalen"
     },
 
@@ -37,7 +37,7 @@
     },
     {
         "name": "TA",
-        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work"],
+        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files"],
         "course": "Inleiding Programmeren"
     }
 ]
