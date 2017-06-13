@@ -85,7 +85,7 @@ def seq_work(session, seq_assignment, thomas):
         }]
     }]
 }])
-def test_file_tree(db, session, seq_work, files):
+def test_file_tree(session, seq_work, files):
     def tree_to_dict(tree):
         if tree.is_directory:
             assert not tree.extension
@@ -100,9 +100,8 @@ def test_file_tree(db, session, seq_work, files):
                 assert tree.name.find('.') == -1
                 return (tree.name, tree.filename)
 
-    seq_work.add_file_tree(db, files)
+    seq_work.add_file_tree(session, files)
     session.commit()
-    db.session.commit()
     tree = m.File.query.filter(m.File.work == seq_work and
                                m.File.parent is None).first()
     assert (tree_to_dict(tree) == files)

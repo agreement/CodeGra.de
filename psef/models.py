@@ -169,7 +169,7 @@ class Work(db.Model):
     def is_graded(self):
         return self.state == WorkStateEnum.done
 
-    def add_file_tree(self, db, tree):
+    def add_file_tree(self, session, tree):
         """Add the given tree to the given db.
 
         .. warning::
@@ -182,9 +182,9 @@ class Work(db.Model):
         :rtype: None
         """
         assert isinstance(tree, dict)
-        return self._add_file_tree(db, tree, None)
+        return self._add_file_tree(session, tree, None)
 
-    def _add_file_tree(self, db, tree, top):
+    def _add_file_tree(self, session, tree, top):
         def ensure_list(item):
             return item if isinstance(item, list) else [item]
 
@@ -195,15 +195,15 @@ class Work(db.Model):
                 name=new_top,
                 extension=None,
                 parent=top)
-            db.session.add(new_top)
+            session.add(new_top)
             for child in ensure_list(children):
                 if isinstance(child, dict):
-                    self._add_file_tree(db, child, new_top)
+                    self._add_file_tree(session, child, new_top)
                     continue
                 child, filename = child
                 name, ext = os.path.splitext(child)
                 ext = ext[1:]
-                db.session.add(
+                session.add(
                     File(
                         work=self,
                         extension=ext,
