@@ -24,6 +24,9 @@
       <template slot="grade" scope="item">
         {{item.value ? item.value : '-'}}
       </template>
+      <template slot="created_at" scope="item">
+        {{item.value ? item.value : '-'}}
+      </template>
     </b-table>
 
     <div class="justify-content-center row my-1">
@@ -58,6 +61,10 @@ export default {
                 },
                 grade: {
                     label: 'Grade',
+                    sortable: true,
+                },
+                created_at: {
+                    label: 'Created at',
                     sortable: true,
                 },
             },

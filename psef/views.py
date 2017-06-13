@@ -168,7 +168,7 @@ def get_all_works_for_assignment(assignment_id):
         'edit': work.edit,
         'grade': work.grade,
         'comment': work.comment,
-        'created_at': work.created_at,
+        'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
     } for work in res])
 
 
