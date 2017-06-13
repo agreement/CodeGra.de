@@ -61,7 +61,7 @@ def remove_comment(id, line):
                            APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 
-@app.route("/api/v1/submissions/<int:submission_id>/dir",
+@app.route("/api/v1/submissions/<int:submission_id>/files",
     methods=['GET'])
 def get_dir_contents(submission_id):
     work = models.Work.query.get(submission_id)
@@ -162,13 +162,21 @@ def get_all_works_for_assignment(assignment_id):
     } for work in res])
 
 
-@app.route("/api/v1/submissions/<int:submission_id>/general-feedback", methods=['GET'])
-def get_general_feedback(submission_id):
+@app.route("/api/v1/submissions/<int:submission_id>", methods=['GET'])
+def get_submission(submission_id):
     work = db.session.query(models.Work).get(submission_id)
     auth.ensure_permission('can_grade_work', work.assignment.course.id)
 
     if work and work.is_graded:
-        return jsonify({"grade": work.grade, "feedback": work.comment})
+        return jsonify({
+            'id': work.id,
+            'user_id': work.user_id,
+            'state': work.state,
+            'edit': work.edit,
+            'grade': work.grade,
+            'comment': work.comment,
+            'created_at': work.created_at,
+            })
     else:
         raise APIException(
             'Work submission not found',
@@ -177,8 +185,8 @@ def get_general_feedback(submission_id):
 
 
 @app.route(
-    "/api/v1/submissions/<int:submission_id>/general-feedback", methods=['PUT'])
-def set_general_feedback(submission_id):
+    "/api/v1/submissions/<int:submission_id>", methods=['PATCH'])
+def patch_submission(submission_id):
     work = db.session.query(models.Work).get(submission_id)
     content = request.get_json()
 
@@ -189,7 +197,6 @@ def set_general_feedback(submission_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     auth.ensure_permission('can_grade_work', work.assignment.course.id)
-
     if 'grade' not in content or 'feedback' not in content:
         raise APIException('Grade or feedback not provided',
                            'Grade and or feedback fields missing in sent JSON',

@@ -43,14 +43,14 @@ export default {
 
     methods: {
         getFeedback() {
-            this.$http.get(`/api/v1/submissions/${this.submissionId}/general-feedback`).then((data) => {
+            this.$http.get(`/api/v1/submissions/${this.submissionId}`).then((data) => {
                 this.grade = data.data.grade;
                 this.feedback = data.data.feedback;
             });
         },
 
         putFeedback() {
-            this.$http.put(`/api/v1/submissions/${this.submissionId}/general-feedback`,
+            this.$http.patch(`/api/v1/submissions/${this.submissionId}`,
                 {
                     grade: this.grade,
                     feedback: this.feedback,

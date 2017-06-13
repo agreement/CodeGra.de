@@ -170,7 +170,7 @@ import requests
 params = {
   'file_id': 1
 }
-requests.get('https://example.com/api/submissions/1/dir', params=params)
+requests.get('https://example.com/api/submissions/1/files', params=params)
 ```
 
 > The above command returns JSON like below with a status code of 200:
@@ -202,23 +202,22 @@ requests.get('https://example.com/api/submissions/1/dir', params=params)
 ```
 
 ##### HTTP Request
-`GET http://example.com/api/v1/submissions/<ID>/dir`
+`GET http://example.com/api/v1/submissions/<ID>/files`
 
 ##### Query Parameters
 Parameter | Description
 --------- | -----------
 file_id | Optional parameter that can be used to show the contents of a specific directory in the work
 
-## Feedback
-### Submission
-#### Get general feedback
-##### HTTP Request
-`GET /api/v1/submissions/<ID>/general-feedback`
-#### Put general feedback
-##### HTTP Request
-`PUT /api/v1/submissions/<ID>/general-feedback`
-
 ## Submissions
+
+### Get submission
+##### HTTP Request
+`GET /api/v1/submissions/<ID>`
+### Patch submission
+##### HTTP Request
+`PATCH /api/v1/submissions/<ID>`
+
 ### Assignment
 #### Add new submission
 
@@ -229,24 +228,23 @@ multipart_form_data = {
     'file2': open('myfile.txt', 'rb'),
 }
 
-requests.post('https://example.com/api/v1/assignments/1/submission', work=multipart_form_data)
+requests.post('https://example.com/api/v1/assignments/1/submission', files=multipart_form_data)
 ```
 
-> The return code will be 204 and the body will be empty if the work was added
+> The return code will be 204 and the body will be empty if the submission was added
 
 
 ###### HTTP Request
-`GET http://example.com/api/v1/assignments/<ID>/submission`
+`POST http://example.com/api/v1/assignments/<ID>/submission`
 
 ###### Query Parameters
 Parameter | Description
 --------- | -----------
-file* | A file that should be uploaded. It can be an archive which will be
-extracted. Multiple can be specified but all keys should start will `file`
+file* | A file that should be uploaded. It can be an archive which will be extracted. Multiple can be specified but all keys should start will `file`
 
 #### Get all submissions
 ###### HTTP Request
-`GET http://example.com/api/v1/assignments/<ID>/submissions/
+`GET http://example.com/api/v1/assignments/<ID>/submissions/`
 
 ## User
 ### Login
@@ -256,7 +254,7 @@ extracted. Multiple can be specified but all keys should start will `file`
 import requests
 
 login_data = {
-    'email: 'admin@example.com',
+    'email': 'admin@example.com',
     'password': 'admin',
 }
 
