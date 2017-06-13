@@ -2,8 +2,7 @@
 import pytest
 import os
 import sys
-import flask_login
-import flask
+import json
 
 my_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, my_path + '/../')
@@ -230,8 +229,23 @@ def test_all_permissions(thomas, bs_course, pse_course, aco_course):
 
 
 def test_all_permissions(thomas, bs_course, pse_course, aco_course, superuser,
-                         fixed):
+                         fixed, login_endpoint, test_client):
     for user in [thomas, superuser, fixed]:
-        for course in [bs_course, pse_course, aco_course, None]:
-            for perm, val in user.get_all_permissions(course).items():
-                assert val == user.has_permission(perm, course)
+        with test_client:
+            login_endpoint(user.id)
+            for course in [bs_course, pse_course, aco_course, None]:
+                query = {} if course is None else {'course_id': course.id}
+                rv = test_client.get(
+                    '/api/v1/permissions/', query_string=query)
+                for perm, val in json.loads(rv.get_data(as_text=True)).items():
+                    assert val == user.has_permission(perm, course)
+            test_client.post('/api/v1/logout')
+
+    rv = test_client.get('/api/v1/permissions/')
+    assert rv.status_code == 401
+
+    with test_client:
+        login_endpoint(thomas.id)
+        rv = test_client.get(
+            '/api/v1/permissions/', query_string={'course_id': 'a'})
+        assert rv.status_code == 400

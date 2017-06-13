@@ -156,10 +156,15 @@ class User(db.Model, UserMixin):
         if course_id is None:
             return self.role.has_permission(permission)
         else:
+            if isinstance(course_id, Course):
+                course_id = course_id.id
             return (course_id in self.courses and
                     self.courses[course_id].has_permission(permission))
 
     def get_all_permissions(self, course_id=None):
+        if isinstance(course_id, Course):
+            course_id = course_id.id
+
         if course_id is None:
             return self.role.get_all_permissions()
         elif course_id in self.courses:
