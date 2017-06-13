@@ -103,11 +103,66 @@ every API call should have input object, with types for every key and
 description, and an example output object. Last every API call should have a
 higher level description of the use and working.
 
+## Assignments
+### Getting an assignment
+#### HTTP Request
+`GET http://example.com/api/v1/assignments/<ID>`
+
+### Listing all assignments
+
+```python
+import requests
+
+# As logged in user
+requests.get('/api/v1/assignments/')
+```
+
+> The above code returns JSON structured like this with a status code of 200:
+```json
+[
+  {
+    "id": 1,
+    "name": "Security",
+    "course_name": "Besturingssystemen",
+    "course_id": 1
+  },
+  {
+    "id": 2,
+    "name": "Shell",
+    "course_name": "Besturingssystemen",
+    "course_id": 1
+  },
+  {
+    "id": 3,
+    "name": "Final deadline",
+    "course_name": "Project Software Engineering",
+    "course_id": 2
+  }
+]
+```
+
+Get all assignments that the current user can see.
+
+###### HTTP Request
+`GET http://example.com/api/v1/assignments/`
+
+
+## Code
+### Get code
+##### HTTP Request
+`GET http://example.com/api/v1/code/<ID>`
+
+## Comment
+### Code
+#### Put comment in code
+##### HTTP Request
+`PUT http://example.com/api/v1/code/<ID>/comments/<lineno>`
+#### Remove comment in code
+`DELETE http://example.com/api/v1/code/<ID>/comments/<lineno>`
+
 ## Directories
-### Work
-#### Assignment
-##### Course
-###### Get directory contents
+### Submission
+#### Get directory contents
 
 ```python
 import requests
@@ -115,8 +170,7 @@ import requests
 params = {
   'file_id': 1
 }
-requests.get('https://example.com/api/''v1/courses/1/assignments/1/'
-       'works/1/dir', params=params)
+requests.get('https://example.com/api/submissions/1/dir', params=params)
 ```
 
 > The above command returns JSON like below with a status code of 200:
@@ -147,17 +201,26 @@ requests.get('https://example.com/api/''v1/courses/1/assignments/1/'
 }
 ```
 
-###### HTTP Request
-`GET http://example.com/api/v1/courses/<ID>/assignments/<ID>/works/<ID>/dir`
+##### HTTP Request
+`GET http://example.com/api/v1/submissions/<ID>/dir`
 
-###### Query Parameters
+##### Query Parameters
 Parameter | Description
 --------- | -----------
 file_id | Optional parameter that can be used to show the contents of a specific directory in the work
 
-## Works
+## Feedback
+### Submission
+#### Get general feedback
+##### HTTP Request
+`GET /api/v1/submissions/<ID>/general-feedback`
+#### Put general feedback
+##### HTTP Request
+`PUT /api/v1/submissions/<ID>/general-feedback`
+
+## Submissions
 ### Assignment
-#### Add new work
+#### Add new submission
 
 ```python
 import requests
@@ -166,20 +229,24 @@ multipart_form_data = {
     'file2': open('myfile.txt', 'rb'),
 }
 
-requests.post('https://example.com/api/v1/assignments/1/work', work=multipart_form_data)
+requests.post('https://example.com/api/v1/assignments/1/submission', work=multipart_form_data)
 ```
 
 > The return code will be 204 and the body will be empty if the work was added
 
 
 ###### HTTP Request
-`POST http://example.com/api/v1/assignments/<ID>/work`
+`GET http://example.com/api/v1/assignments/<ID>/submission`
 
 ###### Query Parameters
 Parameter | Description
 --------- | -----------
 file* | A file that should be uploaded. It can be an archive which will be
 extracted. Multiple can be specified but all keys should start will `file`
+
+#### Get all submissions
+###### HTTP Request
+`GET http://example.com/api/v1/assignments/<ID>/submissions/
 
 ## User
 ### Login
@@ -245,42 +312,3 @@ Logout the currently logged in user.
 
 ###### HTTP Request
 `POST http://example.com/api/v1/logout`
-
-## Assignments
-### Listing all assignments
-
-```python
-import requests
-
-# As logged in user
-requests.get('/api/v1/assignments/')
-```
-
-> The above code returns JSON structured like this with a status code of 200:
-```json
-[
-  {
-    "id": 1,
-    "name": "Security",
-    "course_name": "Besturingssystemen",
-    "course_id": 1
-  },
-  {
-    "id": 2,
-    "name": "Shell",
-    "course_name": "Besturingssystemen",
-    "course_id": 1
-  },
-  {
-    "id": 3,
-    "name": "Final deadline",
-    "course_name": "Project Software Engineering",
-    "course_id": 2
-  }
-]
-```
-
-Get all assignments that the current user can see.
-
-###### HTTP Request
-`GET http://example.com/api/v1/assignments/`
