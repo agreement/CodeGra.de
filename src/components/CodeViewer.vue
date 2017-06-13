@@ -114,7 +114,6 @@ export default {
 
 <style lang="less" scoped>
 ol {
-    position: relative;
     font-family: monospace;
     font-size: small;
     margin: 0;
@@ -123,6 +122,7 @@ ol {
 }
 
 li {
+    position: relative;
     padding-left: 1em;
     padding-right: 1em;
 
@@ -141,8 +141,8 @@ code {
 
 .add-feedback {
     position: absolute;
-    right: 100%;
-    transform: translate(-50%, -100%);
+    top: 0;
+    right: .5em;
     display: none;
 
     li:hover & {
