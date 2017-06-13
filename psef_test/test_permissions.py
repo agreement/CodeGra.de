@@ -158,6 +158,9 @@ def test_course_permissions(thomas, bs_course, pse_course, aco_course, perm,
         login_endpoint(thomas.id)
         for course, val in zip([bs_course, pse_course, aco_course], vals):
             assert thomas.has_permission(perm, course_id=course.id) == val
+            query = {'course_id': course.id, 'permission': perm}
+            rv = test_client.get('/api/v1/permissions/', query_string=query)
+            assert json.loads(rv.get_data(as_text=True)) == val
             if val:
                 a.ensure_permission(perm, course_id=course.id)
             else:
@@ -171,11 +174,20 @@ def test_course_permissions(thomas, bs_course, pse_course, aco_course, perm,
 
 
 @pytest.mark.parametrize('perm', ['wow_nope'])
-def test_non_existing_permission(thomas, bs_course, perm):
+def test_non_existing_permission(thomas, bs_course, perm, login_endpoint,
+                                 test_client):
     with pytest.raises(KeyError):
         thomas.has_permission(perm)
     with pytest.raises(KeyError):
         thomas.has_permission(perm, course_id=bs_course.id)
+    with test_client:
+        login_endpoint(thomas.id)
+        query = {'course_id': bs_course.id, 'permission': perm}
+        rv = test_client.get('/api/v1/permissions/', query_string=query)
+        assert rv.status_code == 404
+        query = {'permission': perm}
+        rv = test_client.get('/api/v1/permissions/', query_string=query)
+        assert rv.status_code == 404
 
 
 @pytest.mark.parametrize('perm', ['wow_nope', 'add_own_work', 'edit_name'])
@@ -190,6 +202,9 @@ def test_role_permissions(thomas, superuser, fixed, perm, vals, login_endpoint,
     for user, val in zip([thomas, superuser, fixed], vals):
         with test_client:
             login_endpoint(user.id)
+            query = {'permission': perm}
+            rv = test_client.get('/api/v1/permissions/', query_string=query)
+            assert json.loads(rv.get_data(as_text=True)) == val
             if val:
                 a.ensure_permission(perm, course_id=None)
             else:

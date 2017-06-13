@@ -320,6 +320,7 @@ def upload_work(assignment_id):
 
     return ('', 204)
 
+
 @app.route('/api/v1/permissions/', methods=['GET'])
 @login_required
 def get_permissions():
@@ -334,4 +335,16 @@ def get_permissions():
                 APICodes.INVALID_PARAM, 400)
     else:
         course_id = None
-    return jsonify(current_user.get_all_permissions(course_id=course_id))
+
+    if 'permission' in request.args:
+        perm = request.args['permission']
+        try:
+            return jsonify(current_user.has_permission(perm,
+                                                       course_id))
+        except KeyError:
+            raise APIException('The specified permission does not exist',
+                               'The permission '
+                               '"{}" is not real permission'.format(perm),
+                               APICodes.OBJECT_NOT_FOUND, 404)
+    else:
+        return jsonify(current_user.get_all_permissions(course_id=course_id))
