@@ -26,7 +26,7 @@ export default {
 
     methods: {
         submissionURL(assignment) {
-            return `#/assignments/${assignment.id}/submit`;
+            return `#/assignments/${assignment.id}/submissions`;
         },
     },
 };
