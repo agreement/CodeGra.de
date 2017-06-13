@@ -132,7 +132,7 @@ li {
 }
 
 code {
-    white-space: pre;
+    white-space: pre-wrap;
 }
 
 .feedback {
