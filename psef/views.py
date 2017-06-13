@@ -122,14 +122,17 @@ def get_student_assignments():
     for course_role in current_user.courses.values():
         if course_role.has_permission(perm):
             courses.append(course_role.course_id)
-    return jsonify([{
-        'id': assignment.id,
-        'name': assignment.name,
-        'course_name': assignment.course.name,
-        'course_id': assignment.course_id,
-    }
-                    for assignment in models.Assignment.query.filter(
-                        models.Assignment.course_id.in_(courses)).all()])
+    if courses:
+        return jsonify([{
+            'id': assignment.id,
+            'name': assignment.name,
+            'course_name': assignment.course.name,
+            'course_id': assignment.course_id,
+        }
+                        for assignment in models.Assignment.query.filter(
+                            models.Assignment.course_id.in_(courses)).all()])
+    else:
+        return jsonify([])
 
 
 @app.route("/api/v1/assignments/<int:assignment_id>", methods=['GET'])
