@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+  <div>
     <div class="justify-content-centermy-1 row">
 
       <b-form-fieldset horizontal label="Rows per page" class="col-4" :label-size="6">
