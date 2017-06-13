@@ -14,8 +14,8 @@ const actions = {
             axios.post('/api/v1/login', { email, password }).then((response) => {
                 commit(types.LOGIN, response.data);
                 resolve();
-            }).catch((response) => {
-                reject(response.body);
+            }).catch((err) => {
+                reject(err.response.data);
             });
         });
     },
