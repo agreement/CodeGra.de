@@ -251,7 +251,7 @@ Logout the currently logged in user.
 ```python
 import requests
 
-# Logged in a as user
+# Logged in as a user
 requests.get('/api/v1/permissions/')
 ```
 
@@ -265,14 +265,13 @@ requests.get('/api/v1/permissions/')
 }
 ```
 
-Get all general or course permissions. Each item in the returned JSON objet is a
-permission and the value is if the logged in user has this permission.
+Get all general or course permissions. Each item in the returned JSON object is
+a permission and the value is if the logged in user has this permission.
 
 <aside class="warning">
 This API call is quite expensive on the server side. If you only need one
-permission please specify the permission using the `GET` parameters if you only
-need one permission. However if you do need all permissions do not create
-multiple requests but simply get all.
+permission please specify the permission using the `GET` parameters. However if
+you do need all permissions do not create multiple requests but simply get all.
 </aside>
 
 <aside class="notice">
