@@ -28,7 +28,7 @@ def get_code(file_id):
         feedback=line_feedback)
 
 
-@app.route("/api/v1/code/<int:id>/comment/<int:line>", methods=['PUT'])
+@app.route("/api/v1/code/<int:id>/comments/<int:line>", methods=['PUT'])
 def put_comment(id, line):
     content = request.get_json()
 
@@ -47,7 +47,7 @@ def put_comment(id, line):
     return ('', 204)
 
 
-@app.route("/api/v1/code/<int:id>/comment/<int:line>", methods=['DELETE'])
+@app.route("/api/v1/code/<int:id>/comments/<int:line>", methods=['DELETE'])
 def remove_comment(id, line):
     comment = db.session.query(models.Comment).filter(
         models.Comment.file_id == id, models.Comment.line == line).first()
@@ -61,29 +61,20 @@ def remove_comment(id, line):
                            APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 
-@app.route(
-    "/api/v1/courses/<int:course_id>/assignments/<int:assignment_id>/"
-    "works/<int:work_id>/dir",
+@app.route("/api/v1/submissions/<int:submission_id>/dir",
     methods=['GET'])
-def get_dir_contents(course_id, assignment_id, work_id):
-
-    work = models.Work.query.get(work_id)
+def get_dir_contents(submission_id):
+    work = models.Work.query.get(submission_id)
     if work is None:
         raise APIException(
             'File not found',
-            'The work with code {} was not found'.format(work_id),
+            'The work with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
-    if (work.assignment.course.id != course_id or
-            work.assignment.id != assignment_id):
-        raise APIException(
-            'Incorrect URL',
-            'The identifiers in the URL do no match those related to the work '
-            'with code {}'.format(work_id), APICodes.INVALID_URL, 400)
 
     if (work.user.id != current_user.id):
-        auth.ensure_permission('can_view_files', course_id)
+        auth.ensure_permission('can_view_files', work.assignment.course.id)
     else:
-        auth.ensure_permission('can_view_own_files', course_id)
+        auth.ensure_permission('can_view_own_files', work.assignment.course.id)
 
     file_id = request.args.get('file_id')
     if file_id:
@@ -93,13 +84,13 @@ def get_dir_contents(course_id, assignment_id, work_id):
                 'File not found',
                 'The file with code {} was not found'.format(file_id),
                 APICodes.OBJECT_ID_NOT_FOUND, 404)
-        if (file.work.id != work_id):
+        if (file.work.id != submission_id):
             raise APIException(
                 'Incorrect URL',
                 'The identifiers in the URL do no match those related to the '
                 'file with code {}'.format(file.id), APICodes.INVALID_URL, 400)
     else:
-        file = models.File.query.filter(models.File.work_id == work_id,
+        file = models.File.query.filter(models.File.work_id == submission_id,
                                         models.File.parent_id == None).one()
 
     if not file.is_directory:
@@ -147,7 +138,7 @@ def get_assignment(assignment_id):
     })
 
 
-@app.route('/api/v1/assignments/<int:assignment_id>/works')
+@app.route('/api/v1/assignments/<int:assignment_id>/submissions/')
 def get_all_works_for_assignment(assignment_id):
     assignment = models.Assignment.query.get(assignment_id)
     if current_user.has_permission(
@@ -171,8 +162,7 @@ def get_all_works_for_assignment(assignment_id):
     } for work in res])
 
 
-@app.route(
-    "/api/v1/submission/<int:submission_id>/general-feedback", methods=['GET'])
+@app.route("/api/v1/submissions/<int:submission_id>/general-feedback", methods=['GET'])
 def get_general_feedback(submission_id):
     work = db.session.query(models.Work).get(submission_id)
     auth.ensure_permission('can_grade_work', work.assignment.course.id)
@@ -187,7 +177,7 @@ def get_general_feedback(submission_id):
 
 
 @app.route(
-    "/api/v1/submission/<int:submission_id>/general-feedback", methods=['PUT'])
+    "/api/v1/submissions/<int:submission_id>/general-feedback", methods=['PUT'])
 def set_general_feedback(submission_id):
     work = db.session.query(models.Work).get(submission_id)
     content = request.get_json()
@@ -264,7 +254,7 @@ def logout():
     return '', 204
 
 
-@app.route("/api/v1/assignments/<int:assignment_id>/work", methods=['POST'])
+@app.route("/api/v1/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id):
     """
     Saves the work on the server if the request is valid.
