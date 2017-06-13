@@ -45,7 +45,7 @@ export default {
         getFeedback() {
             this.$http.get(`/api/v1/submissions/${this.submissionId}`).then((data) => {
                 this.grade = data.data.grade;
-                this.feedback = data.data.feedback;
+                this.feedback = data.data.comment;
             });
         },
 
