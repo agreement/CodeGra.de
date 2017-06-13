@@ -200,3 +200,38 @@ def test_role_permissions(thomas, superuser, fixed, perm, vals, login_endpoint,
     with pytest.raises(APIException) as err:
         a.ensure_permission(perm)
     assert err.value.api_code == APICodes.NOT_LOGGED_IN
+
+
+def test_all_permissions(thomas, bs_course, pse_course, aco_course):
+    all_perms = {
+        'edit_name': True,
+        'edit_email': True,
+        'add_user': False,
+    }
+    assert all_perms == thomas.get_all_permissions()
+    bs_perms = {
+        'add_own_work': False,
+        'add_others_work': True,
+        'remove_course': False,
+    }
+    aco_perms = {
+        'add_own_work': False,
+        'add_others_work': False,
+        'remove_course': False,
+    }
+    pse_perms = {
+        'add_own_work': True,
+        'add_others_work': False,
+        'remove_course': False,
+    }
+    assert bs_perms == thomas.get_all_permissions(bs_course.id)
+    assert pse_perms == thomas.get_all_permissions(pse_course.id)
+    assert aco_perms == thomas.get_all_permissions(aco_course.id)
+
+
+def test_all_permissions(thomas, bs_course, pse_course, aco_course, superuser,
+                         fixed):
+    for user in [thomas, superuser, fixed]:
+        for course in [bs_course, pse_course, aco_course, None]:
+            for perm, val in user.get_all_permissions(course).items():
+                assert val == user.has_permission(perm, course)
