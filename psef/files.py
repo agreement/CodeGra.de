@@ -1,12 +1,13 @@
+import csv
 import os
-import uuid
 import shutil
 import tempfile
+import uuid
 from functools import reduce
 
-import archive
 from werkzeug.utils import secure_filename
 
+import archive
 from psef import app
 
 
@@ -172,3 +173,24 @@ def process_files(files):
         res = extract(files[0])
 
     return dehead_filetree(res)
+
+
+def create_csv(objects, attributes, headers=None):
+    """Create a csv file from the given objects and attributes.
+
+    :param objects: The objects that will be listed
+    :param attributes: The attributes of each object that will be listed
+    :param headers: Column headers that will be the first row in the csv file
+
+    :returns: The path to the csv file.
+    :rtype: str
+    """
+    if headers == None:
+        headers = attributes
+    mode, csv_file = tempfile.mkstemp()
+    with open(csv_file, 'w') as csv_output:
+        csv_writer = csv.writer(csv_output)
+        csv_writer.writerow(headers)
+        csv_writer.writerows([[str(getattr(obj, attr))
+                               for attr in attributes] for obj in objects])
+    return csv_file

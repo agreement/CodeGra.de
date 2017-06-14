@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-from flask import jsonify, request
-from flask_login import login_user, logout_user, current_user, login_required
-from sqlalchemy_utils.functions import dependent_objects
+import os
+
+from flask import after_this_request, jsonify, request, send_file
 
 import psef.auth as auth
 import psef.files
 import psef.models as models
-from psef import db, app
+from flask_login import current_user, login_required, login_user, logout_user
+from psef import app, db
 from psef.errors import APICodes, APIException
 
 
@@ -159,6 +160,17 @@ def get_all_works_for_assignment(assignment_id):
         obj = models.Work.query.filter_by(
             assignment_id=assignment_id, user_id=current_user.id)
     res = obj.order_by(models.Work.created_at.desc()).all()
+
+    if 'csv' in request.args:
+        file = psef.files.create_csv(
+            res, ['id', 'user_id', 'state', 'edit', 'grade', 'comment',
+                  'created_at'])
+        @after_this_request
+        def remove_file(response):
+            os.remove(file)
+            return response
+        return send_file(file, attachment_filename=request.args['csv'],
+                         as_attachment=True)
 
     return jsonify([{
         'id': work.id,
