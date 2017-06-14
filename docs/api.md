@@ -243,8 +243,43 @@ Parameter | Description
 file* | A file that should be uploaded. It can be an archive which will be extracted. Multiple can be specified but all keys should start will `file`
 
 #### Get all submissions
+
+```python
+import requests
+
+params = {
+  'csv' = 'filename.csv'
+}
+
+requests.get('https://example.com/api/v1/assignments/1/submissions/', params=params)
+```
+
+> The above command returns JSON structured like below:
+```json
+[
+  {
+    "id": 1,
+    "user_id": 1,
+    "state": 0,
+    "edit": 0,
+    "grade": 6,
+    "comment": "General feedback",
+    "created_at": "2017-01-01",
+  },
+  ...
+]
+```
+
+
 ###### HTTP Request
 `GET http://example.com/api/v1/assignments/<ID>/submissions/`
+
+###### Query Parameters
+Parameter | Description
+--------- | -----------
+csv | Optional parameter that can be set to retrieve all submissions as a csv file
+
+
 
 ## User
 ### Login
