@@ -94,10 +94,12 @@ export default {
                 }
             }
         },
+
         gotoSubmission(sub) {
             this.submit();
             this.$emit('goto', sub);
         },
+
         submit() {
             const query = { latest: this.latestOnly };
             if (this.filter) {
