@@ -319,3 +319,20 @@ class Assignment(db.Model):
     course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
 
     course = db.relationship('Course', foreign_keys=course_id)
+
+
+class Snippet(db.Model):
+    __tablename__ = 'Snippet'
+    id = db.Column('id', db.Integer, primary_key=True)
+    key = db.Column('key', db.Unicode)
+    value = db.Column('value', db.Unicode)
+    user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
+
+    user = db.relationship('User', foreign_keys=user_id)
+
+    @classmethod
+    def get_all_snippets(cls, user):
+        return cls.query.filter_by(user_id=user.id).all()
+
+    def to_dict(self):
+        return {'key': self.key, 'value': self.value}

@@ -348,3 +348,10 @@ def get_permissions():
                                APICodes.OBJECT_NOT_FOUND, 404)
     else:
         return jsonify(current_user.get_all_permissions(course_id=course_id))
+
+
+@app.route('/api/v1/snippets/', methods=['GET'])
+@auth.permission_required('can_use_snippets')
+def get_snippets():
+    res = models.Snippet.get_all_snippets(current_user)
+    return jsonify([r.to_dict() for r in res])
