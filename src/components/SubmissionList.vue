@@ -78,12 +78,9 @@ export default {
     },
 
     methods: {
-        submissionURL(submission) {
-            return `/assignments/${this.assignmentId}/submissions/${submission.id}/`;
-        },
         gotoSubmission(_, i) {
-            this.$router.push(this.submissionURL(this.latestOnly ?
-                                                 this.latest[i] : this.submissions[i]));
+            this.$emit('goto', this.latestOnly ? this.latest[i] :
+                                                 this.submissions[i]);
         },
     },
 };

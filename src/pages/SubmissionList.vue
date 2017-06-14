@@ -3,7 +3,7 @@
         <div class="row">
             <div class="col-md-6">
                 <h1>Submissions</h1>
-                <submission-list :submissions="submissions"></submission-list>
+                <submission-list :submissions="submissions" v-on:goto="gotoSubmission"></submission-list>
                 <div class="text-center loader" v-if="loading">
                   <icon name="refresh" scale="4" spin></icon>
                 </div>
@@ -38,6 +38,12 @@ export default {
             this.loading = false;
             this.submissions = data.data;
         });
+    },
+
+    methods: {
+        gotoSubmission(submission) {
+            this.$router.push(`/assignments/${this.assignmentId}/submissions/${submission.id}/`);
+        },
     },
 
     components: {
