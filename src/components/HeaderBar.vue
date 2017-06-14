@@ -1,8 +1,8 @@
 <template>
     <header>
-        <a href="#/">
+        <router-link :to="{ name: 'home', }">
             <img class="logo" src="/static/img/codegrade.png">
-        </a>
+        </router-link>
     </header>
 </template>
 

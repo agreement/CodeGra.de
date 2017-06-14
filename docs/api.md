@@ -431,3 +431,79 @@ Get all assignments that the current user can see.
 
 ###### HTTP Request
 `GET http://example.com/api/v1/assignments/`
+
+## Snippets
+### Getting all snippets
+```python
+import requests
+
+# Logged in as a user
+requests.get('https://example.com/api/v1/snippets/')
+```
+
+> This will result in the following JSON object with status code of 200:
+```json
+[
+  {
+     "key": "malloc",
+     "value": "Don't forget to check malloc for return value."
+     "id": 1
+  },
+  {
+     "key": "free",
+     "value": "Don't do a double free."
+     "id": 2
+  }
+]
+```
+
+Get all snippets for the current user.
+
+
+<aside class="notice">
+This is only valid for work when the current user has the `can_use_snippets`
+permission.
+</aside>
+
+#### HTTP Request
+`GET https://example.com/api/v1/snippets/`
+
+### Deleting a snippet
+```python
+import requests
+
+# Logged in as a user
+requests.delete('https://example.com/api/v1/snippets/{}'.format(snippet_id))
+```
+
+> This will result in an empty response with status code 204
+
+Delete the snippet with the specified id. Only snippets owned by the current
+user can be deleted.
+
+#### HTTP request
+`DELETE https://example.com/api/v1/snippets/<ID>`
+
+### Add or modify a snippet
+```python
+import requests
+
+json_data = {"key": "fgets", "value": 'Fgets is niet veilig.'}
+
+# Logged in as a user
+requests.delete('https://example.com/api/v1/snippet', json=json_data)
+```
+
+> This will return an empty response with status code 204
+
+Add a new snippet or modify an existing one. If the specified key is already a
+snippet for the current user, the value of this snippet will be changed.
+
+#### HTTP Request
+`PUT https://example.com/api/v1/snippet`
+
+#### Query Parameters
+| Parameter | Description                                                       |
+| --------- | -----------                                                       |
+| key       | The key of the new or existing snippet                            |
+| value     | The value of the new snippet or the new value of the old snippet. |

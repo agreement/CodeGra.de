@@ -10,6 +10,8 @@ from werkzeug.utils import secure_filename
 import archive
 from psef import app
 
+_known_archive_extensions = tuple(archive.extension_map.keys())
+
 
 def get_file_contents(code):
     """Get the contents of the given file.
@@ -84,9 +86,13 @@ def rename_directory_structure(rootdir):
 
 
 def is_archive(file):
-    "Checks whether file ends with a known archive file extension."
-    return file.filename.endswith(('.zip', '.tar.gz', '.tgz', '.tbz',
-                                   '.tar.bz2'))
+    """Checks whether file ends with a known archive file extension.
+
+    :param file: FileStorage object
+    :returns: True if the file has a known extension
+    :rtype: bool
+    """
+    return file.filename.endswith(_known_archive_extensions)
 
 
 def extract(file):

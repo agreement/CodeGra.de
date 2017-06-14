@@ -122,8 +122,8 @@ def get_student_assignments():
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
         }
-            for assignment in models.Assignment.query.filter(
-            models.Assignment.course_id.in_(courses)).all()])
+                        for assignment in models.Assignment.query.filter(
+                            models.Assignment.course_id.in_(courses)).all()])
     else:
         return jsonify([])
 
@@ -249,12 +249,12 @@ def login():
         raise APIException('The supplied email or password is wrong.', (
             'The user with email {} does not exist ' +
             'or has a different password').format(data['email']),
-            APICodes.LOGIN_FAILURE, 400)
+                           APICodes.LOGIN_FAILURE, 400)
 
     if not login_user(user, remember=True):
         raise APIException('User is not active', (
             'The user with id "{}" is not active any more').format(user.id),
-            APICodes.INACTIVE_USER, 403)
+                           APICodes.INACTIVE_USER, 403)
 
     return me()
 
@@ -292,7 +292,7 @@ def upload_work(assignment_id):
         raise APIException('Uploaded files are too big.', (
             'Request is bigger than maximum ' +
             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-            APICodes.REQUEST_TOO_LARGE, 400)
+                           APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
@@ -329,7 +329,7 @@ def upload_work(assignment_id):
 
     db.session.commit()
 
-    return ('', 204)
+    return (jsonify({'id':work.id}), 201)
 
 
 @app.route('/api/v1/permissions/', methods=['GET'])
@@ -350,8 +350,7 @@ def get_permissions():
     if 'permission' in request.args:
         perm = request.args['permission']
         try:
-            return jsonify(current_user.has_permission(perm,
-                                                       course_id))
+            return jsonify(current_user.has_permission(perm, course_id))
         except KeyError:
             raise APIException('The specified permission does not exist',
                                'The permission '
@@ -359,3 +358,54 @@ def get_permissions():
                                APICodes.OBJECT_NOT_FOUND, 404)
     else:
         return jsonify(current_user.get_all_permissions(course_id=course_id))
+
+
+@app.route('/api/v1/snippets/', methods=['GET'])
+@auth.permission_required('can_use_snippets')
+def get_snippets():
+    res = models.Snippet.get_all_snippets(current_user)
+    return jsonify([r.to_dict() for r in res])
+
+
+@app.route('/api/v1/snippet', methods=['PUT'])
+@auth.permission_required('can_use_snippets')
+def add_snippet():
+    content = request.get_json()
+    if 'key' not in content or 'value' not in content:
+        raise APIException(
+            'Not all required keys were in content',
+            'The given content ({}) does  not contain "key" and "value"'.
+            format(content), APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    snippet = models.Snippet.query.filter_by(
+        user_id=current_user.id, key=content['key']).first()
+    if snippet is None:
+        db.session.add(
+            models.Snippet(
+                key=content['key'], value=content['value'], user=current_user))
+    else:
+        snippet.value = content['value']
+    db.session.commit()
+
+    return '', 204
+
+
+@app.route('/api/v1/snippets/<int:snippet_id>', methods=['DELETE'])
+@auth.permission_required('can_use_snippets')
+def delete_snippets(snippet_id):
+    snip = models.Snippet.query.get(snippet_id)
+    if snip is None:
+        raise APIException(
+            'The specified snippet does not exits',
+            'The snipped with id "{}" does not exist'.format(snippet_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    elif snip.user_id != current_user.id:
+        raise APIException(
+            'The given snippet is not your snippet',
+            'The snippet "{}" does not belong to user "{}"'.format(
+                snip.id, current_user.id), APICodes.INCORRECT_PERMISSION, 403)
+    else:
+        db.session.delete(snip)
+        db.session.commit()
+        return '', 204
+    pass
