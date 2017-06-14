@@ -28,12 +28,12 @@ export default new Router({
             name: 'me',
         },
         {
-            path: '/submissions/:submissionId',
+            path: '/assignments/:assignmentId/submissions/:submissionId',
             name: 'submission',
             component: Submission,
         },
         {
-            path: '/submissions/:submissionId/files/:fileId',
+            path: '/assignments/:assignmentId/submissions/:submissionId/files/:fileId',
             name: 'submission_file',
             component: Submission,
         },

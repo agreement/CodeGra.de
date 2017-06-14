@@ -22,7 +22,7 @@
                     </b-alert>
 
                     <div class="form-group">
-                        <input type="submit" class="form-control" value="Submit" @click="login()">
+                        <input type="submit" class="form-control" value="Submit" @click="login">
                     </div>
                 </form>
             </div>
@@ -49,7 +49,8 @@ export default {
         };
     },
     methods: {
-        login() {
+        login(event) {
+            event.preventDefault();
             this.error = '';
             this.submitted = true;
             if (!validator.validate(this.email)) {

@@ -93,7 +93,7 @@
             return {
                 startedUpload: false,
                 options: {
-                    url: `api/v1/assignments/${this.assignmentId}/submission`,
+                    url: `/api/v1/assignments/${this.assignmentId}/submission`,
                     method: 'POST',
                     maxFiles: this.maxFiles,
                     maxFilesize: this.maxFilesize,
