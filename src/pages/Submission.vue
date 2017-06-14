@@ -2,8 +2,8 @@
     <div class="page submission">
         <h1>{{ title }}</h1>
 
-        <div class="row">
-            <div class="col-10 justify-content-end">
+        <div class="row code-browser">
+            <div class="col-10 code-and-grade">
                 <code-viewer class="" v-bind:editable="true"
                     v-bind:id="fileId" v-if="fileId" ref="codeViewer"></code-viewer>
                 <grade-viewer v-bind:id="submissionId"
@@ -39,6 +39,56 @@ export default {
 
     mounted() {
         this.getAssignment();
+
+        const elements = Array.from(document.querySelectorAll('html, body, #app, header, footer'));
+        const [html, body, app, header, footer] = elements;
+
+        this.oldCSS = {
+            html: {
+                height: html.style.height,
+            },
+            body: {
+                height: body.style.height,
+            },
+            app: {
+                height: app.style.height,
+                display: app.style.display,
+                flexDirection: app.style.flexDirection,
+            },
+            header: {
+                flexGrow: header.style.flexGrow,
+                flexShrink: header.style.flexShrink,
+            },
+            footer: {
+                flexGrow: footer.style.flexGrow,
+                flexShrink: footer.style.flexShrink,
+            },
+        };
+
+        html.style.height = '100%';
+        body.style.height = '100%';
+        app.style.height = '100%';
+        app.style.display = 'flex';
+        app.style.flexDirection = 'column';
+        header.style.flexGrow = 0;
+        header.style.flexShrink = 0;
+        footer.style.flexGrow = 0;
+        footer.style.flexShrink = 0;
+    },
+
+    destroyed() {
+        const elements = Array.from(document.querySelectorAll('html, body, #app, header, footer'));
+        const [html, body, app, header, footer] = elements;
+
+        html.style.height = this.oldCSS.html.height;
+        body.style.height = this.oldCSS.body.height;
+        app.style.height = this.oldCSS.app.height;
+        app.style.display = this.oldCSS.app.display;
+        app.style.flexDirection = this.oldCSS.app.flexDirection;
+        header.style.flexGrow = this.oldCSS.header.flexGrow;
+        header.style.flexShrink = this.oldCSS.header.flexShrink;
+        footer.style.flexGrow = this.oldCSS.footer.flexGrow;
+        footer.style.flexShrink = this.oldCSS.footer.flexShrink;
     },
 
     watch: {
@@ -79,6 +129,32 @@ export default {
 </script>
 
 <style scoped>
+.page.submission {
+    display: flex;
+    flex-direction: column;
+}
+
+h1 {
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
+.code-and-grade {
+    display: flex;
+    flex-direction: column;
+}
+
+.code-viewer {
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow: auto;
+}
+
+.grade-viewer {
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
 h1,
 .code-viewer,
 .grade-viewer {
