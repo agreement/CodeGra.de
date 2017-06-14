@@ -1,7 +1,7 @@
 <template>
     <b-card v-if="(done && !editing)">
     <div v-on:click="changeFeedback()" :style="{'min-height': '1em'}">
-      <div v-html="newlines(escape(internalFeedback))">
+      <div v-html="newlines(escape(serverFeedback))">
       </div>
     </div>
     </b-card>
@@ -22,7 +22,8 @@
           ref="field" v-model="internalFeedback"
           :style="{'font-size': '1em'}"
           v-on:keydown.native.tab.capture="expandSnippet"
-          v-on:keydown.native.ctrl.enter="submitFeedback">
+          v-on:keydown.native.ctrl.enter="submitFeedback"
+          v-on:keydown.native.esc="revertFeedback">
         </b-form-input>
         <b-input-group-button class="minor-buttons">
           <b-btn v-b-toggle="`collapse${line}`" variant="secondary" v-on:click="findSnippet">
@@ -62,6 +63,7 @@ export default {
     data() {
         return {
             internalFeedback: this.feedback,
+            serverFeedback: this.feedback,
             done: true,
             error: '',
             snippetKey: '',
@@ -76,18 +78,21 @@ export default {
         changeFeedback() {
             this.done = false;
             setTimeout(() => this.$refs.field.focus(), 50);
+            this.internalFeedback = this.serverFeedback;
         },
         submitFeedback() {
             if (this.internalFeedback === '') {
                 this.cancelFeedback();
                 return;
             }
-            this.$emit('feedbackChange', this.internalFeedback);
+            const submitted = this.internalFeedback;
             this.$http.put(`/api/v1/code/${this.fileId}/comments/${this.line}`,
                 {
-                    comment: this.internalFeedback,
+                    comment: submitted,
                 },
             ).then(() => {
+                this.$emit('feedbackChange', this.internalFeedback);
+                this.serverFeedback = submitted;
                 this.snippetKey = '';
                 this.done = true;
             });
@@ -97,6 +102,14 @@ export default {
         },
         escape(text) {
             return String(text).replace(entityRE, entity => entityMap[entity]);
+        },
+        revertFeedback() {
+            if (this.serverFeedback === '') {
+                this.cancelFeedback();
+                return;
+            }
+            this.$emit('feedbackChange', this.serverFeedback);
+            this.done = true;
         },
         cancelFeedback() {
             if (this.feedback !== '') {
