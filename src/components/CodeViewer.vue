@@ -1,17 +1,15 @@
 <template>
-    <div class="code-viewer" v-bind:class="{ editable }">
-        <ol class="form-control">
-            <li v-on:click="addFeedback($event, i)" v-for="(line, i) in highlighted_code">
-                <code v-html="line"></code>
+    <ol class="code-viewer form-control" :class="{ editable }">
+        <li v-on:click="addFeedback($event, i)" v-for="(line, i) in highlighted_code">
+            <code v-html="line"></code>
 
 
-                <feedback-area :editing="editing[i] === true" :feedback='feedback[i]' :editable='editable' :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }" v-on:cancel='onChildCancel' v-if="feedback[i] != null"></feedback-area>
+            <feedback-area :editing="editing[i] === true" :feedback='feedback[i]' :editable='editable' :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }" v-on:cancel='onChildCancel' v-if="feedback[i] != null"></feedback-area>
 
-                <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
-                    v-on:click="addFeedback($event, value)"></icon>
-            </li>
-        </ol>
-    </div>
+            <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
+                v-on:click="addFeedback($event, value)"></icon>
+        </li>
+    </ol>
 </template>
 
 <script>
@@ -114,7 +112,6 @@ export default {
 
 <style lang="less" scoped>
 ol {
-    position: relative;
     font-family: monospace;
     font-size: small;
     margin: 0;
@@ -123,6 +120,7 @@ ol {
 }
 
 li {
+    position: relative;
     padding-left: 1em;
     padding-right: 1em;
 
@@ -132,7 +130,7 @@ li {
 }
 
 code {
-    white-space: pre;
+    white-space: pre-wrap;
 }
 
 .feedback {
@@ -141,13 +139,12 @@ code {
 
 .add-feedback {
     position: absolute;
-    right: 100%;
-    transform: translate(-50%, -100%);
+    top: 0;
+    right: .5em;
     display: none;
 
     li:hover & {
         display: block;
     }
 }
-
 </style>

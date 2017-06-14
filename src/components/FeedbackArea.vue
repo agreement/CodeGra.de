@@ -36,27 +36,22 @@ export default {
     methods: {
         changeFeedback() {
             this.done = false;
-            console.log(this.$refs);
             this.$refs.field.focus();
         },
         submitFeedback() {
-            console.log(this.$refs);
             this.$emit('feedbackChange', this.internalFeedback);
-            this.$http.put(`/api/v1/code/${this.fileId}/comment/${this.line}`,
+            this.$http.put(`/api/v1/code/${this.fileId}/comments/${this.line}`,
                 {
                     comment: this.internalFeedback,
                 },
             ).then(() => {
                 this.done = true;
-                console.log('Comment updated or inserted!');
             });
         },
         cancelFeedback() {
             // TODO: collaps textarea
-            this.$http.delete(`/api/v1/code/${this.fileId}/comment/${this.line}`)
+            this.$http.delete(`/api/v1/code/${this.fileId}/comments/${this.line}`)
             .then(() => {
-                // eslint-disable-next-line
-                console.log('Comment removed!');
             }, () => null);
             this.$emit('cancel', this.line);
         },

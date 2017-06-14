@@ -43,14 +43,14 @@ export default {
 
     methods: {
         getFeedback() {
-            this.$http.get(`/api/v1/submission/${this.submissionId}/general-feedback`).then((data) => {
+            this.$http.get(`/api/v1/submissions/${this.submissionId}`).then((data) => {
                 this.grade = data.data.grade;
-                this.feedback = data.data.feedback;
+                this.feedback = data.data.comment;
             });
         },
 
         putFeedback() {
-            this.$http.put(`/api/v1/submission/${this.submissionId}/general-feedback`,
+            this.$http.patch(`/api/v1/submissions/${this.submissionId}`,
                 {
                     grade: this.grade,
                     feedback: this.feedback,
@@ -59,8 +59,6 @@ export default {
                     headers: { 'Content-Type': 'application/json' },
                 },
             ).then(() => {
-                // eslint-disable-next-line
-                console.log('submitted grade and feedback!');
             });
             this.$emit('submit');
         },

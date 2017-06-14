@@ -227,7 +227,7 @@ def test_get_all_works(thomas, other, bs_course, login_endpoint, test_client,
     with test_client:
         login_endpoint(thomas.id)
         assig = bs_course[1][0]
-        rv = test_client.get('/api/v1/assignments/{}/works'.format(assig.id))
+        rv = test_client.get('/api/v1/assignments/{}/submissions/'.format(assig.id))
         data = json.loads(rv.get_data(as_text=True))
         print(data)
         assert data[0]['user_id'] == thomas.id
@@ -237,7 +237,7 @@ def test_get_all_works(thomas, other, bs_course, login_endpoint, test_client,
         test_client.post('/api/v1/logout')
         login_endpoint(other.id)
         assig = bs_course[1][0]
-        rv = test_client.get('/api/v1/assignments/{}/works'.format(assig.id))
+        rv = test_client.get('/api/v1/assignments/{}/submissions/'.format(assig.id))
         data = json.loads(rv.get_data(as_text=True))
         print(data)
         assert data[0]['user_id'] == other.id
