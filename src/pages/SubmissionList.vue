@@ -4,6 +4,9 @@
             <div class="col-md-6">
                 <h1>Submissions</h1>
                 <submission-list :submissions="submissions"></submission-list>
+                <div class="text-center loader" v-if="loading">
+                  <icon name="refresh" scale="4" spin></icon>
+                </div>
             </div>
 
             <div class="col-md-6">
@@ -15,6 +18,8 @@
 </template>
 
 <script>
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/refresh';
 import { SubmissionList, CodeUploader } from '@/components';
 
 export default {
@@ -22,6 +27,7 @@ export default {
 
     data() {
         return {
+            loading: true,
             assignmentId: this.$route.params.assignmentId,
             submissions: [],
         };
@@ -29,6 +35,7 @@ export default {
 
     mounted() {
         this.$http.get(`/api/v1/assignments/${this.assignmentId}/works`).then((data) => {
+            this.loading = false;
             this.submissions = data.data;
         });
     },
@@ -36,6 +43,13 @@ export default {
     components: {
         SubmissionList,
         CodeUploader,
+        Icon,
     },
 };
 </script>
+
+<style lang="less">
+.loader {
+    padding-top: 1em;
+}
+</style>

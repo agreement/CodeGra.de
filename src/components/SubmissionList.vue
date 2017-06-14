@@ -31,7 +31,7 @@
       </template>
     </b-table>
 
-    <div class="justify-content-center row my-1">
+    <div class="justify-content-center row my-1" v-if="this.submissions.length > this.perPage">
       <b-pagination size="md" :total-rows="this.submissions.length" :per-page="perPage" v-model="currentPage" />
     </div>
   </div>
@@ -74,6 +74,7 @@ export default {
 
     watch: {
         submissions(data) {
+            console.log('watch');
             this.latest = [];
             const seen = {};
             const len = data.length;
