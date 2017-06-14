@@ -1,9 +1,9 @@
 <template>
     <ol>
         <li v-for="a in assignments_list">
-            <a v-bind:href="submissionURL(a)">
-                {{ a.name }}
-            </a>
+            <router-link :to="{ name: 'assignment_submissions', params: { assignmentId: a.id, }, }">
+                {{a.name}}
+            </router-link>
         </li>
     </ol>
 </template>
@@ -22,12 +22,6 @@ export default {
         this.$http.get('/api/v1/assignments/').then((data) => {
             this.assignments_list = data.data;
         });
-    },
-
-    methods: {
-        submissionURL(assignment) {
-            return `#/assignments/${assignment.id}/submissions`;
-        },
     },
 };
 </script>
