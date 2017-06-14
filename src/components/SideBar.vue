@@ -2,18 +2,26 @@
     <nav class="side-bar">
         <ul v-if="loggedIn">
             <li>
-                <router-link :to="`/users/${this.userid}`">{{username}}</router-link>
+                <router-link :to="{ name: 'me', params: { userId: this.userid, }, }">
+                    {{username}}
+                </router-link>
             </li>
             <li>
-                <router-link to="/assignments">Assignments</router-link>
+                <router-link :to="{ name: 'assignments', }">
+                    Assignments
+                </router-link>
             </li>
             <li>
-                <router-link to="/login" @click="logout">Logout</router-link>
+                <router-link :to="{ name: 'logout', }" @click="logout">
+                    Logout
+                </router-link>
             </li>
         </ul>
         <ul v-else>
             <li>
-                <router-link to="/login">Login</router-link>
+                <router-link :to="{ name: 'login', }">
+                    Login
+                </router-link>
             </li>
         </ul>
     </nav>

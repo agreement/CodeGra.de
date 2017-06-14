@@ -10,7 +10,7 @@
         <ol v-show="!isCollapsed">
             <li v-for="f in tree.entries">
                 <file-tree v-bind:tree="f" v-if="f.entries"></file-tree>
-                <router-link :to="fileURL(f)" replace v-else>
+                <router-link :to="{ name: 'submission_file', params: { submissionId: this.submissionId, fileId: f.id, }, }" replace v-else>
                     <icon name="file"></icon> {{ f.name }}
                 </router-link>
             </li>
@@ -50,12 +50,6 @@ export default {
         toggle(event) {
             event.stopPropagation();
             this.isCollapsed = !this.isCollapsed;
-        },
-
-        fileURL(file) {
-            const path = this.$route.path.replace(/\/files\/\d+/, '');
-            const path2 = path.replace(/\/$/, '');
-            return `#${path2}/files/${file.id}`;
         },
     },
 

@@ -1,7 +1,7 @@
 <template>
     <ol>
         <li v-for="s in submissions">
-            <router-link :to="submissionURL(s)">
+            <router-link :to="{ name: 'submission', params: { assignmentId: this.assignmentId, submissionId: s.id, }, }">
                 <!-- TODO: Moet denk ik `s.date` worden -->
                 {{ s.id }}
             </router-link>
@@ -30,12 +30,6 @@ export default {
         this.$http.get(`/api/v1/assignments/${this.assignmentId}/works`).then((data) => {
             this.submissions = data.data;
         });
-    },
-
-    methods: {
-        submissionURL(submission) {
-            return `#/assignments/${this.assignmentId}/submissions/${submission.id}/`;
-        },
     },
 };
 </script>
