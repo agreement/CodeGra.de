@@ -9,6 +9,22 @@ import psef.models as models
 from psef import db, app
 from psef.errors import APICodes, APIException
 
+@app.route("/api/v1/file/metadata/<int:file_id>")
+def get_file_metadata(file_id):
+    file = db.session.query(models.File).filter_by(id == file_id).first()
+
+@app.route("/api/v1/binary/<int:file_id>")
+def get_binary(file_id):
+    file = db.session.query(models.File).filter(
+        models.File.id == file_id).first()
+
+    file_data = psef.files.get_file_contents(file)
+    response = make_response(file_data)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'inline; filename='
+
+    return response
+
 
 @app.route("/api/v1/code/<int:file_id>")
 def get_code(file_id):

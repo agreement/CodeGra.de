@@ -1918,6 +1918,10 @@ domutils@1.5.1, domutils@^1.5.1:
     dom-serializer "0"
     domelementtype "1"
 
+dropzone@^5.0.1:
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/dropzone/-/dropzone-5.1.0.tgz#541edc6a3f0f4f54c854e10336ad6d218da3e31f"
+
 duplexer@^0.1.1:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/duplexer/-/duplexer-0.1.1.tgz#ace6ff808c1ce66b57d1ebf97977acb02334cfc1"
@@ -6162,6 +6166,12 @@ vue-hot-reload-api@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/vue-hot-reload-api/-/vue-hot-reload-api-2.1.0.tgz#9ca58a6e0df9078554ce1708688b6578754d86de"
 
+vue-instant-pdf-viewer@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/vue-instant-pdf-viewer/-/vue-instant-pdf-viewer-1.0.2.tgz#307c9d591ebd4ec913027f3f4aeb51d6f5758bf6"
+  dependencies:
+    vue "^2.0.1"
+
 vue-loader@^12.1.0:
   version "12.2.1"
   resolved "https://registry.yarnpkg.com/vue-loader/-/vue-loader-12.2.1.tgz#53f27c0973d386768f5a75156f4129b5efc6ba55"
@@ -6184,6 +6194,10 @@ vue-router@^2.3.1:
   version "2.5.3"
   resolved "https://registry.yarnpkg.com/vue-router/-/vue-router-2.5.3.tgz#073783f564b6aece6c8a59c63e298dc2aabfb51b"
 
+vue-stash@^2.0.1-beta:
+  version v2.0.1-beta
+  resolved "https://registry.yarnpkg.com/vue-stash/-/vue-stash-2.0.1-beta.tgz#3b46ccab3670e1eddfda8aa711247e6f887691de"
+
 vue-style-loader@^3.0.0, vue-style-loader@^3.0.1:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/vue-style-loader/-/vue-style-loader-3.0.1.tgz#c8b639bb2f24baf9d78274dc17e4f264c1deda08"
@@ -6202,7 +6216,14 @@ vue-template-es2015-compiler@^1.2.2:
   version "1.5.2"
   resolved "https://registry.yarnpkg.com/vue-template-es2015-compiler/-/vue-template-es2015-compiler-1.5.2.tgz#a0a6c50c941d2a4abda963f2f42c337ac450ee95"
 
-vue@^2.2.6, vue@^2.3.3:
+vue2-dropzone@^2.2.8:
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/vue2-dropzone/-/vue2-dropzone-2.3.1.tgz#cf7244e03d3cd67d1b229dc16d0cb907e4b247dc"
+  dependencies:
+    dropzone "^5.0.1"
+    vue "^2.0.0"
+
+vue@^2.0.0, vue@^2.0.1, vue@^2.2.6, vue@^2.3.3:
   version "2.3.4"
   resolved "https://registry.yarnpkg.com/vue/-/vue-2.3.4.tgz#5ec3b87a191da8090bbef56b7cfabd4158038171"
 
