@@ -16,6 +16,12 @@ def get_code(file_id):
 
     code = db.session.query(models.File).filter(  # NOQA: F841
         models.File.id == file_id).first()
+
+    if (code.work.user.id != current_user.id):
+        auth.ensure_permission('can_view_files', code.work.assignment.course_id)
+    else:
+        auth.ensure_permission('can_view_own_files', code.work.assignment.course_id)
+
     line_feedback = {}
     for comment in db.session.query(models.Comment).filter_by(
             file_id=file_id).all():
@@ -40,6 +46,7 @@ def put_comment(id, line):
             models.Comment(
                 file_id=id, user_id=0, line=line, comment=content['comment']))
     else:
+        auth.ensure_permission('can_grade_work', comment.file.work.assignment.course.id)
         comment.comment = content['comment']
 
     db.session.commit()
@@ -53,6 +60,7 @@ def remove_comment(id, line):
         models.Comment.file_id == id, models.Comment.line == line).first()
 
     if comment:
+        auth.ensure_permission('can_grade_work', comment.file.work.assignment.course.id)
         db.session.delete(comment)
         db.session.commit()
     else:
