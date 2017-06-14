@@ -110,18 +110,21 @@ export default {
 </script>
 
 <style lang="less">
-.table tr {
-    cursor: pointer;
-}
-.table tbody:empty::after {
-    content: 'No results found!';
-    text-align: center;
-    position: absolute;
-    left: 0;
-    right: 0;
-    padding-top: 1em;
-    padding-bottom: 1em;
-    background: #eceeef;
-    margin: 0 15px;
+.table {
+    position: relative;
+
+    tbody:empty::after {
+        content: 'No results found!';
+        text-align: center;
+        position: absolute;
+        left: 0;
+        right: 0;
+        padding: .75rem;
+        background: #eceeef;
+    }
+
+    tr {
+        cursor: pointer;
+    }
 }
 </style>
