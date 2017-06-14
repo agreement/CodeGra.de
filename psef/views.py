@@ -2,6 +2,7 @@
 from flask import jsonify, request
 from flask_login import login_user, logout_user, current_user, login_required
 from sqlalchemy_utils.functions import dependent_objects
+from random import shuffle
 
 import psef.auth as auth
 import psef.files
@@ -318,6 +319,52 @@ def upload_work(assignment_id):
     db.session.commit()
 
     return ('', 204)
+
+@app.route('/api/v1/assignments/<int:assignment_id>/divide', methods=['PATCH'])
+def divide_assignments(assignment_id):
+    assignment = models.Assignment.query.get(assignment_id)
+
+    if not assignment:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with code {} was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    content = request.get_json()
+    if 'users' not in content or type(content['users']) is list:
+        raise APIException('List of assigned graders is required',
+                           'List of assigned graders is required',
+                           APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    submissions = models.Work.query.filter(
+        models.Work.assignment_id == assignment_id).all()
+
+    if not submissions:
+        raise APIException(
+            'No submissions found',
+            'No submissions found for assignment {}'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    shuffle(submissions)
+    for i in range(len(submissions)):
+        submissions[i].assigned_to =
+            content['users'][i % len(content['users'])]
+
+    db.session.commit()
+    return ('', 204)
+    #...
+
+@app.route('/api/v1/assignments/<int:assignment_id>/graders', methods=['GET'])
+def get_all_graders(assignment_id):
+    assignment = models.Assignment.query.get(assignment_id)
+
+    if not assignment:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with code {} was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    #...
 
 
 @app.route('/api/v1/permissions/', methods=['GET'])

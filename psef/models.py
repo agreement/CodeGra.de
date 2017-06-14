@@ -212,9 +212,12 @@ class Work(db.Model):
     grade = db.Column('grade', db.Float, default=None)
     comment = db.Column('comment', db.Unicode, default=None)
     created_at = db.Column(db.DateTime, default=datetime.datetime.now)
+    assigned_to = db.Column('assigned_to', db.Integer,
+                            db.ForeignKey('User.id'))
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', single_parent=True, foreign_keys=user_id)
+    assignee = db.relationship('User', foreign_keys=assigned_to)
 
     @property
     def is_graded(self):
