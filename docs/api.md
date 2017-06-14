@@ -170,7 +170,7 @@ import requests
 params = {
   'file_id': 1
 }
-requests.get('https://example.com/api/submissions/1/files', params=params)
+requests.get('https://example.com/api/submissions/1/files/', params=params)
 ```
 
 > The above command returns JSON like below with a status code of 200:
@@ -202,7 +202,7 @@ requests.get('https://example.com/api/submissions/1/files', params=params)
 ```
 
 ##### HTTP Request
-`GET http://example.com/api/v1/submissions/<ID>/files`
+`GET http://example.com/api/v1/submissions/<ID>/files/`
 
 ##### Query Parameters
 Parameter | Description

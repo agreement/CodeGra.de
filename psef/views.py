@@ -61,14 +61,14 @@ def remove_comment(id, line):
                            APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 
-@app.route("/api/v1/submissions/<int:submission_id>/files",
+@app.route("/api/v1/submissions/<int:submission_id>/files/",
     methods=['GET'])
 def get_dir_contents(submission_id):
     work = models.Work.query.get(submission_id)
     if work is None:
         raise APIException(
-            'File not found',
-            'The work with code {} was not found'.format(submission_id),
+            'Submission not found',
+            'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     if (work.user.id != current_user.id):
@@ -180,7 +180,7 @@ def get_submission(submission_id):
     else:
         raise APIException(
             'Work submission not found',
-            'The work with code {} was not found'.format(submission_id),
+            'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 
@@ -192,8 +192,8 @@ def patch_submission(submission_id):
 
     if not work:
         raise APIException(
-            'Work submission not found',
-            'The work with code {} was not found'.format(submission_id),
+            'Submission not found',
+            'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     auth.ensure_permission('can_grade_work', work.assignment.course.id)

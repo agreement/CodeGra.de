@@ -33,7 +33,7 @@ export default {
 
     methods: {
         submissionURL(submission) {
-            return `#/assignments/${this.assignmentId}/submissions/${submission.id}/`;
+            return `#/assignments/${this.assignmentId}/submissions/${submission.id}`;
         },
     },
 };
