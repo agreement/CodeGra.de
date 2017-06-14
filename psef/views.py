@@ -10,7 +10,7 @@ from psef import db, app
 from psef.errors import APICodes, APIException
 
 
-@app.route("/api/v1/code/<int:file_id>")
+@app.route("/api/v1/code/<int:file_id>", methods=['GET'])
 def get_code(file_id):
     # Code not used yet:
 
@@ -62,8 +62,7 @@ def remove_comment(id, line):
     return ('', 204)
 
 
-@app.route("/api/v1/submissions/<int:submission_id>/files/",
-    methods=['GET'])
+@app.route("/api/v1/submissions/<int:submission_id>/files/", methods=['GET'])
 def get_dir_contents(submission_id):
     work = models.Work.query.get(submission_id)
     if work is None:
@@ -139,7 +138,8 @@ def get_assignment(assignment_id):
     })
 
 
-@app.route('/api/v1/assignments/<int:assignment_id>/submissions/')
+@app.route(
+    '/api/v1/assignments/<int:assignment_id>/submissions/', methods=['GET'])
 def get_all_works_for_assignment(assignment_id):
     assignment = models.Assignment.query.get(assignment_id)
     if current_user.has_permission(
@@ -178,7 +178,7 @@ def get_submission(submission_id):
             'grade': work.grade,
             'comment': work.comment,
             'created_at': work.created_at,
-            })
+        })
     else:
         raise APIException(
             'Work submission not found',
@@ -186,8 +186,7 @@ def get_submission(submission_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 
-@app.route(
-    "/api/v1/submissions/<int:submission_id>", methods=['PATCH'])
+@app.route("/api/v1/submissions/<int:submission_id>", methods=['PATCH'])
 def patch_submission(submission_id):
     work = db.session.query(models.Work).get(submission_id)
     content = request.get_json()
@@ -263,7 +262,8 @@ def logout():
     return '', 204
 
 
-@app.route("/api/v1/assignments/<int:assignment_id>/submission", methods=['POST'])
+@app.route(
+    "/api/v1/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id):
     """
     Saves the work on the server if the request is valid.
@@ -317,7 +317,7 @@ def upload_work(assignment_id):
 
     db.session.commit()
 
-    return (jsonify({'id':work.id}), 201)
+    return (jsonify({'id': work.id}), 201)
 
 
 @app.route('/api/v1/permissions/', methods=['GET'])
