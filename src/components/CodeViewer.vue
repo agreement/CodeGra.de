@@ -67,7 +67,7 @@ export default {
         highlight_code(lang, code) {
             const codeLines = [];
             let state = null;
-            code.split('/').forEach((codeLine) => {
+            code.split('\n').forEach((codeLine) => {
                 const styledLine = highlight(lang, codeLine, true, state);
                 state = styledLine.top;
                 codeLines.push(styledLine.value);
