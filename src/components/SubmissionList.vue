@@ -13,8 +13,12 @@
     </div>
 
     <!-- Main table element -->
-    <b-table striped hover v-on:row-clicked='gotoSubmission' :items="latestOnly
-        ? latest : submissions" :fields="fields" :current-page="currentPage" :per-page="submissions.length + 1" :filter="filter">
+    <b-table striped hover
+             v-on:row-clicked='gotoSubmission'
+             :items="latestOnly ? latest : submissions"
+             :fields="fields"
+             :current-page="currentPage"
+             :filter="filter">
       <template slot="user_name" scope="item">
         {{item.value ? item.value : '-'}}
       </template>
@@ -90,10 +94,9 @@ export default {
                 }
             }
         },
-        gotoSubmission(_, i) {
+        gotoSubmission(sub) {
             this.submit();
-            this.$emit('goto', this.latestOnly ? this.latest[i] :
-                                                 this.submissions[i]);
+            this.$emit('goto', sub);
         },
         submit() {
             const query = { latest: this.latestOnly };
@@ -109,5 +112,16 @@ export default {
 <style lang="less">
 .table tr {
     cursor: pointer;
+}
+.table tbody:empty::after {
+    content: 'No results found!';
+    text-align: center;
+    position: absolute;
+    left: 0;
+    right: 0;
+    padding-top: 1em;
+    padding-bottom: 1em;
+    background: #eceeef;
+    margin: 0 15px;
 }
 </style>
