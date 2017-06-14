@@ -52,8 +52,6 @@ export default {
             // TODO: collaps textarea
             this.$http.delete(`/api/v1/code/${this.fileId}/comments/${this.line}`)
             .then(() => {
-                // eslint-disable-next-line
-                console.log('Comment removed!');
             }, () => null);
             this.$emit('cancel', this.line);
         },
