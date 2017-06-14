@@ -7,6 +7,7 @@
             <div class="col-md-6" v-else>
                 <h1>Submissions</h1>
                 <submission-list :submissions="submissions" v-on:goto="gotoSubmission"></submission-list>
+                <submissions-exporter :id="assignmentId"></submissions-exporter>
             </div>
 
             <div class="col-md-6">
@@ -20,7 +21,7 @@
 <script>
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/refresh';
-import { SubmissionList, CodeUploader } from '@/components';
+import { SubmissionList, CodeUploader, SubmissionsExporter } from '@/components';
 
 export default {
     name: 'submission-list-page',
@@ -53,6 +54,7 @@ export default {
         SubmissionList,
         CodeUploader,
         Icon,
+        SubmissionsExporter,
     },
 };
 </script>
