@@ -246,6 +246,50 @@ Logout the currently logged in user.
 ###### HTTP Request
 `POST http://example.com/api/v1/logout`
 
+### Permissions
+#### Getting all permissions
+```python
+import requests
+
+# Logged in as a user
+requests.get('/api/v1/permissions/')
+```
+
+> This will return JSON structured like this with a status code of 200:
+
+```json
+{
+  "edit_name": true,
+  "edit_email": true,
+  "add_user": false,
+}
+```
+
+Get all general or course permissions. Each item in the returned JSON object is
+a permission and the value is if the logged in user has this permission.
+
+<aside class="warning">
+This API call is quite expensive on the server side. If you only need one
+permission please specify the permission using the `GET` parameters. However if
+you do need all permissions do not create multiple requests but simply get all.
+</aside>
+
+<aside class="notice">
+If you want permissions for course that does not exist you will <b>NOT</b>
+receive a 404 error, but simply that you do not have permissions for anything
+for this course. However when getting a single permission you <b>WILL</b> get a
+404 error when getting a permission that does not exist.
+</aside>
+
+##### HTTP Request
+`GET https://example.com/api/v1/permissions/`
+
+##### Query Parameters
+| Parameter  | Description                                                                                                                               |
+| ---------  | -----------                                                                                                                               |
+| course_id  | The id of the course if you want course permissions, if not specified general permissions are returned.                                   |
+| permission | The name of the specific permission you want. This changes the resulting JSON to a boolean indicating if you have this permission or not. |
+
 ## Assignments
 ### Listing all assignments
 
