@@ -21,11 +21,14 @@ const actions = {
             });
         });
     },
+    addSnippet({ commit }, val) {
+        commit(types.NEW_SNIPPET, val);
+    },
     refreshSnippets({ commit }) {
         axios.get('/api/v1/snippets/').then((response) => {
             commit(types.SNIPPETS, response.data);
         }).catch(() => {
-            actions.refreshSnippets({ commit });
+            setTimeout(() => actions.refreshSnippets({ commit }), 1000 * 15);
         });
     },
     logout({ commit }) {
@@ -63,6 +66,9 @@ const mutations = {
         state.email = '';
         state.name = '';
         state.snippets = null;
+    },
+    [types.NEW_SNIPPET](state, { key, value }) {
+        state.snippets[key] = value;
     },
 };
 

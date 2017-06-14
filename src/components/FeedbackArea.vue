@@ -5,28 +5,47 @@
       </div>
     </div>
     </b-card>
-    <b-input-group v-else>
-      <b-form-input
-        :textarea="true"
-        ref="field" v-model="internalFeedback"
-        :style="{'font-size': '1em'}"
-        v-on:keydown.native.tab.capture="expandSnippet">
-      </b-form-input>
-        <b-input-group-button>
-            <b-button variant="primary" @click="submitFeedback">
-                <icon name="check" aria-hidden="true"></icon>
-            </b-button>
-            <b-button variant="default" @click="cancelFeedback">
-                <icon name="times" aria-hidden="true"></icon>
-            </b-button>
+    <div v-else>
+      <b-collapse class="collapsep flex-container" :id="`collapse${line}`">
+        <b-form-input class="input" v-model="snippetKey" v-on:keydown.native.ctrl.enter="addSnippet">
+        </b-form-input>
+        <b-popover :placement="'top'" :show="error !== '' && $parent.show" :content="error">
+          <b-btn :variant="snippetDone ? 'success' : 'primary'" style="margin-left: 0.2em;" @click="addSnippet">
+            <icon name="refresh" scale="1" spin v-if="pending"></icon>
+            <icon name="check" aria-hidden="true" v-else></icon>
+          </b-btn>
+        </b-popover>
+      </b-collapse>
+      <b-input-group>
+        <b-form-input
+          :textarea="true"
+          ref="field" v-model="internalFeedback"
+          :style="{'font-size': '1em'}"
+          v-on:keydown.native.tab.capture="expandSnippet"
+          v-on:keydown.native.ctrl.enter="submitFeedback">
+        </b-form-input>
+        <b-input-group-button class="minor-buttons">
+          <b-btn v-b-toggle="`collapse${line}`" variant="secondary">
+            <icon name="plus" aria-hidden="true"></icon>
+          </b-btn>
+          <b-button variant="danger" @click="cancelFeedback">
+            <icon name="times" aria-hidden="true"></icon>
+          </b-button>
         </b-input-group-button>
-    </b-input-group>
+        <b-input-group-button class="submit-feedback">
+          <b-button variant="primary" @click="submitFeedback">
+            <icon name="check" aria-hidden="true"></icon>
+          </b-button>
+        </b-input-group-button>
+      </b-input-group>
+    </div>
 </template>
 
 <script>
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/times';
+import 'vue-awesome/icons/plus';
 
 import { mapActions } from 'vuex';
 
@@ -44,6 +63,10 @@ export default {
         return {
             internalFeedback: this.feedback,
             done: true,
+            error: '',
+            snippetKey: '',
+            pending: false,
+            snippetDone: false,
         };
     },
     methods: {
@@ -79,20 +102,53 @@ export default {
             const end = field.$el.selectionEnd;
             if (field.$el.selectionStart === end) {
                 event.preventDefault();
-                const val = field.value.slice(0, end);
+                const val = this.internalFeedback.slice(0, end);
                 const start = Math.max(val.lastIndexOf(' '), val.lastIndexOf('\n')) + 1;
                 const res = this.$store.getters['user/snippets'][val.slice(start, end)];
                 if (res !== undefined) {
+                    this.snippetKey = val.slice(start, end);
                     this.internalFeedback = val.slice(0, start) + res.value +
-                        field.value.slice(end);
+                        this.internalFeedback.slice(end);
                 }
                 if (Math.random() < 0.25) {
                     this.refreshSnippets();
                 }
             }
         },
+        addSnippet() {
+            const val = {
+                key: this.snippetKey,
+                value: { value: this.internalFeedback },
+            };
+            if (val.key.indexOf(' ') > -1 || val.key.indexOf('\n') > -1) {
+                this.error = 'No spaces allowed!';
+                return;
+            } else if (val.key.length === 0) {
+                this.error = 'Snippet key cannot be empty';
+                return;
+            } else if (val.value.value.length === 0) {
+                this.error = 'Snippet value cannot be empty';
+                return;
+            }
+            this.error = '';
+            this.pending = true;
+            this.addSnippetToStore(val);
+            this.$http.put('/api/v1/snippet', {
+                key: val.key,
+                value: val.value.value,
+            }).then(() => {
+                this.pending = false;
+                this.snippetDone = true;
+                // Add a small timeout such that the green sign is visible
+                setTimeout(() => {
+                    this.snippetDone = false;
+                    this.$root.$emit('collapse::toggle', `collapse${this.line}`);
+                }, 1000 * 0.2);
+            });
+        },
         ...mapActions({
             refreshSnippets: 'user/refreshSnippets',
+            addSnippetToStore: 'user/addSnippet',
         }),
     },
     components: {
@@ -102,15 +158,36 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.input-group-btn button:first-child {
-    border-top-right-radius: 0.25rem !important;
-}
-.input-group-btn button:last-child {
-    border-top-right-radius: 0px !important;
-    border-bottom-right-radius: 0.25rem !important;
+button.btn {
+    cursor: pointer;
 }
 
-.input-group-btn button {
-    cursor: pointer;
+.minor-buttons:hover {
+    z-index: 0;
+}
+
+.collapsep .input {
+    width: 80% !important;
+    flex: 1;
+}
+
+.collapsep {
+    width: 30%;
+    float: right;
+    display: flex;
+}
+.flex-container {
+    flex-wrap: wrap;
+}
+.flex-container::after {
+    content: '';
+    width: 100%;
+}
+.flex-item:last-child { /* or `:nth-child(n + 4)` */
+    order: 1;
+}
+.help {
+    width: 80%;
+    float: left;
 }
 </style>
