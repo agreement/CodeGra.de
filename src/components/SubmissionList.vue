@@ -2,13 +2,13 @@
   <div>
     <div class="justify-content-centermy-1 row">
 
-      <b-form-fieldset horizontal label="Filter" class="col-10" :label-size="2">
+      <b-form-fieldset horizontal label="" class="col-10" :label-size="1">
         <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
       </b-form-fieldset>
 
       <b-form-checkbox v-model="latestOnly" class="col-2 text-right"
           v-if="latest.length !== submissions.length" checked="latestOnly" v-on:change="submit">
-        Only show latest assignments
+        Latest only
       </b-form-checkbox>
     </div>
 
@@ -126,5 +126,9 @@ export default {
     tr {
         cursor: pointer;
     }
+}
+
+.custom-checkbox {
+    font-size: 0.95em;
 }
 </style>
