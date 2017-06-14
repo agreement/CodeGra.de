@@ -22,8 +22,6 @@ import { bButton, bFormInput, bInputGroup, bInputGroupButton }
     from 'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
-import 'vue-awesome/icons/check';
-import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/plus';
 
 import FeedbackArea from '@/components/FeedbackArea';

@@ -162,12 +162,13 @@ def get_all_works_for_assignment(assignment_id):
 
     return jsonify([{
         'id': work.id,
+        'user_name': work.user.name if work.user else "Unknown",
         'user_id': work.user_id,
         'state': work.state,
         'edit': work.edit,
         'grade': work.grade,
         'comment': work.comment,
-        'created_at': work.created_at,
+        'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
     } for work in res])
 
 
@@ -319,3 +320,32 @@ def upload_work(assignment_id):
     db.session.commit()
 
     return ('', 204)
+
+
+@app.route('/api/v1/permissions/', methods=['GET'])
+@login_required
+def get_permissions():
+    if 'course_id' in request.args:
+        try:
+            course_id = int(request.args['course_id'])
+        except ValueError:
+            raise APIException(
+                'The specified course id was invalid',
+                'The course id should be a number but '
+                '{} is not a number'.format(request.args['course_id']),
+                APICodes.INVALID_PARAM, 400)
+    else:
+        course_id = None
+
+    if 'permission' in request.args:
+        perm = request.args['permission']
+        try:
+            return jsonify(current_user.has_permission(perm,
+                                                       course_id))
+        except KeyError:
+            raise APIException('The specified permission does not exist',
+                               'The permission '
+                               '"{}" is not real permission'.format(perm),
+                               APICodes.OBJECT_NOT_FOUND, 404)
+    else:
+        return jsonify(current_user.get_all_permissions(course_id=course_id))

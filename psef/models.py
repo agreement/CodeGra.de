@@ -37,9 +37,9 @@ user_course = db.Table('users-courses',
 class Permission(db.Model):
     __tablename__ = 'Permission'
     id = db.Column('id', db.Integer, primary_key=True)
-    name = db.Column('name', db.Unicode, unique=True)
+    name = db.Column('name', db.Unicode, unique=True, index=True)
     default_value = db.Column('default_value', db.Boolean, default=False)
-    course_permission = db.Column('course_permission', db.Boolean)
+    course_permission = db.Column('course_permission', db.Boolean, index=True)
 
 
 class CourseRole(db.Model):
@@ -73,6 +73,23 @@ class CourseRole(db.Model):
                 return (permission.default_value and
                         permission.course_permission)
 
+    def get_all_permissions(self):
+        """Get all course permissions for this course role.
+
+        :returns: A name boolean mapping where the name is the name of the
+                  permission and the value indicates if this user has this
+                  permission.
+        :rtype: dict[str, bool]
+        """
+        perms = Permission.query.filter_by(course_permission=True).all()
+        result = {}
+        for perm in perms:
+            if perm.name in self._permissions:
+                result[perm.name] = not perm.default_value
+            else:
+                result[perm.name] = perm.default_value
+        return result
+
 
 class Role(db.Model):
     __tablename__ = 'Role'
@@ -95,6 +112,23 @@ class Role(db.Model):
             else:
                 return (permission.default_value and
                         not permission.course_permission)
+
+    def get_all_permissions(self):
+        """Get all course permissions for this role.
+
+        :returns: A name boolean mapping where the name is the name of the
+                  permission and the value indicates if this user has this
+                  permission.
+        :rtype: dict[str, bool]
+        """
+        perms = Permission.query.filter_by(course_permission=False).all()
+        result = {}
+        for perm in perms:
+            if perm.name in self._permissions:
+                result[perm.name] = not perm.default_value
+            else:
+                result[perm.name] = perm.default_value
+        return result
 
 
 class User(db.Model, UserMixin):
@@ -122,8 +156,25 @@ class User(db.Model, UserMixin):
         if course_id is None:
             return self.role.has_permission(permission)
         else:
+            if isinstance(course_id, Course):
+                course_id = course_id.id
             return (course_id in self.courses and
                     self.courses[course_id].has_permission(permission))
+
+    def get_all_permissions(self, course_id=None):
+        if isinstance(course_id, Course):
+            course_id = course_id.id
+
+        if course_id is None:
+            return self.role.get_all_permissions()
+        elif course_id in self.courses:
+            return self.courses[course_id].get_all_permissions()
+        else:
+            return {
+                perm.name: False
+                for perm in Permission.query.filter_by(course_permission=True)
+                .all()
+            }
 
     @property
     def is_active(self):
@@ -160,7 +211,7 @@ class Work(db.Model):
     edit = db.Column('edit', db.Integer)
     grade = db.Column('grade', db.Float, default=None)
     comment = db.Column('comment', db.Unicode, default=None)
-    created_at = db.Column(db.Date, default=datetime.datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.now)
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', single_parent=True, foreign_keys=user_id)
