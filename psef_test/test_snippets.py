@@ -60,7 +60,7 @@ def other(session, perms, student_role):
     yield m.User.query.filter_by(name='Other').first()
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='function')
 def snippets(session, thomas, other):
     tsnips = []
     osnips = []
@@ -73,7 +73,13 @@ def snippets(session, thomas, other):
     for snip in osnips + tsnips:
         session.add(snip)
     session.commit()
+
     yield tsnips, osnips
+
+    for snip in osnips + tsnips:
+        if m.Snippet.query.get(snip.id):
+            session.delete(snip)
+    session.commit()
 
 
 def test_get_all_snippets(thomas, other, snippets, login_endpoint,
@@ -91,3 +97,32 @@ def test_get_all_snippets(thomas, other, snippets, login_endpoint,
                 } in data
             assert len(snips) == len(data)
             test_client.post('/api/v1/logout')
+    rv = test_client.get('/api/v1/snippets/')
+    assert rv.status_code == 401
+
+
+def test_delete_snippets(thomas, snippets, login_endpoint, test_client):
+    with test_client:
+        login_endpoint(thomas.id)
+
+        rv = test_client.delete(
+            '/api/v1/snippets/{}'.format(snippets[0][0].id))
+        assert rv.status_code == 204
+
+        rv = test_client.get('/api/v1/snippets/')
+        data = json.loads(rv.get_data(as_text=True))
+
+        assert {
+            'key': snippets[0][0].key,
+            'value': snippets[0][0].value,
+            'id': snippets[0][0].id
+        } not in data
+
+        rv = test_client.delete(
+            '/api/v1/snippets/{}'.format(snippets[1][0].id))
+        assert rv.status_code == 403
+
+        test_client.post('/api/v1/logout')
+
+    rv = test_client.delete('/api/v1/snippets/{}'.format(snippets[0][1].id))
+    assert rv.status_code == 401
