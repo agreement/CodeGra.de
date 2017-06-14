@@ -38,7 +38,7 @@ export default {
     },
 
     mounted() {
-        this.getAssignment();
+        this.getSubmission();
 
         const elements = Array.from(document.querySelectorAll('html, body, #app, header, footer'));
         const [html, body, app, header, footer] = elements;
@@ -100,13 +100,13 @@ export default {
 
     methods: {
         getAssignment() {
-            this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then((data) => {
-                this.title = data.data.name;
-                this.description = data.data.description;
-                this.course_name = data.data.course_name;
-                this.course_id = data.data.course_id;
-                this.getSubmission();
-            });
+            // this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then((data) => {
+            //     this.title = data.data.name;
+            //     this.description = data.data.description;
+            //     this.course_name = data.data.course_name;
+            //     this.course_id = data.data.course_id;
+            //     this.getSubmission();
+            // });
         },
 
         getSubmission() {

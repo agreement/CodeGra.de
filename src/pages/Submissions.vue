@@ -34,7 +34,7 @@ export default {
     },
 
     mounted() {
-        this.$http.get(`/api/v1/assignments/${this.assignmentId}/works`).then((data) => {
+        this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then((data) => {
             this.loading = false;
             this.submissions = data.data;
         });
@@ -42,7 +42,10 @@ export default {
 
     methods: {
         gotoSubmission(submission) {
-            this.$router.push(`/assignments/${this.assignmentId}/submissions/${submission.id}/`);
+            this.$router.push({
+                name: 'submission',
+                params: { submissionId: submission.id },
+            });
         },
     },
 
