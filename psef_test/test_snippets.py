@@ -84,6 +84,10 @@ def test_get_all_snippets(thomas, other, snippets, login_endpoint,
             rv = test_client.get('/api/v1/snippets/')
             data = json.loads(rv.get_data(as_text=True))
             for snip in snips:
-                assert {'key': snip.key, 'value': snip.value} in data
+                assert {
+                    'key': snip.key,
+                    'value': snip.value,
+                    'id': snip.id
+                } in data
             assert len(snips) == len(data)
             test_client.post('/api/v1/logout')

@@ -335,4 +335,4 @@ class Snippet(db.Model):
         return cls.query.filter_by(user_id=user.id).all()
 
     def to_dict(self):
-        return {'key': self.key, 'value': self.value}
+        return {'key': self.key, 'value': self.value, 'id': self.id}
