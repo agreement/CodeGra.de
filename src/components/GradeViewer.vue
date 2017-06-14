@@ -59,8 +59,6 @@ export default {
                     headers: { 'Content-Type': 'application/json' },
                 },
             ).then(() => {
-                // eslint-disable-next-line
-                console.log('submitted grade and feedback!');
             });
             this.$emit('submit');
         },
