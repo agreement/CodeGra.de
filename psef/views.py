@@ -174,12 +174,13 @@ def get_all_works_for_assignment(assignment_id):
 
     return jsonify([{
         'id': work.id,
+        'user_name': work.user.name if work.user else "Unknown",
         'user_id': work.user_id,
         'state': work.state,
         'edit': work.edit,
         'grade': work.grade,
         'comment': work.comment,
-        'created_at': work.created_at,
+        'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
     } for work in res])
 
 
