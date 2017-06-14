@@ -324,8 +324,8 @@ class Assignment(db.Model):
 class Snippet(db.Model):
     __tablename__ = 'Snippet'
     id = db.Column('id', db.Integer, primary_key=True)
-    key = db.Column('key', db.Unicode)
-    value = db.Column('value', db.Unicode)
+    key = db.Column('key', db.Unicode, nullable=False)
+    value = db.Column('value', db.Unicode, nullable=False)
     user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
 
     user = db.relationship('User', foreign_keys=user_id)
