@@ -1,5 +1,6 @@
 import os
 import enum
+import datetime
 
 from flask_login import UserMixin
 from sqlalchemy_utils import PasswordType
@@ -36,9 +37,9 @@ user_course = db.Table('users-courses',
 class Permission(db.Model):
     __tablename__ = 'Permission'
     id = db.Column('id', db.Integer, primary_key=True)
-    name = db.Column('name', db.Unicode, unique=True)
+    name = db.Column('name', db.Unicode, unique=True, index=True)
     default_value = db.Column('default_value', db.Boolean, default=False)
-    course_permission = db.Column('course_permission', db.Boolean)
+    course_permission = db.Column('course_permission', db.Boolean, index=True)
 
 
 class CourseRole(db.Model):
@@ -54,17 +55,40 @@ class CourseRole(db.Model):
     course = db.relationship('Course', foreign_keys=course_id)
 
     def has_permission(self, permission):
-        if permission in self._permissions:
-            perm = self._permissions[permission]
+        if isinstance(permission, Permission):
+            permission_name = permission.name
+        else:
+            permission_name = permission
+        if permission_name in self._permissions:
+            perm = self._permissions[permission_name]
             return perm.course_permission and not perm.default_value
         else:
-            permission = Permission.query.filter_by(name=permission).first()
+            if not isinstance(permission, Permission):
+                permission = Permission.query.filter_by(
+                    name=permission).first()
             if permission is None:
-                raise KeyError(
-                    'The permission "{}" does not exist'.format(permission))
+                raise KeyError('The permission "{}" does not exist'.format(
+                    permission_name))
             else:
                 return (permission.default_value and
                         permission.course_permission)
+
+    def get_all_permissions(self):
+        """Get all course permissions for this course role.
+
+        :returns: A name boolean mapping where the name is the name of the
+                  permission and the value indicates if this user has this
+                  permission.
+        :rtype: dict[str, bool]
+        """
+        perms = Permission.query.filter_by(course_permission=True).all()
+        result = {}
+        for perm in perms:
+            if perm.name in self._permissions:
+                result[perm.name] = not perm.default_value
+            else:
+                result[perm.name] = perm.default_value
+        return result
 
 
 class Role(db.Model):
@@ -88,6 +112,23 @@ class Role(db.Model):
             else:
                 return (permission.default_value and
                         not permission.course_permission)
+
+    def get_all_permissions(self):
+        """Get all course permissions for this role.
+
+        :returns: A name boolean mapping where the name is the name of the
+                  permission and the value indicates if this user has this
+                  permission.
+        :rtype: dict[str, bool]
+        """
+        perms = Permission.query.filter_by(course_permission=False).all()
+        result = {}
+        for perm in perms:
+            if perm.name in self._permissions:
+                result[perm.name] = not perm.default_value
+            else:
+                result[perm.name] = perm.default_value
+        return result
 
 
 class User(db.Model, UserMixin):
@@ -115,8 +156,25 @@ class User(db.Model, UserMixin):
         if course_id is None:
             return self.role.has_permission(permission)
         else:
+            if isinstance(course_id, Course):
+                course_id = course_id.id
             return (course_id in self.courses and
                     self.courses[course_id].has_permission(permission))
+
+    def get_all_permissions(self, course_id=None):
+        if isinstance(course_id, Course):
+            course_id = course_id.id
+
+        if course_id is None:
+            return self.role.get_all_permissions()
+        elif course_id in self.courses:
+            return self.courses[course_id].get_all_permissions()
+        else:
+            return {
+                perm.name: False
+                for perm in Permission.query.filter_by(course_permission=True)
+                .all()
+            }
 
     @property
     def is_active(self):
@@ -134,10 +192,11 @@ class Course(db.Model):
     name = db.Column('name', db.Unicode)
 
 
-class WorkStateEnum(enum.Enum):
-    initial = 0
-    started = 1
-    done = 2
+@enum.unique
+class WorkStateEnum(enum.IntEnum):
+    initial = 0  # Not looked at
+    started = 1  # The TA is working on it
+    done = 2  # This is the same as graded would be
 
 
 class Work(db.Model):
@@ -145,14 +204,23 @@ class Work(db.Model):
     id = db.Column('id', db.Integer, primary_key=True)
     assignment_id = db.Column('Assignment_id', db.Integer,
                               db.ForeignKey('Assignment.id'))
-    user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
-    state = db.Column('state', db.Enum(WorkStateEnum))
+    user_id = db.Column('User_id', db.Integer,
+                        db.ForeignKey('User.id', ondelete='CASCADE'))
+    state = db.Column(
+        'state', db.Enum(WorkStateEnum), default=WorkStateEnum.initial)
     edit = db.Column('edit', db.Integer)
+    grade = db.Column('grade', db.Float, default=None)
+    comment = db.Column('comment', db.Unicode, default=None)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.now)
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
-    user = db.relationship('User', foreign_keys=user_id)
+    user = db.relationship('User', single_parent=True, foreign_keys=user_id)
 
-    def add_file_tree(self, db, tree):
+    @property
+    def is_graded(self):
+        return self.state == WorkStateEnum.done
+
+    def add_file_tree(self, session, tree):
         """Add the given tree to the given db.
 
         .. warning::
@@ -165,9 +233,9 @@ class Work(db.Model):
         :rtype: None
         """
         assert isinstance(tree, dict)
-        return self._add_file_tree(db, tree, None)
+        return self._add_file_tree(session, tree, None)
 
-    def _add_file_tree(self, db, tree, top):
+    def _add_file_tree(self, session, tree, top):
         def ensure_list(item):
             return item if isinstance(item, list) else [item]
 
@@ -178,15 +246,15 @@ class Work(db.Model):
                 name=new_top,
                 extension=None,
                 parent=top)
-            db.session.add(new_top)
+            session.add(new_top)
             for child in ensure_list(children):
                 if isinstance(child, dict):
-                    self._add_file_tree(db, child, new_top)
+                    self._add_file_tree(session, child, new_top)
                     continue
                 child, filename = child
                 name, ext = os.path.splitext(child)
                 ext = ext[1:]
-                db.session.add(
+                session.add(
                     File(
                         work=self,
                         extension=ext,
@@ -212,6 +280,22 @@ class File(db.Model):
     __table_args__ = (
         db.CheckConstraint(or_(is_directory == false(), extension == null())),
     )
+
+    def get_filename(self):
+        if self.extension != None:
+            return "{}.{}".format(self.name, self.extension)
+        else:
+            return self.name
+
+    def list_contents(self):
+        if self.is_directory == False:
+            return {"name": self.get_filename(), "id": self.id}
+        else:
+            return {
+                "name": self.get_filename(),
+                "id": self.id,
+                "entries": [child.list_contents() for child in self.children]
+            }
 
 
 class Comment(db.Model):

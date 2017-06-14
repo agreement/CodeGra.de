@@ -18,11 +18,11 @@ def render_item(type_, col, autogen_context):
     else:
         return False
 
+
 migrate = Migrate(app, db, render_item=render_item)
 manager = Manager(app)
 
 manager.add_command('db', MigrateCommand)
-
 
 
 @manager.command
@@ -30,7 +30,11 @@ def seed():
     with open('./seed_data/permissions.json', 'r') as perms:
         perms = json.load(perms)
         for perm in perms:
-            if m.Permission.query.filter_by(name=perm['name']).first() is None:
+            old_perm = m.Permission.query.filter_by(name=perm['name']).first()
+            if old_perm is not None:
+                old_perm.default_value = perm['default_value']
+                old_perm.course_permission = perm['course_permission']
+            else:
                 db.session.add(m.Permission(**perm))
     db.session.commit()
 
@@ -60,25 +64,32 @@ def test_data():
     with open('./test_data/course_roles.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
-            m.CourseRole.query.filter_by(
-                    name=c['name'],
-                    course=m.Course.query.filter_by(
-                        name=c['course']).first()).delete()
+            u = m.CourseRole.query.filter_by(
+                name=c['name'],
+                course=m.Course.query.filter_by(
+                    name=c['course']).first()).first()
             assert m.Course.query.filter_by(name=c['course']).first()
 
             perms = {
                 name: m.Permission.query.filter_by(name=name).first()
                 for name in c['permissions']
             }
-            db.session.add(
-                m.CourseRole(
-                    name=c['name'],
-                    _permissions=perms,
-                    course=m.Course.query.filter_by(name=c['course']).first()))
+            if u is not None:
+                u.name = c['name']
+                u._permissions = perms
+                course = m.Course.query.filter_by(name=c['course']).first()
+            else:
+                db.session.add(
+                    m.CourseRole(
+                        name=c['name'],
+                        _permissions=perms,
+                        course=m.Course.query.filter_by(name=c['course']).first()))
     with open('./test_data/assignments.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
-            m.Assignment.query.filter_by(name=c['name']).delete()
+            if m.Assignment.query.filter_by(
+                    name=c['name']).first() is not None:
+                continue
             db.session.add(
                 m.Assignment(
                     name=c['name'],
@@ -87,7 +98,7 @@ def test_data():
     with open('./test_data/users.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
-            m.User.query.filter_by(name=c['name']).delete()
+            u = m.User.query.filter_by(name=c['name']).first()
             courses = {
                 m.Course.query.filter_by(name=name).first(): role
                 for name, role in c['courses'].items()
@@ -97,13 +108,40 @@ def test_data():
                     name=name, course_id=course.id).first()
                 for course, name in courses.items()
             }
+            if u is not None:
+                u.name = c['name']
+                u.courses = perms
+                u.email = c['name'].replace(' ', '_').lower() + '@example.com'
+                u.password = c['name']
+                u.role = m.Role.query.filter_by(name=c['role']).first()
+            else:
+                db.session.add(
+                    m.User(
+                        name=c['name'],
+                        courses=perms,
+                        email=c['name'].replace(' ', '_').lower() +
+                        '@example.com',
+                        password=c['name'],
+                        role=m.Role.query.filter_by(name=c['role']).first()))
+    with open('./test_data/works.json', 'r') as c:
+        cs = json.load(c)
+        for c in cs:
+            if m.Work.query.filter_by(
+                    assignment=m.Assignment.query.filter_by(
+                        name=c['assignment']).first(),
+                    user=m.User.query.filter_by(
+                        name=c['user']).first()).first() is not None:
+                continue
+
             db.session.add(
-                m.User(
-                    name=c['name'],
-                    courses=perms,
-                    email=c['name'].replace(' ', '_').lower() + '@example.com',
-                    password=c['name'],
-                    role=m.Role.query.filter_by(name=c['role']).first()))
+                m.Work(
+                    assignment=m.Assignment.query.filter_by(
+                        name=c['assignment']).first(),
+                    user=m.User.query.filter_by(name=c['user']).first(),
+                    comment=c['comment'],
+                    state=c['state'],
+                    grade=c['grade'],
+                    edit=c['edit']))
     db.session.commit()
 
 

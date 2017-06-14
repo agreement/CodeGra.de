@@ -70,7 +70,7 @@
     import 'vue-awesome/icons/times';
 
     export default {
-        name: 'Upload',
+        name: 'code-uploader',
         components: {
             Dropzone,
             Icon,
@@ -93,7 +93,7 @@
             return {
                 startedUpload: false,
                 options: {
-                    url: `api/v1/assignments/${this.assignmentId}/work`,
+                    url: `api/v1/assignments/${this.assignmentId}/submission`,
                     method: 'POST',
                     maxFiles: this.maxFiles,
                     maxFilesize: this.maxFilesize,

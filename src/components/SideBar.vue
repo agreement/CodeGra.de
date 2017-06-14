@@ -5,13 +5,7 @@
                 <a v-bind:href="userBaseURL">{{ username }}</a>
             </li>
             <li>
-                <a v-bind:href="userOpenURL">Open assignments</a>
-            </li>
-            <li>
-                <a v-bind:href="userGradedURL">Graded assignments</a>
-            </li>
-            <li>
-                <a href="#/settings">Settings</a>
+                <a v-bind:href="userAssignmentsURL">Assignments</a>
             </li>
             <li>
                 <a href="#/login" @click="logout()">Logout</a>
@@ -36,12 +30,8 @@ export default {
             return `#/users/${this.userid}`;
         },
 
-        userOpenURL() {
-            return `${this.userBaseURL}/assignments?graded=0`;
-        },
-
-        userGradedURL() {
-            return `${this.userBaseURL}/assignments?graded=1`;
+        userAssignmentsURL() {
+            return '#/assignments';
         },
 
         ...mapGetters('user', {

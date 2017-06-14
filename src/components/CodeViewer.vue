@@ -1,33 +1,15 @@
 <template>
-    <div class="code-viewer" v-bind:class="{ editable }">
-        <ol class="form-control">
-            <li v-on:click="addFeedback($event, i)" v-for="(line, i) in highlighted_code">
-                <code v-html="line"></code>
+    <ol class="code-viewer form-control" :class="{ editable }">
+        <li v-on:click="addFeedback($event, i)" v-for="(line, i) in highlighted_code">
+            <code v-html="line"></code>
 
-                <b-card v-if="!editable && feedback[i]">
-                    {{ feedback[i] }}
-                </b-card>
 
-                <b-input-group v-if="editable && feedback[i] != null">
-                    <b-form-input v-model="feedback[i]"></b-form-input>
+            <feedback-area :editing="editing[i] === true" :feedback='feedback[i]' :editable='editable' :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }" v-on:cancel='onChildCancel' v-if="feedback[i] != null"></feedback-area>
 
-                    <b-input-group-button>
-                        <b-button variant="default" v-on:click="cancelFeedback($event, i)">
-                            <icon name="times" aria-hidden="true"></icon>
-                        </b-button>
-                    </b-input-group-button>
-                    <b-input-group-button>
-                        <b-button variant="primary" v-on:click="submitFeedback($event, i)">
-                            <icon name="check" aria-hidden="true"></icon>
-                        </b-button>
-                    </b-input-group-button>
-                </b-input-group>
-
-                <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
-                    v-on:click="addFeedback($event, i)"></icon>
-            </li>
-        </ol>
-    </div>
+            <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
+                v-on:click="addFeedback($event, value)"></icon>
+        </li>
+    </ol>
 </template>
 
 <script>
@@ -38,9 +20,9 @@ import { bButton, bFormInput, bInputGroup, bInputGroupButton }
     from 'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
-import 'vue-awesome/icons/check';
-import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/plus';
+
+import FeedbackArea from '@/components/FeedbackArea';
 
 export default {
     name: 'code-viewer',
@@ -52,7 +34,9 @@ export default {
             fileId: this.id,
             lang: '',
             code: '',
-            feedback: [],
+            editing: {},
+            feedback: {},
+            clicks: {},
         };
     },
 
@@ -86,40 +70,33 @@ export default {
     methods: {
         getCode() {
             this.$http.get(`/api/v1/code/${this.fileId}`).then((data) => {
-                this.lang = data.body.lang;
-                this.code = data.body.code;
-                this.feedback = data.body.feedback;
+                this.lang = data.data.lang;
+                this.code = data.data.code;
+                this.feedback = data.data.feedback;
             });
         },
 
+        onChildCancel(line) {
+            this.clicks[line] = true;
+            Vue.set(this.editing, line, false);
+            Vue.set(this.feedback, line, null);
+        },
+
         addFeedback(event, line) {
-            if (this.feedback[line] == null) {
+            if (this.clicks[line] === true) {
+                delete this.clicks[line];
+            } else if (this.feedback[line] == null) {
+                Vue.set(this.editing, line, true);
                 Vue.set(this.feedback, line, '');
             }
         },
 
+        feedbackChange(line, feedback) {
+            this.editing[line] = false;
+            this.feedback[line] = feedback;
+        },
         // eslint-disable-next-line
         submitAllFeedback(event) {},
-
-        // eslint-disable-next-line
-        submitFeedback(event, line) {
-            this.$http.put(`/api/v1/code/${this.fileId}/comment/${line}`,
-                {
-                    comment: this.feedback[line],
-                },
-                {
-                    headers: { 'Content-Type': 'application/json' },
-                },
-            ).then(() => {
-                // eslint-disable-next-line
-                console.log('Comment updated or inserted!');
-            });
-        },
-
-        cancelFeedback(event, line) {
-            event.stopPropagation();
-            Vue.set(this.feedback, line, null);
-        },
     },
 
     components: {
@@ -128,13 +105,13 @@ export default {
         bInputGroup,
         bInputGroupButton,
         Icon,
+        FeedbackArea,
     },
 };
 </script>
 
 <style lang="less" scoped>
 ol {
-    position: relative;
     font-family: monospace;
     font-size: small;
     margin: 0;
@@ -143,6 +120,7 @@ ol {
 }
 
 li {
+    position: relative;
     padding-left: 1em;
     padding-right: 1em;
 
@@ -152,7 +130,7 @@ li {
 }
 
 code {
-    white-space: pre;
+    white-space: pre-wrap;
 }
 
 .feedback {
@@ -161,13 +139,12 @@ code {
 
 .add-feedback {
     position: absolute;
-    right: 100%;
-    transform: translate(-50%, -100%);
+    top: 0;
+    right: .5em;
     display: none;
 
     li:hover & {
         display: block;
     }
 }
-
 </style>
