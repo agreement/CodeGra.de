@@ -10,7 +10,7 @@
                     v-on:submit="submitAllFeedback($event)"></grade-viewer>
             </div>
 
-            <file-tree class="col-2" v-bind:collapsed="false"
+            <file-tree class="col-2" v-bind:collapsed="false" v-bind:submissionId="submissionId"
                 v-bind:tree="fileTree" v-if="fileTree"></file-tree>
         </div>
     </div>
