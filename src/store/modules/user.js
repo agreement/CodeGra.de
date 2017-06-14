@@ -5,6 +5,7 @@ import * as types from '../mutation-types';
 const getters = {
     loggedIn: state => state.id !== 0,
     id: state => state.id,
+    snippets: state => state.snippets,
     name: state => state.name,
 };
 
@@ -14,9 +15,17 @@ const actions = {
             axios.post('/api/v1/login', { email, password }).then((response) => {
                 commit(types.LOGIN, response.data);
                 resolve();
+                actions.refreshSnippets({ commit });
             }).catch((err) => {
                 reject(err.response.data);
             });
+        });
+    },
+    refreshSnippets({ commit }) {
+        axios.get('/api/v1/snippets/').then((response) => {
+            commit(types.SNIPPETS, response.data);
+        }).catch(() => {
+            actions.refreshSnippets({ commit });
         });
     },
     logout({ commit }) {
@@ -33,6 +42,7 @@ const actions = {
         axios.get('/api/v1/login').then((response) => {
             // We are already logged in. Update state to logged in state
             commit(types.LOGIN, response.data);
+            actions.refreshSnippets({ commit });
         }).catch(() => {
             commit(types.LOGOUT);
         });
@@ -45,10 +55,14 @@ const mutations = {
         state.email = userdata.email;
         state.name = userdata.name;
     },
+    [types.SNIPPETS](state, snippets) {
+        state.snippets = snippets;
+    },
     [types.LOGOUT](state) {
         state.id = 0;
         state.email = '';
         state.name = '';
+        state.snippets = null;
     },
 };
 
@@ -58,6 +72,7 @@ export default {
         id: 0,
         email: '',
         name: '',
+        snippets: null,
     },
     getters,
     actions,
