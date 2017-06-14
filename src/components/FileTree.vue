@@ -10,9 +10,9 @@
         <ol v-show="!isCollapsed">
             <li v-for="f in tree.entries">
                 <file-tree v-bind:tree="f" v-if="f.entries"></file-tree>
-                <a v-bind:href="fileURL(f)" v-else>
+                <router-link :to="fileURL(f)" replace v-else>
                     <icon name="file"></icon> {{ f.name }}
-                </a>
+                </router-link>
             </li>
         </ol>
     </div>

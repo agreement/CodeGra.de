@@ -1,9 +1,10 @@
 <template>
     <ol>
         <li v-for="s in submissions">
-            <a v-bind:href="submissionURL(s)">
+            <router-link :to="submissionURL(s)">
+                <!-- TODO: Moet denk ik `s.date` worden -->
                 {{ s.id }}
-            </a>
+            </router-link>
         </li>
     </ol>
 </template>

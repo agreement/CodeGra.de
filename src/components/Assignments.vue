@@ -1,9 +1,9 @@
 <template>
     <ol>
         <li v-for="a in assignments_list">
-            <a v-bind:href="submissionURL(a)">
-                {{ a.name }}
-            </a>
+            <router-link :to="submissionsURL(a)">
+                {{a.name}}
+            </router-link>
         </li>
     </ol>
 </template>
