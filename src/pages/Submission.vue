@@ -77,8 +77,6 @@ export default {
     },
 
     destroyed() {
-        console.log('bla');
-
         const elements = Array.from(document.querySelectorAll('html, body, #app, header, footer'));
         const [html, body, app, header, footer] = elements;
 
