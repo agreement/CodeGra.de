@@ -2,12 +2,7 @@
   <div>
     <div class="justify-content-centermy-1 row">
 
-      <b-form-fieldset horizontal label="Rows per page" class="col-4" :label-size="6">
-        <b-form-select :options="[{text:15,value:15},{text:30,value:30},{text:'all',value:10000}]" v-model="perPage">
-        </b-form-select>
-      </b-form-fieldset>
-
-      <b-form-fieldset horizontal label="Filter" class="col-6" :label-size="2">
+      <b-form-fieldset horizontal label="Filter" class="col-10" :label-size="2">
         <b-form-input v-model="filter" placeholder="Type to Search"></b-form-input>
       </b-form-fieldset>
 
@@ -19,7 +14,7 @@
 
     <!-- Main table element -->
     <b-table striped hover v-on:row-clicked='gotoSubmission' :items="latestOnly
-        ? latest : submissions" :fields="fields" :current-page="currentPage" :per-page="perPage" :filter="filter">
+        ? latest : submissions" :fields="fields" :current-page="currentPage" :per-page="submissions.length + 1" :filter="filter">
       <template slot="user_name" scope="item">
         {{item.value ? item.value : '-'}}
       </template>
@@ -30,10 +25,6 @@
         {{item.value ? item.value : '-'}}
       </template>
     </b-table>
-
-    <div class="justify-content-center row my-1" v-if="this.submissions.length > this.perPage">
-      <b-pagination size="md" :total-rows="this.submissions.length" :per-page="perPage" v-model="currentPage" />
-    </div>
   </div>
 </template>
 
@@ -52,7 +43,6 @@ export default {
         return {
             latestOnly: true,
             currentPage: 1,
-            perPage: 15,
             filter: null,
             latest: [],
             fields: {
