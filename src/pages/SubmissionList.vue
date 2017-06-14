@@ -1,12 +1,12 @@
 <template>
     <div class="page submission-list">
         <div class="row">
-            <div class="col-md-6">
+          <div class="text-center loader col-md-6" v-if="loading">
+            <icon name="refresh" scale="4" spin></icon>
+          </div>
+            <div class="col-md-6" v-else>
                 <h1>Submissions</h1>
                 <submission-list :submissions="submissions" v-on:goto="gotoSubmission"></submission-list>
-                <div class="text-center loader" v-if="loading">
-                  <icon name="refresh" scale="4" spin></icon>
-                </div>
             </div>
 
             <div class="col-md-6">
@@ -56,6 +56,6 @@ export default {
 
 <style lang="less">
 .loader {
-    padding-top: 1em;
+    padding-top: 3.5em;
 }
 </style>
