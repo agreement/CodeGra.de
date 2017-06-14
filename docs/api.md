@@ -373,7 +373,7 @@ import requests
 requests.delete('https://example.com/api/v1/snippets/{}'.format(snippet_id))
 ```
 
-> This will result in a an empty response with status code 204
+> This will result in an empty response with status code 204
 
 Delete the snippet with the specified id. Only snippets owned by the current
 user can be deleted.
