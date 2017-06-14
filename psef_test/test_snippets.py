@@ -126,3 +126,46 @@ def test_delete_snippets(thomas, snippets, login_endpoint, test_client):
 
     rv = test_client.delete('/api/v1/snippets/{}'.format(snippets[0][1].id))
     assert rv.status_code == 401
+
+
+def test_add_snippets(thomas, login_endpoint, test_client):
+    headers = [('Content-Type', 'application/json')]
+    with test_client:
+        def put(data):
+            return test_client.put('/api/v1/snippet',
+                                   data=json.dumps(data),
+                                   headers=headers)
+        login_endpoint(thomas.id)
+
+        rv = put({'key': 'hello', 'value': 'val'})
+        assert rv.status_code == 204
+
+        rv = test_client.get('/api/v1/snippets/')
+        data = json.loads(rv.get_data(as_text=True))
+
+        items = len(data)
+
+        for perm in data:
+            if perm['key'] == 'hello' and perm['value'] == 'val':
+                break
+        else:
+            assert False
+
+        rv = put({'key': 'hello', 'value': 'bye'})
+        assert rv.status_code == 204
+
+        rv = test_client.get('/api/v1/snippets/')
+        data = json.loads(rv.get_data(as_text=True))
+
+        assert items == len(data)
+
+        for perm in data:
+            if perm['key'] == 'hello' and perm['value'] == 'bye':
+                break
+        else:
+            assert False
+
+        test_client.post('/api/v1/logout')
+
+        rv = put({'key': 'hello', 'value': 'bye'})
+        assert rv.status_code == 401

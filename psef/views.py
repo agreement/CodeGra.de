@@ -356,6 +356,29 @@ def get_snippets():
     return jsonify([r.to_dict() for r in res])
 
 
+@app.route('/api/v1/snippet', methods=['PUT'])
+@auth.permission_required('can_use_snippets')
+def add_snippet():
+    content = request.get_json()
+    if 'key' not in content or 'value' not in content:
+        raise APIException(
+            'Not all required keys were in content',
+            'The given content ({}) does  not contain "key" and "value"'.
+            format(content), APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    snippet = models.Snippet.query.filter_by(
+        user_id=current_user.id, key=content['key']).first()
+    if snippet is None:
+        db.session.add(
+            models.Snippet(
+                key=content['key'], value=content['value'], user=current_user))
+    else:
+        snippet.value = content['value']
+    db.session.commit()
+
+    return '', 204
+
+
 @app.route('/api/v1/snippets/<int:snippet_id>', methods=['DELETE'])
 @auth.permission_required('can_use_snippets')
 def delete_snippets(snippet_id):
