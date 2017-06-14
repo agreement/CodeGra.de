@@ -317,7 +317,7 @@ def upload_work(assignment_id):
 
     db.session.commit()
 
-    return ('', 204)
+    return (jsonify({'id':work.id}), 201)
 
 
 @app.route('/api/v1/permissions/', methods=['GET'])

@@ -106,6 +106,7 @@
                     uploadMultiple: true,
                     parallelUploads: this.maxFiles,
                     previewsContainer: '#queue',
+                    successmultiple: this.successmMultiple,
                 },
             };
         },
@@ -173,12 +174,14 @@
                 file.previewElement.classList.remove('list-group-item-info');
                 file.previewElement.classList.add('list-group-item-success');
             },
+            successmMultiple: function successmMultiple(files, response) {
+                this.$router.push({ name: 'submission', params: { submissionId: response.id } });
+            },
             queueComplete: function queueComplete() {
                 this.$refs.progress.classList.remove('progress-bar-striped');
                 this.$refs.progress.classList.remove('progress-bar-animated');
                 this.$refs.progress.innerHTML = 'Done';
             },
-
         },
     };
 </script>
