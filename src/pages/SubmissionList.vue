@@ -42,10 +42,7 @@ export default {
 
     methods: {
         gotoSubmission(submission) {
-            this.$router.push({
-                name: 'submission',
-                params: { submissionId: submission.id },
-            });
+            this.$router.push(`/assignments/${this.assignmentId}/submissions/${submission.id}/`);
         },
     },
 
