@@ -82,7 +82,8 @@ export default {
             return `/assignments/${this.assignmentId}/submissions/${submission.id}/`;
         },
         gotoSubmission(_, i) {
-            this.$router.push(this.submissionURL(this.submissions[i]));
+            this.$router.push(this.submissionURL(this.latestOnly ?
+                                                 this.latest[i] : this.submissions[i]));
         },
     },
 };
