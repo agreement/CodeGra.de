@@ -352,7 +352,7 @@ def get_permissions():
 @auth.permission_required('can_use_snippets')
 def get_snippets():
     res = models.Snippet.get_all_snippets(current_user)
-    return jsonify([r.to_dict() for r in res])
+    return jsonify({r.key: {'value': r.value, 'id': r.id} for r in res})
 
 
 @app.route('/api/v1/snippet', methods=['PUT'])

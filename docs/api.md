@@ -408,21 +408,20 @@ requests.get('https://example.com/api/v1/snippets/')
 
 > This will result in the following JSON object with status code of 200:
 ```json
-[
-  {
-     "key": "malloc",
-     "value": "Don't forget to check malloc for return value."
-     "id": 1
-  },
-  {
-     "key": "free",
-     "value": "Don't do a double free."
-     "id": 2
-  }
-]
+{
+    "malloc": {
+      "id": 1,
+      "value": "Don't forget to check malloc for return value."
+    },
+    "free" {
+      "value": "Don't do a double free.",
+      "id": 2
+    }
+}
 ```
 
-Get all snippets for the current user.
+Get all snippets for the current user in a large object where the keys are the
+keys that should be used for the snippet.
 
 
 <aside class="notice">
