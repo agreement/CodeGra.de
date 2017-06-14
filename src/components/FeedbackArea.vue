@@ -21,6 +21,8 @@
 
 <script>
 import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/check';
+import 'vue-awesome/icons/times';
 
 export default {
     name: 'feedback-area',

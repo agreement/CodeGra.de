@@ -68,23 +68,27 @@ def test_data():
                 name=c['name'],
                 course=m.Course.query.filter_by(
                     name=c['course']).first()).first()
-            if u is not None:
-                db.session.delete(u)
             assert m.Course.query.filter_by(name=c['course']).first()
 
             perms = {
                 name: m.Permission.query.filter_by(name=name).first()
                 for name in c['permissions']
             }
-            db.session.add(
-                m.CourseRole(
-                    name=c['name'],
-                    _permissions=perms,
-                    course=m.Course.query.filter_by(name=c['course']).first()))
+            if u is not None:
+                u.name = c['name']
+                u._permissions = perms
+                course = m.Course.query.filter_by(name=c['course']).first()
+            else:
+                db.session.add(
+                    m.CourseRole(
+                        name=c['name'],
+                        _permissions=perms,
+                        course=m.Course.query.filter_by(name=c['course']).first()))
     with open('./test_data/assignments.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
-            if m.Assignment.query.filter_by(name=c['name']).first() is not None:
+            if m.Assignment.query.filter_by(
+                    name=c['name']).first() is not None:
                 continue
             db.session.add(
                 m.Assignment(
@@ -95,8 +99,6 @@ def test_data():
         cs = json.load(c)
         for c in cs:
             u = m.User.query.filter_by(name=c['name']).first()
-            if u is not None:
-                db.session.delete(u)
             courses = {
                 m.Course.query.filter_by(name=name).first(): role
                 for name, role in c['courses'].items()
@@ -106,20 +108,29 @@ def test_data():
                     name=name, course_id=course.id).first()
                 for course, name in courses.items()
             }
-            db.session.add(
-                m.User(
-                    name=c['name'],
-                    courses=perms,
-                    email=c['name'].replace(' ', '_').lower() + '@example.com',
-                    password=c['name'],
-                    role=m.Role.query.filter_by(name=c['role']).first()))
+            if u is not None:
+                u.name = c['name']
+                u.courses = perms
+                u.email = c['name'].replace(' ', '_').lower() + '@example.com'
+                u.password = c['name']
+                u.role = m.Role.query.filter_by(name=c['role']).first()
+            else:
+                db.session.add(
+                    m.User(
+                        name=c['name'],
+                        courses=perms,
+                        email=c['name'].replace(' ', '_').lower() +
+                        '@example.com',
+                        password=c['name'],
+                        role=m.Role.query.filter_by(name=c['role']).first()))
     with open('./test_data/works.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
             if m.Work.query.filter_by(
-                assignment=m.Assignment.query.filter_by(
-                    name=c['assignment']).first(), user=m.User.query.filter_by(
-                    name=c['user']).first()).first() is not None:
+                    assignment=m.Assignment.query.filter_by(
+                        name=c['assignment']).first(),
+                    user=m.User.query.filter_by(
+                        name=c['user']).first()).first() is not None:
                 continue
 
             db.session.add(

@@ -165,7 +165,7 @@ def process_files(files):
                 res.append(extract(file))
             else:
                 new_file_name, filename = random_file_path()
-                res.append((file.name, filename))
+                res.append((file.filename, filename))
                 file.save(new_file_name)
         res = {'.': res}
     else:

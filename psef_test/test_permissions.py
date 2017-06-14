@@ -2,8 +2,7 @@
 import pytest
 import os
 import sys
-import flask_login
-import flask
+import json
 
 my_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, my_path + '/../')
@@ -159,6 +158,9 @@ def test_course_permissions(thomas, bs_course, pse_course, aco_course, perm,
         login_endpoint(thomas.id)
         for course, val in zip([bs_course, pse_course, aco_course], vals):
             assert thomas.has_permission(perm, course_id=course.id) == val
+            query = {'course_id': course.id, 'permission': perm}
+            rv = test_client.get('/api/v1/permissions/', query_string=query)
+            assert json.loads(rv.get_data(as_text=True)) == val
             if val:
                 a.ensure_permission(perm, course_id=course.id)
             else:
@@ -172,11 +174,20 @@ def test_course_permissions(thomas, bs_course, pse_course, aco_course, perm,
 
 
 @pytest.mark.parametrize('perm', ['wow_nope'])
-def test_non_existing_permission(thomas, bs_course, perm):
+def test_non_existing_permission(thomas, bs_course, perm, login_endpoint,
+                                 test_client):
     with pytest.raises(KeyError):
         thomas.has_permission(perm)
     with pytest.raises(KeyError):
         thomas.has_permission(perm, course_id=bs_course.id)
+    with test_client:
+        login_endpoint(thomas.id)
+        query = {'course_id': bs_course.id, 'permission': perm}
+        rv = test_client.get('/api/v1/permissions/', query_string=query)
+        assert rv.status_code == 404
+        query = {'permission': perm}
+        rv = test_client.get('/api/v1/permissions/', query_string=query)
+        assert rv.status_code == 404
 
 
 @pytest.mark.parametrize('perm', ['wow_nope', 'add_own_work', 'edit_name'])
@@ -191,6 +202,9 @@ def test_role_permissions(thomas, superuser, fixed, perm, vals, login_endpoint,
     for user, val in zip([thomas, superuser, fixed], vals):
         with test_client:
             login_endpoint(user.id)
+            query = {'permission': perm}
+            rv = test_client.get('/api/v1/permissions/', query_string=query)
+            assert json.loads(rv.get_data(as_text=True)) == val
             if val:
                 a.ensure_permission(perm, course_id=None)
             else:
@@ -200,3 +214,53 @@ def test_role_permissions(thomas, superuser, fixed, perm, vals, login_endpoint,
     with pytest.raises(APIException) as err:
         a.ensure_permission(perm)
     assert err.value.api_code == APICodes.NOT_LOGGED_IN
+
+
+def test_all_permissions(thomas, bs_course, pse_course, aco_course):
+    all_perms = {
+        'edit_name': True,
+        'edit_email': True,
+        'add_user': False,
+    }
+    assert all_perms == thomas.get_all_permissions()
+    bs_perms = {
+        'add_own_work': False,
+        'add_others_work': True,
+        'remove_course': False,
+    }
+    aco_perms = {
+        'add_own_work': False,
+        'add_others_work': False,
+        'remove_course': False,
+    }
+    pse_perms = {
+        'add_own_work': True,
+        'add_others_work': False,
+        'remove_course': False,
+    }
+    assert bs_perms == thomas.get_all_permissions(bs_course.id)
+    assert pse_perms == thomas.get_all_permissions(pse_course.id)
+    assert aco_perms == thomas.get_all_permissions(aco_course.id)
+
+
+def test_all_permissions(thomas, bs_course, pse_course, aco_course, superuser,
+                         fixed, login_endpoint, test_client):
+    for user in [thomas, superuser, fixed]:
+        with test_client:
+            login_endpoint(user.id)
+            for course in [bs_course, pse_course, aco_course, None]:
+                query = {} if course is None else {'course_id': course.id}
+                rv = test_client.get(
+                    '/api/v1/permissions/', query_string=query)
+                for perm, val in json.loads(rv.get_data(as_text=True)).items():
+                    assert val == user.has_permission(perm, course)
+            test_client.post('/api/v1/logout')
+
+    rv = test_client.get('/api/v1/permissions/')
+    assert rv.status_code == 401
+
+    with test_client:
+        login_endpoint(thomas.id)
+        rv = test_client.get(
+            '/api/v1/permissions/', query_string={'course_id': 'a'})
+        assert rv.status_code == 400
