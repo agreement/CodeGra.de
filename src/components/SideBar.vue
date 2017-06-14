@@ -12,9 +12,9 @@
                 </router-link>
             </li>
             <li>
-                <a href="#" @click="logout">
+                <router-link :to="{ name: 'logout', }" @click.native.capture="logout">
                     Logout
-                </a>
+                </router-link>
             </li>
         </ul>
         <ul v-else>
