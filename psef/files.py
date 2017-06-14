@@ -181,6 +181,10 @@ def process_files(files):
     return dehead_filetree(res)
 
 
+def rgetattr(obj, attr):
+    return reduce(getattr, [obj] + attr.split('.'))
+
+
 def create_csv(objects, attributes, headers=None):
     """Create a csv file from the given objects and attributes.
 
@@ -197,6 +201,7 @@ def create_csv(objects, attributes, headers=None):
     with open(csv_file, 'w') as csv_output:
         csv_writer = csv.writer(csv_output)
         csv_writer.writerow(headers)
-        csv_writer.writerows([[str(getattr(obj, attr))
-                               for attr in attributes] for obj in objects])
+        csv_writer.writerows(
+            [[str(rgetattr(obj, attr)) for attr in attributes]
+             for obj in objects])
     return csv_file

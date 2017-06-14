@@ -63,8 +63,7 @@ def remove_comment(id, line):
     return ('', 204)
 
 
-@app.route("/api/v1/submissions/<int:submission_id>/files/",
-    methods=['GET'])
+@app.route("/api/v1/submissions/<int:submission_id>/files/", methods=['GET'])
 def get_dir_contents(submission_id):
     work = models.Work.query.get(submission_id)
     if work is None:
@@ -154,15 +153,18 @@ def get_all_works_for_assignment(assignment_id):
     res = obj.order_by(models.Work.created_at.desc()).all()
 
     if 'csv' in request.args:
-        file = psef.files.create_csv(
-            res, ['id', 'user_id', 'state', 'edit', 'grade', 'comment',
-                  'created_at'])
+        file = psef.files.create_csv(res, [
+            'id', 'user.name', 'user_id', 'state', 'edit', 'grade', 'comment',
+            'created_at'
+        ])
+
         @after_this_request
         def remove_file(response):
             os.remove(file)
             return response
-        return send_file(file, attachment_filename=request.args['csv'],
-                         as_attachment=True)
+
+        return send_file(
+            file, attachment_filename=request.args['csv'], as_attachment=True)
 
     return jsonify([{
         'id': work.id,
@@ -190,7 +192,7 @@ def get_submission(submission_id):
             'grade': work.grade,
             'comment': work.comment,
             'created_at': work.created_at,
-            })
+        })
     else:
         raise APIException(
             'Work submission not found',
@@ -198,8 +200,7 @@ def get_submission(submission_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 
-@app.route(
-    "/api/v1/submissions/<int:submission_id>", methods=['PATCH'])
+@app.route("/api/v1/submissions/<int:submission_id>", methods=['PATCH'])
 def patch_submission(submission_id):
     work = db.session.query(models.Work).get(submission_id)
     content = request.get_json()
@@ -246,15 +247,17 @@ def login():
     # TODO: Use bcrypt password validation (as soon as we got that)
     # TODO: Return error whether user or password is wrong
     if user is None or user.password != data['password']:
-        raise APIException('The supplied email or password is wrong.', (
-            'The user with email {} does not exist ' +
-            'or has a different password').format(data['email']),
-                           APICodes.LOGIN_FAILURE, 400)
+        raise APIException(
+            'The supplied email or password is wrong.',
+            ('The user with email {} does not exist ' +
+             'or has a different password').format(data['email']),
+            APICodes.LOGIN_FAILURE, 400)
 
     if not login_user(user, remember=True):
-        raise APIException('User is not active', (
-            'The user with id "{}" is not active any more').format(user.id),
-                           APICodes.INACTIVE_USER, 403)
+        raise APIException(
+            'User is not active',
+            ('The user with id "{}" is not active any more').format(user.id),
+            APICodes.INACTIVE_USER, 403)
 
     return me()
 
@@ -275,7 +278,8 @@ def logout():
     return '', 204
 
 
-@app.route("/api/v1/assignments/<int:assignment_id>/submission", methods=['POST'])
+@app.route(
+    "/api/v1/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id):
     """
     Saves the work on the server if the request is valid.
@@ -289,10 +293,11 @@ def upload_work(assignment_id):
 
     if (request.content_length and
             request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException('Uploaded files are too big.', (
-            'Request is bigger than maximum ' +
-            'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-                           APICodes.REQUEST_TOO_LARGE, 400)
+        raise APIException(
+            'Uploaded files are too big.',
+            ('Request is bigger than maximum ' +
+             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
+            APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
@@ -329,7 +334,7 @@ def upload_work(assignment_id):
 
     db.session.commit()
 
-    return (jsonify({'id':work.id}), 201)
+    return (jsonify({'id': work.id}), 201)
 
 
 @app.route('/api/v1/permissions/', methods=['GET'])
