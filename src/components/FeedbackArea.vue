@@ -6,7 +6,7 @@
     </div>
     </b-card>
     <div v-else>
-      <b-collapse class="collapsep flex-container" :id="`collapse${line}`">
+      <b-collapse class="collapsep flex-container" ref="snippetDialog" :id="`collapse${line}`">
         <b-form-input class="input" v-model="snippetKey" v-on:keydown.native.ctrl.enter="addSnippet">
         </b-form-input>
         <b-popover :placement="'top'" :show="error !== '' && $parent.show" :content="error">
@@ -25,7 +25,7 @@
           v-on:keydown.native.ctrl.enter="submitFeedback">
         </b-form-input>
         <b-input-group-button class="minor-buttons">
-          <b-btn v-b-toggle="`collapse${line}`" variant="secondary">
+          <b-btn v-b-toggle="`collapse${line}`" variant="secondary" v-on:click="findSnippet">
             <icon name="plus" aria-hidden="true"></icon>
           </b-btn>
           <b-button variant="danger" @click="cancelFeedback">
@@ -47,7 +47,7 @@ import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/plus';
 
-import { mapActions } from 'vuex';
+import { mapActions, mapGetters } from 'vuex';
 
 const entityRE = /[&<>]/g;
 const entityMap = {
@@ -69,18 +69,26 @@ export default {
             snippetDone: false,
         };
     },
+    mounted() {
+        setTimeout(() => this.$refs.field.focus(), 50);
+    },
     methods: {
         changeFeedback() {
             this.done = false;
-            this.$refs.field.focus();
+            setTimeout(() => this.$refs.field.focus(), 50);
         },
         submitFeedback() {
+            if (this.internalFeedback === '') {
+                this.cancelFeedback();
+                return;
+            }
             this.$emit('feedbackChange', this.internalFeedback);
             this.$http.put(`/api/v1/code/${this.fileId}/comments/${this.line}`,
                 {
                     comment: this.internalFeedback,
                 },
             ).then(() => {
+                this.snippetKey = '';
                 this.done = true;
             });
         },
@@ -91,10 +99,12 @@ export default {
             return String(text).replace(entityRE, entity => entityMap[entity]);
         },
         cancelFeedback() {
-            // TODO: collaps textarea
-            this.$http.delete(`/api/v1/code/${this.fileId}/comments/${this.line}`)
-            .then(() => {
-            }, () => null);
+            if (this.feedback !== '') {
+                this.$http.delete(`/api/v1/code/${this.fileId}/comments/${this.line}`)
+                    .then(() => {
+                    }, () => null);
+            }
+            this.snippetKey = '';
             this.$emit('cancel', this.line);
         },
         expandSnippet(event) {
@@ -104,7 +114,7 @@ export default {
                 event.preventDefault();
                 const val = this.internalFeedback.slice(0, end);
                 const start = Math.max(val.lastIndexOf(' '), val.lastIndexOf('\n')) + 1;
-                const res = this.$store.getters['user/snippets'][val.slice(start, end)];
+                const res = this.snippets()[val.slice(start, end)];
                 if (res !== undefined) {
                     this.snippetKey = val.slice(start, end);
                     this.internalFeedback = val.slice(0, start) + res.value +
@@ -146,9 +156,27 @@ export default {
                 }, 1000 * 0.2);
             });
         },
+        findSnippet() {
+            if (this.snippetKey !== '' || this.$refs.snippetDialog.show) {
+                return;
+            }
+
+            const snips = this.snippets();
+            const keys = Object.keys(snips);
+
+            for (let i = 0, len = keys.length; i < len; i += 1) {
+                if (this.internalFeedback === snips[keys[i]].value) {
+                    this.snippetKey = keys[i];
+                    return;
+                }
+            }
+        },
         ...mapActions({
             refreshSnippets: 'user/refreshSnippets',
             addSnippetToStore: 'user/addSnippet',
+        }),
+        ...mapGetters({
+            snippets: 'user/snippets',
         }),
     },
     components: {
