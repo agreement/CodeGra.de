@@ -1,8 +1,7 @@
 <template>
     <ol class="code-viewer form-control" :class="{ editable }">
-        <li v-on:click="addFeedback($event, i)" v-for="(line, i) in highlighted_code">
-            <code v-html="line"></code>
-
+        <li v-on:click="addFeedback($event, i)" v-for="(line, i) in this.codeLines">
+            <code class="codeline" v-html="line"></code>
 
             <feedback-area :editing="editing[i] === true" :feedback='feedback[i]' :editable='editable' :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }" v-on:cancel='onChildCancel' v-if="feedback[i] != null"></feedback-area>
 
@@ -34,24 +33,25 @@ export default {
             fileId: this.id,
             lang: '',
             code: '',
+            codeLines: [],
             editing: {},
             feedback: {},
             clicks: {},
         };
     },
 
-    computed: {
-        highlighted_code() {
-            if (!this.code) {
-                return [];
-            }
-            if (!this.lang) {
-                return this.code.split('\n');
-            }
-            const highlighted = highlight(this.lang, this.code);
-            return highlighted.value.split('\n');
-        },
-    },
+    // computed: {
+    //     highlighted_code() {
+    //         if (!this.code) {
+    //             return [];
+    //         }
+    //         if (!this.lang) {
+    //             return this.code.split('\n');
+    //         }
+    //         const highlighted = highlight(this.lang, this.code);
+    //         return highlighted.value.split('\n');
+    //     },
+    // },
 
     mounted() {
         this.getCode();
@@ -73,7 +73,34 @@ export default {
                 this.lang = data.data.lang;
                 this.code = data.data.code;
                 this.feedback = data.data.feedback;
+                this.codeLines = this.highlight_code();
             });
+        },
+
+        highlight_code(code) {
+            const codeLines = [];
+            // const codeLines =
+            // codeLines.forEach((e) => {
+            //     console.log(`lala ${e} asdf`);
+            //     const result = highlight(this.lang, e.text(), true, state);
+            //     state = result.top;
+            //     e.html(result.value);
+            // });
+            let state = null;
+            code.split('/').forEach((codeLine) => {
+                const styledLine = highlight('python', codeLine, true, state);
+                state = styledLine.top;
+                codeLines.push(styledLine);
+            });
+            // for (let i = 0, len = codeLines.length; i < len; i += 1) {
+            //     const codeline = codeLines[i];
+            //     const content = codeline.innerHTML;
+            //     const styledLine = highlight('python', content, true, state);
+            //     state = styledLine.top;
+            //     codeline.innerHTML = styledLine.value;
+            //     res.push(code);
+            // }
+            return codeLines;
         },
 
         onChildCancel(line) {
