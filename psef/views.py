@@ -11,7 +11,7 @@ from psef import app, db
 from psef.errors import APICodes, APIException
 
 
-@app.route("/api/v1/code/<int:file_id>")
+@app.route("/api/v1/code/<int:file_id>", methods=['GET'])
 def get_code(file_id):
     # Code not used yet:
 
@@ -139,7 +139,8 @@ def get_assignment(assignment_id):
     })
 
 
-@app.route('/api/v1/assignments/<int:assignment_id>/submissions/')
+@app.route(
+    '/api/v1/assignments/<int:assignment_id>/submissions/', methods=['GET'])
 def get_all_works_for_assignment(assignment_id):
     assignment = models.Assignment.query.get(assignment_id)
     if current_user.has_permission(
