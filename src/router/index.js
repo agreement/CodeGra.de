@@ -5,51 +5,40 @@ import { Assignments, Submission, Home, Login, Submit, SubmissionList } from '@/
 Vue.use(Router);
 
 export default new Router({
-    mode: 'history',
-
     routes: [
         {
             path: '/',
-            name: 'home',
+            name: 'Home',
             component: Home,
         },
         {
-            path: '/login',
-            name: 'login',
+            path: '/login/',
+            name: 'Login',
             component: Login,
         },
         {
-            path: '/logout',
-            name: 'logout',
-            redirect: 'home',
-        },
-        {
-            path: '/me',
-            name: 'me',
-        },
-        {
-            path: '/submissions/:submissionId',
-            name: 'submission',
+            path: '/assignments/:assignmentId/submissions/:submissionId/',
+            name: 'Assignment submission',
             component: Submission,
         },
         {
-            path: '/submissions/:submissionId/files/:fileId',
-            name: 'submission_file',
+            path: '/assignments/:assignmentId/submissions/:submissionId/files/:fileId/',
+            name: 'Assignment submission file',
             component: Submission,
         },
         {
             path: '/assignments/:assignmentId/submissions/',
-            name: 'assignment_submissions',
+            name: 'Assignment submissions',
             component: SubmissionList,
         },
         {
             path: '/assignments/',
-            name: 'assignments',
+            name: 'Assignments',
             component: Assignments,
         },
         {
-            path: '/assignments/:assignmentId/submit',
-            name: 'assignment_submit',
+            path: '/assignments/:assignmentId/submit/',
+            name: 'Submit assignment',
             component: Submit,
         },
     ],

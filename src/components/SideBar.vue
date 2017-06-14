@@ -2,26 +2,18 @@
     <nav class="side-bar">
         <ul v-if="loggedIn">
             <li>
-                <router-link :to="{ name: 'me', params: { userId: this.userid, }, }">
-                    {{username}}
-                </router-link>
+                <a v-bind:href="userBaseURL">{{ username }}</a>
             </li>
             <li>
-                <router-link :to="{ name: 'assignments', }">
-                    Assignments
-                </router-link>
+                <a v-bind:href="userAssignmentsURL">Assignments</a>
             </li>
             <li>
-                <router-link :to="{ name: 'logout', }" @click="logout">
-                    Logout
-                </router-link>
+                <a href="#/login" @click="logout()">Logout</a>
             </li>
         </ul>
         <ul v-else>
             <li>
-                <router-link :to="{ name: 'login', }">
-                    Login
-                </router-link>
+                <a href="#/login">login</a>
             </li>
         </ul>
     </nav>
@@ -34,6 +26,14 @@ export default {
     name: 'side-bar',
 
     computed: {
+        userBaseURL() {
+            return `#/users/${this.userid}`;
+        },
+
+        userAssignmentsURL() {
+            return '#/assignments';
+        },
+
         ...mapGetters('user', {
             loggedIn: 'loggedIn',
             userid: 'id',
