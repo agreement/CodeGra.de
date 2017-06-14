@@ -175,7 +175,6 @@
                 file.previewElement.classList.add('list-group-item-success');
             },
             successmMultiple: function successmMultiple(files, response) {
-                console.log(response);
                 this.$router.push({ name: 'submission', params: { submissionId: response.id } });
             },
             queueComplete: function queueComplete() {
