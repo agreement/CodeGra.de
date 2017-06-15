@@ -27,7 +27,7 @@
                     </router-link>
                 </b-nav>
             </div>
-            <b-nav is-nav-bar v-else>
+            <b-nav is-nav-bar class="navbar-right" v-else>
                 <router-link class="nav-item" tag="li" :to="{ name: 'login', }"  active-class="active">
                     Login
                 </router-link>
