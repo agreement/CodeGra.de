@@ -3,7 +3,7 @@
     <icon name="refresh" scale="4" spin></icon>
   </div>
   <ol class="code-viewer form-control" :class="{ editable }" v-else>
-        <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in highlighted_code">
+        <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines">
             <code v-html="line"></code>
 
 
