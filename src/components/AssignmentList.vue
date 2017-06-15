@@ -124,6 +124,7 @@ export default {
             this.$router.push({
                 name: 'assignment_submissions',
                 params: {
+                    courseId: assignment.course_id,
                     assignmentId: assignment.id,
                 },
             });
