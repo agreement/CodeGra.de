@@ -47,8 +47,8 @@ export default {
         this.getSubmission();
         this.getFileMetadata();
 
-        const elements = Array.from(document.querySelectorAll('html, body, #app, header, footer'));
-        const [html, body, app, header, footer] = elements;
+        const elements = Array.from(document.querySelectorAll('html, body, #app, header, main, footer'));
+        const [html, body, app, header, main, footer] = elements;
 
         this.oldCSS = {
             html: {
@@ -65,6 +65,10 @@ export default {
             header: {
                 flexGrow: header.style.flexGrow,
                 flexShrink: header.style.flexShrink,
+            },
+            main: {
+                flexGrow: main.style.flexGrow,
+                flexShrink: main.style.flexShrink,
             },
             footer: {
                 flexGrow: footer.style.flexGrow,
@@ -84,8 +88,8 @@ export default {
     },
 
     destroyed() {
-        const elements = Array.from(document.querySelectorAll('html, body, #app, header, footer'));
-        const [html, body, app, header, footer] = elements;
+        const elements = Array.from(document.querySelectorAll('html, body, #app, header, main, footer'));
+        const [html, body, app, header, main, footer] = elements;
 
         html.style.height = this.oldCSS.html.height;
         body.style.height = this.oldCSS.body.height;
@@ -94,6 +98,8 @@ export default {
         app.style.flexDirection = this.oldCSS.app.flexDirection;
         header.style.flexGrow = this.oldCSS.header.flexGrow;
         header.style.flexShrink = this.oldCSS.header.flexShrink;
+        main.style.flexGrow = this.oldCSS.main.flexGrow;
+        main.style.flexShrink = this.oldCSS.main.flexShrink;
         footer.style.flexGrow = this.oldCSS.footer.flexGrow;
         footer.style.flexShrink = this.oldCSS.footer.flexShrink;
     },
@@ -168,9 +174,13 @@ h1 {
     flex-direction: column;
 }
 
-.code-viewer {
+.code-viewer,
+.pdfobject-container {
     flex-grow: 1;
     flex-shrink: 1;
+}
+
+.code-viewer {
     overflow: auto;
 }
 
@@ -181,6 +191,7 @@ h1 {
 
 h1,
 .code-viewer,
+.pdfobject-container,
 .grade-viewer {
     margin-bottom: 30px;
 }
