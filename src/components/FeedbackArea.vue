@@ -1,8 +1,8 @@
 <template>
     <b-card v-if="(done && !editing)">
-    <div v-on:click="changeFeedback()" :style="{'min-height': '1em'}">
+      <div v-on:click="changeFeedback" :style="{'min-height': '1em'}">
         {{ internalFeedback }}
-    </div>
+      </div>
     </b-card>
     <b-input-group v-else>
         <b-form-input ref="field" v-model="internalFeedback"></b-form-input>
@@ -35,8 +35,10 @@ export default {
     },
     methods: {
         changeFeedback() {
-            this.done = false;
-            this.$refs.field.focus();
+            if (this.editable) {
+                this.done = false;
+                this.$refs.field.focus();
+            }
         },
         submitFeedback() {
             this.$emit('feedbackChange', this.internalFeedback);

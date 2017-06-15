@@ -3,19 +3,29 @@
         <div class="col-6">
             <b-input-group>
                 <b-input-group-button>
-                    <b-button variant="primary" v-on:click="putFeedback()">
+                    <b-button variant="primary" v-on:click="putFeedback()" v-if="editable">
                         Submit all
                     </b-button>
                 </b-input-group-button>
 
-                <b-form-input type="number" step="any" min="0" max="10"
-                    placeholder="Grade" v-model:value="grade"></b-form-input>
+                <b-form-input type="number"
+                              step="any"
+                              min="0"
+                              max="10"
+                              :disabled="!editable"
+                              placeholder="Grade"
+                              v-model:value="grade">
+                </b-form-input>
             </b-input-group>
         </div>
         <div class="col-6">
             <b-input-group>
-                <b-form-input :textarea="true" placeholder="Feedback" :rows="3"
-                    v-model:value="feedback"></b-form-input>
+              <b-form-input :textarea="true"
+                            :placeholder="editable ? 'Feedback' : 'No feedback given :('"
+                            :rows="3"
+                            v-model:value="feedback"
+                            :disabled="!editable">
+              </b-form-input>
             </b-input-group>
         </div>
     </div>
@@ -71,3 +81,10 @@ export default {
     },
 };
 </script>
+
+<style lang="less" scoped>
+  input:disabled, textarea:disabled {
+    background: white;
+    cursor: text;
+  }
+</style>
