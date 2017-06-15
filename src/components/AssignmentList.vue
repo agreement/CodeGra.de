@@ -114,8 +114,7 @@ export default {
             case 1: return this.filterSubmitting;
             case 2: return this.filterGrading;
             case 3: return this.filterDone;
-            default: return 1;
-            // default: throw TypeError('Unknown assignment state');
+            default: throw TypeError('Unknown assignment state');
             }
         },
 
