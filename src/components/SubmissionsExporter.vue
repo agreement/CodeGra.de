@@ -2,7 +2,7 @@
     <b-button v-on:click="downloadCSV">Export as CSV</b-button>
 </template>
 
-<script type="text/javascript">
+<script>
 import { bButton } from 'bootstrap-vue/lib/components';
 
 export default {
@@ -12,26 +12,15 @@ export default {
         bButton,
     },
 
-    props: {
-        id: { },
-    },
-
-    data() {
-        return {
-            assignmentId: this.id,
-            name: this.fileName,
-        };
-    },
+    props: ['assignment'],
 
     computed: {
-        fileName: function fileName() {
-            return this.name != null ? this.name : `${this.assignmentId}.csv`;
-        },
+        fileName: () => `${this.assignment.course_name}-${this.assignment.name}.csv`,
     },
 
     methods: {
         downloadCSV: function downloadCSV() {
-            this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/?csv=${this.name}`).then((response) => {
+            this.$http.get(`/api/v1/assignments/${this.assignment.course_id}/submissions/?csv=${this.fileName}`).then((response) => {
                 const blob = new Blob([response.data], { type: response.headers['content-type'] });
                 const link = document.createElement('a');
                 link.href = window.URL.createObjectURL(blob);
