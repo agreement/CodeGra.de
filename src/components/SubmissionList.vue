@@ -95,7 +95,7 @@ export default {
             }
         },
 
-        gotoSubmission(sub) {
+        gotoSubmission(submission) {
             this.submit();
             this.$router.push({
                 name: 'submission',
