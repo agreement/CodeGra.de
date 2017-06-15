@@ -3,12 +3,13 @@
         <div class="col-6">
             <b-input-group>
                 <b-input-group-button>
-                    <b-button variant="primary" v-on:click="putFeedback()">
-                        Submit all
+                    <b-button :variant="submitted ? 'success' : 'primary'" v-on:click="putFeedback()">
+                        <icon name="refresh" spin v-if="submitting"></icon>
+                        <span v-else>Submit all</span>
                     </b-button>
                 </b-input-group-button>
 
-                <b-form-input type="number" step="any" min="0" max="10"
+                <b-form-input type="number" class="grade" step="any" min="0" max="10"
                     placeholder="Grade" v-model:value="grade"></b-form-input>
             </b-input-group>
         </div>
@@ -22,6 +23,8 @@
 </template>
 
 <script>
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/refresh';
 import { bButton, bInputGroup, bInputGroupButton } from 'bootstrap-vue/lib/components';
 
 export default {
@@ -34,6 +37,8 @@ export default {
             submissionId: this.id,
             grade: 0,
             feedback: '',
+            submitting: false,
+            submitted: false,
         };
     },
 
@@ -50,6 +55,7 @@ export default {
         },
 
         putFeedback() {
+            this.submitting = true;
             this.$http.patch(`/api/v1/submissions/${this.submissionId}`,
                 {
                     grade: this.grade,
@@ -59,8 +65,13 @@ export default {
                     headers: { 'Content-Type': 'application/json' },
                 },
             ).then(() => {
+                this.submitting = false;
+                this.submitted = true;
+                this.$emit('submit');
+                setTimeout(() => {
+                    this.submitted = false;
+                }, 1000);
             });
-            this.$emit('submit');
         },
     },
 
@@ -68,6 +79,19 @@ export default {
         bButton,
         bInputGroup,
         bInputGroupButton,
+        Icon,
     },
 };
 </script>
+
+<style lang="less" scoped>
+input.grade {
+    text-align: right;
+    &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+    }
+    -moz-appearance: textfield;
+    appearance: textfield;
+    padding-right: 1em;
+}
+</style>
