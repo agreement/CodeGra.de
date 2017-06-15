@@ -10,7 +10,7 @@ from psef import db, app
 from psef.errors import APICodes, APIException
 
 
-@app.route("/api/v1/codes/<int:file_id>")
+@app.route("/api/v1/code/<int:file_id>")
 def get_code(file_id):
     # Code not used yet:
 
@@ -28,7 +28,7 @@ def get_code(file_id):
         feedback=line_feedback)
 
 
-@app.route("/api/v1/codes/<int:id>/comments/<int:line>", methods=['PUT'])
+@app.route("/api/v1/code/<int:id>/comments/<int:line>", methods=['PUT'])
 def put_comment(id, line):
     """
     Create or change a single line comment of a code file 
@@ -50,7 +50,7 @@ def put_comment(id, line):
     return ('', 204)
 
 
-@app.route("/api/v1/codes/<int:id>/comments/<int:line>", methods=['DELETE'])
+@app.route("/api/v1/code/<int:id>/comments/<int:line>", methods=['DELETE'])
 def remove_comment(id, line):
     """
     Removes the comment on line X if the request is valid.

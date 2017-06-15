@@ -150,15 +150,15 @@ Get all assignments that the current user can see.
 ## Code
 ### Get code
 ##### HTTP Request
-`GET http://example.com/api/v1/codes/<ID>`
+`GET http://example.com/api/v1/code/<ID>`
 
 ## Comment
 ### Code
 #### Put comment in code
 ##### HTTP Request
-`PUT http://example.com/api/v1/codes/<ID>/comments/<lineno>`
+`PUT http://example.com/api/v1/code/<ID>/comments/<lineno>`
 #### Remove comment in code
-`DELETE http://example.com/api/v1/codes/<ID>/comments/<lineno>`
+`DELETE http://example.com/api/v1/code/<ID>/comments/<lineno>`
 
 ## Directories
 ### Submission
