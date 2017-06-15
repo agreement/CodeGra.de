@@ -37,29 +37,16 @@
         <button
           class="btn btn-success upload"
           v-on:click="upload"
-          v-bind:class="{disabled: startedUpload}"
-        >Upload
+          v-bind:class="{disabled: startedUpload}">
+          <icon name="refresh" spin v-if="startedUpload"></icon>
+          <span v-else>Upload</span>
         </button>
         <button
-          class="btn btn-warning remove"
-          v-on:click="removeRejected"
-          v-bind:class="{disabled: startedUpload}"
-        >Remove Invalid
-        </button>
-        <button
-          class="btn btn-danger remove"
+          class="btn btn-outline-danger remove"
           v-on:click="removeAll"
           v-bind:class="{disabled: startedUpload}"
         >Remove All
         </button>
-        <div class="progress">
-                <div
-                  ref='progress'
-                  class="progress-bar bg-success progress-bar-striped progress-bar-animated"
-                  role="progressbar"/>
-            </div>
-        </div>
-
         </div>
     </div>
 </template>
@@ -68,6 +55,7 @@
     import Dropzone from 'vue2-dropzone';
     import Icon from 'vue-awesome/components/Icon';
     import 'vue-awesome/icons/times';
+    import 'vue-awesome/icons/refresh';
 
     export default {
         name: 'code-uploader',
@@ -185,7 +173,18 @@
         },
     };
 </script>
-<style>
+<style scoped>
+.btn {
+    border-radius: 0.2em;
+    border-width: 0.1em;
+    cursor: pointer;
+}
+.btn-success {
+    float:left;
+}
+.btn-outline-danger {
+    float: right;
+}
 .file div.col-xs-10 {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -194,5 +193,13 @@
 .file div.col-xs-auto {
     overflow: visible;
     white-space: pre;
+}
+.progress {
+    margin: 1em 0 1em 0;
+    background-color: #32475b;
+}
+.card-primary {
+    background-color: #2c3e50;
+    border-color: #2c3e50;
 }
 </style>

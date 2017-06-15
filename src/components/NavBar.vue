@@ -95,6 +95,7 @@ export default {
 }
 
 .nav-item:hover {
+    cursor: pointer;
     color: #cbcbcb;
 }
 
