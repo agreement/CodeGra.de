@@ -1,12 +1,11 @@
 <template>
     <div class="page submission-list">
         <div class="row">
-          <div class="text-center loader col-md-6" v-if="loading">
-            <icon name="refresh" scale="4" spin></icon>
-          </div>
+            <loader class="col-md-6 text-center" v-if="loading"></loader>
             <div class="col-md-6" v-else>
                 <h1>Submissions</h1>
-                <submission-list :submissions="submissions" v-on:goto="gotoSubmission"></submission-list>
+                <submission-list :submissions="submissions"></submission-list>
+                <submissions-exporter :id="assignmentId"></submissions-exporter>
             </div>
 
             <div class="col-md-6">
@@ -18,9 +17,8 @@
 </template>
 
 <script>
-import Icon from 'vue-awesome/components/Icon';
-import 'vue-awesome/icons/refresh';
-import { SubmissionList, CodeUploader } from '@/components';
+import { SubmissionList, CodeUploader, Loader, SubmissionsExporter }
+    from '@/components';
 
 export default {
     name: 'submission-list-page',
@@ -40,19 +38,11 @@ export default {
         });
     },
 
-    methods: {
-        gotoSubmission(submission) {
-            this.$router.push({
-                name: 'submission',
-                params: { submissionId: submission.id },
-            });
-        },
-    },
-
     components: {
         SubmissionList,
         CodeUploader,
-        Icon,
+        Loader,
+        SubmissionsExporter,
     },
 };
 </script>

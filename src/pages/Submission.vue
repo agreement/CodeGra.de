@@ -10,14 +10,34 @@
                     v-on:submit="submitAllFeedback($event)"></grade-viewer>
             </div>
 
+            <loader class="col-2 text-center" scale="3" v-if="!fileTree"></loader>
             <file-tree class="col-2" v-bind:collapsed="false" v-bind:submissionId="submissionId"
-                v-bind:tree="fileTree" v-if="fileTree"></file-tree>
+                v-bind:tree="fileTree" v-else></file-tree>
         </div>
     </div>
 </template>
 
 <script>
-import { CodeViewer, FileTree, GradeViewer } from '@/components';
+import { CodeViewer, FileTree, GradeViewer, Loader } from '@/components';
+
+function getFirstFile(fileTree) {
+    // Returns the first file in the file tree that is not a folder
+    // The file tree is searched with BFS
+    const queue = [fileTree];
+    let candidate = null;
+
+    while (queue.length > 0) {
+        candidate = queue.shift();
+
+        if (candidate.entries) {
+            queue.push(...candidate.entries);
+        } else {
+            return candidate;
+        }
+    }
+
+    return false;
+}
 
 export default {
     name: 'submission-page',
@@ -99,21 +119,17 @@ export default {
     },
 
     methods: {
-        getAssignment() {
-            // this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then((data) => {
-            //     this.title = data.data.name;
-            //     this.description = data.data.description;
-            //     this.course_name = data.data.course_name;
-            //     this.course_id = data.data.course_id;
-            //     this.getSubmission();
-            // });
-        },
-
         getSubmission() {
             this.$http.get(`/api/v1/submissions/${this.submissionId}/files/`).then((data) => {
                 this.fileTree = data.data;
+                this.$router.push({
+                    name: 'submission_file',
+                    params: {
+                        submissionId: this.submissionId,
+                        fileId: getFirstFile(this.fileTree).id } });
             });
         },
+
 
         submitAllFeedback(event) {
             this.$refs.codeViewer.submitAllFeedback(event);
@@ -124,6 +140,7 @@ export default {
         CodeViewer,
         FileTree,
         GradeViewer,
+        Loader,
     },
 };
 </script>
@@ -159,5 +176,9 @@ h1,
 .code-viewer,
 .grade-viewer {
     margin-bottom: 30px;
+}
+
+.loader {
+    margin-top: 1em;
 }
 </style>
