@@ -71,20 +71,17 @@ export default {
 
         // Highlights the given string and returns an array of highlighted strings
         highlightCode(lang, code) {
-            const codeLines = [];
-            if (getLanguage(lang) === undefined) {
-                codeLines.push(...(code.split('\n')));
-            } else {
+            let lines = code.split('\n');
+            if (getLanguage(lang) !== undefined) {
                 let state = null;
-                code.split('\n').forEach((codeLine) => {
-                    let styledLine = null;
-                    styledLine = highlight(lang, codeLine, true, state);
-                    state = styledLine.top;
-                    codeLines.push(styledLine.value);
+                lines = lines.map((line) => {
+                    const { top, value } = highlight(lang, line, true, state);
+                    state = top;
+                    return value;
                 });
             }
             this.loading = false;
-            return codeLines;
+            return lines;
         },
 
         onChildCancel(line) {
