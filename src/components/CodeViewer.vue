@@ -1,7 +1,5 @@
 <template>
-  <div class="text-center loader col-md-12" v-if="loading">
-    <icon name="refresh" scale="4" spin></icon>
-  </div>
+  <loader class="col-md-12 text-center" v-if="loading"></loader>
   <ol class="code-viewer form-control" :class="{ editable }" v-else>
     <li v-on:click="addFeedback($event, i)" v-for="(line, i) in this.codeLines">
       <code v-html="line"></code>
