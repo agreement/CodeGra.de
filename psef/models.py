@@ -211,7 +211,7 @@ class Work(db.Model):
     edit = db.Column('edit', db.Integer)
     grade = db.Column('grade', db.Float, default=None)
     comment = db.Column('comment', db.Unicode, default=None)
-    created_at = db.Column(db.Date, default=datetime.datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', single_parent=True, foreign_keys=user_id)
@@ -319,3 +319,20 @@ class Assignment(db.Model):
     course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
 
     course = db.relationship('Course', foreign_keys=course_id)
+
+
+class Snippet(db.Model):
+    __tablename__ = 'Snippet'
+    id = db.Column('id', db.Integer, primary_key=True)
+    key = db.Column('key', db.Unicode)
+    value = db.Column('value', db.Unicode)
+    user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
+
+    user = db.relationship('User', foreign_keys=user_id)
+
+    @classmethod
+    def get_all_snippets(cls, user):
+        return cls.query.filter_by(user_id=user.id).all()
+
+    def to_dict(self):
+        return {'key': self.key, 'value': self.value, 'id': self.id}

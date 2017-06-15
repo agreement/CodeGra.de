@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-from flask import jsonify, request
-from flask_login import login_user, logout_user, current_user, login_required
-from sqlalchemy_utils.functions import dependent_objects
+import os
+
+from flask import after_this_request, jsonify, request, send_file
 
 import psef.auth as auth
 import psef.files
 import psef.models as models
-from psef import db, app
+from flask_login import current_user, login_required, login_user, logout_user
+from psef import app, db
 from psef.errors import APICodes, APIException
 
 
-@app.route("/api/v1/code/<int:file_id>")
+@app.route("/api/v1/code/<int:file_id>", methods=['GET'])
 def get_code(file_id):
     code = db.session.query(models.File).get(file_id)
     if code is None:
@@ -31,12 +32,12 @@ def get_code(file_id):
 
     # TODO: Return JSON following API
     return jsonify(
-        lang="python",  # TODO Detect the language automatically
+        lang=code.extension,
         code=psef.files.get_file_contents(code),
         feedback=line_feedback)
 
 
-@app.route("/api/v1/code/<int:id>/comment/<int:line>", methods=['PUT'])
+@app.route("/api/v1/code/<int:id>/comments/<int:line>", methods=['PUT'])
 def put_comment(id, line):
     content = request.get_json()
 
@@ -57,7 +58,7 @@ def put_comment(id, line):
     return ('', 204)
 
 
-@app.route("/api/v1/code/<int:id>/comment/<int:line>", methods=['DELETE'])
+@app.route("/api/v1/code/<int:id>/comments/<int:line>", methods=['DELETE'])
 def remove_comment(id, line):
     comment = db.session.query(models.Comment).filter(
         models.Comment.file_id == id, models.Comment.line == line).one_or_zero()
@@ -73,28 +74,19 @@ def remove_comment(id, line):
     return ('', 204)
 
 
-@app.route(
-    "/api/v1/courses/<int:course_id>/assignments/<int:assignment_id>/"
-    "works/<int:work_id>/dir",
-    methods=['GET'])
-def get_dir_contents(course_id, assignment_id, work_id):
-    work = models.Work.query.get(work_id)
+@app.route("/api/v1/submissions/<int:submission_id>/files/", methods=['GET'])
+def get_dir_contents(submission_id):
+    work = models.Work.query.get(submission_id)
     if work is None:
         raise APIException(
-            'File not found',
-            'The work with code {} was not found'.format(work_id),
+            'Submission not found',
+            'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
-    if (work.assignment.course.id != course_id or
-            work.assignment.id != assignment_id):
-        raise APIException(
-            'Incorrect URL',
-            'The identifiers in the URL do no match those related to the work '
-            'with code {}'.format(work_id), APICodes.INVALID_URL, 400)
 
     if (work.user.id != current_user.id):
-        auth.ensure_permission('can_view_files', course_id)
+        auth.ensure_permission('can_view_files', work.assignment.course.id)
     else:
-        auth.ensure_permission('can_view_own_files', course_id)
+        auth.ensure_permission('can_view_own_files', work.assignment.course.id)
 
     file_id = request.args.get('file_id')
     if file_id:
@@ -104,13 +96,13 @@ def get_dir_contents(course_id, assignment_id, work_id):
                 'File not found',
                 'The file with code {} was not found'.format(file_id),
                 APICodes.OBJECT_ID_NOT_FOUND, 404)
-        if (file.work.id != work_id):
+        if (file.work.id != submission_id):
             raise APIException(
                 'Incorrect URL',
                 'The identifiers in the URL do no match those related to the '
                 'file with code {}'.format(file.id), APICodes.INVALID_URL, 400)
     else:
-        file = models.File.query.filter(models.File.work_id == work_id,
+        file = models.File.query.filter(models.File.work_id == submission_id,
                                         models.File.parent_id == None).one()
 
     if not file.is_directory:
@@ -140,8 +132,8 @@ def get_student_assignments():
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
         }
-            for assignment in models.Assignment.query.filter(
-            models.Assignment.course_id.in_(courses)).all()])
+                        for assignment in models.Assignment.query.filter(
+                            models.Assignment.course_id.in_(courses)).all()])
     else:
         return jsonify([])
 
@@ -158,7 +150,8 @@ def get_assignment(assignment_id):
     })
 
 
-@app.route('/api/v1/assignments/<int:assignment_id>/works')
+@app.route(
+    '/api/v1/assignments/<int:assignment_id>/submissions/', methods=['GET'])
 def get_all_works_for_assignment(assignment_id):
     assignment = models.Assignment.query.get(assignment_id)
     if current_user.has_permission(
@@ -171,46 +164,71 @@ def get_all_works_for_assignment(assignment_id):
             assignment_id=assignment_id, user_id=current_user.id)
     res = obj.order_by(models.Work.created_at.desc()).all()
 
+    if 'csv' in request.args:
+        headers = [
+            'id', 'user_name', 'user_id', 'state', 'edit', 'grade', 'comment',
+            'created_at'
+        ]
+        file = psef.files.create_csv_from_rows([headers] + [[
+            work.id, work.user.name if work.user else "Unknown", work.user_id,
+            work.state, work.grade, work.comment,
+            work.created_at.strftime("%d-%m-%Y %H:%M")
+        ] for work in res])
+
+        @after_this_request
+        def remove_file(response):
+            os.remove(file)
+            return response
+
+        return send_file(
+            file, attachment_filename=request.args['csv'], as_attachment=True)
+
     return jsonify([{
         'id': work.id,
+        'user_name': work.user.name if work.user else "Unknown",
         'user_id': work.user_id,
         'state': work.state,
         'edit': work.edit,
         'grade': work.grade,
         'comment': work.comment,
-        'created_at': work.created_at,
+        'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
     } for work in res])
 
 
-@app.route(
-    "/api/v1/submission/<int:submission_id>/general-feedback", methods=['GET'])
-def get_general_feedback(submission_id):
+@app.route("/api/v1/submissions/<int:submission_id>", methods=['GET'])
+def get_submission(submission_id):
     work = db.session.query(models.Work).get(submission_id)
     auth.ensure_permission('can_grade_work', work.assignment.course.id)
 
     if work and work.is_graded:
-        return jsonify({"grade": work.grade, "feedback": work.comment})
+        return jsonify({
+            'id': work.id,
+            'user_id': work.user_id,
+            'state': work.state,
+            'edit': work.edit,
+            'grade': work.grade,
+            'comment': work.comment,
+            'created_at': work.created_at,
+        })
     else:
         raise APIException(
             'Work submission not found',
-            'The work with code {} was not found'.format(submission_id),
+            'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 
-@app.route(
-    "/api/v1/submission/<int:submission_id>/general-feedback", methods=['PUT'])
-def set_general_feedback(submission_id):
+@app.route("/api/v1/submissions/<int:submission_id>", methods=['PATCH'])
+def patch_submission(submission_id):
     work = db.session.query(models.Work).get(submission_id)
     content = request.get_json()
 
     if not work:
         raise APIException(
-            'Work submission not found',
-            'The work with code {} was not found'.format(submission_id),
+            'Submission not found',
+            'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     auth.ensure_permission('can_grade_work', work.assignment.course.id)
-
     if 'grade' not in content or 'feedback' not in content:
         raise APIException('Grade or feedback not provided',
                            'Grade and or feedback fields missing in sent JSON',
@@ -246,14 +264,16 @@ def login():
     # TODO: Use bcrypt password validation (as soon as we got that)
     # TODO: Return error whether user or password is wrong
     if user is None or user.password != data['password']:
-        raise APIException('The supplied email or password is wrong.', (
-            'The user with email {} does not exist ' +
-            'or has a different password').format(data['email']),
+        raise APIException(
+            'The supplied email or password is wrong.',
+            ('The user with email {} does not exist ' +
+             'or has a different password').format(data['email']),
             APICodes.LOGIN_FAILURE, 400)
 
     if not login_user(user, remember=True):
-        raise APIException('User is not active', (
-            'The user with id "{}" is not active any more').format(user.id),
+        raise APIException(
+            'User is not active',
+            ('The user with id "{}" is not active any more').format(user.id),
             APICodes.INACTIVE_USER, 403)
 
     return me()
@@ -275,7 +295,8 @@ def logout():
     return '', 204
 
 
-@app.route("/api/v1/assignments/<int:assignment_id>/work", methods=['POST'])
+@app.route(
+    "/api/v1/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id):
     """
     Saves the work on the server if the request is valid.
@@ -289,9 +310,10 @@ def upload_work(assignment_id):
 
     if (request.content_length and
             request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException('Uploaded files are too big.', (
-            'Request is bigger than maximum ' +
-            'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
+        raise APIException(
+            'Uploaded files are too big.',
+            ('Request is bigger than maximum ' +
+             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
             APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
@@ -329,7 +351,7 @@ def upload_work(assignment_id):
 
     db.session.commit()
 
-    return ('', 204)
+    return (jsonify({'id': work.id}), 201)
 
 
 @app.route('/api/v1/permissions/', methods=['GET'])
@@ -350,8 +372,7 @@ def get_permissions():
     if 'permission' in request.args:
         perm = request.args['permission']
         try:
-            return jsonify(current_user.has_permission(perm,
-                                                       course_id))
+            return jsonify(current_user.has_permission(perm, course_id))
         except KeyError:
             raise APIException('The specified permission does not exist',
                                'The permission '
@@ -359,3 +380,54 @@ def get_permissions():
                                APICodes.OBJECT_NOT_FOUND, 404)
     else:
         return jsonify(current_user.get_all_permissions(course_id=course_id))
+
+
+@app.route('/api/v1/snippets/', methods=['GET'])
+@auth.permission_required('can_use_snippets')
+def get_snippets():
+    res = models.Snippet.get_all_snippets(current_user)
+    return jsonify([r.to_dict() for r in res])
+
+
+@app.route('/api/v1/snippet', methods=['PUT'])
+@auth.permission_required('can_use_snippets')
+def add_snippet():
+    content = request.get_json()
+    if 'key' not in content or 'value' not in content:
+        raise APIException(
+            'Not all required keys were in content',
+            'The given content ({}) does  not contain "key" and "value"'.
+            format(content), APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    snippet = models.Snippet.query.filter_by(
+        user_id=current_user.id, key=content['key']).first()
+    if snippet is None:
+        db.session.add(
+            models.Snippet(
+                key=content['key'], value=content['value'], user=current_user))
+    else:
+        snippet.value = content['value']
+    db.session.commit()
+
+    return '', 204
+
+
+@app.route('/api/v1/snippets/<int:snippet_id>', methods=['DELETE'])
+@auth.permission_required('can_use_snippets')
+def delete_snippets(snippet_id):
+    snip = models.Snippet.query.get(snippet_id)
+    if snip is None:
+        raise APIException(
+            'The specified snippet does not exits',
+            'The snipped with id "{}" does not exist'.format(snippet_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    elif snip.user_id != current_user.id:
+        raise APIException(
+            'The given snippet is not your snippet',
+            'The snippet "{}" does not belong to user "{}"'.format(
+                snip.id, current_user.id), APICodes.INCORRECT_PERMISSION, 403)
+    else:
+        db.session.delete(snip)
+        db.session.commit()
+        return '', 204
+    pass

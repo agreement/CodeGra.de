@@ -1,13 +1,16 @@
+import csv
 import os
-import uuid
 import shutil
 import tempfile
+import uuid
 from functools import reduce
 
-import archive
 from werkzeug.utils import secure_filename
 
+import archive
 from psef import app
+
+_known_archive_extensions = tuple(archive.extension_map.keys())
 
 
 def get_file_contents(code):
@@ -83,9 +86,13 @@ def rename_directory_structure(rootdir):
 
 
 def is_archive(file):
-    "Checks whether file ends with a known archive file extension."
-    return file.filename.endswith(('.zip', '.tar.gz', '.tgz', '.tbz',
-                                   '.tar.bz2'))
+    """Checks whether file ends with a known archive file extension.
+
+    :param file: FileStorage object
+    :returns: True if the file has a known extension
+    :rtype: bool
+    """
+    return file.filename.endswith(_known_archive_extensions)
 
 
 def extract(file):
@@ -172,3 +179,42 @@ def process_files(files):
         res = extract(files[0])
 
     return dehead_filetree(res)
+
+
+def rgetattr(obj, attr):
+    return reduce(getattr, [obj] + attr.split('.'))
+
+
+def create_csv(objects, attributes, headers=None):
+    """Create a csv file from the given objects and attributes.
+
+    :param objects: The objects that will be listed
+    :param attributes: The attributes of each object that will be listed
+    :param headers: Column headers that will be the first row in the csv file
+
+    :returns: The path to the csv file
+    :rtype: str
+    """
+    if headers == None:
+        headers = attributes
+
+    return create_csv_from_rows([headers] + [[
+        str(rgetattr(obj, attr)) for attr in attributes
+    ] for obj in objects])
+
+
+def create_csv_from_rows(rows):
+    """Create a csv file from the given rows.
+
+    Rows should be a nested list or other similar iterable like this:
+    [[header_1, header_2], [row_1a, row_1b], [row_2a, row_2b]]
+
+    :param rows: The rows that will be used to populate the csv
+    :returns: The path to the csv file
+    :rtpe: str
+    """
+    mode, csv_file = tempfile.mkstemp()
+    with open(csv_file, 'w') as csv_output:
+        csv_writer = csv.writer(csv_output)
+        csv_writer.writerows(rows)
+    return csv_file

@@ -48,7 +48,7 @@ def permission_required(permission_name, course_id=None):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             ensure_permission(permission_name, course_id=course_id)
-            f(*args, **kwargs)
+            return f(*args, **kwargs)
 
         return decorated_function
 

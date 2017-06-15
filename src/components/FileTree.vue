@@ -10,9 +10,9 @@
         <ol v-show="!isCollapsed">
             <li v-for="f in tree.entries">
                 <file-tree v-bind:tree="f" v-if="f.entries"></file-tree>
-                <a v-bind:href="fileURL(f)" v-else>
+                <router-link :to="{ name: 'submission_file', params: { submissionId: submissionId, fileId: f.id, }, }" replace v-else>
                     <icon name="file"></icon> {{ f.name }}
-                </a>
+                </router-link>
             </li>
         </ol>
     </div>
@@ -30,6 +30,10 @@ export default {
     name: 'file-tree',
 
     props: {
+        submissionId: {
+            type: Number,
+            default: 0,
+        },
         tree: {
             type: Object,
             default: null,
@@ -50,12 +54,6 @@ export default {
         toggle(event) {
             event.stopPropagation();
             this.isCollapsed = !this.isCollapsed;
-        },
-
-        fileURL(file) {
-            const path = this.$route.path.replace(/\/files\/\d+/, '');
-            const path2 = path.replace(/\/$/, '');
-            return `#${path2}/files/${file.id}`;
         },
     },
 

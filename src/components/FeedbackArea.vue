@@ -8,12 +8,14 @@
         <b-form-input ref="field" v-model="internalFeedback"></b-form-input>
         <b-input-group-button>
             <b-button variant="default" @click="cancelFeedback()">
-                <icon name="times" aria-hidden="true"></icon>
+                <icon name="refresh" spin v-if="deletingFeedback"></icon>
+                <icon name="times" aria-hidden="true" v-else></icon>
             </b-button>
         </b-input-group-button>
         <b-input-group-button>
             <b-button variant="primary" @click="submitFeedback()">
-                <icon name="check" aria-hidden="true"></icon>
+              <icon name="refresh" spin v-if="submittingFeedback"></icon>
+              <icon name="check" aria-hidden="true" v-else></icon>
             </b-button>
         </b-input-group-button>
     </b-input-group>
@@ -21,6 +23,7 @@
 
 <script>
 import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/refresh';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/times';
 
@@ -31,34 +34,36 @@ export default {
         return {
             internalFeedback: this.feedback,
             done: true,
+            deletingFeedback: false,
+            submittingFeedback: false,
         };
     },
     methods: {
         changeFeedback() {
             this.done = false;
-            console.log(this.$refs);
             this.$refs.field.focus();
         },
         submitFeedback() {
-            console.log(this.$refs);
-            this.$emit('feedbackChange', this.internalFeedback);
-            this.$http.put(`/api/v1/code/${this.fileId}/comment/${this.line}`,
+            this.submittingFeedback = true;
+            this.$http.put(`/api/v1/code/${this.fileId}/comments/${this.line}`,
                 {
                     comment: this.internalFeedback,
                 },
             ).then(() => {
+                this.$emit('feedbackChange', this.internalFeedback);
+                this.submittingFeedback = false;
                 this.done = true;
-                console.log('Comment updated or inserted!');
             });
         },
         cancelFeedback() {
-            // TODO: collaps textarea
-            this.$http.delete(`/api/v1/code/${this.fileId}/comment/${this.line}`)
-            .then(() => {
-                // eslint-disable-next-line
-                console.log('Comment removed!');
-            }, () => null);
-            this.$emit('cancel', this.line);
+            this.deletingFeedback = true;
+            const done = () => {
+                this.deletingFeedback = true;
+                this.$emit('cancel', this.line);
+            };
+            this.$http
+                .delete(`/api/v1/code/${this.fileId}/comments/${this.line}`)
+                .then(done, done);
         },
     },
     components: {

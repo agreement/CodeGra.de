@@ -103,11 +103,66 @@ every API call should have input object, with types for every key and
 description, and an example output object. Last every API call should have a
 higher level description of the use and working.
 
+## Assignments
+### Getting an assignment
+#### HTTP Request
+`GET http://example.com/api/v1/assignments/<ID>`
+
+### Listing all assignments
+
+```python
+import requests
+
+# As logged in user
+requests.get('/api/v1/assignments/')
+```
+
+> The above code returns JSON structured like this with a status code of 200:
+```json
+[
+  {
+    "id": 1,
+    "name": "Security",
+    "course_name": "Besturingssystemen",
+    "course_id": 1
+  },
+  {
+    "id": 2,
+    "name": "Shell",
+    "course_name": "Besturingssystemen",
+    "course_id": 1
+  },
+  {
+    "id": 3,
+    "name": "Final deadline",
+    "course_name": "Project Software Engineering",
+    "course_id": 2
+  }
+]
+```
+
+Get all assignments that the current user can see.
+
+###### HTTP Request
+`GET http://example.com/api/v1/assignments/`
+
+
+## Code
+### Get code
+##### HTTP Request
+`GET http://example.com/api/v1/code/<ID>`
+
+## Comment
+### Code
+#### Put comment in code
+##### HTTP Request
+`PUT http://example.com/api/v1/code/<ID>/comments/<lineno>`
+#### Remove comment in code
+`DELETE http://example.com/api/v1/code/<ID>/comments/<lineno>`
+
 ## Directories
-### Work
-#### Assignment
-##### Course
-###### Get directory contents
+### Submission
+#### Get directory contents
 
 ```python
 import requests
@@ -115,8 +170,7 @@ import requests
 params = {
   'file_id': 1
 }
-requests.get('https://example.com/api/''v1/courses/1/assignments/1/'
-       'works/1/dir', params=params)
+requests.get('https://example.com/api/submissions/1/files/', params=params)
 ```
 
 > The above command returns JSON like below with a status code of 200:
@@ -147,17 +201,25 @@ requests.get('https://example.com/api/''v1/courses/1/assignments/1/'
 }
 ```
 
-###### HTTP Request
-`GET http://example.com/api/v1/courses/<ID>/assignments/<ID>/works/<ID>/dir`
+##### HTTP Request
+`GET http://example.com/api/v1/submissions/<ID>/files/`
 
-###### Query Parameters
+##### Query Parameters
 Parameter | Description
 --------- | -----------
 file_id | Optional parameter that can be used to show the contents of a specific directory in the work
 
-## Works
+## Submissions
+
+### Get submission
+##### HTTP Request
+`GET /api/v1/submissions/<ID>`
+### Patch submission
+##### HTTP Request
+`PATCH /api/v1/submissions/<ID>`
+
 ### Assignment
-#### Add new work
+#### Add new submission
 
 ```python
 import requests
@@ -166,20 +228,70 @@ multipart_form_data = {
     'file2': open('myfile.txt', 'rb'),
 }
 
-requests.post('https://example.com/api/v1/assignments/1/work', work=multipart_form_data)
+requests.post('https://example.com/api/v1/assignments/1/submission', files=multipart_form_data)
 ```
 
-> The return code will be 204 and the body will be empty if the work was added
+> The return code will be 204 and the body will be empty if the submission was added
 
 
 ###### HTTP Request
-`POST http://example.com/api/v1/assignments/<ID>/work`
+`POST http://example.com/api/v1/assignments/<ID>/submission`
 
 ###### Query Parameters
 Parameter | Description
 --------- | -----------
-file* | A file that should be uploaded. It can be an archive which will be
-extracted. Multiple can be specified but all keys should start will `file`
+file* | A file that should be uploaded. It can be an archive which will be extracted. Multiple can be specified but all keys should start will `file`
+
+#### Get all submissions
+
+```python
+import requests
+
+requests.get('https://example.com/api/v1/assignments/1/submissions/')
+```
+
+> The above command returns JSON structured like below:
+```json
+[
+  {
+    "id": 1,
+    "user_name": John Doe
+    "user_id": 1,
+    "state": 0,
+    "edit": 0,
+    "grade": 6,
+    "comment": "General feedback",
+    "created_at": "13-01-2017 10:05",
+  },
+  ...
+]
+```
+
+```python
+import requests
+
+params = {
+  'csv' = 'filename.csv'
+}
+
+requests.get('https://example.com/api/v1/assignments/1/submissions/params=params')
+```
+> The above command will return a CSV file structured like below:
+```
+id,user.name,user_id,state,edit,grade,comment,created_at
+1,"John Doe",1,0,0,6,"General Feedback","13-01-2017 10:05"
+...
+```
+
+###### HTTP Request
+`GET http://example.com/api/v1/assignments/<ID>/submissions/`
+
+###### Query Parameters
+Parameter | Description
+--------- | -----------
+csv | Optional parameter that can be set to retrieve all submissions as a csv file
+
+
 
 ## User
 ### Login
@@ -189,7 +301,7 @@ extracted. Multiple can be specified but all keys should start will `file`
 import requests
 
 login_data = {
-    'email: 'admin@example.com',
+    'email': 'admin@example.com',
     'password': 'admin',
 }
 
@@ -244,6 +356,9 @@ requests.post('https://example.com/api/v1/logout')
 Logout the currently logged in user.
 
 ###### HTTP Request
+<<<<<<< HEAD
+`POST http://example.com/api/v1/logout`
+=======
 `POST http://example.com/api/v1/logout`
 
 ### Permissions
@@ -328,3 +443,79 @@ Get all assignments that the current user can see.
 
 ###### HTTP Request
 `GET http://example.com/api/v1/assignments/`
+
+## Snippets
+### Getting all snippets
+```python
+import requests
+
+# Logged in as a user
+requests.get('https://example.com/api/v1/snippets/')
+```
+
+> This will result in the following JSON object with status code of 200:
+```json
+[
+  {
+     "key": "malloc",
+     "value": "Don't forget to check malloc for return value."
+     "id": 1
+  },
+  {
+     "key": "free",
+     "value": "Don't do a double free."
+     "id": 2
+  }
+]
+```
+
+Get all snippets for the current user.
+
+
+<aside class="notice">
+This is only valid for work when the current user has the `can_use_snippets`
+permission.
+</aside>
+
+#### HTTP Request
+`GET https://example.com/api/v1/snippets/`
+
+### Deleting a snippet
+```python
+import requests
+
+# Logged in as a user
+requests.delete('https://example.com/api/v1/snippets/{}'.format(snippet_id))
+```
+
+> This will result in an empty response with status code 204
+
+Delete the snippet with the specified id. Only snippets owned by the current
+user can be deleted.
+
+#### HTTP request
+`DELETE https://example.com/api/v1/snippets/<ID>`
+
+### Add or modify a snippet
+```python
+import requests
+
+json_data = {"key": "fgets", "value": 'Fgets is niet veilig.'}
+
+# Logged in as a user
+requests.delete('https://example.com/api/v1/snippet', json=json_data)
+```
+
+> This will return an empty response with status code 204
+
+Add a new snippet or modify an existing one. If the specified key is already a
+snippet for the current user, the value of this snippet will be changed.
+
+#### HTTP Request
+`PUT https://example.com/api/v1/snippet`
+
+#### Query Parameters
+| Parameter | Description                                                       |
+| --------- | -----------                                                       |
+| key       | The key of the new or existing snippet                            |
+| value     | The value of the new snippet or the new value of the old snippet. |
