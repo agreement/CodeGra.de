@@ -5,6 +5,20 @@
         "courses": {}
     },
     {
+        "name": "a",
+        "role": "admin",
+        "courses": {}
+    },
+    {
+        "name": "b",
+        "role": "admin",
+        "courses": {
+            "Project Software Engineering": "student",
+            "Besturingssystemen": "TA",
+            "Programmeertalen": "TA"
+        }
+    },
+    {
         "name": "Thomas Schaper",
         "role": "student",
         "courses": {
