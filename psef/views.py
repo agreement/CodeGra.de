@@ -63,8 +63,7 @@ def remove_comment(id, line):
     return ('', 204)
 
 
-@app.route("/api/v1/submissions/<int:submission_id>/files/",
-    methods=['GET'])
+@app.route("/api/v1/submissions/<int:submission_id>/files/", methods=['GET'])
 def get_dir_contents(submission_id):
     work = models.Work.query.get(submission_id)
     if work is None:
@@ -122,8 +121,8 @@ def get_student_assignments():
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
         }
-            for assignment in models.Assignment.query.filter(
-            models.Assignment.course_id.in_(courses)).all()])
+                        for assignment in models.Assignment.query.filter(
+                            models.Assignment.course_id.in_(courses)).all()])
     else:
         return jsonify([])
 
@@ -179,7 +178,7 @@ def get_submission(submission_id):
             'grade': work.grade,
             'comment': work.comment,
             'created_at': work.created_at,
-            })
+        })
     else:
         raise APIException(
             'Work submission not found',
@@ -187,8 +186,7 @@ def get_submission(submission_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 
-@app.route(
-    "/api/v1/submissions/<int:submission_id>", methods=['PATCH'])
+@app.route("/api/v1/submissions/<int:submission_id>", methods=['PATCH'])
 def patch_submission(submission_id):
     work = db.session.query(models.Work).get(submission_id)
     content = request.get_json()
@@ -235,14 +233,16 @@ def login():
     # TODO: Use bcrypt password validation (as soon as we got that)
     # TODO: Return error whether user or password is wrong
     if user is None or user.password != data['password']:
-        raise APIException('The supplied email or password is wrong.', (
-            'The user with email {} does not exist ' +
-            'or has a different password').format(data['email']),
+        raise APIException(
+            'The supplied email or password is wrong.',
+            ('The user with email {} does not exist ' +
+             'or has a different password').format(data['email']),
             APICodes.LOGIN_FAILURE, 400)
 
     if not login_user(user, remember=True):
-        raise APIException('User is not active', (
-            'The user with id "{}" is not active any more').format(user.id),
+        raise APIException(
+            'User is not active',
+            ('The user with id "{}" is not active any more').format(user.id),
             APICodes.INACTIVE_USER, 403)
 
     return me()
@@ -264,7 +264,8 @@ def logout():
     return '', 204
 
 
-@app.route("/api/v1/assignments/<int:assignment_id>/submission", methods=['POST'])
+@app.route(
+    "/api/v1/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id):
     """
     Saves the work on the server if the request is valid.
@@ -278,9 +279,10 @@ def upload_work(assignment_id):
 
     if (request.content_length and
             request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException('Uploaded files are too big.', (
-            'Request is bigger than maximum ' +
-            'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
+        raise APIException(
+            'Uploaded files are too big.',
+            ('Request is bigger than maximum ' +
+             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
             APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
@@ -320,6 +322,7 @@ def upload_work(assignment_id):
 
     return ('', 204)
 
+
 @app.route('/api/v1/assignments/<int:assignment_id>/divide', methods=['PATCH'])
 def divide_assignments(assignment_id):
     assignment = models.Assignment.query.get(assignment_id)
@@ -347,12 +350,12 @@ def divide_assignments(assignment_id):
 
     shuffle(submissions)
     for i in range(len(submissions)):
-        submissions[i].assigned_to =
-            content['users'][i % len(content['users'])]
+        submissions[i].assigned_to = content['users'][i %
+                                                      len(content['users'])]
 
     db.session.commit()
     return ('', 204)
-    #...
+
 
 @app.route('/api/v1/assignments/<int:assignment_id>/graders', methods=['GET'])
 def get_all_graders(assignment_id):
@@ -364,7 +367,26 @@ def get_all_graders(assignment_id):
             'The assignment with code {} was not found'.format(assignment_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    #...
+    permission = db.session.query(models.Permission.id).filter(
+        models.Permission.name == 'can_grade_work').as_scalar()
+
+    us = db.session.query(
+        models.User.id, models.User.name, models.user_course.c.course_id).join(
+            models.user_course,
+            models.User.id == models.user_course.c.user_id).subquery('us')
+    per = db.session.query(models.course_permissions.c.course_role_id).join(
+        models.CourseRole,
+        models.CourseRole.id == models.course_permissions.c.course_role_id
+    ).filter(
+        models.course_permissions.c.permission_id == permission,
+        models.CourseRole.course_id == assignment.course_id).subquery('per')
+    result = db.session.query(us.c.name, us.c.id).join(
+        per, us.c.course_id == per.c.course_role_id).all()
+
+    return jsonify({
+        'ids': [row[1] for row in result],
+        'names': [row[0] for row in result],
+    })
 
 
 @app.route('/api/v1/permissions/', methods=['GET'])
@@ -385,8 +407,7 @@ def get_permissions():
     if 'permission' in request.args:
         perm = request.args['permission']
         try:
-            return jsonify(current_user.has_permission(perm,
-                                                       course_id))
+            return jsonify(current_user.has_permission(perm, course_id))
         except KeyError:
             raise APIException('The specified permission does not exist',
                                'The permission '
