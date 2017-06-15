@@ -63,7 +63,6 @@ export default {
                 this.grade = data.data.grade;
                 this.feedback = data.data.comment;
                 this.show = true;
-                console.log(data.data);
             });
         },
 
