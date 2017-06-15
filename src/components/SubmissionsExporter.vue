@@ -14,7 +14,6 @@ export default {
 
     props: {
         id: { },
-        fileName: { default: null },
     },
 
     data() {
