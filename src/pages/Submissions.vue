@@ -1,7 +1,7 @@
 <template>
   <div class="page submission-list">
     <div class="row">
-      <loader class="col-md-6 text-center" v-if="loading < 2"></loader>
+      <loader :class="`col-md-${canUpload ? 6 : 11} text-center`" v-if="loading < 2"></loader>
       <div :class="`col-md-${canUpload ? 6 : 11}`" v-else>
         <h1>Submissions</h1>
         <submission-list :submissions="submissions"></submission-list>
