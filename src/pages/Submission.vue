@@ -36,7 +36,6 @@ function getFirstFile(fileTree) {
         if (candidate.entries) {
             queue.push(...candidate.entries);
         } else {
-            console.log(candidate);
             return candidate;
         }
     }
