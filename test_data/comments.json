@@ -1,3 +1,32 @@
-{
-
-}
+[
+    {
+        "file": "hello_world.py",
+        "user": "Him",
+        "line": 20,
+        "comment": "max 80 chars per rij"
+    },
+    {
+        "file": "hello_world.py",
+        "user": "Her",
+        "line": 20,
+        "comment": "max 80 chars per rij"
+    },
+    {
+        "file": "monte_carlo.py",
+        "user": "Stupid1",
+        "line": 5,
+        "comment": "use better prng"
+    },
+    {
+        "file": "compiler.c",
+        "user": "Stupid1",
+        "line": 50002,
+        "comment": "cascading error"
+    },
+    {
+        "file": "compiler.c",
+        "user": "Stupid1",
+        "line": 50003,
+        "comment": "fails here"
+    }
+]

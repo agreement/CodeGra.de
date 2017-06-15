@@ -13,8 +13,20 @@ from psef.errors import APICodes, APIException
 
 @app.route("/api/v1/code/<int:file_id>", methods=['GET'])
 def get_code(file_id):
-    code = db.session.query(models.File).filter(  # NOQA: F841
-        models.File.id == file_id).first()
+    code = db.session.query(models.File).get(file_id)
+    if code is None:
+        raise APIException(
+            'File not found',
+            'The file with id {} was not found'.format(file_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    if (code.work.user.id != current_user.id):
+        auth.ensure_permission(
+            'can_view_files', code.work.assignment.course.id)
+    else:
+        auth.ensure_permission('can_view_own_files',
+                               code.work.assignment.course.id)
+
     line_feedback = {}
     for comment in db.session.query(models.Comment).filter_by(
             file_id=file_id).all():
@@ -30,18 +42,22 @@ def get_code(file_id):
 @app.route("/api/v1/code/<int:id>/comments/<int:line>", methods=['PUT'])
 def put_comment(id, line):
     """
-    Create or change a single line comment of a code file 
+    Create or change a single line comment of a code file
     """
     content = request.get_json()
 
     comment = db.session.query(models.Comment).filter(
-        models.Comment.file_id == id, models.Comment.line == line).first()
+        models.Comment.file_id == id, models.Comment.line == line).one_or_zero()
     if not comment:
-        # TODO: User id 0 for now, change later on
+        file = db.session.query(models.File).get(id)
+        auth.ensure_permission(
+            'can_grade_work', file.work.assignment.course.id)
         db.session.add(
             models.Comment(
-                file_id=id, user_id=0, line=line, comment=content['comment']))
+                file_id=id, user_id=current_user.id, line=line, comment=content['comment']))
     else:
+        auth.ensure_permission(
+            'can_grade_work', comment.file.work.assignment.course.id)
         comment.comment = content['comment']
 
     db.session.commit()
@@ -58,9 +74,11 @@ def remove_comment(id, line):
         - If no comment on line X was found
     """
     comment = db.session.query(models.Comment).filter(
-        models.Comment.file_id == id, models.Comment.line == line).first()
+        models.Comment.file_id == id, models.Comment.line == line).one_or_zero()
 
     if comment:
+        auth.ensure_permission(
+            'can_grade_work', comment.file.work.assignment.course.id)
         db.session.delete(comment)
         db.session.commit()
     else:
@@ -139,8 +157,8 @@ def get_student_assignments():
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
         }
-                        for assignment in models.Assignment.query.filter(
-                            models.Assignment.course_id.in_(courses)).all()])
+            for assignment in models.Assignment.query.filter(
+            models.Assignment.course_id.in_(courses)).all()])
     else:
         return jsonify([])
 
@@ -245,7 +263,7 @@ def patch_submission(submission_id):
         - If submission X was not found
         - request file does not contain grade and/or feedback
         - request file grade is not a float
-    """    
+    """
     work = db.session.query(models.Work).get(submission_id)
     content = request.get_json()
 
@@ -280,13 +298,13 @@ def patch_submission(submission_id):
 @app.route("/api/v1/login", methods=["POST"])
 def login():
     """
-    Login a user if the request is valid. 
+    Login a user if the request is valid.
 
     Raises APIException:
         - request file does not contain email and/or password
         - request file contains invalid login credentials
         - request file contains inactive login credentials
-    """  
+    """
     data = request.get_json()
 
     if 'email' not in data or 'password' not in data:
