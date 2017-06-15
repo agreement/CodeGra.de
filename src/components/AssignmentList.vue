@@ -1,26 +1,29 @@
 <template>
     <div>
         <div class="row">
-            <b-form-fieldset horizontal class="col-10" :label-size="0">
+            <b-input-group class="col-12">
                 <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
-            </b-form-fieldset>
-
-            <b-form-fieldset horizontal class="col-2 text-right" :label-size="0">
                 <b-button-group>
-                    <b-button class="btn-danger" :class="{ 'btn-outline-danger': !filterSubmitting }"
-                        @click="filterSubmitting = !filterSubmitting">
-                        <icon name="plus"></icon>
-                    </b-button>
-                    <b-button class="btn-warning" :class="{ 'btn-outline-warning': !filterGrading }"
-                        @click="filterGrading = !filterGrading">
-                        <icon name="times"></icon>
-                    </b-button>
-                    <b-button class="btn-success" :class="{ 'btn-outline-success': !filterDone }"
-                        @click="filterDone = !filterDone">
-                        <icon name="check"></icon>
-                    </b-button>
+                    <b-popover placement="top" triggers="hover" content="Submitting">
+                        <b-button class="btn-danger" :class="{ 'btn-outline-danger': !filterSubmitting }"
+                            @click="filterSubmitting = !filterSubmitting">
+                            <icon name="plus"></icon>
+                        </b-button>
+                    </b-popover>
+                    <b-popover placement="top" triggers="hover" content="Grading">
+                        <b-button class="btn-warning" :class="{ 'btn-outline-warning': !filterGrading }"
+                            @click="filterGrading = !filterGrading">
+                            <icon name="times"></icon>
+                        </b-button>
+                    </b-popover>
+                    <b-popover placement="top" triggers="hover" content="Done">
+                        <b-button class="btn-success" :class="{ 'btn-outline-success': !filterDone }"
+                            @click="filterDone = !filterDone">
+                            <icon name="check"></icon>
+                        </b-button>
+                    </b-popover>
                 </b-button-group>
-            </b-form-fieldset>
+            </b-input-group>
         </div>
 
         <!-- Main table element -->
@@ -49,7 +52,7 @@
 </template>
 
 <script>
-import { bButton, bButtonGroup, bFormFieldset, bTable } from
+import { bButton, bButtonGroup, bFormFieldset, bInputGroup, bPopover, bTable } from
     'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
@@ -140,12 +143,26 @@ export default {
         bButton,
         bButtonGroup,
         bFormFieldset,
+        bInputGroup,
+        bPopover,
         bTable,
     },
 };
 </script>
 
 <style lang="less" scoped>
+.btn-group {
+    button {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+
+    & > :not(:last-child) button {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+}
+
 .table {
     cursor: pointer;
 }
