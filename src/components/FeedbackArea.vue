@@ -77,13 +77,13 @@ export default {
         };
     },
     mounted() {
-        this.$nextTick(() => this.$refs.field.focus(), 50);
+        this.$nextTick(() => this.$refs.field.focus());
     },
     methods: {
         changeFeedback() {
             if (this.editable) {
                 this.done = false;
-                this.$nextTick(() => this.$refs.field.focus(), 50);
+                this.$nextTick(() => this.$refs.field.focus());
                 this.internalFeedback = this.serverFeedback;
             }
         },
