@@ -11,7 +11,8 @@
                      :line='i'
                      :fileId='fileId'
                      v-on:feedbackChange="val => { feedbackChange(i, val); }"
-                     v-on:cancel='onChildCancel' v-if="feedback[i] != null">
+                     v-on:cancel='onChildCancel'
+                     v-if="feedback[i] != null">
       </feedback-area>
       <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
             v-on:click="addFeedback($event, value)"></icon>

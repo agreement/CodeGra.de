@@ -145,6 +145,17 @@ def test_data():
                     comment=c['comment'],
                     grade=c['grade'],
                     edit=c['edit']))
+    with open('./test_data/snippets.json', 'r') as c:
+        cs = json.load(c)
+        for c in cs:
+            user = m.User.query.filter_by(name=c['user']).first()
+            snip = m.Snippet.query.filter_by(key=c['key'],
+                                              user=user).first()
+            if snip is None:
+                db.session.add(m.Snippet(key=c['key'], value=c['value'],
+                                         user=user))
+            else:
+                snip.value = c['value']
     db.session.commit()
 
 

@@ -473,9 +473,9 @@ def get_permissions():
 def get_snippets():
     res = models.Snippet.get_all_snippets(current_user)
     if res:
-        return (jsonify([r.to_dict() for r in res]), 200)
+        return jsonify({r.key: {'value': r.value, 'id': r.id} for r in res})
     else:
-        return (jsonify([]), 204)
+        return ('', 204)
 
 
 @app.route('/api/v1/snippet', methods=['PUT'])
