@@ -320,6 +320,7 @@ class Assignment(db.Model):
         nullable=False)
     description = db.Column('description', db.Unicode, default='')
     course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     course = db.relationship('Course', foreign_keys=course_id)
 

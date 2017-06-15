@@ -167,6 +167,7 @@ def get_student_assignments():
         return jsonify([{
             'id': assignment.id,
             'state': assignment.state,
+            'date': assignment.created_at,
             'name': assignment.name,
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
