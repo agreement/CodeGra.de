@@ -4,7 +4,6 @@
     <li v-on:click="addFeedback($event, i)" v-for="(line, i) in this.codeLines">
       <code v-html="line"></code>
 
-
       <feedback-area :editing="editing[i] === true" :feedback='feedback[i]' :editable='editable' :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }" v-on:cancel='onChildCancel' v-if="feedback[i] != null"></feedback-area>
 
       <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
@@ -14,7 +13,6 @@
 </template>
 
 <script>
-import 'vue-awesome/icons/refresh';
 import { getLanguage, highlight } from 'highlightjs';
 import Vue from 'vue';
 
@@ -24,7 +22,7 @@ import { bButton, bFormInput, bInputGroup, bInputGroupButton }
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
 
-import FeedbackArea from '@/components/FeedbackArea';
+import { FeedbackArea, Loader } from '@/components';
 
 export default {
     name: 'code-viewer',
@@ -112,6 +110,7 @@ export default {
         bInputGroupButton,
         Icon,
         FeedbackArea,
+        Loader,
     },
 };
 </script>
@@ -153,6 +152,7 @@ code {
         display: block;
     }
 }
+
 .loader {
     margin-top: 5em;
 }

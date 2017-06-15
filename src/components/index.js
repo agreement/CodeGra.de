@@ -1,4 +1,5 @@
 import CodeViewer from './CodeViewer';
+import FeedbackArea from './FeedbackArea';
 import FileTree from './FileTree';
 import FooterBar from './FooterBar';
 import GradeViewer from './GradeViewer';
@@ -13,6 +14,7 @@ import SubmissionsExporter from './SubmissionsExporter';
 
 export {
     CodeViewer,
+    FeedbackArea,
     FileTree,
     FooterBar,
     GradeViewer,
