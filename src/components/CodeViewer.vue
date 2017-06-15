@@ -3,7 +3,7 @@
     <icon name="refresh" scale="4" spin></icon>
   </div>
   <ol class="code-viewer form-control" :class="{ editable }" v-else>
-    <li v-on:click="addFeedback($event, i)" v-for="(line, i) in highlighted_code">
+    <li v-on:click="addFeedback($event, i)" v-for="(line, i) in this.codeLines">
       <code v-html="line"></code>
 
 
@@ -37,25 +37,12 @@ export default {
         return {
             fileId: this.id,
             lang: '',
-            code: '',
+            codeLines: [],
             loading: true,
             editing: {},
             feedback: {},
             clicks: {},
         };
-    },
-
-    computed: {
-        highlighted_code() {
-            if (!this.code) {
-                return [];
-            }
-            if (!this.lang) {
-                return this.code.split('\n');
-            }
-            const highlighted = highlight(this.lang, this.code);
-            return highlighted.value.split('\n');
-        },
     },
 
     mounted() {
@@ -77,10 +64,22 @@ export default {
         getCode() {
             this.$http.get(`/api/v1/code/${this.fileId}`).then((data) => {
                 this.lang = data.data.lang;
-                this.code = data.data.code;
                 this.feedback = data.data.feedback;
+                this.codeLines = this.highlightCode(this.lang, data.data.code);
+            });
+        },
+
+        // Highlights the given string and returns an array of highlighted strings
+        highlightCode(lang, code) {
+            const codeLines = [];
+            let state = null;
+            code.split('\n').forEach((codeLine) => {
+                const styledLine = highlight(lang, codeLine, true, state);
+                state = styledLine.top;
+                codeLines.push(styledLine.value);
                 this.loading = false;
             });
+            return codeLines;
         },
 
         onChildCancel(line) {
