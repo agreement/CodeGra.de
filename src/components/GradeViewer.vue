@@ -1,5 +1,5 @@
 <template>
-    <div class="grade-viewer row">
+    <div class="grade-viewer row" v-if="show">
         <div class="col-6">
             <b-input-group>
                 <b-input-group-button>
@@ -44,6 +44,7 @@ export default {
             submissionId: this.id,
             grade: 0,
             feedback: '',
+            show: false,
         };
     },
 
@@ -56,6 +57,8 @@ export default {
             this.$http.get(`/api/v1/submissions/${this.submissionId}`).then((data) => {
                 this.grade = data.data.grade;
                 this.feedback = data.data.comment;
+                this.show = true;
+                console.log(data.data);
             });
         },
 

@@ -16,10 +16,24 @@ def get_code(file_id):
 
     code = db.session.query(models.File).filter(  # NOQA: F841
         models.File.id == file_id).first()
+    assig = code.work.assignment
     line_feedback = {}
-    for comment in db.session.query(models.Comment).filter_by(
-            file_id=file_id).all():
-        line_feedback[str(comment.line)] = comment.comment
+
+    if code.work.user.id == current_user.id:
+        perm = 'can_see_own_work'
+    else:
+        perm = 'can_see_others_work'
+
+
+    auth.ensure_permission(perm, assig.course.id)
+
+    print(perm, assig.state)
+    if (assig.state == models.AssignmentStateEnum.done or
+        current_user.has_permission('can_see_grade_before_open',
+                                    assig.course.id)):
+        for comment in db.session.query(models.Comment).filter_by(
+                file_id=file_id).all():
+            line_feedback[str(comment.line)] = comment.comment
 
     # TODO: Return JSON following API
     return jsonify(
@@ -116,6 +130,7 @@ def get_student_assignments():
     if courses:
         return jsonify([{
             'id': assignment.id,
+            'state': assignment.state,
             'name': assignment.name,
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
@@ -132,6 +147,7 @@ def get_assignment(assignment_id):
     auth.ensure_permission('can_see_assignments', assignment.course_id)
     return jsonify({
         'name': assignment.name,
+        'state': assignment.state,
         'description': assignment.description,
         'course_name': assignment.course.name,
         'course_id': assignment.course_id,
@@ -156,7 +172,6 @@ def get_all_works_for_assignment(assignment_id):
         'id': work.id,
         'user_name': work.user.name if work.user else "Unknown",
         'user_id': work.user_id,
-        'state': work.state,
         'edit': work.edit,
         'grade': work.grade,
         'comment': work.comment,
@@ -165,15 +180,21 @@ def get_all_works_for_assignment(assignment_id):
 
 
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['GET'])
+@login_required
 def get_submission(submission_id):
     work = db.session.query(models.Work).get(submission_id)
-    auth.ensure_permission('can_grade_work', work.assignment.course.id)
 
-    if work and work.is_graded:
+    if work:
+        if work.user.id != current_user.id:
+            auth.ensure_permission('can_see_others_work',
+                                   work.assignment.course.id)
+        if work.assignment.state != models.AssignmentStateEnum.done:
+            auth.ensure_permission('can_see_grade_before_open',
+                                   work.assignment.course.id)
+
         return jsonify({
             'id': work.id,
             'user_id': work.user_id,
-            'state': work.state,
             'edit': work.edit,
             'grade': work.grade,
             'comment': work.comment,
@@ -214,7 +235,6 @@ def patch_submission(submission_id):
 
     work.grade = content['grade']
     work.comment = content['feedback']
-    work.state = 'done'
     db.session.commit()
     return ('', 204)
 

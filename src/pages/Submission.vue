@@ -35,6 +35,7 @@ export default {
             courseId: this.$route.params.courseId,
             fileTree: null,
             grade: 0,
+            showGrade: false,
             feedback: '',
         };
     },
