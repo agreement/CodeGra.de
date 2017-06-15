@@ -6,7 +6,7 @@
           </div>
             <div class="col-md-6" v-else>
                 <h1>Submissions</h1>
-                <submission-list :submissions="submissions" v-on:goto="gotoSubmission"></submission-list>
+                <submission-list :submissions="submissions"></submission-list>
                 <submissions-exporter :id="assignmentId"></submissions-exporter>
             </div>
 
@@ -39,15 +39,6 @@ export default {
             this.loading = false;
             this.submissions = data.data;
         });
-    },
-
-    methods: {
-        gotoSubmission(submission) {
-            this.$router.push({
-                name: 'submission',
-                params: { submissionId: submission.id },
-            });
-        },
     },
 
     components: {

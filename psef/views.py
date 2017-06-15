@@ -47,7 +47,7 @@ def put_comment(id, line):
     content = request.get_json()
 
     comment = db.session.query(models.Comment).filter(
-        models.Comment.file_id == id, models.Comment.line == line).one_or_zero()
+        models.Comment.file_id == id, models.Comment.line == line).one_or_none()
     if not comment:
         file = db.session.query(models.File).get(id)
         auth.ensure_permission(
@@ -74,7 +74,7 @@ def remove_comment(id, line):
         - If no comment on line X was found
     """
     comment = db.session.query(models.Comment).filter(
-        models.Comment.file_id == id, models.Comment.line == line).one_or_zero()
+        models.Comment.file_id == id, models.Comment.line == line).one_or_none()
 
     if comment:
         auth.ensure_permission(

@@ -282,7 +282,7 @@ class File(db.Model):
     )
 
     def get_filename(self):
-        if self.extension != None:
+        if self.extension != None and self.extension != "":
             return "{}.{}".format(self.name, self.extension)
         else:
             return self.name
@@ -300,35 +300,34 @@ class File(db.Model):
 
 class Comment(db.Model):
     __tablename__ = "Comment"
-    file_id = db.Column('File_id', db.Integer)  # , db.ForeignKey('File.id'))
-    user_id = db.Column('User_id', db.Integer)  # , db.ForeignKey('User.id'))
-    line = db.Column('line', db.Integer)
-    comment = db.Column('comment', db.Unicode)
-    __table_args__ = (db.PrimaryKeyConstraint(file_id, line), )
+    file_id = db.Column('File_id', db.Integer, db.ForeignKey('File.id'))
+    user_id=db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
+    line=db.Column('line', db.Integer)
+    comment=db.Column('comment', db.Unicode)
+    __table_args__=(db.PrimaryKeyConstraint(file_id, line), )
 
-    # Commented out relationships for testing purposes
-    # file = db.relationship('File', foreign_keys=file_id)
-    # user = db.relationship('User', foreign_keys=user_id)
+    file=db.relationship('File', foreign_keys=file_id)
+    user=db.relationship('User', foreign_keys=user_id)
 
 
 class Assignment(db.Model):
-    __tablename__ = "Assignment"
-    id = db.Column('id', db.Integer, primary_key=True)
-    name = db.Column('name', db.Unicode)
-    description = db.Column('description', db.Unicode, default='')
-    course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
+    __tablename__="Assignment"
+    id=db.Column('id', db.Integer, primary_key=True)
+    name=db.Column('name', db.Unicode)
+    description=db.Column('description', db.Unicode, default='')
+    course_id=db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
 
-    course = db.relationship('Course', foreign_keys=course_id)
+    course=db.relationship('Course', foreign_keys=course_id)
 
 
 class Snippet(db.Model):
-    __tablename__ = 'Snippet'
-    id = db.Column('id', db.Integer, primary_key=True)
-    key = db.Column('key', db.Unicode)
-    value = db.Column('value', db.Unicode)
-    user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
+    __tablename__='Snippet'
+    id=db.Column('id', db.Integer, primary_key=True)
+    key=db.Column('key', db.Unicode)
+    value=db.Column('value', db.Unicode)
+    user_id=db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
 
-    user = db.relationship('User', foreign_keys=user_id)
+    user=db.relationship('User', foreign_keys=user_id)
 
     @classmethod
     def get_all_snippets(cls, user):

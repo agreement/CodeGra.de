@@ -94,10 +94,15 @@ export default {
                 }
             }
         },
-        gotoSubmission(sub) {
+
+        gotoSubmission(submission) {
             this.submit();
-            this.$emit('goto', sub);
+            this.$router.push({
+                name: 'submission',
+                params: { submissionId: submission.id },
+            });
         },
+
         submit() {
             const query = { latest: this.latestOnly };
             if (this.filter) {
