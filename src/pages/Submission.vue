@@ -4,29 +4,29 @@
 
         <div class="row code-browser">
             <div class="col-10 code-and-grade">
-                <code-viewer class="" v-bind:editable="true"
-                    v-bind:id="fileId" v-if="fileId" ref="codeViewer"></code-viewer>
-                <grade-viewer v-bind:id="submissionId"
-                    v-on:submit="submitAllFeedback($event)"></grade-viewer>
+                <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
+                <code-viewer class="" v-bind:editable="true" v-bind:id="fileId" v-else-if="fileExtension != '' && fileId" ref="codeViewer"></code-viewer>
+                <grade-viewer v-bind:id="submissionId" v-on:submit="submitAllFeedback($event)"></grade-viewer>
             </div>
 
-            <file-tree class="col-2" v-bind:collapsed="false" v-bind:submissionId="submissionId"
-                v-bind:tree="fileTree" v-if="fileTree"></file-tree>
+            <file-tree class="col-2" v-bind:collapsed="false" v-bind:submissionId="submissionId" v-bind:tree="fileTree" v-if="fileTree"></file-tree>
         </div>
     </div>
 </template>
 
 <script>
 import { CodeViewer, FileTree, GradeViewer } from '@/components';
+import PdfViewer from '@/components/PdfViewer';
 
 export default {
     name: 'submission-page',
 
     data() {
         return {
-            assignmentId: this.$route.params.assignmentId,
-            submissionId: this.$route.params.submissionId,
+            assignmentId: Number(this.$route.params.assignmentId),
+            submissionId: Number(this.$route.params.submissionId),
             fileId: this.$route.params.fileId,
+            fileExtension: '',
             title: '',
             description: '',
             course_name: '',
@@ -39,6 +39,7 @@ export default {
 
     mounted() {
         this.getSubmission();
+        this.getFileMetadata();
 
         const elements = Array.from(document.querySelectorAll('html, body, #app, header, footer'));
         const [html, body, app, header, footer] = elements;
@@ -96,6 +97,10 @@ export default {
             this.submissionId = this.$route.params.submissionId;
             this.fileId = this.$route.params.fileId;
         },
+
+        fileId() {
+            this.getFileMetadata();
+        },
     },
 
     methods: {
@@ -115,6 +120,17 @@ export default {
             });
         },
 
+        getFileMetadata() {
+            if (this.fileId === undefined) {
+                return;
+            }
+
+            this.fileExtension = '';
+            this.$http.get(`/api/v1/file/metadata/${this.fileId}`).then((response) => {
+                this.fileExtension = response.data.extension;
+            });
+        },
+
         submitAllFeedback(event) {
             this.$refs.codeViewer.submitAllFeedback(event);
         },
@@ -124,6 +140,7 @@ export default {
         CodeViewer,
         FileTree,
         GradeViewer,
+        PdfViewer,
     },
 };
 </script>
