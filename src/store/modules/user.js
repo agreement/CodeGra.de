@@ -37,13 +37,13 @@ const actions = {
                 axios.get('/api/v1/permissions/', {
                     params: perm.course_id ? { course_id: perm.course_id } : {},
                 }).then((response) => {
-                    commit(types.PERMSSIONS, { response: response.data, perm });
+                    commit(types.PERMISSIONS, { response: response.data, perm });
                     resolve(checkPermission());
                 }, () => resolve(false));
             } else {
                 if (Math.random() < 0.005) {
                     axios.get('/api/v1/permissions/').then((response) => {
-                        commit(types.PERMSSIONS, { response: response.data, perm });
+                        commit(types.PERMISSIONS, { response: response.data, perm });
                     });
                 }
                 resolve(checkPermission());
@@ -76,7 +76,7 @@ const mutations = {
         state.email = userdata.email;
         state.name = userdata.name;
     },
-    [types.PERMSSIONS](state, { response, perm }) {
+    [types.PERMISSIONS](state, { response, perm }) {
         if (perm.course_id !== undefined) {
             if (!state.permissions) {
                 state.permissions = {};

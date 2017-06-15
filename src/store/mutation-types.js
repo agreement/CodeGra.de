@@ -1,3 +1,3 @@
 export const LOGIN = 'LOGIN';
 export const LOGOUT = 'LOGOUT';
-export const PERMSSIONS = 'PERMSSIONS';
+export const PERMISSIONS = 'PERMISSIONS';
