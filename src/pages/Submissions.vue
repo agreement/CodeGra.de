@@ -50,20 +50,19 @@ export default {
         this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then((data) => {
             this.loading += 1;
             this.assignment = data.data;
-            this.hasPermission({ name: 'can_see_own_work', course_id: this.courseId }).then((val) => {
+            this.hasPermission('can_see_own_work').then((val) => {
                 const checkDownload = () => {
                     if (this.assignment.state === 3) {
                         this.canDownload = true;
                     } else {
-                        this.hasPermission({
-                            name: 'can_see_grade_before_open',
-                            course_id: this.courseId,
-                        }).then((res) => { this.canDownload = res; });
+                        this.hasPermission('can_see_grade_before_open').then((res) => {
+                            this.canDownload = res;
+                        });
                     }
                 };
                 if (val) {
                     checkDownload();
-                    this.hasPermission({ name: 'can_see_others_work', course_id: this.courseId }).then((res) => {
+                    this.hasPermission('can_see_others_work').then((res) => {
                         if (res) {
                             this.checkDownload();
                         }
@@ -74,6 +73,9 @@ export default {
     },
 
     methods: {
+        hasPermission(perm) {
+            return this.u_hasPermission({ name: perm, course_id: this.courseId });
+        },
         gotoSubmission(submission) {
             this.$router.push({
                 name: 'submission',
@@ -81,7 +83,7 @@ export default {
             });
         },
         ...mapActions({
-            hasPermission: 'user/hasPermission',
+            u_hasPermission: 'user/hasPermission',
         }),
     },
 
