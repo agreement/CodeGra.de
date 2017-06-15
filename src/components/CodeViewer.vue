@@ -1,11 +1,19 @@
 <template>
   <loader class="col-md-12 text-center" v-if="loading"></loader>
   <ol class="code-viewer form-control" :class="{ editable }" v-else>
-    <li v-on:click="addFeedback($event, i)" v-for="(line, i) in this.codeLines">
+    <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines">
       <code v-html="line"></code>
 
-      <feedback-area :editing="editing[i] === true" :feedback='feedback[i]' :editable='editable' :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }" v-on:cancel='onChildCancel' v-if="feedback[i] != null"></feedback-area>
 
+      <feedback-area :editing="editing[i] === true"
+                     :feedback='feedback[i]'
+                     :editable='editable'
+                     :line='i'
+                     :fileId='fileId'
+                     v-on:feedbackChange="val => { feedbackChange(i, val); }"
+                     v-on:cancel='onChildCancel'
+                     v-if="feedback[i] != null">
+      </feedback-area>
       <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
             v-on:click="addFeedback($event, value)"></icon>
     </li>
@@ -22,7 +30,8 @@ import { bButton, bFormInput, bInputGroup, bInputGroupButton }
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
 
-import { FeedbackArea, Loader } from '@/components';
+import FeedbackArea from './FeedbackArea';
+import Loader from './Loader';
 
 export default {
     name: 'code-viewer',
@@ -96,8 +105,10 @@ export default {
         },
 
         feedbackChange(line, feedback) {
-            this.editing[line] = false;
-            this.feedback[line] = feedback;
+            if (this.editable) {
+                this.editing[line] = false;
+                this.feedback[line] = feedback;
+            }
         },
         // eslint-disable-next-line
         submitAllFeedback(event) {},

@@ -192,13 +192,6 @@ class Course(db.Model):
     name = db.Column('name', db.Unicode)
 
 
-@enum.unique
-class WorkStateEnum(enum.IntEnum):
-    initial = 0  # Not looked at
-    started = 1  # The TA is working on it
-    done = 2  # This is the same as graded would be
-
-
 class Work(db.Model):
     __tablename__ = "Work"
     id = db.Column('id', db.Integer, primary_key=True)
@@ -206,8 +199,6 @@ class Work(db.Model):
                               db.ForeignKey('Assignment.id'))
     user_id = db.Column('User_id', db.Integer,
                         db.ForeignKey('User.id', ondelete='CASCADE'))
-    state = db.Column(
-        'state', db.Enum(WorkStateEnum), default=WorkStateEnum.initial)
     edit = db.Column('edit', db.Integer)
     grade = db.Column('grade', db.Float, default=None)
     comment = db.Column('comment', db.Unicode, default=None)
@@ -301,33 +292,47 @@ class File(db.Model):
 class Comment(db.Model):
     __tablename__ = "Comment"
     file_id = db.Column('File_id', db.Integer, db.ForeignKey('File.id'))
-    user_id=db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
-    line=db.Column('line', db.Integer)
-    comment=db.Column('comment', db.Unicode)
-    __table_args__=(db.PrimaryKeyConstraint(file_id, line), )
+    user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
+    line = db.Column('line', db.Integer)
+    comment = db.Column('comment', db.Unicode)
+    __table_args__ = (db.PrimaryKeyConstraint(file_id, line), )
 
-    file=db.relationship('File', foreign_keys=file_id)
-    user=db.relationship('User', foreign_keys=user_id)
+    file = db.relationship('File', foreign_keys=file_id)
+    user = db.relationship('User', foreign_keys=user_id)
+
+
+@enum.unique
+class AssignmentStateEnum(enum.IntEnum):
+    hidden = 0
+    submitting = 1
+    grading = 2
+    done = 3
 
 
 class Assignment(db.Model):
-    __tablename__="Assignment"
-    id=db.Column('id', db.Integer, primary_key=True)
-    name=db.Column('name', db.Unicode)
-    description=db.Column('description', db.Unicode, default='')
-    course_id=db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
+    __tablename__ = "Assignment"
+    id = db.Column('id', db.Integer, primary_key=True)
+    name = db.Column('name', db.Unicode)
+    state = db.Column(
+        'state',
+        db.Enum(AssignmentStateEnum),
+        default=AssignmentStateEnum.hidden,
+        nullable=False)
+    description = db.Column('description', db.Unicode, default='')
+    course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-    course=db.relationship('Course', foreign_keys=course_id)
+    course = db.relationship('Course', foreign_keys=course_id)
 
 
 class Snippet(db.Model):
-    __tablename__='Snippet'
-    id=db.Column('id', db.Integer, primary_key=True)
-    key=db.Column('key', db.Unicode)
-    value=db.Column('value', db.Unicode)
-    user_id=db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
+    __tablename__ = 'Snippet'
+    id = db.Column('id', db.Integer, primary_key=True)
+    key = db.Column('key', db.Unicode, nullable=False)
+    value = db.Column('value', db.Unicode, nullable=False)
+    user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
 
-    user=db.relationship('User', foreign_keys=user_id)
+    user = db.relationship('User', foreign_keys=user_id)
 
     @classmethod
     def get_all_snippets(cls, user):

@@ -1,36 +1,41 @@
 #!/usr/bin/env python3
 import os
 
-from flask import after_this_request, jsonify, request, send_file
+from flask import jsonify, request, send_file, after_this_request
+from flask_login import login_user, logout_user, current_user, login_required
 
 import psef.auth as auth
 import psef.files
 import psef.models as models
-from flask_login import current_user, login_required, login_user, logout_user
-from psef import app, db
+from psef import db, app
 from psef.errors import APICodes, APIException
 
 
 @app.route("/api/v1/code/<int:file_id>", methods=['GET'])
 def get_code(file_id):
     code = db.session.query(models.File).get(file_id)
+    assig = code.work.assignment
+    line_feedback = {}
+
     if code is None:
-        raise APIException(
-            'File not found',
-            'The file with id {} was not found'.format(file_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+        raise APIException('File not found',
+                           'The file with id {} was not found'.format(file_id),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     if (code.work.user.id != current_user.id):
-        auth.ensure_permission(
-            'can_view_files', code.work.assignment.course.id)
+        auth.ensure_permission('can_view_files',
+                               code.work.assignment.course.id)
     else:
         auth.ensure_permission('can_view_own_files',
                                code.work.assignment.course.id)
 
-    line_feedback = {}
-    for comment in db.session.query(models.Comment).filter_by(
-            file_id=file_id).all():
-        line_feedback[str(comment.line)] = comment.comment
+    try:
+        auth.ensure_can_see_grade(code.work)
+        for comment in db.session.query(models.Comment).filter_by(
+                file_id=file_id).all():
+            line_feedback[str(comment.line)] = comment.comment
+    except auth.PermissionException:
+        line_feedback = {}
 
     # TODO: Return JSON following API
     return jsonify(
@@ -47,17 +52,21 @@ def put_comment(id, line):
     content = request.get_json()
 
     comment = db.session.query(models.Comment).filter(
-        models.Comment.file_id == id, models.Comment.line == line).one_or_none()
+        models.Comment.file_id == id,
+        models.Comment.line == line).one_or_none()
     if not comment:
         file = db.session.query(models.File).get(id)
-        auth.ensure_permission(
-            'can_grade_work', file.work.assignment.course.id)
+        auth.ensure_permission('can_grade_work',
+                               file.work.assignment.course.id)
         db.session.add(
             models.Comment(
-                file_id=id, user_id=current_user.id, line=line, comment=content['comment']))
+                file_id=id,
+                user_id=current_user.id,
+                line=line,
+                comment=content['comment']))
     else:
-        auth.ensure_permission(
-            'can_grade_work', comment.file.work.assignment.course.id)
+        auth.ensure_permission('can_grade_work',
+                               comment.file.work.assignment.course.id)
         comment.comment = content['comment']
 
     db.session.commit()
@@ -74,11 +83,12 @@ def remove_comment(id, line):
         - If no comment on line X was found
     """
     comment = db.session.query(models.Comment).filter(
-        models.Comment.file_id == id, models.Comment.line == line).one_or_none()
+        models.Comment.file_id == id,
+        models.Comment.line == line).one_or_none()
 
     if comment:
-        auth.ensure_permission(
-            'can_grade_work', comment.file.work.assignment.course.id)
+        auth.ensure_permission('can_grade_work',
+                               comment.file.work.assignment.course.id)
         db.session.delete(comment)
         db.session.commit()
     else:
@@ -153,12 +163,15 @@ def get_student_assignments():
     if courses:
         return (jsonify([{
             'id': assignment.id,
+            'state': assignment.state,
+            'date': assignment.created_at,
             'name': assignment.name,
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
         }
-            for assignment in models.Assignment.query.filter(
-            models.Assignment.course_id.in_(courses)).all()]), 200)
+                         for assignment in models.Assignment.query.filter(
+                             models.Assignment.course_id.in_(courses)).all()]),
+                200)
     else:
         return (jsonify([]), 204)
 
@@ -178,6 +191,7 @@ def get_assignment(assignment_id):
     else:
         return (jsonify({
             'name': assignment.name,
+            'state': assignment.state,
             'description': assignment.description,
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
@@ -199,17 +213,21 @@ def get_all_works_for_assignment(assignment_id):
             'can_see_own_work', course_id=assignment.course_id)
         obj = models.Work.query.filter_by(
             assignment_id=assignment_id, user_id=current_user.id)
+
     res = obj.order_by(models.Work.created_at.desc()).all()
 
     if 'csv' in request.args:
+        if assignment.state != models.AssignmentStateEnum.done:
+            auth.ensure_permission('can_see_grade_before_open',
+                                   assignment.course.id)
         headers = [
             'id', 'user_name', 'user_id', 'state', 'edit', 'grade', 'comment',
             'created_at'
         ]
         file = psef.files.create_csv_from_rows([headers] + [[
-            work.id, work.user.name if work.user else "Unknown", work.user_id,
-            work.state, work.grade, work.comment,
-            work.created_at.strftime("%d-%m-%Y %H:%M")
+            work.id, work.user.name
+            if work.user else "Unknown", work.user_id, work.grade,
+            work.comment, work.created_at.strftime("%d-%m-%Y %H:%M")
         ] for work in res])
 
         @after_this_request
@@ -220,19 +238,31 @@ def get_all_works_for_assignment(assignment_id):
         return send_file(
             file, attachment_filename=request.args['csv'], as_attachment=True)
 
-    return (jsonify([{
-        'id': work.id,
-        'user_name': work.user.name if work.user else "Unknown",
-        'user_id': work.user_id,
-        'state': work.state,
-        'edit': work.edit,
-        'grade': work.grade,
-        'comment': work.comment,
-        'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
-    } for work in res]), 200)
+    out = []
+    for work in res:
+        item = {
+            'id': work.id,
+            'user_name': work.user.name if work.user else "Unknown",
+            'user_id': work.user_id,
+            'edit': work.edit,
+            'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
+        }
+        try:
+            auth.ensure_can_see_grade(work)
+            item['grade'] = work.grade
+            item['comment'] = work.comment
+        except auth.PermissionException:
+            item['grade'] = '-'
+            item['comment'] = '-'
+        finally:
+            out.append(item)
+
+    return jsonify(out)
+
 
 
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['GET'])
+@login_required
 def get_submission(submission_id):
     """
     Return submission X if the user permission is valid.
@@ -241,23 +271,24 @@ def get_submission(submission_id):
         - If submission X was not found
     """
     work = db.session.query(models.Work).get(submission_id)
-    auth.ensure_permission('can_grade_work', work.assignment.course.id)
 
-    if work and work.is_graded:
-        return (jsonify({
+    if work:
+        auth.ensure_can_see_grade(work)
+
+        return jsonify({
             'id': work.id,
             'user_id': work.user_id,
-            'state': work.state,
             'edit': work.edit,
             'grade': work.grade,
             'comment': work.comment,
-            'created_at': work.created_at,  
-        }), 200)
+            'created_at': work.created_at,
+        })
     else:
         raise APIException(
             'Work submission not found',
             'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
+
 
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['PATCH'])
 def patch_submission(submission_id):
@@ -295,7 +326,6 @@ def patch_submission(submission_id):
 
     work.grade = content['grade']
     work.comment = content['feedback']
-    work.state = 'done'
     db.session.commit()
     return ('', 204)
 
@@ -322,17 +352,15 @@ def login():
     # TODO: Use bcrypt password validation (as soon as we got that)
     # TODO: Return error whether user or password is wrong
     if user is None or user.password != data['password']:
-        raise APIException(
-            'The supplied email or password is wrong.',
-            ('The user with email {} does not exist ' +
-             'or has a different password').format(data['email']),
-            APICodes.LOGIN_FAILURE, 400)
+        raise APIException('The supplied email or password is wrong.', (
+            'The user with email {} does not exist ' +
+            'or has a different password').format(data['email']),
+                           APICodes.LOGIN_FAILURE, 400)
 
     if not login_user(user, remember=True):
-        raise APIException(
-            'User is not active',
-            ('The user with id "{}" is not active any more').format(user.id),
-            APICodes.INACTIVE_USER, 403)
+        raise APIException('User is not active', (
+            'The user with id "{}" is not active any more').format(user.id),
+                           APICodes.INACTIVE_USER, 403)
 
     return me()
 
@@ -368,11 +396,10 @@ def upload_work(assignment_id):
 
     if (request.content_length and
             request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException(
-            'Uploaded files are too big.',
-            ('Request is bigger than maximum ' +
-             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-            APICodes.REQUEST_TOO_LARGE, 400)
+        raise APIException('Uploaded files are too big.', (
+            'Request is bigger than maximum ' +
+            'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
+                           APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
@@ -437,7 +464,8 @@ def get_permissions():
                                '"{}" is not real permission'.format(perm),
                                APICodes.OBJECT_NOT_FOUND, 404)
     else:
-        return (jsonify(current_user.get_all_permissions(course_id=course_id)), 200)
+        return (jsonify(current_user.get_all_permissions(course_id=course_id)),
+                200)
 
 
 @app.route('/api/v1/snippets/', methods=['GET'])
@@ -445,9 +473,9 @@ def get_permissions():
 def get_snippets():
     res = models.Snippet.get_all_snippets(current_user)
     if res:
-        return (jsonify([r.to_dict() for r in res]), 200)
+        return jsonify({r.key: {'value': r.value, 'id': r.id} for r in res})
     else:
-        return (jsonify([]), 204)
+        return ('', 204)
 
 
 @app.route('/api/v1/snippet', methods=['PUT'])
