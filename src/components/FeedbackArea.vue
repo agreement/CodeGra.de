@@ -1,9 +1,9 @@
 <template>
     <b-card v-if="(done && !editing)">
-    <div v-on:click="changeFeedback()" :style="{'min-height': '1em'}">
-      <div v-html="newlines(escape(internalFeedback))">
+      <div v-on:click="changeFeedback()" :style="{'min-height': '1em'}">
+        <div v-html="newlines(escape(internalFeedback))">
+        </div>
       </div>
-    </div>
     </b-card>
     <div v-else>
       <b-collapse class="collapsep flex-container" ref="snippetDialog" :id="`collapse${line}`">
@@ -29,12 +29,14 @@
             <icon name="plus" aria-hidden="true"></icon>
           </b-btn>
           <b-button variant="danger" @click="cancelFeedback">
-            <icon name="times" aria-hidden="true"></icon>
+            <icon name="refresh" spin v-if="deletingFeedback"></icon>
+            <icon name="times" aria-hidden="true" v-else></icon>
           </b-button>
         </b-input-group-button>
         <b-input-group-button class="submit-feedback">
           <b-button variant="primary" @click="submitFeedback">
-            <icon name="check" aria-hidden="true"></icon>
+            <icon name="refresh" spin v-if="submittingFeedback"></icon>
+            <icon name="check" aria-hidden="true" v-else></icon>
           </b-button>
         </b-input-group-button>
       </b-input-group>
@@ -43,6 +45,7 @@
 
 <script>
 import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/refresh';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/plus';
@@ -67,6 +70,8 @@ export default {
             snippetKey: '',
             pending: false,
             snippetDone: false,
+            deletingFeedback: false,
+            submittingFeedback: false,
         };
     },
     mounted() {
@@ -74,8 +79,10 @@ export default {
     },
     methods: {
         changeFeedback() {
-            this.done = false;
-            setTimeout(() => this.$refs.field.focus(), 50);
+            if (this.editable) {
+                this.done = false;
+                this.$nextTick(() => this.$refs.field.focus(), 50);
+            }
         },
         submitFeedback() {
             if (this.internalFeedback === '') {
@@ -83,12 +90,15 @@ export default {
                 return;
             }
             this.$emit('feedbackChange', this.internalFeedback);
+            this.submittingFeedback = true;
             this.$http.put(`/api/v1/code/${this.fileId}/comments/${this.line}`,
                 {
                     comment: this.internalFeedback,
                 },
             ).then(() => {
                 this.snippetKey = '';
+                this.$emit('feedbackChange', this.internalFeedback);
+                this.submittingFeedback = false;
                 this.done = true;
             });
         },
@@ -99,13 +109,19 @@ export default {
             return String(text).replace(entityRE, entity => entityMap[entity]);
         },
         cancelFeedback() {
-            if (this.feedback !== '') {
-                this.$http.delete(`/api/v1/code/${this.fileId}/comments/${this.line}`)
-                    .then(() => {
-                    }, () => null);
-            }
             this.snippetKey = '';
-            this.$emit('cancel', this.line);
+            if (this.feedback !== '') {
+                this.deletingFeedback = true;
+                const done = () => {
+                    this.deletingFeedback = true;
+                    this.$emit('cancel', this.line);
+                };
+                this.$http
+                    .delete(`/api/v1/code/${this.fileId}/comments/${this.line}`)
+                    .then(done, done);
+            } else {
+                this.$emit('cancel', this.line);
+            }
         },
         expandSnippet(event) {
             const field = this.$refs.field;

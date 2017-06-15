@@ -4,20 +4,45 @@
 
         <div class="row code-browser">
             <div class="col-10 code-and-grade">
-                <code-viewer class="" v-bind:editable="true"
+                <code-viewer class="" v-bind:editable="editable"
                     v-bind:id="fileId" v-if="fileId" ref="codeViewer"></code-viewer>
-                <grade-viewer v-bind:id="submissionId"
+                <grade-viewer v-bind:id="submissionId" :editable="editable"
                     v-on:submit="submitAllFeedback($event)"></grade-viewer>
             </div>
 
             <file-tree class="col-2" v-bind:collapsed="false" v-bind:submissionId="submissionId"
                 v-bind:tree="fileTree" v-if="fileTree"></file-tree>
+            <div class="col-2 text-center loader" v-else>
+              <icon name="refresh" scale="3" spin></icon>
+            </div>
         </div>
     </div>
 </template>
 
 <script>
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/refresh';
+import { mapActions } from 'vuex';
 import { CodeViewer, FileTree, GradeViewer } from '@/components';
+
+function getFirstFile(fileTree) {
+    // Returns the first file in the file tree that is not a folder
+    // The file tree is searched with BFS
+    const queue = [fileTree];
+    let candidate = null;
+
+    while (queue.length > 0) {
+        candidate = queue.shift();
+
+        if (candidate.entries) {
+            queue.push(...candidate.entries);
+        } else {
+            return candidate;
+        }
+    }
+
+    return false;
+}
 
 export default {
     name: 'submission-page',
@@ -27,17 +52,22 @@ export default {
             assignmentId: this.$route.params.assignmentId,
             submissionId: this.$route.params.submissionId,
             fileId: this.$route.params.fileId,
+            editable: false,
             title: '',
             description: '',
             course_name: '',
-            course_id: 0,
+            courseId: this.$route.params.courseId,
             fileTree: null,
             grade: 0,
+            showGrade: false,
             feedback: '',
         };
     },
 
     mounted() {
+        this.hasPermission({ name: 'can_grade_work', course_id: this.courseId }).then((val) => {
+            this.editable = val;
+        });
         this.getSubmission();
 
         const elements = Array.from(document.querySelectorAll('html, body, #app, header, footer'));
@@ -112,18 +142,28 @@ export default {
         getSubmission() {
             this.$http.get(`/api/v1/submissions/${this.submissionId}/files/`).then((data) => {
                 this.fileTree = data.data;
+                this.$router.push({
+                    name: 'submission_file',
+                    params: {
+                        submissionId: this.submissionId,
+                        fileId: getFirstFile(this.fileTree).id } });
             });
         },
+
 
         submitAllFeedback(event) {
             this.$refs.codeViewer.submitAllFeedback(event);
         },
+        ...mapActions({
+            hasPermission: 'user/hasPermission',
+        }),
     },
 
     components: {
         CodeViewer,
         FileTree,
         GradeViewer,
+        Icon,
     },
 };
 </script>
@@ -159,5 +199,9 @@ h1,
 .code-viewer,
 .grade-viewer {
     margin-bottom: 30px;
+}
+
+.loader {
+    margin-top: 1em;
 }
 </style>
