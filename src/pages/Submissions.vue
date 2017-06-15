@@ -1,28 +1,25 @@
 <template>
-    <div class="page submission-list">
-        <div class="row">
-          <div class="text-center loader col-md-6" v-if="loading < 2">
-            <icon name="refresh" scale="4" spin></icon>
-          </div>
-            <div :class="`col-md-${canUpload ? 6 : 11}`" v-else>
-                <h1>Submissions</h1>
-                <submission-list :submissions="submissions"></submission-list>
-                <submissions-exporter :assignment="assignment" v-if="canDownload"></submissions-exporter>
-            </div>
+  <div class="page submission-list">
+    <div class="row">
+      <loader class="col-md-6 text-center" v-if="loading < 2"></loader>
+      <div :class="`col-md-${canUpload ? 6 : 11}`" v-else>
+        <h1>Submissions</h1>
+        <submission-list :submissions="submissions"></submission-list>
+        <submissions-exporter :assignment="assignment" v-if="canDownload"></submissions-exporter>
+      </div>
 
-            <div class="col-md-6" v-if="canUpload">
-                <h1>Submit work for assignment {{ assignmentId }}</h1>
-                <code-uploader :assignmentId="assignmentId"></code-uploader>
-            </div>
-        </div>
+      <div class="col-md-6" v-if="canUpload">
+        <h1>Submit work for assignment {{ assignmentId }}</h1>
+        <code-uploader :assignmentId="assignmentId"></code-uploader>
+      </div>
     </div>
+  </div>
 </template>
 
 <script>
-import Icon from 'vue-awesome/components/Icon';
-import 'vue-awesome/icons/refresh';
-import { SubmissionList, CodeUploader, SubmissionsExporter } from '@/components';
 import { mapActions } from 'vuex';
+import { SubmissionList, CodeUploader, Loader, SubmissionsExporter }
+    from '@/components';
 
 export default {
     name: 'submission-list-page',
@@ -90,7 +87,7 @@ export default {
     components: {
         SubmissionList,
         CodeUploader,
-        Icon,
+        Loader,
         SubmissionsExporter,
     },
 };

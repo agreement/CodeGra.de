@@ -1,20 +1,18 @@
 <template>
-  <div class="text-center loader col-md-12" v-if="loading">
-    <icon name="refresh" scale="4" spin></icon>
-  </div>
+  <loader class="col-md-12 text-center" v-if="loading"></loader>
   <ol class="code-viewer form-control" :class="{ editable }" v-else>
-        <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines">
-            <code v-html="line"></code>
+    <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines">
+      <code v-html="line"></code>
 
 
-            <feedback-area :editing="editing[i] === true"
-                           :feedback='feedback[i]'
-                           :editable='editable'
-                           :line='i'
-                           :fileId='fileId'
-                           v-on:feedbackChange="val => { feedbackChange(i, val); }"
-                           v-on:cancel='onChildCancel' v-if="feedback[i] != null">
-            </feedback-area>
+      <feedback-area :editing="editing[i] === true"
+                     :feedback='feedback[i]'
+                     :editable='editable'
+                     :line='i'
+                     :fileId='fileId'
+                     v-on:feedbackChange="val => { feedbackChange(i, val); }"
+                     v-on:cancel='onChildCancel' v-if="feedback[i] != null">
+      </feedback-area>
       <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
             v-on:click="addFeedback($event, value)"></icon>
     </li>
@@ -22,8 +20,7 @@
 </template>
 
 <script>
-import 'vue-awesome/icons/refresh';
-import { highlight } from 'highlightjs';
+import { getLanguage, highlight } from 'highlightjs';
 import Vue from 'vue';
 
 import { bButton, bFormInput, bInputGroup, bInputGroupButton }
@@ -32,7 +29,8 @@ import { bButton, bFormInput, bInputGroup, bInputGroupButton }
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
 
-import FeedbackArea from '@/components/FeedbackArea';
+import FeedbackArea from './FeedbackArea';
+import Loader from './Loader';
 
 export default {
     name: 'code-viewer',
@@ -77,15 +75,17 @@ export default {
 
         // Highlights the given string and returns an array of highlighted strings
         highlightCode(lang, code) {
-            const codeLines = [];
-            let state = null;
-            code.split('\n').forEach((codeLine) => {
-                const styledLine = highlight(lang, codeLine, true, state);
-                state = styledLine.top;
-                codeLines.push(styledLine.value);
-                this.loading = false;
-            });
-            return codeLines;
+            let lines = code.split('\n');
+            if (getLanguage(lang) !== undefined) {
+                let state = null;
+                lines = lines.map((line) => {
+                    const { top, value } = highlight(lang, line, true, state);
+                    state = top;
+                    return value;
+                });
+            }
+            this.loading = false;
+            return lines;
         },
 
         onChildCancel(line) {
@@ -120,6 +120,7 @@ export default {
         bInputGroupButton,
         Icon,
         FeedbackArea,
+        Loader,
     },
 };
 </script>
@@ -161,6 +162,7 @@ code {
         display: block;
     }
 }
+
 .loader {
     margin-top: 5em;
 }
