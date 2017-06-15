@@ -29,6 +29,9 @@ def get_code(file_id):
 
 @app.route("/api/v1/code/<int:id>/comments/<int:line>", methods=['PUT'])
 def put_comment(id, line):
+    """
+    Create or change a single line comment of a code file 
+    """
     content = request.get_json()
 
     comment = db.session.query(models.Comment).filter(
@@ -48,6 +51,12 @@ def put_comment(id, line):
 
 @app.route("/api/v1/code/<int:id>/comments/<int:line>", methods=['DELETE'])
 def remove_comment(id, line):
+    """
+    Removes the comment on line X if the request is valid.
+
+    Raises APIException:
+        - If no comment on line X was found
+    """
     comment = db.session.query(models.Comment).filter(
         models.Comment.file_id == id, models.Comment.line == line).first()
 
@@ -63,6 +72,14 @@ def remove_comment(id, line):
 
 @app.route("/api/v1/submissions/<int:submission_id>/files/", methods=['GET'])
 def get_dir_contents(submission_id):
+    """
+    Return the object containing all the files of submission X
+
+    Raises APIException:
+        - If there are no files to be returned
+        - If the submission id does not match the work id
+        - If the file with code {} is not a directory
+    """
     work = models.Work.query.get(submission_id)
     if work is None:
         raise APIException(
@@ -106,6 +123,9 @@ def get_dir_contents(submission_id):
 @app.route("/api/v1/assignments/", methods=['GET'])
 @login_required
 def get_student_assignments():
+    """
+    Get all the student assignments that the current user can see.
+    """
     perm = models.Permission.query.filter_by(
         name='can_see_assignments').first()
     courses = []
@@ -127,6 +147,9 @@ def get_student_assignments():
 
 @app.route("/api/v1/assignments/<int:assignment_id>", methods=['GET'])
 def get_assignment(assignment_id):
+    """
+    Return student assignment X if the user permission is valid.
+    """
     assignment = models.Assignment.query.get(assignment_id)
     auth.ensure_permission('can_see_assignments', assignment.course_id)
     return jsonify({
@@ -140,6 +163,9 @@ def get_assignment(assignment_id):
 @app.route(
     '/api/v1/assignments/<int:assignment_id>/submissions/', methods=['GET'])
 def get_all_works_for_assignment(assignment_id):
+    """
+    Return all works for assignment X if the user permission is valid.
+    """
     assignment = models.Assignment.query.get(assignment_id)
     if current_user.has_permission(
             'can_see_others_work', course_id=assignment.course_id):
@@ -184,6 +210,12 @@ def get_all_works_for_assignment(assignment_id):
 
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['GET'])
 def get_submission(submission_id):
+    """
+    Return submission X if the user permission is valid.
+
+    Raises APIException:
+        - If submission X was not found
+    """
     work = db.session.query(models.Work).get(submission_id)
     auth.ensure_permission('can_grade_work', work.assignment.course.id)
 
@@ -206,6 +238,14 @@ def get_submission(submission_id):
 
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['PATCH'])
 def patch_submission(submission_id):
+    """
+    Update submission X if it already exists and if the user permission is valid.
+
+    Raises APIException:
+        - If submission X was not found
+        - request file does not contain grade and/or feedback
+        - request file grade is not a float
+    """    
     work = db.session.query(models.Work).get(submission_id)
     content = request.get_json()
 
@@ -239,6 +279,14 @@ def patch_submission(submission_id):
 
 @app.route("/api/v1/login", methods=["POST"])
 def login():
+    """
+    Login a user if the request is valid. 
+
+    Raises APIException:
+        - request file does not contain email and/or password
+        - request file contains invalid login credentials
+        - request file contains inactive login credentials
+    """  
     data = request.get_json()
 
     if 'email' not in data or 'password' not in data:
