@@ -334,7 +334,7 @@ def divide_assignments(assignment_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     content = request.get_json()
-    if 'users' not in content or type(content['users']) is list:
+    if 'graders' not in content or type(content['graders']) is list:
         raise APIException('List of assigned graders is required',
                            'List of assigned graders is required',
                            APICodes.MISSING_REQUIRED_PARAM, 400)
@@ -349,9 +349,10 @@ def divide_assignments(assignment_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     shuffle(submissions)
+    shuffle(content['graders'])
     for i in range(len(submissions)):
-        submissions[i].assigned_to = content['users'][i %
-                                                      len(content['users'])]
+        submissions[i].assigned_to = content['graders'][i % len(
+            content['graders'])]
 
     db.session.commit()
     return ('', 204)
