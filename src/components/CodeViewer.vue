@@ -15,7 +15,7 @@
 
 <script>
 import 'vue-awesome/icons/refresh';
-import { highlight } from 'highlightjs';
+import { getLanguage, highlight } from 'highlightjs';
 import Vue from 'vue';
 
 import { bButton, bFormInput, bInputGroup, bInputGroupButton }
@@ -69,15 +69,17 @@ export default {
 
         // Highlights the given string and returns an array of highlighted strings
         highlightCode(lang, code) {
-            const codeLines = [];
-            let state = null;
-            code.split('\n').forEach((codeLine) => {
-                const styledLine = highlight(lang, codeLine, true, state);
-                state = styledLine.top;
-                codeLines.push(styledLine.value);
-                this.loading = false;
-            });
-            return codeLines;
+            let lines = code.split('\n');
+            if (getLanguage(lang) !== undefined) {
+                let state = null;
+                lines = lines.map((line) => {
+                    const { top, value } = highlight(lang, line, true, state);
+                    state = top;
+                    return value;
+                });
+            }
+            this.loading = false;
+            return lines;
         },
 
         onChildCancel(line) {
