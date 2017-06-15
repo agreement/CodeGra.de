@@ -7,13 +7,13 @@
                     <b-popover placement="top" triggers="hover" content="Submitting">
                         <b-button class="btn-danger" :class="{ 'btn-outline-danger': !filterSubmitting }"
                             @click="filterSubmitting = !filterSubmitting">
-                            <icon name="plus"></icon>
+                            <icon name="download"></icon>
                         </b-button>
                     </b-popover>
                     <b-popover placement="top" triggers="hover" content="Grading">
                         <b-button class="btn-warning" :class="{ 'btn-outline-warning': !filterGrading }"
                             @click="filterGrading = !filterGrading">
-                            <icon name="times"></icon>
+                            <icon name="pencil"></icon>
                         </b-button>
                     </b-popover>
                     <b-popover placement="top" triggers="hover" content="Done">
@@ -43,8 +43,8 @@
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="state" scope="item">
-                <icon name="plus" v-if="item.item.state == 1"></icon>
-                <icon name="times" v-else-if="item.item.state == 2"></icon>
+                <icon name="download" v-if="item.item.state == 1"></icon>
+                <icon name="pencil" v-else-if="item.item.state == 2"></icon>
                 <icon name="check" v-else-if="item.item.state == 3"></icon>
             </template>
         </b-table>
@@ -56,9 +56,9 @@ import { bButton, bButtonGroup, bFormFieldset, bInputGroup, bPopover, bTable } f
     'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/download';
+import 'vue-awesome/icons/pencil';
 import 'vue-awesome/icons/check';
-import 'vue-awesome/icons/times';
-import 'vue-awesome/icons/plus';
 
 export default {
     name: 'assignment-list',
