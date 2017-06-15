@@ -38,8 +38,6 @@ def get_binary(file_id):
 
 @app.route("/api/v1/code/<int:file_id>", methods=['GET'])
 def get_code(file_id):
-    # Code not used yet:
-
     code = db.session.query(models.File).filter(  # NOQA: F841
         models.File.id == file_id).first()
     line_feedback = {}
@@ -49,7 +47,7 @@ def get_code(file_id):
 
     # TODO: Return JSON following API
     return jsonify(
-        lang="python",  # TODO Detect the language automatically
+        lang=code.extension,
         code=psef.files.get_file_contents(code),
         feedback=line_feedback)
 
