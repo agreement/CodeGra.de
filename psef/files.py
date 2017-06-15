@@ -192,16 +192,29 @@ def create_csv(objects, attributes, headers=None):
     :param attributes: The attributes of each object that will be listed
     :param headers: Column headers that will be the first row in the csv file
 
-    :returns: The path to the csv file.
+    :returns: The path to the csv file
     :rtype: str
     """
     if headers == None:
         headers = attributes
+
+    return create_csv_from_rows([headers] + [[
+        str(rgetattr(obj, attr)) for attr in attributes
+    ] for obj in objects])
+
+
+def create_csv_from_rows(rows):
+    """Create a csv file from the given rows.
+
+    Rows should be a nested list or other similar iterable like this:
+    [[header_1, header_2], [row_1a, row_1b], [row_2a, row_2b]]
+
+    :param rows: The rows that will be used to populate the csv
+    :returns: The path to the csv file
+    :rtpe: str
+    """
     mode, csv_file = tempfile.mkstemp()
     with open(csv_file, 'w') as csv_output:
         csv_writer = csv.writer(csv_output)
-        csv_writer.writerow(headers)
-        csv_writer.writerows(
-            [[str(rgetattr(obj, attr)) for attr in attributes]
-             for obj in objects])
+        csv_writer.writerows(rows)
     return csv_file

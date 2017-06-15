@@ -154,10 +154,15 @@ def get_all_works_for_assignment(assignment_id):
     res = obj.order_by(models.Work.created_at.desc()).all()
 
     if 'csv' in request.args:
-        file = psef.files.create_csv(res, [
-            'id', 'user.name', 'user_id', 'state', 'edit', 'grade', 'comment',
+        headers = [
+            'id', 'user_name', 'user_id', 'state', 'edit', 'grade', 'comment',
             'created_at'
-        ])
+        ]
+        file = psef.files.create_csv_from_rows([headers] + [[
+            work.id, work.user.name if work.user else "Unknown", work.user_id,
+            work.state, work.grade, work.comment,
+            work.created_at.strftime("%d-%m-%Y %H:%M")
+        ] for work in res])
 
         @after_this_request
         def remove_file(response):
