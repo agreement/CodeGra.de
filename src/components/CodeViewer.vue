@@ -1,18 +1,22 @@
 <template>
-    <ol class="code-viewer form-control" :class="{ editable }">
-        <li v-on:click="addFeedback($event, i)" v-for="(line, i) in highlighted_code">
-            <code v-html="line"></code>
+  <div class="text-center loader col-md-12" v-if="loading">
+    <icon name="refresh" scale="4" spin></icon>
+  </div>
+  <ol class="code-viewer form-control" :class="{ editable }" v-else>
+    <li v-on:click="addFeedback($event, i)" v-for="(line, i) in this.codeLines">
+      <code v-html="line"></code>
 
 
-            <feedback-area :editing="editing[i] === true" :feedback='feedback[i]' :editable='editable' :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }" v-on:cancel='onChildCancel' v-if="feedback[i] != null"></feedback-area>
+      <feedback-area :editing="editing[i] === true" :feedback='feedback[i]' :editable='editable' :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }" v-on:cancel='onChildCancel' v-if="feedback[i] != null"></feedback-area>
 
-            <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
-                v-on:click="addFeedback($event, value)"></icon>
-        </li>
-    </ol>
+      <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
+            v-on:click="addFeedback($event, value)"></icon>
+    </li>
+  </ol>
 </template>
 
 <script>
+import 'vue-awesome/icons/refresh';
 import { highlight } from 'highlightjs';
 import Vue from 'vue';
 
@@ -33,24 +37,12 @@ export default {
         return {
             fileId: this.id,
             lang: '',
-            code: '',
+            codeLines: [],
+            loading: true,
             editing: {},
             feedback: {},
             clicks: {},
         };
-    },
-
-    computed: {
-        highlighted_code() {
-            if (!this.code) {
-                return [];
-            }
-            if (!this.lang) {
-                return this.code.split('\n');
-            }
-            const highlighted = highlight(this.lang, this.code);
-            return highlighted.value.split('\n');
-        },
     },
 
     mounted() {
@@ -63,6 +55,7 @@ export default {
         },
 
         fileId() {
+            this.loading = true;
             this.getCode();
         },
     },
@@ -71,9 +64,22 @@ export default {
         getCode() {
             this.$http.get(`/api/v1/code/${this.fileId}`).then((data) => {
                 this.lang = data.data.lang;
-                this.code = data.data.code;
                 this.feedback = data.data.feedback;
+                this.codeLines = this.highlightCode(this.lang, data.data.code);
             });
+        },
+
+        // Highlights the given string and returns an array of highlighted strings
+        highlightCode(lang, code) {
+            const codeLines = [];
+            let state = null;
+            code.split('\n').forEach((codeLine) => {
+                const styledLine = highlight(lang, codeLine, true, state);
+                state = styledLine.top;
+                codeLines.push(styledLine.value);
+                this.loading = false;
+            });
+            return codeLines;
         },
 
         onChildCancel(line) {
@@ -146,5 +152,8 @@ code {
     li:hover & {
         display: block;
     }
+}
+.loader {
+    margin-top: 5em;
 }
 </style>

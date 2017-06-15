@@ -1,21 +1,32 @@
 #!/usr/bin/env python3
-from flask import jsonify, request
-from flask_login import login_user, logout_user, current_user, login_required
-from sqlalchemy_utils.functions import dependent_objects
+import os
+
+from flask import after_this_request, jsonify, request, send_file
 
 import psef.auth as auth
 import psef.files
 import psef.models as models
-from psef import db, app
+from flask_login import current_user, login_required, login_user, logout_user
+from psef import app, db
 from psef.errors import APICodes, APIException
 
 
 @app.route("/api/v1/code/<int:file_id>", methods=['GET'])
 def get_code(file_id):
-    # Code not used yet:
+    code = db.session.query(models.File).get(file_id)
+    if code is None:
+        raise APIException(
+            'File not found',
+            'The file with id {} was not found'.format(file_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    code = db.session.query(models.File).filter(  # NOQA: F841
-        models.File.id == file_id).first()
+    if (code.work.user.id != current_user.id):
+        auth.ensure_permission(
+            'can_view_files', code.work.assignment.course.id)
+    else:
+        auth.ensure_permission('can_view_own_files',
+                               code.work.assignment.course.id)
+
     line_feedback = {}
     for comment in db.session.query(models.Comment).filter_by(
             file_id=file_id).all():
@@ -23,23 +34,30 @@ def get_code(file_id):
 
     # TODO: Return JSON following API
     return jsonify(
-        lang="python",  # TODO Detect the language automatically
+        lang=code.extension,
         code=psef.files.get_file_contents(code),
         feedback=line_feedback)
 
 
 @app.route("/api/v1/code/<int:id>/comments/<int:line>", methods=['PUT'])
 def put_comment(id, line):
+    """
+    Create or change a single line comment of a code file
+    """
     content = request.get_json()
 
     comment = db.session.query(models.Comment).filter(
-        models.Comment.file_id == id, models.Comment.line == line).first()
+        models.Comment.file_id == id, models.Comment.line == line).one_or_zero()
     if not comment:
-        # TODO: User id 0 for now, change later on
+        file = db.session.query(models.File).get(id)
+        auth.ensure_permission(
+            'can_grade_work', file.work.assignment.course.id)
         db.session.add(
             models.Comment(
-                file_id=id, user_id=0, line=line, comment=content['comment']))
+                file_id=id, user_id=current_user.id, line=line, comment=content['comment']))
     else:
+        auth.ensure_permission(
+            'can_grade_work', comment.file.work.assignment.course.id)
         comment.comment = content['comment']
 
     db.session.commit()
@@ -49,10 +67,18 @@ def put_comment(id, line):
 
 @app.route("/api/v1/code/<int:id>/comments/<int:line>", methods=['DELETE'])
 def remove_comment(id, line):
+    """
+    Removes the comment on line X if the request is valid.
+
+    Raises APIException:
+        - If no comment on line X was found
+    """
     comment = db.session.query(models.Comment).filter(
-        models.Comment.file_id == id, models.Comment.line == line).first()
+        models.Comment.file_id == id, models.Comment.line == line).one_or_zero()
 
     if comment:
+        auth.ensure_permission(
+            'can_grade_work', comment.file.work.assignment.course.id)
         db.session.delete(comment)
         db.session.commit()
     else:
@@ -64,6 +90,14 @@ def remove_comment(id, line):
 
 @app.route("/api/v1/submissions/<int:submission_id>/files/", methods=['GET'])
 def get_dir_contents(submission_id):
+    """
+    Return the object containing all the files of submission X
+
+    Raises APIException:
+        - If there are no files to be returned
+        - If the submission id does not match the work id
+        - If the file with code {} is not a directory
+    """
     work = models.Work.query.get(submission_id)
     if work is None:
         raise APIException(
@@ -107,6 +141,9 @@ def get_dir_contents(submission_id):
 @app.route("/api/v1/assignments/", methods=['GET'])
 @login_required
 def get_student_assignments():
+    """
+    Get all the student assignments that the current user can see.
+    """
     perm = models.Permission.query.filter_by(
         name='can_see_assignments').first()
     courses = []
@@ -120,14 +157,17 @@ def get_student_assignments():
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
         }
-                        for assignment in models.Assignment.query.filter(
-                            models.Assignment.course_id.in_(courses)).all()])
+            for assignment in models.Assignment.query.filter(
+            models.Assignment.course_id.in_(courses)).all()])
     else:
         return jsonify([])
 
 
 @app.route("/api/v1/assignments/<int:assignment_id>", methods=['GET'])
 def get_assignment(assignment_id):
+    """
+    Return student assignment X if the user permission is valid.
+    """
     assignment = models.Assignment.query.get(assignment_id)
     auth.ensure_permission('can_see_assignments', assignment.course_id)
     return jsonify({
@@ -141,6 +181,9 @@ def get_assignment(assignment_id):
 @app.route(
     '/api/v1/assignments/<int:assignment_id>/submissions/', methods=['GET'])
 def get_all_works_for_assignment(assignment_id):
+    """
+    Return all works for assignment X if the user permission is valid.
+    """
     assignment = models.Assignment.query.get(assignment_id)
     if current_user.has_permission(
             'can_see_others_work', course_id=assignment.course_id):
@@ -151,6 +194,25 @@ def get_all_works_for_assignment(assignment_id):
         obj = models.Work.query.filter_by(
             assignment_id=assignment_id, user_id=current_user.id)
     res = obj.order_by(models.Work.created_at.desc()).all()
+
+    if 'csv' in request.args:
+        headers = [
+            'id', 'user_name', 'user_id', 'state', 'edit', 'grade', 'comment',
+            'created_at'
+        ]
+        file = psef.files.create_csv_from_rows([headers] + [[
+            work.id, work.user.name if work.user else "Unknown", work.user_id,
+            work.state, work.grade, work.comment,
+            work.created_at.strftime("%d-%m-%Y %H:%M")
+        ] for work in res])
+
+        @after_this_request
+        def remove_file(response):
+            os.remove(file)
+            return response
+
+        return send_file(
+            file, attachment_filename=request.args['csv'], as_attachment=True)
 
     return jsonify([{
         'id': work.id,
@@ -166,6 +228,12 @@ def get_all_works_for_assignment(assignment_id):
 
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['GET'])
 def get_submission(submission_id):
+    """
+    Return submission X if the user permission is valid.
+
+    Raises APIException:
+        - If submission X was not found
+    """
     work = db.session.query(models.Work).get(submission_id)
     auth.ensure_permission('can_grade_work', work.assignment.course.id)
 
@@ -188,6 +256,14 @@ def get_submission(submission_id):
 
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['PATCH'])
 def patch_submission(submission_id):
+    """
+    Update submission X if it already exists and if the user permission is valid.
+
+    Raises APIException:
+        - If submission X was not found
+        - request file does not contain grade and/or feedback
+        - request file grade is not a float
+    """
     work = db.session.query(models.Work).get(submission_id)
     content = request.get_json()
 
@@ -221,6 +297,14 @@ def patch_submission(submission_id):
 
 @app.route("/api/v1/login", methods=["POST"])
 def login():
+    """
+    Login a user if the request is valid.
+
+    Raises APIException:
+        - request file does not contain email and/or password
+        - request file contains invalid login credentials
+        - request file contains inactive login credentials
+    """
     data = request.get_json()
 
     if 'email' not in data or 'password' not in data:
@@ -233,15 +317,17 @@ def login():
     # TODO: Use bcrypt password validation (as soon as we got that)
     # TODO: Return error whether user or password is wrong
     if user is None or user.password != data['password']:
-        raise APIException('The supplied email or password is wrong.', (
-            'The user with email {} does not exist ' +
-            'or has a different password').format(data['email']),
-                           APICodes.LOGIN_FAILURE, 400)
+        raise APIException(
+            'The supplied email or password is wrong.',
+            ('The user with email {} does not exist ' +
+             'or has a different password').format(data['email']),
+            APICodes.LOGIN_FAILURE, 400)
 
     if not login_user(user, remember=True):
-        raise APIException('User is not active', (
-            'The user with id "{}" is not active any more').format(user.id),
-                           APICodes.INACTIVE_USER, 403)
+        raise APIException(
+            'User is not active',
+            ('The user with id "{}" is not active any more').format(user.id),
+            APICodes.INACTIVE_USER, 403)
 
     return me()
 
@@ -277,10 +363,11 @@ def upload_work(assignment_id):
 
     if (request.content_length and
             request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException('Uploaded files are too big.', (
-            'Request is bigger than maximum ' +
-            'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-                           APICodes.REQUEST_TOO_LARGE, 400)
+        raise APIException(
+            'Uploaded files are too big.',
+            ('Request is bigger than maximum ' +
+             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
+            APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
