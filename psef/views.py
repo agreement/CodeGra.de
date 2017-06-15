@@ -158,7 +158,7 @@ def get_student_assignments():
             'course_id': assignment.course_id,
         }
             for assignment in models.Assignment.query.filter(
-            models.Assignment.course_id.in_(courses)).all()])
+            models.Assignment.course_id.in_(courses)).all()]), 200)
     else:
         return (jsonify([]), 204)
 
@@ -220,7 +220,7 @@ def get_all_works_for_assignment(assignment_id):
         return send_file(
             file, attachment_filename=request.args['csv'], as_attachment=True)
 
-    return jsonify([{
+    return (jsonify([{
         'id': work.id,
         'user_name': work.user.name if work.user else "Unknown",
         'user_id': work.user_id,
@@ -229,7 +229,7 @@ def get_all_works_for_assignment(assignment_id):
         'grade': work.grade,
         'comment': work.comment,
         'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
-    } for work in res])
+    } for work in res]), 200)
 
 
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['GET'])
@@ -244,18 +244,20 @@ def get_submission(submission_id):
     auth.ensure_permission('can_grade_work', work.assignment.course.id)
 
     if work and work.is_graded:
-        return jsonify({
+        return (jsonify({
             'id': work.id,
-            'user_name': work.user.name if work.user else "Unknown",
             'user_id': work.user_id,
             'state': work.state,
             'edit': work.edit,
             'grade': work.grade,
             'comment': work.comment,
-            'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
-        } for work in res]), 200)
+            'created_at': work.created_at,  
+        }), 200)
     else:
-        return (jsonify([]), 204)
+        raise APIException(
+            'Work submission not found',
+            'The submission with code {} was not found'.format(submission_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['GET'])
