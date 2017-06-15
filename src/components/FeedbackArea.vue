@@ -56,7 +56,6 @@ export default {
             });
         },
         cancelFeedback() {
-            // TODO: collaps textarea
             this.deletingFeedback = true;
             const done = () => {
                 this.deletingFeedback = true;
