@@ -238,16 +238,27 @@ def get_all_works_for_assignment(assignment_id):
         return send_file(
             file, attachment_filename=request.args['csv'], as_attachment=True)
 
-    return (jsonify([{
-        'id': work.id,
-        'user_name': work.user.name if work.user else "Unknown",
-        'user_id': work.user_id,
-        'state': work.state,
-        'edit': work.edit,
-        'grade': work.grade,
-        'comment': work.comment,
-        'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
-    } for work in res]), 200)
+    out = []
+    for work in res:
+        item = {
+            'id': work.id,
+            'user_name': work.user.name if work.user else "Unknown",
+            'user_id': work.user_id,
+            'edit': work.edit,
+            'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
+        }
+        try:
+            auth.ensure_can_see_grade(work)
+            item['grade'] = work.grade
+            item['comment'] = work.comment
+        except auth.PermissionException:
+            item['grade'] = '-'
+            item['comment'] = '-'
+        finally:
+            out.append(item)
+
+    return jsonify(out)
+
 
 
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['GET'])
