@@ -65,13 +65,12 @@ export default {
             this.$http.get(`/api/v1/code/${this.fileId}`).then((data) => {
                 this.lang = data.data.lang;
                 this.feedback = data.data.feedback;
-                this.codeLines = this.highlight_code(this.lang, data.data.code);
+                this.codeLines = this.highlightCode(this.lang, data.data.code);
             });
         },
 
-        // highlights the given string
-        // returns an array of highlighted strings
-        highlight_code(lang, code) {
+        // Highlights the given string and returns an array of highlighted strings
+        highlightCode(lang, code) {
             const codeLines = [];
             let state = null;
             code.split('\n').forEach((codeLine) => {
