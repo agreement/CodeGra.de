@@ -1,9 +1,7 @@
 <template>
     <div class="page submission-list">
         <div class="row">
-          <div class="text-center loader col-md-6" v-if="loading">
-            <icon name="refresh" scale="4" spin></icon>
-          </div>
+            <loader class="col-md-6 text-center" v-if="loading"></loader>
             <div class="col-md-6" v-else>
                 <h1>Submissions</h1>
                 <submission-list :submissions="submissions"></submission-list>
@@ -19,9 +17,8 @@
 </template>
 
 <script>
-import Icon from 'vue-awesome/components/Icon';
-import 'vue-awesome/icons/refresh';
-import { SubmissionList, CodeUploader, SubmissionsExporter } from '@/components';
+import { SubmissionList, CodeUploader, Loader, SubmissionsExporter }
+    from '@/components';
 
 export default {
     name: 'submission-list-page',
@@ -44,7 +41,7 @@ export default {
     components: {
         SubmissionList,
         CodeUploader,
-        Icon,
+        Loader,
         SubmissionsExporter,
     },
 };

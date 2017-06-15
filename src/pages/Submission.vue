@@ -10,19 +10,15 @@
                     v-on:submit="submitAllFeedback($event)"></grade-viewer>
             </div>
 
+            <loader class="col-2 text-center" scale="3" v-if="!fileTree"></loader>
             <file-tree class="col-2" v-bind:collapsed="false" v-bind:submissionId="submissionId"
-                v-bind:tree="fileTree" v-if="fileTree"></file-tree>
-            <div class="col-2 text-center loader" v-else>
-              <icon name="refresh" scale="3" spin></icon>
-            </div>
+                v-bind:tree="fileTree" v-else></file-tree>
         </div>
     </div>
 </template>
 
 <script>
-import Icon from 'vue-awesome/components/Icon';
-import 'vue-awesome/icons/refresh';
-import { CodeViewer, FileTree, GradeViewer } from '@/components';
+import { CodeViewer, FileTree, GradeViewer, Loader } from '@/components';
 
 function getFirstFile(fileTree) {
     // Returns the first file in the file tree that is not a folder
@@ -123,16 +119,6 @@ export default {
     },
 
     methods: {
-        getAssignment() {
-            // this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then((data) => {
-            //     this.title = data.data.name;
-            //     this.description = data.data.description;
-            //     this.course_name = data.data.course_name;
-            //     this.course_id = data.data.course_id;
-            //     this.getSubmission();
-            // });
-        },
-
         getSubmission() {
             this.$http.get(`/api/v1/submissions/${this.submissionId}/files/`).then((data) => {
                 this.fileTree = data.data;
@@ -154,7 +140,7 @@ export default {
         CodeViewer,
         FileTree,
         GradeViewer,
-        Icon,
+        Loader,
     },
 };
 </script>

@@ -3,6 +3,7 @@ import FileTree from './FileTree';
 import FooterBar from './FooterBar';
 import GradeViewer from './GradeViewer';
 import HeaderBar from './HeaderBar';
+import Loader from './Loader';
 import Login from './Login';
 import SideBar from './SideBar';
 import Assignments from './Assignments';
@@ -16,6 +17,7 @@ export {
     FooterBar,
     GradeViewer,
     HeaderBar,
+    Loader,
     Login,
     SideBar,
     Assignments,
