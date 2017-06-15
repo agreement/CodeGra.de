@@ -12,11 +12,16 @@
 
             <file-tree class="col-2" v-bind:collapsed="false" v-bind:submissionId="submissionId"
                 v-bind:tree="fileTree" v-if="fileTree"></file-tree>
+            <div class="col-2 text-center loader" v-else>
+              <icon name="refresh" scale="3" spin></icon>
+            </div>
         </div>
     </div>
 </template>
 
 <script>
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/refresh';
 import { CodeViewer, FileTree, GradeViewer } from '@/components';
 
 export default {
@@ -124,6 +129,7 @@ export default {
         CodeViewer,
         FileTree,
         GradeViewer,
+        Icon,
     },
 };
 </script>
@@ -159,5 +165,9 @@ h1,
 .code-viewer,
 .grade-viewer {
     margin-bottom: 30px;
+}
+
+.loader {
+    margin-top: 1em;
 }
 </style>
