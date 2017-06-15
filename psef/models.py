@@ -282,7 +282,7 @@ class File(db.Model):
     )
 
     def get_filename(self):
-        if self.extension != None:
+        if self.extension != None and self.extension != "":
             return "{}.{}".format(self.name, self.extension)
         else:
             return self.name
