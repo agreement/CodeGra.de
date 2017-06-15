@@ -9,14 +9,19 @@
                 <grade-viewer v-bind:id="submissionId" v-on:submit="submitAllFeedback($event)"></grade-viewer>
             </div>
 
-            <file-tree class="col-2" v-bind:collapsed="false" v-bind:submissionId="submissionId" v-bind:tree="fileTree" v-if="fileTree"></file-tree>
+            <file-tree class="col-2" v-bind:collapsed="false" v-bind:submissionId="submissionId"
+                v-bind:tree="fileTree" v-if="fileTree"></file-tree>
+            <div class="col-2 text-center loader" v-else>
+              <icon name="refresh" scale="3" spin></icon>
+            </div>
         </div>
     </div>
 </template>
 
 <script>
-import { CodeViewer, FileTree, GradeViewer } from '@/components';
-import PdfViewer from '@/components/PdfViewer';
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/refresh';
+import { CodeViewer, FileTree, GradeViewer, PdfViewer } from '@/components';
 
 export default {
     name: 'submission-page',
@@ -39,7 +44,6 @@ export default {
 
     mounted() {
         this.getSubmission();
-        this.getFileMetadata();
 
         const elements = Array.from(document.querySelectorAll('html, body, #app, header, footer'));
         const [html, body, app, header, footer] = elements;
@@ -141,6 +145,7 @@ export default {
         FileTree,
         GradeViewer,
         PdfViewer,
+        Icon,
     },
 };
 </script>
@@ -176,5 +181,9 @@ h1,
 .code-viewer,
 .grade-viewer {
     margin-bottom: 30px;
+}
+
+.loader {
+    margin-top: 1em;
 }
 </style>
