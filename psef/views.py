@@ -259,29 +259,6 @@ def get_submission(submission_id):
             'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-
-@app.route("/api/v1/submissions/<int:submission_id>", methods=['GET'])
-def get_submission(submission_id):
-    work = db.session.query(models.Work).get(submission_id)
-
-    if not work:
-        raise APIException(
-            'Submission not found',
-            'The submission with code {} was not found'.format(submission_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
-
-    auth.ensure_permission('can_grade_work', work.assignment.course.id)
-    return (jsonify({
-        'id': work.id,
-        'user_id': work.user_id,
-        'state': work.state,
-        'edit': work.edit,
-        'grade': work.grade,
-        'comment': work.comment,
-        'created_at': work.created_at,
-    }), 200)
-
-
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['PATCH'])
 def patch_submission(submission_id):
     """
