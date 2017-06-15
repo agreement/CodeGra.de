@@ -68,9 +68,9 @@ export default {
                 this.submitting = false;
                 this.submitted = true;
                 this.$emit('submit');
-                setTimeout(() => {
+                this.$nextTick(() => setTimeout(() => {
                     this.submitted = false;
-                }, 1000);
+                }, 1000));
             });
         },
     },
