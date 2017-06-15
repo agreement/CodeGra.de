@@ -22,6 +22,7 @@
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/refresh';
 import { CodeViewer, FileTree, GradeViewer, PdfViewer } from '@/components';
+// import PdfViewer from '@/components/PdfViewer';
 
 export default {
     name: 'submission-page',
@@ -30,7 +31,7 @@ export default {
         return {
             assignmentId: Number(this.$route.params.assignmentId),
             submissionId: Number(this.$route.params.submissionId),
-            fileId: this.$route.params.fileId,
+            fileId: Number(this.$route.params.fileId),
             fileExtension: '',
             title: '',
             description: '',
@@ -44,6 +45,7 @@ export default {
 
     mounted() {
         this.getSubmission();
+        this.getFileMetadata();
 
         const elements = Array.from(document.querySelectorAll('html, body, #app, header, footer'));
         const [html, body, app, header, footer] = elements;
