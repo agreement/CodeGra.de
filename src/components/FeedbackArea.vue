@@ -1,7 +1,7 @@
 <template>
   <b-card v-if="(done && !editing)">
     <div v-on:click="changeFeedback()" :style="{'min-height': '1em'}">
-      <div v-html="newlines(escape(internalFeedback))">
+      <div v-html="newlines(escape(serverFeedback))">
       </div>
     </div>
     </b-card>
