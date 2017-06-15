@@ -161,7 +161,7 @@ def get_student_assignments():
         if course_role.has_permission(perm):
             courses.append(course_role.course_id)
     if courses:
-        return jsonify([{
+        return (jsonify([{
             'id': assignment.id,
             'state': assignment.state,
             'date': assignment.created_at,
@@ -169,10 +169,11 @@ def get_student_assignments():
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
         }
-                        for assignment in models.Assignment.query.filter(
-                            models.Assignment.course_id.in_(courses)).all()])
+                         for assignment in models.Assignment.query.filter(
+                             models.Assignment.course_id.in_(courses)).all()]),
+                200)
     else:
-        return jsonify([])
+        return (jsonify([]), 204)
 
 
 @app.route("/api/v1/assignments/<int:assignment_id>", methods=['GET'])
@@ -182,13 +183,19 @@ def get_assignment(assignment_id):
     """
     assignment = models.Assignment.query.get(assignment_id)
     auth.ensure_permission('can_see_assignments', assignment.course_id)
-    return jsonify({
-        'name': assignment.name,
-        'state': assignment.state,
-        'description': assignment.description,
-        'course_name': assignment.course.name,
-        'course_id': assignment.course_id,
-    })
+    if assignment is None:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with id {} was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    else:
+        return (jsonify({
+            'name': assignment.name,
+            'state': assignment.state,
+            'description': assignment.description,
+            'course_name': assignment.course.name,
+            'course_id': assignment.course_id,
+        }), 200)
 
 
 @app.route(
@@ -212,7 +219,7 @@ def get_all_works_for_assignment(assignment_id):
     if 'csv' in request.args:
         if assignment.state != models.AssignmentStateEnum.done:
             auth.ensure_permission('can_see_grade_before_open',
-                                assignment.course.id)
+                                   assignment.course.id)
         headers = [
             'id', 'user_name', 'user_id', 'state', 'edit', 'grade', 'comment',
             'created_at'
@@ -231,26 +238,16 @@ def get_all_works_for_assignment(assignment_id):
         return send_file(
             file, attachment_filename=request.args['csv'], as_attachment=True)
 
-    out = []
-    for work in res:
-        item = {
-            'id': work.id,
-            'user_name': work.user.name if work.user else "Unknown",
-            'user_id': work.user_id,
-            'edit': work.edit,
-            'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
-        }
-        try:
-            auth.ensure_can_see_grade(work)
-            item['grade'] = work.grade
-            item['comment'] = work.comment
-        except auth.PermissionException:
-            item['grade'] = '-'
-            item['comment'] = '-'
-        finally:
-            out.append(item)
-
-    return jsonify(out)
+    return (jsonify([{
+        'id': work.id,
+        'user_name': work.user.name if work.user else "Unknown",
+        'user_id': work.user_id,
+        'state': work.state,
+        'edit': work.edit,
+        'grade': work.grade,
+        'comment': work.comment,
+        'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
+    } for work in res]), 200)
 
 
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['GET'])
@@ -360,17 +357,17 @@ def login():
 @app.route("/api/v1/login", methods=["GET"])
 @login_required
 def me():
-    return jsonify({
+    return (jsonify({
         "id": current_user.id,
         "name": current_user.name,
         "email": current_user.email
-    }), 200
+    }), 200)
 
 
 @app.route("/api/v1/logout", methods=["POST"])
 def logout():
     logout_user()
-    return '', 204
+    return ('', 204)
 
 
 @app.route(
@@ -456,14 +453,18 @@ def get_permissions():
                                '"{}" is not real permission'.format(perm),
                                APICodes.OBJECT_NOT_FOUND, 404)
     else:
-        return jsonify(current_user.get_all_permissions(course_id=course_id))
+        return (jsonify(current_user.get_all_permissions(course_id=course_id)),
+                200)
 
 
 @app.route('/api/v1/snippets/', methods=['GET'])
 @auth.permission_required('can_use_snippets')
 def get_snippets():
     res = models.Snippet.get_all_snippets(current_user)
-    return jsonify([r.to_dict() for r in res])
+    if res:
+        return (jsonify([r.to_dict() for r in res]), 200)
+    else:
+        return (jsonify([]), 204)
 
 
 @app.route('/api/v1/snippet', methods=['PUT'])
@@ -486,7 +487,7 @@ def add_snippet():
         snippet.value = content['value']
     db.session.commit()
 
-    return '', 204
+    return ('', 204)
 
 
 @app.route('/api/v1/snippets/<int:snippet_id>', methods=['DELETE'])
@@ -506,5 +507,5 @@ def delete_snippets(snippet_id):
     else:
         db.session.delete(snip)
         db.session.commit()
-        return '', 204
+        return ('', 204)
     pass
