@@ -10,8 +10,8 @@
         <ol v-show="!isCollapsed">
             <li v-for="f in tree.entries">
                 <file-tree v-bind:tree="f" v-if="f.entries"></file-tree>
-                <router-link :to="{ name: 'submission_file', params: { submissionId: submissionId, fileId: f.id, }, }" v-else>
-                    <icon name="file"></icon> {{ f.name }} {{ f.id }}
+                <router-link :to="{ name: 'submission_file', params: { submissionId: submissionId, fileId: f.id, }, }" replace v-else>
+                    <icon name="file"></icon> {{ f.name }}
                 </router-link>
             </li>
         </ol>
@@ -30,10 +30,6 @@ export default {
     name: 'file-tree',
 
     props: {
-        submissionId: {
-            type: Number,
-            default: 0,
-        },
         tree: {
             type: Object,
             default: null,
@@ -47,6 +43,7 @@ export default {
     data() {
         return {
             isCollapsed: this.collapsed,
+            submissionId: this.$route.params.submissionId,
         };
     },
 
