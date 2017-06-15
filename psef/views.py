@@ -347,3 +347,58 @@ def get_permissions():
                                APICodes.OBJECT_NOT_FOUND, 404)
     else:
         return jsonify(current_user.get_all_permissions(course_id=course_id))
+
+@app.route('/api/v1/update_user', methods=['PUT'])
+def get_user_update():
+    data = request.get_json()
+
+    if 'email' not in data or 'password' not in data or 'username' not in data:
+        raise APIException('Email, username and password are required fields',
+                           'Email, username or password was missing from the request',
+                           APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    user = models.User.query.get(current_user.id)
+    if user is None:
+        raise APIException(
+            'User_id not found',
+            'The user with id {} was not found'.format(current_user.id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    if user.password != data['o_password']:
+        raise APIException('Incorrect password.',
+            'The supplied old password was incorrect',
+            APICodes.INVALID_CREDENTIALS, 422)
+
+    auth.ensure_permission('can_edit_own_name')
+    auth.ensure_permission('can_edit_own_email')
+    auth.ensure_permission('can_edit_own_password')
+
+    errors = {}
+    errors['password'] = validate_password(data['n_password'])
+    errors['username'] = validate_username(data['username'])
+
+    if errors['password'] != '' or errors['username'] != '':
+        raise APIException('Invalid password or username.',
+            'The supplied username or password did not meet the requirements',
+            APICodes.INVALID_PARAM, 422, errors)
+
+    user.username = data['username']
+    user.email = data['email']
+    user.password = data['password']
+
+    db.session.commit()
+    return ('', 204)
+
+def validate_username(username):
+    min_len = 1
+    if len(username) < min_len:
+        return('use at least ' + str(min_len) + ' chars')
+    else:
+        return('')
+
+def validate_password(password):
+    min_len = 1
+    if len(password) < min_len:
+        return('use at least ' + str(min_len) + ' chars')
+    else:
+        return('')

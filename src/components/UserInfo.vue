@@ -12,8 +12,8 @@
                     <div class="form-group">
                         <label for="username">Username:</label>
                         <input type="text" class="form-control" v-model="username">
-                        <div v-show="submitted && validateUsername()" class="help alert-danger">
-                            Please enter a valid username
+                        <div v-show="submitted && invalid_input['username'] != ''" class="help alert-danger">
+                            {{ invalid_input['username'] }}
                         </div>
                     </div>
                     <div class="form-group">
@@ -23,17 +23,29 @@
                             Please enter a valid email
                         </div>
                     </div>
+
                     <div class="form-group">
-                        <label for="password">Password:</label>
-                        <input type="text" class="form-control" v-model="password">
-                        <div v-show="submitted && validatePassword()" class="help alert-danger">
-                            Please enter a valid password
+                        <label for="password">Old password:</label>
+                        <input type="text" class="form-control" v-model="oldPassword">
+                        <div v-show="submitted" class="help alert-danger">
+                            pw_err
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">New password:</label>
+                        <input type="text" class="form-control" v-model="newPassword">
+                        <div v-show="submitted && invalid_input['password'] != ''" class="help alert-danger">
+                            {{ invalid_input['password'] }}
                         </div>
                     </div>
                     <div class="form-group">
                         <label for="password">Confirm password:</label>
-                        <input type="text" class="form-control" v-model="c_password">
+                        <input type="text" class="form-control" v-model="confirmPassword">
+                        <div v-show="submitted && newPassword != confirmPassword" class="help alert-danger">
+                            New password is not equal to the confirmation password
+                        </div>
                     </div>
+
                     <div class="btn-group btn-group-justified">
                         <div class="btn-group">
                             <button type="cancel" class="btn btn-primary" @click="edit = false">Cancel</button>
@@ -58,10 +70,13 @@ export default {
         return {
             username: '',
             email: '',
-            password: '',
+            oldPassword: '',
+            newPassword: '',
+            confirmPassword: '',
             edit: false,
             submitted: false,
             error: '',
+            invalid_input = {},
             validator,
         };
     },
@@ -72,15 +87,32 @@ export default {
             this.email = data.data.email;
         });
     },
+
     methods: {
         saveChanges() {
+            this.error = '';
+            this.submitted = true;
 
-        },
-        validateUsername() {
+            if (this.newPassword !== this.confirmPassword) {
+                return;
+            }
+            if (!validator.validate(this.email)) {
+                return;
+            }
 
-        },
-        validatePassword() {
-
+            this.$http.put('/api/v1/update_user',
+                {
+                    username: this.username,
+                    email: this.email,
+                    o_password: this.oldPassword,
+                    n_password: this.newPassword,
+                },
+            ).then(() => {
+                console.log('Stuff send');
+            }).catch((reason) => {
+                this.error = reason.error;
+                this.invalid_input = reason.rest;
+            });
         },
     },
 };

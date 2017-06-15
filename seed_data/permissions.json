@@ -43,5 +43,20 @@
         "name": "can_view_own_files",
         "default_value": true,
         "course_permission": true
+    },
+    {
+        "name": "can_edit_own_name",
+        "default_value": true,
+        "course_permission": false
+    },
+    {
+        "name": "can_edit_own_email",
+        "default_value": true,
+        "course_permission": false
+    },
+    {
+        "name": "can_edit_own_password",
+        "default_value": true,
+        "course_permission": false
     }
 ]
