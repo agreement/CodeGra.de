@@ -76,7 +76,7 @@ export default {
             filterHidden: false,
             filterSubmitting: true,
             filterGrading: true,
-            filterDone: true,
+            filterDone: false,
             currentPage: 1,
             fields: {
                 course_name: {
