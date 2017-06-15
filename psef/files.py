@@ -11,6 +11,7 @@ from psef import app
 
 _known_archive_extensions = tuple(archive.extension_map.keys())
 
+
 def get_binary_contents(file):
     """Get the binary contents of a given file.
 
@@ -22,6 +23,7 @@ def get_binary_contents(file):
     filename = os.path.join(app.config['UPLOAD_DIR'], file.filename)
     with open(filename, 'rb') as codefile:
         return codefile.read()
+
 
 def get_file_contents(code):
     """Get the contents of the given file.
