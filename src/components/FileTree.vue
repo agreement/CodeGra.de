@@ -30,10 +30,6 @@ export default {
     name: 'file-tree',
 
     props: {
-        submissionId: {
-            type: Number,
-            default: 0,
-        },
         tree: {
             type: Object,
             default: null,
@@ -47,6 +43,7 @@ export default {
     data() {
         return {
             isCollapsed: this.collapsed,
+            submissionId: this.$route.params.submissionId,
         };
     },
 

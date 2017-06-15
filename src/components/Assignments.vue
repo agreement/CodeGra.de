@@ -1,7 +1,7 @@
 <template>
     <ol>
         <li v-for="a in assignments_list">
-             <router-link :to="{ name: 'assignment_submissions', params: { assignmentId: a.id, }, }">
+             <router-link :to="{ name: 'assignment_submissions', params: { assignmentId: a.id, courseId: a.course_id }, }">
                 {{a.name}}
             </router-link>
         </li>

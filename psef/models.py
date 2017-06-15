@@ -192,13 +192,6 @@ class Course(db.Model):
     name = db.Column('name', db.Unicode)
 
 
-@enum.unique
-class WorkStateEnum(enum.IntEnum):
-    initial = 0  # Not looked at
-    started = 1  # The TA is working on it
-    done = 2  # This is the same as graded would be
-
-
 class Work(db.Model):
     __tablename__ = "Work"
     id = db.Column('id', db.Integer, primary_key=True)
@@ -206,8 +199,6 @@ class Work(db.Model):
                               db.ForeignKey('Assignment.id'))
     user_id = db.Column('User_id', db.Integer,
                         db.ForeignKey('User.id', ondelete='CASCADE'))
-    state = db.Column(
-        'state', db.Enum(WorkStateEnum), default=WorkStateEnum.initial)
     edit = db.Column('edit', db.Integer)
     grade = db.Column('grade', db.Float, default=None)
     comment = db.Column('comment', db.Unicode, default=None)
@@ -311,10 +302,23 @@ class Comment(db.Model):
     # user = db.relationship('User', foreign_keys=user_id)
 
 
+@enum.unique
+class AssignmentStateEnum(enum.IntEnum):
+    hidden = 0
+    submitting = 1
+    grading = 2
+    done = 3
+
+
 class Assignment(db.Model):
     __tablename__ = "Assignment"
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode)
+    state = db.Column(
+        'state',
+        db.Enum(AssignmentStateEnum),
+        default=AssignmentStateEnum.hidden,
+        nullable=False)
     description = db.Column('description', db.Unicode, default='')
     course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
 

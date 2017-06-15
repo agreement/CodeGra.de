@@ -6,6 +6,7 @@ const getters = {
     loggedIn: state => state.id !== 0,
     id: state => state.id,
     name: state => state.name,
+    permissions: state => state.permissions,
 };
 
 const actions = {
@@ -17,6 +18,36 @@ const actions = {
             }).catch((err) => {
                 reject(err.response.data);
             });
+        });
+    },
+    hasPermission({ commit, state }, perm) {
+        return new Promise((resolve) => {
+            const getPermission = () => {
+                if (state.permissions === null) {
+                    return {};
+                } else if (perm.course_id === null) {
+                    return state.permissions;
+                }
+                return state.permissions[`course_${perm.course_id}`];
+            };
+
+            const checkPermission = () => getPermission()[perm.name] === true;
+
+            if (getPermission() === undefined || getPermission()[perm.name] === undefined) {
+                axios.get('/api/v1/permissions/', {
+                    params: perm.course_id ? { course_id: perm.course_id } : {},
+                }).then((response) => {
+                    commit(types.PERMISSIONS, { response: response.data, perm });
+                    resolve(checkPermission());
+                }, () => resolve(false));
+            } else {
+                if (Math.random() < 0.005) {
+                    axios.get('/api/v1/permissions/').then((response) => {
+                        commit(types.PERMISSIONS, { response: response.data, perm });
+                    });
+                }
+                resolve(checkPermission());
+            }
         });
     },
     logout({ commit }) {
@@ -45,10 +76,21 @@ const mutations = {
         state.email = userdata.email;
         state.name = userdata.name;
     },
+    [types.PERMISSIONS](state, { response, perm }) {
+        if (perm.course_id !== undefined) {
+            if (!state.permissions) {
+                state.permissions = {};
+            }
+            state.permissions[`course_${perm.course_id}`] = response;
+        } else {
+            state.permissions = response;
+        }
+    },
     [types.LOGOUT](state) {
         state.id = 0;
         state.email = '';
         state.name = '';
+        state.permissions = null;
     },
 };
 
@@ -58,6 +100,7 @@ export default {
         id: 0,
         email: '',
         name: '',
+        permissions: null,
     },
     getters,
     actions,

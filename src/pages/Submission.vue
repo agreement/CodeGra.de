@@ -4,9 +4,9 @@
 
         <div class="row code-browser">
             <div class="col-10 code-and-grade">
-                <code-viewer class="" v-bind:editable="true"
+                <code-viewer class="" v-bind:editable="editable"
                     v-bind:id="fileId" v-if="fileId" ref="codeViewer"></code-viewer>
-                <grade-viewer v-bind:id="submissionId"
+                <grade-viewer v-bind:id="submissionId" :editable="editable"
                     v-on:submit="submitAllFeedback($event)"></grade-viewer>
             </div>
 
@@ -22,6 +22,7 @@
 <script>
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/refresh';
+import { mapActions } from 'vuex';
 import { CodeViewer, FileTree, GradeViewer } from '@/components';
 
 function getFirstFile(fileTree) {
@@ -51,17 +52,22 @@ export default {
             assignmentId: this.$route.params.assignmentId,
             submissionId: this.$route.params.submissionId,
             fileId: this.$route.params.fileId,
+            editable: false,
             title: '',
             description: '',
             course_name: '',
-            course_id: 0,
+            courseId: this.$route.params.courseId,
             fileTree: null,
             grade: 0,
+            showGrade: false,
             feedback: '',
         };
     },
 
     mounted() {
+        this.hasPermission({ name: 'can_grade_work', course_id: this.courseId }).then((val) => {
+            this.editable = val;
+        });
         this.getSubmission();
 
         const elements = Array.from(document.querySelectorAll('html, body, #app, header, footer'));
@@ -148,6 +154,9 @@ export default {
         submitAllFeedback(event) {
             this.$refs.codeViewer.submitAllFeedback(event);
         },
+        ...mapActions({
+            hasPermission: 'user/hasPermission',
+        }),
     },
 
     components: {

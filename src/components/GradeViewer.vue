@@ -1,22 +1,32 @@
 <template>
-    <div class="grade-viewer row">
+    <div class="grade-viewer row" v-if="show">
         <div class="col-6">
             <b-input-group>
                 <b-input-group-button>
-                    <b-button :variant="submitted ? 'success' : 'primary'" v-on:click="putFeedback()">
+                    <b-button :variant="submitted ? 'success' : 'primary'" v-on:click="putFeedback()" v-if="editable">
                         <icon name="refresh" spin v-if="submitting"></icon>
                         <span v-else>Submit all</span>
                     </b-button>
                 </b-input-group-button>
 
-                <b-form-input type="number" class="grade" step="any" min="0" max="10"
-                    placeholder="Grade" v-model:value="grade"></b-form-input>
+                <b-form-input type="number"
+                              step="any"
+                              min="0"
+                              max="10"
+                              :disabled="!editable"
+                              placeholder="Grade"
+                              v-model:value="grade">
+                </b-form-input>
             </b-input-group>
         </div>
         <div class="col-6">
             <b-input-group>
-                <b-form-input :textarea="true" placeholder="Feedback" :rows="3"
-                    v-model:value="feedback"></b-form-input>
+              <b-form-input :textarea="true"
+                            :placeholder="editable ? 'Feedback' : 'No feedback given :('"
+                            :rows="3"
+                            v-model:value="feedback"
+                            :disabled="!editable">
+              </b-form-input>
             </b-input-group>
         </div>
     </div>
@@ -39,6 +49,7 @@ export default {
             feedback: '',
             submitting: false,
             submitted: false,
+            show: false,
         };
     },
 
@@ -51,6 +62,8 @@ export default {
             this.$http.get(`/api/v1/submissions/${this.submissionId}`).then((data) => {
                 this.grade = data.data.grade;
                 this.feedback = data.data.comment;
+                this.show = true;
+                console.log(data.data);
             });
         },
 
@@ -93,5 +106,9 @@ input.grade {
     -moz-appearance: textfield;
     appearance: textfield;
     padding-right: 1em;
+}
+input:disabled, textarea:disabled {
+    background: white;
+    cursor: text;
 }
 </style>

@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
 import os
 
-from flask import after_this_request, jsonify, request, send_file
+from flask import jsonify, request, send_file, after_this_request
+from flask_login import login_user, logout_user, current_user, login_required
 
 import psef.auth as auth
 import psef.files
 import psef.models as models
-from flask_login import current_user, login_required, login_user, logout_user
-from psef import app, db
+from psef import db, app
 from psef.errors import APICodes, APIException
 
 
 @app.route("/api/v1/code/<int:file_id>", methods=['GET'])
 def get_code(file_id):
     code = db.session.query(models.File).get(file_id)
+    assig = code.work.assignment
+    line_feedback = {}
+
     if code is None:
         raise APIException(
             'File not found',
@@ -27,10 +30,20 @@ def get_code(file_id):
         auth.ensure_permission('can_view_own_files',
                                code.work.assignment.course.id)
 
-    line_feedback = {}
-    for comment in db.session.query(models.Comment).filter_by(
-            file_id=file_id).all():
-        line_feedback[str(comment.line)] = comment.comment
+    if code.work.user.id == current_user.id:
+        perm = 'can_see_own_work'
+    else:
+        perm = 'can_see_others_work'
+
+    auth.ensure_permission(perm, assig.course.id)
+
+    print(perm, assig.state)
+    if (assig.state == models.AssignmentStateEnum.done or
+        current_user.has_permission('can_see_grade_before_open',
+                                    assig.course.id)):
+        for comment in db.session.query(models.Comment).filter_by(
+                file_id=file_id).all():
+            line_feedback[str(comment.line)] = comment.comment
 
     # TODO: Return JSON following API
     return jsonify(
@@ -153,6 +166,7 @@ def get_student_assignments():
     if courses:
         return jsonify([{
             'id': assignment.id,
+            'state': assignment.state,
             'name': assignment.name,
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
@@ -172,6 +186,7 @@ def get_assignment(assignment_id):
     auth.ensure_permission('can_see_assignments', assignment.course_id)
     return jsonify({
         'name': assignment.name,
+        'state': assignment.state,
         'description': assignment.description,
         'course_name': assignment.course.name,
         'course_id': assignment.course_id,
@@ -218,7 +233,6 @@ def get_all_works_for_assignment(assignment_id):
         'id': work.id,
         'user_name': work.user.name if work.user else "Unknown",
         'user_id': work.user_id,
-        'state': work.state,
         'edit': work.edit,
         'grade': work.grade,
         'comment': work.comment,
@@ -227,6 +241,7 @@ def get_all_works_for_assignment(assignment_id):
 
 
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['GET'])
+@login_required
 def get_submission(submission_id):
     """
     Return submission X if the user permission is valid.
@@ -235,13 +250,18 @@ def get_submission(submission_id):
         - If submission X was not found
     """
     work = db.session.query(models.Work).get(submission_id)
-    auth.ensure_permission('can_grade_work', work.assignment.course.id)
 
-    if work and work.is_graded:
+    if work:
+        if work.user.id != current_user.id:
+            auth.ensure_permission('can_see_others_work',
+                                   work.assignment.course.id)
+        if work.assignment.state != models.AssignmentStateEnum.done:
+            auth.ensure_permission('can_see_grade_before_open',
+                                   work.assignment.course.id)
+
         return jsonify({
             'id': work.id,
             'user_id': work.user_id,
-            'state': work.state,
             'edit': work.edit,
             'grade': work.grade,
             'comment': work.comment,
@@ -290,7 +310,6 @@ def patch_submission(submission_id):
 
     work.grade = content['grade']
     work.comment = content['feedback']
-    work.state = 'done'
     db.session.commit()
     return ('', 204)
 
