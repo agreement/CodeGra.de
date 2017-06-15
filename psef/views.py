@@ -19,11 +19,9 @@ def get_code(file_id):
             file_id=file_id).all():
         line_feedback[str(comment.line)] = comment.comment
 
-
-
     # TODO: Return JSON following API
     return jsonify(
-        lang=code.extension,  # TODO Detect the language automatically
+        lang=code.extension,
         code=psef.files.get_file_contents(code),
         feedback=line_feedback)
 
