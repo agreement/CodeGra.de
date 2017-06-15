@@ -114,28 +114,34 @@ def get_student_assignments():
         if course_role.has_permission(perm):
             courses.append(course_role.course_id)
     if courses:
-        return jsonify([{
+        return (jsonify([{
             'id': assignment.id,
             'name': assignment.name,
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
         }
                         for assignment in models.Assignment.query.filter(
-                            models.Assignment.course_id.in_(courses)).all()])
+                            models.Assignment.course_id.in_(courses)).all()]), 200)
     else:
-        return jsonify([])
+        return (jsonify([]), 204)
 
 
 @app.route("/api/v1/assignments/<int:assignment_id>", methods=['GET'])
 def get_assignment(assignment_id):
     assignment = models.Assignment.query.get(assignment_id)
     auth.ensure_permission('can_see_assignments', assignment.course_id)
-    return jsonify({
-        'name': assignment.name,
-        'description': assignment.description,
-        'course_name': assignment.course.name,
-        'course_id': assignment.course_id,
-    })
+    if assignment is None:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with id {} was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    else:
+        return (jsonify({
+            'name': assignment.name,
+            'description': assignment.description,
+            'course_name': assignment.course.name,
+            'course_id': assignment.course_id,
+        }), 200)
 
 
 @app.route(
@@ -152,38 +158,41 @@ def get_all_works_for_assignment(assignment_id):
             assignment_id=assignment_id, user_id=current_user.id)
     res = obj.order_by(models.Work.created_at.desc()).all()
 
-    return jsonify([{
-        'id': work.id,
-        'user_name': work.user.name if work.user else "Unknown",
-        'user_id': work.user_id,
-        'state': work.state,
-        'edit': work.edit,
-        'grade': work.grade,
-        'comment': work.comment,
-        'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
-    } for work in res])
-
-
-@app.route("/api/v1/submissions/<int:submission_id>", methods=['GET'])
-def get_submission(submission_id):
-    work = db.session.query(models.Work).get(submission_id)
-    auth.ensure_permission('can_grade_work', work.assignment.course.id)
-
-    if work and work.is_graded:
-        return jsonify({
+    if res:
+        return (jsonify([{
             'id': work.id,
+            'user_name': work.user.name if work.user else "Unknown",
             'user_id': work.user_id,
             'state': work.state,
             'edit': work.edit,
             'grade': work.grade,
             'comment': work.comment,
-            'created_at': work.created_at,
-        })
+            'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
+        } for work in res]), 200)
     else:
+        return (jsonify([]), 204)
+
+
+@app.route("/api/v1/submissions/<int:submission_id>", methods=['GET'])
+def get_submission(submission_id):
+    work = db.session.query(models.Work).get(submission_id)
+
+    if not work:
         raise APIException(
-            'Work submission not found',
+            'Submission not found',
             'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_grade_work', work.assignment.course.id)
+    return (jsonify({
+        'id': work.id,
+        'user_id': work.user_id,
+        'state': work.state,
+        'edit': work.edit,
+        'grade': work.grade,
+        'comment': work.comment,
+        'created_at': work.created_at,
+    }), 200)
 
 
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['PATCH'])
@@ -249,17 +258,17 @@ def login():
 @app.route("/api/v1/login", methods=["GET"])
 @login_required
 def me():
-    return jsonify({
+    return (jsonify({
         "id": current_user.id,
         "name": current_user.name,
         "email": current_user.email
-    }), 200
+    }), 200)
 
 
 @app.route("/api/v1/logout", methods=["POST"])
 def logout():
     logout_user()
-    return '', 204
+    return ('', 204)
 
 
 @app.route(
@@ -345,14 +354,17 @@ def get_permissions():
                                '"{}" is not real permission'.format(perm),
                                APICodes.OBJECT_NOT_FOUND, 404)
     else:
-        return jsonify(current_user.get_all_permissions(course_id=course_id))
+        return (jsonify(current_user.get_all_permissions(course_id=course_id)), 200)
 
 
 @app.route('/api/v1/snippets/', methods=['GET'])
 @auth.permission_required('can_use_snippets')
 def get_snippets():
     res = models.Snippet.get_all_snippets(current_user)
-    return jsonify([r.to_dict() for r in res])
+    if res:
+        return (jsonify([r.to_dict() for r in res]), 200)
+    else:
+        return (jsonify([]), 204)
 
 
 @app.route('/api/v1/snippet', methods=['PUT'])
@@ -375,7 +387,7 @@ def add_snippet():
         snippet.value = content['value']
     db.session.commit()
 
-    return '', 204
+    return ('', 204)
 
 
 @app.route('/api/v1/snippets/<int:snippet_id>', methods=['DELETE'])
@@ -395,5 +407,5 @@ def delete_snippets(snippet_id):
     else:
         db.session.delete(snip)
         db.session.commit()
-        return '', 204
+        return ('', 204)
     pass
