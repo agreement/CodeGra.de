@@ -72,12 +72,12 @@ export default {
         };
     },
     mounted() {
-        setTimeout(() => this.$refs.field.focus(), 50);
+        this.$nextTick(() => this.$refs.field.focus(), 50);
     },
     methods: {
         changeFeedback() {
             this.done = false;
-            setTimeout(() => this.$refs.field.focus(), 50);
+            this.$nextTick(() => this.$refs.field.focus(), 50);
             this.internalFeedback = this.serverFeedback;
         },
         submitFeedback() {
@@ -163,10 +163,10 @@ export default {
                 this.pending = false;
                 this.snippetDone = true;
                 // Add a small timeout such that the green sign is visible
-                setTimeout(() => {
+                this.$nextTick(() => setTimeout(() => {
                     this.snippetDone = false;
                     this.$root.$emit('collapse::toggle', `collapse${this.line}`);
-                }, 1000 * 0.2);
+                }, 1000));
             });
         },
         findSnippet() {
