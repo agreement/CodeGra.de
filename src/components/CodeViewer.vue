@@ -1,17 +1,22 @@
 <template>
-    <ol class="code-viewer form-control" :class="{ editable }">
-        <li v-on:click="addFeedback($event, i)" v-for="(line, i) in this.codeLines">
-            <code v-html="line"></code>
+  <div class="text-center loader col-md-12" v-if="loading">
+    <icon name="refresh" scale="4" spin></icon>
+  </div>
+  <ol class="code-viewer form-control" :class="{ editable }" v-else>
+    <li v-on:click="addFeedback($event, i)" v-for="(line, i) in this.codeLines">
+      <code v-html="line"></code>
 
-            <feedback-area :editing="editing[i] === true" :feedback='feedback[i]' :editable='editable' :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }" v-on:cancel='onChildCancel' v-if="feedback[i] != null"></feedback-area>
 
-            <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
-                v-on:click="addFeedback($event, value)"></icon>
-        </li>
-    </ol>
+      <feedback-area :editing="editing[i] === true" :feedback='feedback[i]' :editable='editable' :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }" v-on:cancel='onChildCancel' v-if="feedback[i] != null"></feedback-area>
+
+      <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
+            v-on:click="addFeedback($event, value)"></icon>
+    </li>
+  </ol>
 </template>
 
 <script>
+import 'vue-awesome/icons/refresh';
 import { highlight } from 'highlightjs';
 import Vue from 'vue';
 
@@ -33,6 +38,7 @@ export default {
             fileId: this.id,
             lang: '',
             codeLines: [],
+            loading: true,
             editing: {},
             feedback: {},
             clicks: {},
@@ -49,6 +55,7 @@ export default {
         },
 
         fileId() {
+            this.loading = true;
             this.getCode();
         },
     },
@@ -71,6 +78,7 @@ export default {
                 const styledLine = highlight(lang, codeLine, true, state);
                 state = styledLine.top;
                 codeLines.push(styledLine.value);
+                this.loading = false;
             });
             return codeLines;
         },
@@ -145,5 +153,8 @@ code {
     li:hover & {
         display: block;
     }
+}
+.loader {
+    margin-top: 5em;
 }
 </style>
