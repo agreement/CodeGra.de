@@ -40,7 +40,9 @@
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="state" scope="item">
-                {{item.value ? item.value : '-'}}
+                <icon name="plus" v-if="item.item.state == 1"></icon>
+                <icon name="times" v-else-if="item.item.state == 2"></icon>
+                <icon name="check" v-else-if="item.item.state == 3"></icon>
             </template>
         </b-table>
     </div>
