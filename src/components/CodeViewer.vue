@@ -89,8 +89,11 @@ export default {
             return lines;
         },
 
-        onChildCancel(line) {
-            this.clicks[line] = true;
+        onChildCancel(line, click) {
+            console.log(click);
+            if (click !== false) {
+                this.clicks[line] = true;
+            }
             Vue.set(this.editing, line, false);
             Vue.set(this.feedback, line, null);
         },

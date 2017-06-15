@@ -115,25 +115,25 @@ export default {
         },
         revertFeedback() {
             if (this.serverFeedback === '') {
-                this.cancelFeedback();
-                return;
+                this.cancelFeedback(false);
+            } else {
+                this.$emit('feedbackChange', this.serverFeedback, true);
+                this.done = true;
             }
-            this.$emit('feedbackChange', this.serverFeedback);
-            this.done = true;
         },
-        cancelFeedback() {
+        cancelFeedback(val) {
             this.snippetKey = '';
             if (this.feedback !== '') {
                 this.deletingFeedback = true;
                 const done = () => {
                     this.deletingFeedback = true;
-                    this.$emit('cancel', this.line);
+                    this.$emit('cancel', this.line, val);
                 };
                 this.$http
                     .delete(`/api/v1/code/${this.fileId}/comments/${this.line}`)
                     .then(done, done);
             } else {
-                this.$emit('cancel', this.line);
+                this.$emit('cancel', this.line, val);
             }
         },
         expandSnippet(event) {
