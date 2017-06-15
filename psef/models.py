@@ -313,6 +313,11 @@ class Assignment(db.Model):
     __tablename__ = "Assignment"
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode)
+    state = db.Column(
+        'state',
+        db.Enum(AssignmentStateEnum),
+        default=AssignmentStateEnum.hidden,
+        nullable=False)
     description = db.Column('description', db.Unicode, default='')
     course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
 
