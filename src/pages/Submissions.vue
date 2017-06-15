@@ -40,7 +40,7 @@ export default {
     },
 
     mounted() {
-        this.hasPermission({ name: 'can_submit_own_work', course_id: this.courseId }).then((val) => {
+        this.hasPermission('can_submit_own_work').then((val) => {
             this.canUpload = val;
         });
         this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then((data) => {
