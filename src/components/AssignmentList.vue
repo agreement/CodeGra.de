@@ -32,7 +32,8 @@
                 :items="assignments"
                 :fields="fields"
                 :current-page="currentPage"
-                :filter="filterItems">
+                :filter="filterItems"
+                :show-empty="true">
             <template slot="course_name" scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
@@ -46,6 +47,9 @@
                 <icon name="download" v-if="item.item.state == 1"></icon>
                 <icon name="pencil" v-else-if="item.item.state == 2"></icon>
                 <icon name="check" v-else-if="item.item.state == 3"></icon>
+            </template>
+            <template slot="empty">
+                No results found.
             </template>
         </b-table>
     </div>
