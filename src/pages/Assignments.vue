@@ -1,8 +1,8 @@
 <template>
     <div class="page assignments">
-        <div class="row">
-            <loader class="col-md-11 text-center" v-if="loading"></loader>
-            <div class="col-md-11" v-else>
+        <div class="row justify-content-center">
+            <loader class="col-md-10 text-center" v-if="loading"></loader>
+            <div class="col-md-10" v-else>
                 <h1>Assignments</h1>
                 <assignment-list :assignments="assignments"></assignment-list>
             </div>
