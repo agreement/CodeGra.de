@@ -118,6 +118,8 @@ export default {
         filterItems(item) {
             if (!this.filterState(item)) {
                 return false;
+            } else if (!this.filter) {
+                return true;
             }
             const terms = {
                 name: item.name.toLowerCase(),
