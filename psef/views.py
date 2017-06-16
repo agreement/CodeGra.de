@@ -484,11 +484,38 @@ def add_snippet():
     snippet = models.Snippet.query.filter_by(
         user_id=current_user.id, key=content['key']).first()
     if snippet is None:
-        db.session.add(
-            models.Snippet(
-                key=content['key'], value=content['value'], user=current_user))
+        snippet = models.Snippet(
+            key=content['key'], value=content['value'], user=current_user)
+        db.session.add(snippet)
     else:
         snippet.value = content['value']
+    db.session.commit()
+
+    return (jsonify({'id': snippet.id}), 201)
+
+@app.route('/api/v1/snippets/<int:snippet_id>', methods=['PATCH'])
+@auth.permission_required('can_use_snippets')
+def patch_snippet(snippet_id):
+    content = request.get_json()
+    if 'key' not in content or 'value' not in content:
+        raise APIException(
+            'Not all required keys were in content',
+            'The given content ({}) does  not contain "key" and "value"'.
+            format(content), APICodes.MISSING_REQUIRED_PARAM, 400)
+    snip = models.Snippet.query.get(snippet_id)
+    if snip is None:
+        raise APIException(
+            'Snippet not found',
+            'The snippet with id {} was not found'.format(snip),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    if snip.user.id != current_user.id:
+        raise APIException(
+            'The given snippet is not your snippet',
+            'The snippet "{}" does not belong to user "{}"'.format(
+                snip.id, current_user.id), APICodes.INCORRECT_PERMISSION, 403)
+
+    snip.key = content['key']
+    snip.value = content['value']
     db.session.commit()
 
     return ('', 204)

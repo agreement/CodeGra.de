@@ -2,12 +2,19 @@ import Vue from 'vue';
 import Router from 'vue-router';
 import { Assignments, Submission, Home, Login, Submit, Submissions } from '@/pages';
 
+import { SnippetManager } from '@/components';
+
 Vue.use(Router);
 
 export default new Router({
     mode: 'history',
 
     routes: [
+        {
+            path: '/test',
+            name: 'test',
+            component: SnippetManager,
+        },
         {
             path: '/',
             name: 'home',
