@@ -36,7 +36,7 @@
             <template slot="course_name" scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
-            <template slot="assignment_name" scope="item">
+            <template slot="name" scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="date" scope="item">
@@ -111,6 +111,19 @@ export default {
 
     methods: {
         filterItems(item) {
+            if (!this.filterState(item)) {
+                return false;
+            }
+            const terms = {
+                name: item.name.toLowerCase(),
+                course_name: item.course_name.toLowerCase(),
+                date: item.date,
+            };
+            return this.filter.toLowerCase().split(' ')
+                .every(word => this.matchesWord(terms, word));
+        },
+
+        filterState(item) {
             switch (item.state) {
             case 0: return this.toggles.hidden;
             case 1: return this.toggles.submitting;
@@ -118,6 +131,12 @@ export default {
             case 3: return this.toggles.done;
             default: throw TypeError('Unknown assignment state');
             }
+        },
+
+        matchesWord(item, word) {
+            return item.name.indexOf(word) >= 0 ||
+                item.course_name.indexOf(word) >= 0 ||
+                item.date.indexOf(word) >= 0;
         },
 
         toggleFilter(filter) {
