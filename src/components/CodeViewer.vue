@@ -90,7 +90,6 @@ export default {
         },
 
         onChildCancel(line, click) {
-            console.log(click);
             if (click !== false) {
                 this.clicks[line] = true;
             }
