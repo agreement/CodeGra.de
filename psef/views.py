@@ -25,9 +25,6 @@ def get_code(file_id):
     if (code.work.user.id != current_user.id):
         auth.ensure_permission('can_view_files',
                                code.work.assignment.course.id)
-    else:
-        auth.ensure_permission('can_view_own_files',
-                               code.work.assignment.course.id)
 
     try:
         auth.ensure_can_see_grade(code.work)
@@ -117,8 +114,6 @@ def get_dir_contents(submission_id):
 
     if (work.user.id != current_user.id):
         auth.ensure_permission('can_view_files', work.assignment.course.id)
-    else:
-        auth.ensure_permission('can_view_own_files', work.assignment.course.id)
 
     file_id = request.args.get('file_id')
     if file_id:
@@ -164,7 +159,7 @@ def get_student_assignments():
         return (jsonify([{
             'id': assignment.id,
             'state': assignment.state,
-            'date': assignment.created_at,
+            'date': assignment.created_at.strftime('%d-%m-%Y %H:%M'),
             'name': assignment.name,
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
@@ -209,8 +204,6 @@ def get_all_works_for_assignment(assignment_id):
             'can_see_others_work', course_id=assignment.course_id):
         obj = models.Work.query.filter_by(assignment_id=assignment_id)
     else:
-        auth.ensure_permission(
-            'can_see_own_work', course_id=assignment.course_id)
         obj = models.Work.query.filter_by(
             assignment_id=assignment_id, user_id=current_user.id)
 

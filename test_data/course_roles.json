@@ -26,7 +26,7 @@
     },
     {
         "name": "stupid_student",
-        "permissions": ["can_see_own_work"],
+        "permissions": [],
         "course": "Programmeertalen"
     },
     {
@@ -42,7 +42,7 @@
     },
     {
         "name": "stupid_student",
-        "permissions": ["can_see_own_work"],
+        "permissions": [],
         "course": "Besturingssystemen"
     },
     {
