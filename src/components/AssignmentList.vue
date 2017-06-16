@@ -107,10 +107,11 @@ export default {
     },
 
     mounted() {
-        this.toggles.submitting = this.$route.query.submitting === 'true';
-        this.toggles.grading = this.$route.query.grading === 'true';
-        this.toggles.done = this.$route.query.done === 'true';
-        this.filter = this.$route.query.q;
+        const q = this.$route.query;
+        this.toggles.submitting = q.submitting == null ? true : q.submitting === 'true';
+        this.toggles.grading = q.grading == null ? false : q.grading === 'true';
+        this.toggles.done = q.done == null ? true : q.done === 'true';
+        this.filter = q.q;
     },
 
     methods: {
