@@ -93,6 +93,7 @@ export default {
                 },
                 state: {
                     label: 'State',
+                    sortable: true,
                 },
             },
         };
