@@ -25,6 +25,11 @@
         "course": "Programmeertalen"
     },
     {
+        "name": "stupid_student",
+        "permissions": ["can_see_own_work"],
+        "course": "Programmeertalen"
+    },
+    {
         "name": "TA",
         "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files", "can_see_grade_before_open"],
         "course": "Programmeertalen"
@@ -34,6 +39,11 @@
         "name": "student",
         "permissions": [],
         "course": "Inleiding Programmeren"
+    },
+    {
+        "name": "stupid_student",
+        "permissions": ["can_see_own_work"],
+        "course": "Besturingssystemen"
     },
     {
         "name": "TA",
