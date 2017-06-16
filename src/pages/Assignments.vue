@@ -14,7 +14,7 @@
 import { AssignmentList, Loader } from '@/components';
 
 export default {
-    name: 'submission-list-page',
+    name: 'assignment-list-page',
 
     data() {
         return {
