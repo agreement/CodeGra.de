@@ -12,7 +12,7 @@
                 </router-link>
             </li>
             <li>
-                <router-link :to="{ name: 'logout', }" @click.native.capture="logout">
+                <router-link to="#" @click.native.capture="logoutAndRedirect">
                     Logout
                 </router-link>
             </li>
@@ -42,6 +42,16 @@ export default {
     },
 
     methods: {
+        logoutAndRedirect() {
+            console.log('a');
+            this.logout().then(() => {
+                console.log('b', this.loggedIn);
+                this.$router.push({
+                    name: 'home',
+                });
+            });
+        },
+
         ...mapActions('user', [
             'logout',
         ]),
