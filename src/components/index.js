@@ -11,6 +11,7 @@ import Assignments from './Assignments';
 import CodeUploader from './CodeUploader';
 import SubmissionList from './SubmissionList';
 import SubmissionsExporter from './SubmissionsExporter';
+import SnippetManager from './SnippetManager';
 
 export {
     CodeViewer,
@@ -26,4 +27,5 @@ export {
     CodeUploader,
     SubmissionList,
     SubmissionsExporter,
+    SnippetManager,
 };
