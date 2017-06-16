@@ -10,7 +10,7 @@
         <ol v-show="!isCollapsed">
             <li v-for="f in tree.entries">
                 <file-tree v-bind:tree="f" v-if="f.entries"></file-tree>
-                <router-link :to="{ name: 'submission_file', params: { courseId: courseId, assignmentId: assignmentId, submissionId: submissionId, fileId: f.id, }, }" replace v-else>
+                <router-link :class="{ 'active-file': $route.params.fileId == f.id }" :to="{ name: 'submission_file', params: { courseId: courseId, assignmentId: assignmentId, submissionId: submissionId, fileId: f.id, }, }" replace v-else>
                     <icon name="file"></icon> {{ f.name }}
                 </router-link>
             </li>
@@ -73,6 +73,10 @@ export default {
         padding: 0;
         padding-left: 1.5em;
         overflow: hidden;
+    }
+
+    .active-file {
+        font-weight: bold;
     }
 }
 </style>

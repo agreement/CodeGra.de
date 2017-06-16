@@ -28,7 +28,7 @@ def perms(session):
             course_permission=True))
     perms.append(
         m.Permission(
-            name='can_see_own_work',
+            name='can_see_grade_before_open',
             default_value=True,
             course_permission=True))
 
@@ -46,7 +46,6 @@ def bs_works(session, bs_course, thomas, other):
         m.Work(
             assignment=assig,
             user=thomas,
-            state='initial',
             edit=0,
             grade=10,
             comment='none'))
@@ -54,7 +53,6 @@ def bs_works(session, bs_course, thomas, other):
         m.Work(
             assignment=assig,
             user=other,
-            state='done',
             edit=0,
             grade=10,
             comment='none'))
@@ -186,7 +184,9 @@ def test_get_student_assignments(thomas, aco_course, bs_course, pse_course,
                 "id": assig.id,
                 "name": assig.name,
                 'course_name': assig.course.name,
-                'course_id': assig.course.id
+                'course_id': assig.course.id,
+                'state': assig.state,
+                'date': assig.created_at.strftime('%d-%m-%Y %H:%M'),
             } in data
         assert len(data) == len(pse_course[1] + bs_course[1])
         test_client.post('/api/v1/logout')
@@ -208,6 +208,7 @@ def test_get_student_assignment(thomas, bs_course, aco_course, login_endpoint,
                 'description': assignment.description,
                 'course_name': assignment.course.name,
                 'course_id': assignment.course_id,
+                'state': assignment.state,
             }
 
         for assignment in aco_course[1]:
@@ -230,8 +231,9 @@ def test_get_all_works(thomas, other, bs_course, login_endpoint, test_client,
         rv = test_client.get('/api/v1/assignments/{}/submissions/'.format(assig.id))
         data = json.loads(rv.get_data(as_text=True))
         print(data)
-        assert data[0]['user_id'] == thomas.id
-        assert data[1]['user_id'] == other.id
+        assert data[0]['user_id'] != data[1]['user_id']
+        assert (data[0]['user_id'] == thomas.id or data[1]['user_id'] == thomas.id)
+        assert (data[0]['user_id'] == other.id or data[1]['user_id'] == other.id)
         assert len(data) == 2
 
         test_client.post('/api/v1/logout')
