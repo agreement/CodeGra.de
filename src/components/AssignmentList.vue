@@ -163,7 +163,8 @@ export default {
     }
 }
 
-.table {
+.table,
+button {
     cursor: pointer;
 }
 </style>
