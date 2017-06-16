@@ -1,9 +1,8 @@
 <template>
     <div class="page submission">
-        <h1>{{ title }}</h1>
-
-        <div class="row code-browser">
-            <div class="col-10 code-and-grade">
+        <div class="row justify-content-center code-browser">
+            <h1>{{ title }}</h1>
+            <div class="col-8 code-and-grade">
                 <code-viewer class="" v-bind:editable="editable"
                     v-bind:id="fileId" v-if="fileId" ref="codeViewer"></code-viewer>
                 <grade-viewer v-bind:id="submissionId" :editable="editable"
