@@ -1,7 +1,8 @@
 <template>
     <div class="container">
         <div class="row justify-content-md-center">
-            <div class="col col-lg-9">
+        	<div class="col"></div>
+            <div class="col col-lg-9 col-m-12">
                 <form>
                     <div class="form-group">
                         <input type="text" class="form-control" placeholder="Email" v-model="email">
@@ -26,7 +27,9 @@
                     </div>
                 </form>
             </div>
+            <div class="col"></div>
         </div>
+
     </div>
 </template>
 

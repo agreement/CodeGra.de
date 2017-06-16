@@ -6,7 +6,7 @@ import GradeViewer from './GradeViewer';
 import HeaderBar from './HeaderBar';
 import Loader from './Loader';
 import Login from './Login';
-import SideBar from './SideBar';
+import NavBar from './NavBar';
 import AssignmentList from './AssignmentList';
 import CodeUploader from './CodeUploader';
 import SubmissionList from './SubmissionList';
@@ -21,7 +21,7 @@ export {
     HeaderBar,
     Loader,
     Login,
-    SideBar,
+    NavBar,
     AssignmentList,
     CodeUploader,
     SubmissionList,
