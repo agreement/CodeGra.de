@@ -11,7 +11,7 @@
         </b-link>
 
         <b-collapse is-nav id="nav_collapse">
-            
+
             <div v-if="loggedIn" class="loggedin-nav">
                 <b-nav is-nav-bar class="navbar-left">
                     <router-link class="nav-item" tag="li" :to="{ name: 'me', params: { userId: this.userid, }, }" active-class="active">
@@ -22,7 +22,7 @@
                     </router-link>
                 </b-nav>
                 <b-nav is-nav-bar class="navbar-right">
-                    <router-link class="nav-item" tag="li" :to="{ name: 'logout', }" @click.native.capture="logout"  active-class="active">
+                    <router-link class="nav-item" tag="li" to="#" @click.native.capture="logoutAndRedirect()"  active-class="active">
                         Logout
                     </router-link>
                 </b-nav>
@@ -53,6 +53,14 @@ export default {
     },
 
     methods: {
+        logoutAndRedirect() {
+            this.logout().then(() => {
+                this.$router.push({
+                    name: this.loggedIn ? 'assignments' : 'login',
+                });
+            });
+        },
+
         ...mapActions('user', [
             'logout',
         ]),

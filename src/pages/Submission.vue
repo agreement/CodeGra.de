@@ -128,7 +128,7 @@ export default {
         getSubmission() {
             this.$http.get(`/api/v1/submissions/${this.submissionId}/files/`).then((data) => {
                 this.fileTree = data.data;
-                this.$router.push({
+                this.$router.replace({
                     name: 'submission_file',
                     params: {
                         submissionId: this.submissionId,
