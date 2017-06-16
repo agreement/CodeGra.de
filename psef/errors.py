@@ -18,6 +18,7 @@ class APICodes(IntEnum):
     INACTIVE_USER = 8
     INVALID_URL = 9
     OBJECT_NOT_FOUND = 10
+    BLOCKED_ASSIGNMENT = 11
 
 
 class APIException(Exception):

@@ -1,23 +1,28 @@
 <template>
   <loader class="col-md-12 text-center" v-if="loading"></loader>
-  <ol class="code-viewer form-control" :class="{ editable }" v-else>
-    <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines">
-      <code v-html="line"></code>
+  <div v-else>
+    <b-alert show variant="danger" v-if="blocked && editable">
+      <div class="text-center"><b>This assignment is blocked</b></div>
+    </b-alert>
+    <ol class="code-viewer form-control" :class="{ editable: editable && !blocked }">
+      <li v-on:click="editable && !blocked && addFeedback($event, i)" v-for="(line, i) in codeLines">
+        <code v-html="line"></code>
 
 
-      <feedback-area :editing="editing[i] === true"
-                     :feedback='feedback[i]'
-                     :editable='editable'
-                     :line='i'
-                     :fileId='fileId'
-                     v-on:feedbackChange="val => { feedbackChange(i, val); }"
-                     v-on:cancel='onChildCancel'
-                     v-if="feedback[i] != null">
-      </feedback-area>
-      <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
-            v-on:click="addFeedback($event, value)"></icon>
-    </li>
-  </ol>
+        <feedback-area :editing="editing[i] === true"
+                       :feedback='feedback[i]'
+                       :editable='editable && !blocked'
+                       :line='i'
+                       :fileId='fileId'
+                       v-on:feedbackChange="val => { feedbackChange(i, val); }"
+                       v-on:cancel='onChildCancel'
+                       v-if="feedback[i] != null">
+        </feedback-area>
+        <icon name="plus" class="add-feedback" v-if="editable && !blocked && feedback[i] == null"
+              v-on:click="addFeedback($event, value)"></icon>
+      </li>
+    </ol>
+  </div>
 </template>
 
 <script>
@@ -41,6 +46,7 @@ export default {
     data() {
         return {
             fileId: this.id,
+            blocked: false,
             lang: '',
             codeLines: [],
             loading: true,
@@ -68,6 +74,7 @@ export default {
     methods: {
         getCode() {
             this.$http.get(`/api/v1/code/${this.fileId}`).then((data) => {
+                this.blocked = data.data.blocked;
                 this.lang = data.data.lang;
                 this.feedback = data.data.feedback;
                 this.codeLines = this.highlightCode(this.lang, data.data.code);
@@ -89,10 +96,8 @@ export default {
             return lines;
         },
 
-        onChildCancel(line, click) {
-            if (click !== false) {
-                this.clicks[line] = true;
-            }
+        onChildCancel(line) {
+            this.clicks[line] = true;
             Vue.set(this.editing, line, false);
             Vue.set(this.feedback, line, null);
         },

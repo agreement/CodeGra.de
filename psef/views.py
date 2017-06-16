@@ -34,9 +34,9 @@ def get_code(file_id):
     except auth.PermissionException:
         line_feedback = {}
 
-    # TODO: Return JSON following API
     return jsonify(
         lang=code.extension,
+        blocked=assig.blocked,
         code=psef.files.get_file_contents(code),
         feedback=line_feedback)
 
@@ -51,10 +51,19 @@ def put_comment(id, line):
     comment = db.session.query(models.Comment).filter(
         models.Comment.file_id == id,
         models.Comment.line == line).one_or_none()
+
+    def checked_blocked(assig):
+        if assig.blocked:
+            raise APIException(
+                'This assignment is blocked!',
+                'The assignment "{}" is blocked'.format(assig.id),
+                APICodes.BLOCKED_ASSIGNMENT, 423)
+
     if not comment:
         file = db.session.query(models.File).get(id)
         auth.ensure_permission('can_grade_work',
                                file.work.assignment.course.id)
+        checked_blocked(file.work.assignment)
         db.session.add(
             models.Comment(
                 file_id=id,
@@ -64,6 +73,7 @@ def put_comment(id, line):
     else:
         auth.ensure_permission('can_grade_work',
                                comment.file.work.assignment.course.id)
+        checked_blocked(comment.file.work.assignment)
         comment.comment = content['comment']
 
     db.session.commit()
@@ -157,12 +167,18 @@ def get_student_assignments():
             courses.append(course_role.course_id)
     if courses:
         return (jsonify([{
-            'id': assignment.id,
-            'state': assignment.state,
-            'date': assignment.created_at.strftime('%d-%m-%Y %H:%M'),
-            'name': assignment.name,
-            'course_name': assignment.course.name,
-            'course_id': assignment.course_id,
+            'id':
+            assignment.id,
+            'state':
+            assignment.state,
+            'date':
+            assignment.created_at.strftime('%d-%m-%Y %H:%M'),
+            'name':
+            assignment.name,
+            'course_name':
+            assignment.course.name,
+            'course_id':
+            assignment.course_id,
         }
                          for assignment in models.Assignment.query.filter(
                              models.Assignment.course_id.in_(courses)).all()]),
@@ -251,7 +267,6 @@ def get_all_works_for_assignment(assignment_id):
             out.append(item)
 
     return jsonify(out)
-
 
 
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['GET'])
