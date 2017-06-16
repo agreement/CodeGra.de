@@ -1,9 +1,8 @@
 <template>
     <div class="page submission">
-        <h1>{{ title }}</h1>
-
-        <div class="row code-browser">
-            <div class="col-10 code-and-grade">
+        <div class="row justify-content-center code-browser">
+            <h1>{{ title }}</h1>
+            <div class="col-8 code-and-grade">
                 <code-viewer class="" v-bind:editable="editable"
                     v-bind:id="fileId" v-if="fileId" ref="codeViewer"></code-viewer>
                 <grade-viewer v-bind:id="submissionId" :editable="editable"
@@ -66,8 +65,8 @@ export default {
         });
         this.getSubmission();
 
-        const elements = Array.from(document.querySelectorAll('html, body, #app, header, footer'));
-        const [html, body, app, header, footer] = elements;
+        const elements = Array.from(document.querySelectorAll('html, body, #app, nav, footer'));
+        const [html, body, app, nav, footer] = elements;
 
         this.oldCSS = {
             html: {
@@ -81,9 +80,9 @@ export default {
                 display: app.style.display,
                 flexDirection: app.style.flexDirection,
             },
-            header: {
-                flexGrow: header.style.flexGrow,
-                flexShrink: header.style.flexShrink,
+            nav: {
+                flexGrow: nav.style.flexGrow,
+                flexShrink: nav.style.flexShrink,
             },
             footer: {
                 flexGrow: footer.style.flexGrow,
@@ -96,23 +95,23 @@ export default {
         app.style.height = '100%';
         app.style.display = 'flex';
         app.style.flexDirection = 'column';
-        header.style.flexGrow = 0;
-        header.style.flexShrink = 0;
+        nav.style.flexGrow = 0;
+        nav.style.flexShrink = 0;
         footer.style.flexGrow = 0;
         footer.style.flexShrink = 0;
     },
 
     destroyed() {
-        const elements = Array.from(document.querySelectorAll('html, body, #app, header, footer'));
-        const [html, body, app, header, footer] = elements;
+        const elements = Array.from(document.querySelectorAll('html, body, #app, nav, footer'));
+        const [html, body, app, nav, footer] = elements;
 
         html.style.height = this.oldCSS.html.height;
         body.style.height = this.oldCSS.body.height;
         app.style.height = this.oldCSS.app.height;
         app.style.display = this.oldCSS.app.display;
         app.style.flexDirection = this.oldCSS.app.flexDirection;
-        header.style.flexGrow = this.oldCSS.header.flexGrow;
-        header.style.flexShrink = this.oldCSS.header.flexShrink;
+        nav.style.flexGrow = this.oldCSS.nav.flexGrow;
+        nav.style.flexShrink = this.oldCSS.nav.flexShrink;
         footer.style.flexGrow = this.oldCSS.footer.flexGrow;
         footer.style.flexShrink = this.oldCSS.footer.flexShrink;
     },
@@ -128,7 +127,7 @@ export default {
         getSubmission() {
             this.$http.get(`/api/v1/submissions/${this.submissionId}/files/`).then((data) => {
                 this.fileTree = data.data;
-                this.$router.push({
+                this.$router.replace({
                     name: 'submission_file',
                     params: {
                         submissionId: this.submissionId,
