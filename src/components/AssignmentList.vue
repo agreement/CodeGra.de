@@ -152,6 +152,10 @@ export default {
 </script>
 
 <style lang="less" scoped>
+.input-group {
+    margin-bottom: 30px;
+}
+
 .btn-group {
     button {
         border-top-left-radius: 0;
