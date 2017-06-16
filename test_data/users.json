@@ -51,5 +51,13 @@
             "Programmeertalen": "student",
             "Besturingssystemen": "student"
         }
+    },
+    {
+        "name": "Stupid3",
+        "role": "student",
+        "courses": {
+            "Programmeertalen": "stupid_student",
+            "Besturingssystemen": "stupid_student"
+        }
     }
 ]

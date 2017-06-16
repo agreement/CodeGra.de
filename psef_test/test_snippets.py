@@ -90,11 +90,11 @@ def test_get_all_snippets(thomas, other, snippets, login_endpoint,
             rv = test_client.get('/api/v1/snippets/')
             data = json.loads(rv.get_data(as_text=True))
             for snip in snips:
-                assert {
-                    'key': snip.key,
+                assert snip.key in data
+                assert data[snip.key] ==  {
                     'value': snip.value,
                     'id': snip.id
-                } in data
+                }
             assert len(snips) == len(data)
             test_client.post('/api/v1/logout')
     rv = test_client.get('/api/v1/snippets/')
@@ -112,11 +112,8 @@ def test_delete_snippets(thomas, snippets, login_endpoint, test_client):
         rv = test_client.get('/api/v1/snippets/')
         data = json.loads(rv.get_data(as_text=True))
 
-        assert {
-            'key': snippets[0][0].key,
-            'value': snippets[0][0].value,
-            'id': snippets[0][0].id
-        } not in data
+        assert snippets[0][0].key not in data
+        assert len(data) + 1 == len(snippets[0])
 
         rv = test_client.delete(
             '/api/v1/snippets/{}'.format(snippets[1][0].id))
@@ -145,8 +142,8 @@ def test_add_snippets(thomas, login_endpoint, test_client):
 
         items = len(data)
 
-        for perm in data:
-            if perm['key'] == 'hello' and perm['value'] == 'val':
+        for key, perm in data.items():
+            if key == 'hello' and perm['value'] == 'val':
                 break
         else:
             assert False
@@ -159,8 +156,8 @@ def test_add_snippets(thomas, login_endpoint, test_client):
 
         assert items == len(data)
 
-        for perm in data:
-            if perm['key'] == 'hello' and perm['value'] == 'bye':
+        for key, perm in data.items():
+            if key == 'hello' and perm['value'] == 'bye':
                 break
         else:
             assert False

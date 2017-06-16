@@ -30,17 +30,7 @@
         "course_permission": true
     },
     {
-        "name": "can_see_own_work",
-        "default_value": true,
-        "course_permission": true
-    },
-    {
         "name": "can_see_assignments",
-        "default_value": true,
-        "course_permission": true
-    },
-    {
-        "name": "can_view_own_files",
         "default_value": true,
         "course_permission": true
     },

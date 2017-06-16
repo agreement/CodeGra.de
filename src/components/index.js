@@ -7,7 +7,7 @@ import HeaderBar from './HeaderBar';
 import Loader from './Loader';
 import Login from './Login';
 import NavBar from './NavBar';
-import Assignments from './Assignments';
+import AssignmentList from './AssignmentList';
 import CodeUploader from './CodeUploader';
 import SubmissionList from './SubmissionList';
 import SubmissionsExporter from './SubmissionsExporter';
@@ -22,7 +22,7 @@ export {
     Loader,
     Login,
     NavBar,
-    Assignments,
+    AssignmentList,
     CodeUploader,
     SubmissionList,
     SubmissionsExporter,
