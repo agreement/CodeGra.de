@@ -111,7 +111,7 @@ export default {
                 }).then((response) => {
                     snippet.pending = false;
                     snippet.editing = false;
-                    snippet.id = response.id;
+                    snippet.id = response.data.id;
                     this.$forceUpdate();
                 });
             } else {
@@ -126,10 +126,15 @@ export default {
             }
         },
         deleteSnippet(snippet) {
-            this.$http.delete(`/api/v1/snippets/${snippet.id}`).then(() => {
-                this.snippets.splice(this.snippets.indexOf(snippet));
+            if (snippet.id !== null) {
+                this.$http.delete(`/api/v1/snippets/${snippet.id}`).then(() => {
+                    this.snippets.splice(this.snippets.indexOf(snippet), 1);
+                    this.$forceUpdate();
+                });
+            else {
+                this.snippets.splice(this.snippets.indexOf(snippet), 1);
                 this.$forceUpdate();
-            });
+            }
         },
         ...mapActions({
             refreshSnippets: 'user/refreshSnippets',
