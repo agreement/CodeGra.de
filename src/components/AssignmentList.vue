@@ -5,20 +5,20 @@
                 <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
                 <b-button-group>
                     <b-popover placement="top" triggers="hover" content="Submitting">
-                        <b-button class="btn-danger" :class="{ 'btn-outline-danger': !filterSubmitting }"
-                            @click="filterSubmitting = !filterSubmitting">
+                        <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
+                            @click="toggleFilter('submitting')">
                             <icon name="download"></icon>
                         </b-button>
                     </b-popover>
                     <b-popover placement="top" triggers="hover" content="Grading">
-                        <b-button class="btn-warning" :class="{ 'btn-outline-warning': !filterGrading }"
-                            @click="filterGrading = !filterGrading">
+                        <b-button class="btn-warning" :class="{ 'btn-outline-warning': !toggles.grading }"
+                            @click="toggleFilter('grading')">
                             <icon name="pencil"></icon>
                         </b-button>
                     </b-popover>
                     <b-popover placement="top" triggers="hover" content="Done">
-                        <b-button class="btn-success" :class="{ 'btn-outline-success': !filterDone }"
-                            @click="filterDone = !filterDone">
+                        <b-button class="btn-success" :class="{ 'btn-outline-success': !toggles.done }"
+                            @click="toggleFilter('done')">
                             <icon name="check"></icon>
                         </b-button>
                     </b-popover>
@@ -72,11 +72,13 @@ export default {
 
     data() {
         return {
-            filter: null,
-            filterHidden: false,
-            filterSubmitting: true,
-            filterGrading: false,
-            filterDone: true,
+            filter: '',
+            toggles: {
+                hidden: false,
+                submitting: true,
+                grading: false,
+                done: true,
+            },
             currentPage: 1,
             fields: {
                 course_name: {
@@ -94,29 +96,33 @@ export default {
                 state: {
                     label: 'State',
                     sortable: true,
+                    class: 'text-center',
                 },
             },
         };
     },
 
     mounted() {
-        if (this.$route.query.latest == null) {
-            this.latestOnly = true;
-        } else {
-            this.latestOnly = this.$route.query.latest === 'true';
-        }
+        this.toggles.submitting = this.$route.query.submitting === 'true';
+        this.toggles.grading = this.$route.query.grading === 'true';
+        this.toggles.done = this.$route.query.done === 'true';
         this.filter = this.$route.query.q;
     },
 
     methods: {
         filterItems(item) {
             switch (item.state) {
-            case 0: return this.filterHidden;
-            case 1: return this.filterSubmitting;
-            case 2: return this.filterGrading;
-            case 3: return this.filterDone;
+            case 0: return this.toggles.hidden;
+            case 1: return this.toggles.submitting;
+            case 2: return this.toggles.grading;
+            case 3: return this.toggles.done;
             default: throw TypeError('Unknown assignment state');
             }
+        },
+
+        toggleFilter(filter) {
+            this.toggles[filter] = !this.toggles[filter];
+            this.submit();
         },
 
         gotoAssignment(assignment) {
@@ -131,7 +137,11 @@ export default {
         },
 
         submit() {
-            const query = { latest: this.latestOnly };
+            const query = {
+                submitting: this.toggles.submitting,
+                grading: this.toggles.grading,
+                done: this.toggles.done,
+            };
             if (this.filter) {
                 query.q = this.filter;
             }
