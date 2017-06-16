@@ -1,9 +1,7 @@
 <template>
     <div class="page assignments">
         <div class="row">
-            <div class="text-center loader col-md-11" v-if="loading">
-                <icon name="refresh" scale="4" spin></icon>
-            </div>
+            <loader class="col-md-11 text-center" v-if="loading"></loader>
             <div class="col-md-11" v-else>
                 <h1>Assignments</h1>
                 <assignment-list :assignments="assignments"></assignment-list>
@@ -13,9 +11,7 @@
 </template>
 
 <script>
-import Icon from 'vue-awesome/components/Icon';
-import 'vue-awesome/icons/refresh';
-import { AssignmentList } from '@/components';
+import { AssignmentList, Loader } from '@/components';
 
 export default {
     name: 'submission-list-page',
@@ -36,7 +32,7 @@ export default {
 
     components: {
         AssignmentList,
-        Icon,
+        Loader,
     },
 };
 </script>
