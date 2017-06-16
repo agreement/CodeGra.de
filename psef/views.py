@@ -352,9 +352,10 @@ def get_permissions():
 def get_user_update():
     data = request.get_json()
 
-    if 'email' not in data or 'password' not in data or 'username' not in data:
-        raise APIException('Email, username and password are required fields',
-                           'Email, username or password was missing from the request',
+    required_keys = ['email', 'o_password', 'username', 'n_password']
+    if not all (k in data for k in required_keys):
+        raise APIException('Email, username, n_password and o_password are required fields',
+                           'Email, username, n_password or o_password was missing from the request',
                            APICodes.MISSING_REQUIRED_PARAM, 400)
 
     user = models.User.query.get(current_user.id)
@@ -373,31 +374,31 @@ def get_user_update():
     auth.ensure_permission('can_edit_own_email')
     auth.ensure_permission('can_edit_own_password')
 
-    errors = {}
-    errors['password'] = validate_password(data['n_password'])
-    errors['username'] = validate_username(data['username'])
+    invalid_input = {'password':'','username':''}
+    invalid_input['password'] = validate_password(data['n_password'])
+    invalid_input['username'] = validate_username(data['username'])
 
-    if errors['password'] != '' or errors['username'] != '':
+    if invalid_input['password'] != '' or invalid_input['username'] != '':
         raise APIException('Invalid password or username.',
             'The supplied username or password did not meet the requirements',
-            APICodes.INVALID_PARAM, 422, errors)
+            APICodes.INVALID_PARAM, 422, rest=invalid_input)
 
     user.username = data['username']
     user.email = data['email']
-    user.password = data['password']
+    user.password = data['n_password']
 
     db.session.commit()
     return ('', 204)
 
 def validate_username(username):
-    min_len = 1
+    min_len = 3
     if len(username) < min_len:
         return('use at least ' + str(min_len) + ' chars')
     else:
         return('')
 
 def validate_password(password):
-    min_len = 1
+    min_len = 3
     if len(password) < min_len:
         return('use at least ' + str(min_len) + ' chars')
     else:
