@@ -1,9 +1,9 @@
 <template>
-    <b-card v-if="(done && !editing)">
-      <div v-on:click="changeFeedback()" :style="{'min-height': '1em'}">
-        <div v-html="newlines(escape(internalFeedback))">
-        </div>
+  <b-card v-if="(done && !editing)">
+    <div v-on:click="changeFeedback()" :style="{'min-height': '1em'}">
+      <div v-html="newlines(escape(serverFeedback))">
       </div>
+    </div>
     </b-card>
     <div v-else>
       <b-collapse class="collapsep flex-container" ref="snippetDialog" :id="`collapse${line}`">
@@ -22,7 +22,8 @@
           ref="field" v-model="internalFeedback"
           :style="{'font-size': '1em'}"
           v-on:keydown.native.tab.capture="expandSnippet"
-          v-on:keydown.native.ctrl.enter="submitFeedback">
+          v-on:keydown.native.ctrl.enter="submitFeedback"
+          v-on:keydown.native.esc="revertFeedback">
         </b-form-input>
         <b-input-group-button class="minor-buttons">
           <b-btn v-b-toggle="`collapse${line}`" variant="secondary" v-on:click="findSnippet">
@@ -65,6 +66,7 @@ export default {
     data() {
         return {
             internalFeedback: this.feedback,
+            serverFeedback: this.feedback,
             done: true,
             error: '',
             snippetKey: '',
@@ -75,13 +77,14 @@ export default {
         };
     },
     mounted() {
-        setTimeout(() => this.$refs.field.focus(), 50);
+        this.$nextTick(() => this.$refs.field.focus());
     },
     methods: {
         changeFeedback() {
             if (this.editable) {
                 this.done = false;
-                this.$nextTick(() => this.$refs.field.focus(), 50);
+                this.$nextTick(() => this.$refs.field.focus());
+                this.internalFeedback = this.serverFeedback;
             }
         },
         submitFeedback() {
@@ -89,13 +92,15 @@ export default {
                 this.cancelFeedback();
                 return;
             }
-            this.$emit('feedbackChange', this.internalFeedback);
+            const submitted = this.internalFeedback;
             this.submittingFeedback = true;
             this.$http.put(`/api/v1/code/${this.fileId}/comments/${this.line}`,
                 {
-                    comment: this.internalFeedback,
+                    comment: submitted,
                 },
             ).then(() => {
+                this.$emit('feedbackChange', this.internalFeedback);
+                this.serverFeedback = submitted;
                 this.snippetKey = '';
                 this.$emit('feedbackChange', this.internalFeedback);
                 this.submittingFeedback = false;
@@ -108,19 +113,27 @@ export default {
         escape(text) {
             return String(text).replace(entityRE, entity => entityMap[entity]);
         },
-        cancelFeedback() {
+        revertFeedback() {
+            if (this.serverFeedback === '') {
+                this.cancelFeedback(false);
+            } else {
+                this.$emit('feedbackChange', this.serverFeedback, true);
+                this.done = true;
+            }
+        },
+        cancelFeedback(val) {
             this.snippetKey = '';
             if (this.feedback !== '') {
                 this.deletingFeedback = true;
                 const done = () => {
                     this.deletingFeedback = true;
-                    this.$emit('cancel', this.line);
+                    this.$emit('cancel', this.line, val);
                 };
                 this.$http
                     .delete(`/api/v1/code/${this.fileId}/comments/${this.line}`)
                     .then(done, done);
             } else {
-                this.$emit('cancel', this.line);
+                this.$emit('cancel', this.line, val);
             }
         },
         expandSnippet(event) {
@@ -166,10 +179,10 @@ export default {
                 this.pending = false;
                 this.snippetDone = true;
                 // Add a small timeout such that the green sign is visible
-                setTimeout(() => {
+                this.$nextTick(() => setTimeout(() => {
                     this.snippetDone = false;
                     this.$root.$emit('collapse::toggle', `collapse${this.line}`);
-                }, 1000 * 0.2);
+                }, 1000));
             });
         },
         findSnippet() {
