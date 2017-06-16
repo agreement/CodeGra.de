@@ -25,9 +25,7 @@ def _user_active():
 
 def ensure_can_see_grade(work):
     if _user_active():
-        if work.user.id == current_user.id:
-            ensure_permission('can_see_own_work', work.assignment.course.id)
-        else:
+        if work.user.id != current_user.id:
             ensure_permission('can_see_others_work', work.assignment.course.id)
         if work.assignment.state != models.AssignmentStateEnum.done:
             ensure_permission('can_see_grade_before_open',

@@ -47,23 +47,19 @@ export default {
         this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then((data) => {
             this.loading += 1;
             this.assignment = data.data;
-            this.hasPermission('can_see_own_work').then((val) => {
-                const checkDownload = () => {
-                    if (this.assignment.state === 3) {
-                        this.canDownload = true;
-                    } else {
-                        this.hasPermission('can_see_grade_before_open').then((res) => {
-                            this.canDownload = res;
-                        });
-                    }
-                };
-                if (val) {
-                    checkDownload();
-                    this.hasPermission('can_see_others_work').then((res) => {
-                        if (res) {
-                            this.checkDownload();
-                        }
+            const checkDownload = () => {
+                if (this.assignment.state === 3) {
+                    this.canDownload = true;
+                } else {
+                    this.hasPermission('can_see_grade_before_open').then((res) => {
+                        this.canDownload = res;
                     });
+                }
+            };
+            checkDownload();
+            this.hasPermission('can_see_others_work').then((res) => {
+                if (res) {
+                    this.checkDownload();
                 }
             });
         });
