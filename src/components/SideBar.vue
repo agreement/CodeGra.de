@@ -43,9 +43,7 @@ export default {
 
     methods: {
         logoutAndRedirect() {
-            console.log('a');
             this.logout().then(() => {
-                console.log('b', this.loggedIn);
                 this.$router.push({
                     name: 'home',
                 });
