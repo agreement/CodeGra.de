@@ -18,10 +18,7 @@ def get_file_metadata(file_id):
     file = db.session.query(models.File).filter(
         models.File.id == file_id).first()
 
-    return jsonify({
-        "name": file.name,
-        "extension": file.extension
-    })
+    return jsonify({"name": file.name, "extension": file.extension})
 
 
 @app.route("/api/v1/binary/<int:file_id>")
@@ -183,16 +180,22 @@ def get_student_assignments():
             courses.append(course_role.course_id)
     if courses:
         return (jsonify([{
-            'id': assignment.id,
-            'state': assignment.state,
-            'date': assignment.created_at.strftime('%d-%m-%Y %H:%M'),
-            'name': assignment.name,
-            'course_name': assignment.course.name,
-            'course_id': assignment.course_id,
+            'id':
+            assignment.id,
+            'state':
+            assignment.state,
+            'date':
+            assignment.created_at.strftime('%d-%m-%Y %H:%M'),
+            'name':
+            assignment.name,
+            'course_name':
+            assignment.course.name,
+            'course_id':
+            assignment.course_id,
         }
-            for assignment in models.Assignment.query.filter(
-            models.Assignment.course_id.in_(courses)).all()]),
-            200)
+                         for assignment in models.Assignment.query.filter(
+                             models.Assignment.course_id.in_(courses)).all()]),
+                200)
     else:
         return (jsonify([]), 204)
 
@@ -244,9 +247,9 @@ def get_all_works_for_assignment(assignment_id):
             'created_at'
         ]
         file = psef.files.create_csv_from_rows([headers] + [[
-            work.id, work.user.name
-            if work.user else "Unknown", work.user_id, work.grade,
-            work.comment, work.created_at.strftime("%d-%m-%Y %H:%M")
+            work.id, work.user.name if work.user else "Unknown", work.user_id,
+            work.grade, work.comment,
+            work.created_at.strftime("%d-%m-%Y %H:%M")
         ] for work in res])
 
         @after_this_request
@@ -471,8 +474,8 @@ def divide_assignments(assignment_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     content = request.get_json()
-    if 'graders' not in content or type(content['graders']) is not list or len(
-            content['graders']) == 0:
+    if 'graders' not in content or not isinstance(
+            content['graders'], list) or len(content['graders']) == 0:
         raise APIException('List of assigned graders is required',
                            'List of assigned graders is required',
                            APICodes.MISSING_REQUIRED_PARAM, 400)
@@ -495,9 +498,9 @@ def divide_assignments(assignment_id):
 
     shuffle(submissions)
     shuffle(content['graders'])
-    for i in range(len(submissions)):
-        submissions[i].assigned_to = content['graders'][i % len(
-            content['graders'])]
+    for submission, grader in zip(submissions,
+                                  itertools.cycle(content['graders'])):
+        submission.assigned_to = grader
 
     db.session.commit()
     return ('', 204)
