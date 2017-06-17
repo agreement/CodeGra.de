@@ -34,7 +34,14 @@ export default {
 
     methods: {
         embedPdf() {
-            PDFObject.embed(this.url, '#pdf-viewer');
+            let options = {};
+            if (!PDFObject.supportsPDFs) {
+                options = {
+                    forcePDFJS: true,
+                    PDFJS_URL: '/static/web/viewer.html',
+                };
+            }
+            PDFObject.embed(this.url, '#pdf-viewer', options);
         },
     },
 };
