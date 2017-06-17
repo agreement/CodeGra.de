@@ -32,7 +32,7 @@
         "edit": 0
     },
     {
-        "user": "Devin Hillenius",
+        "user": "Stupid2",
         "assignment": "Python",
         "comment": "Wow. Did you even try?",
         "grade": 1.1,
@@ -40,7 +40,7 @@
         "edit": 0
     },
     {
-        "user": "Thomas Schaper",
+        "user": "Stupid3",
         "assignment": "Python",
         "comment": "Meh, check for malloc next time plz",
         "grade": 6,
@@ -48,7 +48,7 @@
         "edit": 0
     },
     {
-        "user": "Stupid1",
+        "user": "Stupid4",
         "assignment": "Python",
         "comment": "Great!!!",
         "grade": 8.8,
