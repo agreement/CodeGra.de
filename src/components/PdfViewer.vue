@@ -49,6 +49,6 @@ export default {
 
 <style>
 .pdfobject-container {
-    height: 70vh;
+    height: 100%;
 }
 </style>

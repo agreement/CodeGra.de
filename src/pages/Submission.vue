@@ -174,11 +174,18 @@ export default {
 .page.submission {
     display: flex;
     flex-direction: column;
+    flex-grow: 1;
+    flex-shrink: 1;
 }
 
 h1 {
     flex-grow: 0;
     flex-shrink: 0;
+}
+
+.code-browser {
+    flex-grow: 1;
+    flex-shrink: 1;
 }
 
 .code-and-grade {
@@ -191,8 +198,6 @@ h1 {
 }
 
 .code-viewer {
-    flex-grow: 1;
-    flex-shrink: 1;
     overflow: auto;
 }
 
