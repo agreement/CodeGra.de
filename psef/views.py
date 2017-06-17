@@ -4,8 +4,6 @@ import os
 from flask import jsonify, request, send_file, after_this_request, make_response
 from flask_login import login_user, logout_user, current_user, login_required
 from sqlalchemy_utils.functions import dependent_objects
-from sqlalchemy.sql.expression import func
-from sqlalchemy import and_
 from itertools import cycle
 from random import shuffle
 
@@ -469,8 +467,7 @@ def upload_work(assignment_id):
 @app.route('/api/v1/assignments/<int:assignment_id>/divide', methods=['PATCH'])
 def divide_assignments(assignment_id):
     assignment = models.Assignment.query.get(assignment_id)
-    auth.ensure_permission('can_manage_course',
-                            assignment.course.id)
+    auth.ensure_permission('can_manage_course', assignment.course.id)
     if not assignment:
         raise APIException(
             'Assignment not found',
@@ -484,15 +481,7 @@ def divide_assignments(assignment_id):
                            'List of assigned graders is required',
                            APICodes.MISSING_REQUIRED_PARAM, 400)
 
-    sub = db.session.query(
-        models.Work.user_id.label('user_id'),
-        func.max(models.Work.created_at).label('max_date')).group_by(
-            models.Work.user_id).subquery('sub')
-    submissions = db.session.query(models.Work).join(
-        sub,
-        and_(sub.c.user_id == models.Work.user_id,
-             sub.c.max_date == models.Work.created_at)).filter(
-                 models.Work.assignment_id == assignment_id).all()
+    submissions = assignment.get_all_latest_submissions()
 
     if not submissions:
         raise APIException(
@@ -525,8 +514,7 @@ def divide_assignments(assignment_id):
 @app.route('/api/v1/assignments/<int:assignment_id>/graders', methods=['GET'])
 def get_all_graders(assignment_id):
     assignment = models.Assignment.query.get(assignment_id)
-    auth.ensure_permission('can_manage_course',
-                           assignment.course.id)
+    auth.ensure_permission('can_manage_course', assignment.course.id)
 
     if not assignment:
         raise APIException(
