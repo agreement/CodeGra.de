@@ -8,6 +8,7 @@ import SideBar from './SideBar';
 import Assignments from './Assignments';
 import CodeUploader from './CodeUploader';
 import SubmissionList from './SubmissionList';
+import DivideSubmissions from './DivideSubmissions';
 
 export {
     CodeViewer,
@@ -20,4 +21,5 @@ export {
     Assignments,
     CodeUploader,
     SubmissionList,
+    DivideSubmissions,
 };

@@ -348,6 +348,8 @@ def divide_assignments(assignment_id):
             'No submissions found for assignment {}'.format(assignment_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
+    # TODO: Check whether all content of graders list are existing ids
+
     shuffle(submissions)
     shuffle(content['graders'])
     for i in range(len(submissions)):
@@ -385,8 +387,7 @@ def get_all_graders(assignment_id):
         per, us.c.course_id == per.c.course_role_id).all()
 
     return jsonify({
-        'ids': [row[1] for row in result],
-        'names': [row[0] for row in result],
+        'names_ids': result,
     })
 
 

@@ -1,22 +1,10 @@
 <template>
-    <div class="grade-viewer row">
+    <div class="divide-submissions row">
         <div class="col-6">
-            <b-input-group>
-                <b-input-group-button>
-                    <b-button variant="primary" v-on:click="putFeedback()">
-                        Submit all
-                    </b-button>
-                </b-input-group-button>
-
-                <b-form-input type="number" step="any" min="0" max="10"
-                    placeholder="Grade" v-model:value="grade"></b-form-input>
-            </b-input-group>
-        </div>
-        <div class="col-6">
-            <b-input-group>
-                <b-form-input :textarea="true" placeholder="Feedback" :rows="3"
-                    v-model:value="feedback"></b-form-input>
-            </b-input-group>
+            <div v-for="name_id in graders">
+                <input type="checkbox" :id="name_id[1]" :value="name_id[1]" v-model="checkedNames">
+                <label :for="name_id[1]">{{ name_id[0] }}</label>
+            </div>
         </div>
     </div>
 </template>
@@ -25,42 +13,37 @@
 import { bButton, bInputGroup, bInputGroupButton } from 'bootstrap-vue/lib/components';
 
 export default {
-    name: 'grade-viewer',
-
-    props: ['editable', 'id'],
+    name: 'divide-submissions',
 
     data() {
         return {
-            submissionId: this.id,
-            grade: 0,
-            feedback: '',
+            assignmentId: Number(this.$route.params.assignmentId),
+            graders: [],
+            checkedNames: [],
         };
     },
 
     mounted() {
-        this.getFeedback();
+        this.getGraders();
     },
 
     methods: {
-        getFeedback() {
-            this.$http.get(`/api/v1/submissions/${this.submissionId}`).then((data) => {
-                this.grade = data.data.grade;
-                this.feedback = data.data.comment;
+        getGraders() {
+            this.$http.get(`/api/v1/assignments/${this.assignmentId}/graders`).then((data) => {
+                this.graders = data.data.names_ids;
             });
         },
 
-        putFeedback() {
-            this.$http.patch(`/api/v1/submissions/${this.submissionId}`,
+        divideAssignments() {
+            this.$http.patch(`/api/v1/assignments/${this.assignmentId}/divide`,
                 {
-                    grade: this.grade,
-                    feedback: this.feedback,
+                    graders: this.checkedNames,
                 },
                 {
                     headers: { 'Content-Type': 'application/json' },
                 },
             ).then(() => {
                 // eslint-disable-next-line
-                console.log('submitted grade and feedback!');
             });
             this.$emit('submit');
         },
