@@ -44,10 +44,6 @@ export default {
 
     data() {
         return {
-            courseId: Number(this.$route.params.courseId),
-            assignmentId: Number(this.$route.params.assignmentId),
-            submissionId: Number(this.$route.params.submissionId),
-            fileId: Number(this.$route.params.fileId),
             fileTree: null,
             editable: false,
             fileExtension: '',
@@ -56,6 +52,19 @@ export default {
             showGrade: false,
             feedback: '',
         };
+    },
+
+    computed: {
+        courseId() { return this.$route.params.courseId; },
+        assignmentId() { return this.$route.params.assignmentId; },
+        submissionId() { return this.$route.params.submissionId; },
+        fileId() { return this.$route.params.fileId; },
+    },
+
+    watch: {
+        fileId() {
+            this.getFileMetadata();
+        },
     },
 
     mounted() {
@@ -114,19 +123,6 @@ export default {
         nav.style.flexShrink = this.oldCSS.nav.flexShrink;
         footer.style.flexGrow = this.oldCSS.footer.flexGrow;
         footer.style.flexShrink = this.oldCSS.footer.flexShrink;
-    },
-
-    watch: {
-        $route() {
-            this.courseId = Number(this.$route.params.courseId);
-            this.assignmentId = Number(this.$route.params.assignmentId);
-            this.submissionId = Number(this.$route.params.submissionId);
-            this.fileId = Number(this.$route.params.fileId);
-        },
-
-        fileId() {
-            this.getFileMetadata();
-        },
     },
 
     methods: {
