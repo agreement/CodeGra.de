@@ -5,7 +5,8 @@
                 <input type="checkbox" :id="name_id[1]" :value="name_id[1]" v-model="checkedNames">
                 <label :for="name_id[1]">{{ name_id[0] }}</label>
             </div>
-            <b-button variant="primary" v-on:click="divideAssignments()">
+            <span v-if="graders.length == 0"> No possible graders found for this assignment!</span>
+            <b-button v-else variant="primary" v-on:click="divideAssignments()">
                 Divide Assignments
             </b-button>
         </div>

@@ -33,9 +33,25 @@
     },
     {
         "user": "Devin Hillenius",
-        "assignment": "Final deadline",
+        "assignment": "Python",
         "comment": "Wow. Did you even try?",
         "grade": 1.1,
+        "state": "done",
+        "edit": 0
+    },
+    {
+        "user": "Thomas Schaper",
+        "assignment": "Python",
+        "comment": "Meh, check for malloc next time plz",
+        "grade": 6,
+        "state": "done",
+        "edit": 0
+    },
+    {
+        "user": "Stupid1",
+        "assignment": "Python",
+        "comment": "Great!!!",
+        "grade": 8.8,
         "state": "done",
         "edit": 0
     }

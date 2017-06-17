@@ -335,7 +335,8 @@ def divide_assignments(assignment_id):
 
     content = request.get_json()
     print(content['graders'])
-    if 'graders' not in content or type(content['graders']) is not list:
+    if 'graders' not in content or type(content['graders']) is not list or len(
+            content['graders']) == 0:
         raise APIException('List of assigned graders is required',
                            'List of assigned graders is required',
                            APICodes.MISSING_REQUIRED_PARAM, 400)
@@ -349,7 +350,12 @@ def divide_assignments(assignment_id):
             'No submissions found for assignment {}'.format(assignment_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    # TODO: Check whether all content of graders list are existing ids
+    users = models.User.query.filter(
+        models.User.id.in_(content['graders'])).all()
+    if len(users) != len(content['graders']):
+        raise APIException('Invalid grader id given',
+                           'Invalid grader (=user) id given',
+                           APICodes.INVALID_PARAM, 400)
 
     shuffle(submissions)
     shuffle(content['graders'])
