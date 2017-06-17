@@ -11,6 +11,7 @@ import AssignmentList from './AssignmentList';
 import CodeUploader from './CodeUploader';
 import SubmissionList from './SubmissionList';
 import SubmissionsExporter from './SubmissionsExporter';
+import PdfViewer from './PdfViewer';
 
 export {
     CodeViewer,
@@ -26,4 +27,5 @@ export {
     CodeUploader,
     SubmissionList,
     SubmissionsExporter,
+    PdfViewer,
 };

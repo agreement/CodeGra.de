@@ -3,22 +3,20 @@
         <div class="row justify-content-center code-browser">
             <h1>{{ title }}</h1>
             <div class="col-8 code-and-grade">
-                <code-viewer class="" v-bind:editable="editable"
-                    v-bind:id="fileId" v-if="fileId" ref="codeViewer"></code-viewer>
-                <grade-viewer v-bind:id="submissionId" :editable="editable"
-                    v-on:submit="submitAllFeedback($event)"></grade-viewer>
+                <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
+                <code-viewer class="" v-bind:editable="editable" v-bind:id="fileId" v-else-if="fileExtension != ''" ref="codeViewer"></code-viewer>
+                <grade-viewer v-bind:id="submissionId" :editable="editable" v-on:submit="submitAllFeedback($event)"></grade-viewer>
             </div>
 
             <loader class="col-2 text-center" :scale="3" v-if="!fileTree"></loader>
-            <file-tree class="col-2" v-bind:collapsed="false" v-bind:submissionId="submissionId"
-                v-bind:tree="fileTree" v-else></file-tree>
+            <file-tree class="col-2" v-bind:collapsed="false" v-bind:submissionId="submissionId" v-bind:tree="fileTree" v-else></file-tree>
         </div>
     </div>
 </template>
 
 <script>
 import { mapActions } from 'vuex';
-import { CodeViewer, FileTree, GradeViewer, Loader } from '@/components';
+import { CodeViewer, FileTree, GradeViewer, Loader, PdfViewer } from '@/components';
 
 function getFirstFile(fileTree) {
     // Returns the first file in the file tree that is not a folder
@@ -44,10 +42,11 @@ export default {
 
     data() {
         return {
-            assignmentId: this.$route.params.assignmentId,
-            submissionId: this.$route.params.submissionId,
-            fileId: this.$route.params.fileId,
+            assignmentId: Number(this.$route.params.assignmentId),
+            submissionId: Number(this.$route.params.submissionId),
+            fileId: Number(this.$route.params.fileId),
             editable: false,
+            fileExtension: '',
             title: '',
             description: '',
             course_name: '',
@@ -64,6 +63,7 @@ export default {
             this.editable = val;
         });
         this.getSubmission();
+        this.getFileMetadata();
 
         const elements = Array.from(document.querySelectorAll('html, body, #app, nav, footer'));
         const [html, body, app, nav, footer] = elements;
@@ -121,6 +121,10 @@ export default {
             this.submissionId = this.$route.params.submissionId;
             this.fileId = this.$route.params.fileId;
         },
+
+        fileId() {
+            this.getFileMetadata();
+        },
     },
 
     methods: {
@@ -131,10 +135,22 @@ export default {
                     name: 'submission_file',
                     params: {
                         submissionId: this.submissionId,
-                        fileId: getFirstFile(this.fileTree).id } });
+                        fileId: getFirstFile(this.fileTree).id,
+                    },
+                });
             });
         },
 
+        getFileMetadata() {
+            if (this.fileId === undefined) {
+                return;
+            }
+
+            this.fileExtension = '';
+            this.$http.get(`/api/v1/file/metadata/${this.fileId}`).then((response) => {
+                this.fileExtension = response.data.extension;
+            });
+        },
 
         submitAllFeedback(event) {
             this.$refs.codeViewer.submitAllFeedback(event);
@@ -149,6 +165,7 @@ export default {
         FileTree,
         GradeViewer,
         Loader,
+        PdfViewer,
     },
 };
 </script>
@@ -157,6 +174,8 @@ export default {
 .page.submission {
     display: flex;
     flex-direction: column;
+    flex-grow: 1;
+    flex-shrink: 1;
 }
 
 h1 {
@@ -164,14 +183,21 @@ h1 {
     flex-shrink: 0;
 }
 
+.code-browser {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
 .code-and-grade {
     display: flex;
     flex-direction: column;
 }
 
-.code-viewer {
+.pdfobject-container {
     flex-grow: 1;
-    flex-shrink: 1;
+}
+
+.code-viewer {
     overflow: auto;
 }
 
@@ -182,6 +208,7 @@ h1 {
 
 h1,
 .code-viewer,
+.pdfobject-container,
 .grade-viewer {
     margin-bottom: 30px;
 }
