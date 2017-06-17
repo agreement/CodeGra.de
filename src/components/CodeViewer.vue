@@ -1,19 +1,27 @@
 <template>
-    <ol class="code-viewer form-control" :class="{ editable }">
-        <li v-on:click="addFeedback($event, i)" v-for="(line, i) in highlighted_code">
-            <code v-html="line"></code>
+  <loader class="col-md-12 text-center" v-if="loading"></loader>
+  <ol class="code-viewer form-control" :class="{ editable }" v-else>
+    <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines">
+      <code v-html="line"></code>
 
 
-            <feedback-area :editing="editing[i] === true" :feedback='feedback[i]' :editable='editable' :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }" v-on:cancel='onChildCancel' v-if="feedback[i] != null"></feedback-area>
-
-            <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
-                v-on:click="addFeedback($event, value)"></icon>
-        </li>
-    </ol>
+      <feedback-area :editing="editing[i] === true"
+                     :feedback='feedback[i]'
+                     :editable='editable'
+                     :line='i'
+                     :fileId='fileId'
+                     v-on:feedbackChange="val => { feedbackChange(i, val); }"
+                     v-on:cancel='onChildCancel'
+                     v-if="feedback[i] != null">
+      </feedback-area>
+      <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
+            v-on:click="addFeedback($event, value)"></icon>
+    </li>
+  </ol>
 </template>
 
 <script>
-import { highlight } from 'highlightjs';
+import { getLanguage, highlight } from 'highlightjs';
 import Vue from 'vue';
 
 import { bButton, bFormInput, bInputGroup, bInputGroupButton }
@@ -22,7 +30,8 @@ import { bButton, bFormInput, bInputGroup, bInputGroupButton }
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
 
-import FeedbackArea from '@/components/FeedbackArea';
+import FeedbackArea from './FeedbackArea';
+import Loader from './Loader';
 
 export default {
     name: 'code-viewer',
@@ -33,24 +42,12 @@ export default {
         return {
             fileId: this.id,
             lang: '',
-            code: '',
+            codeLines: [],
+            loading: true,
             editing: {},
             feedback: {},
             clicks: {},
         };
-    },
-
-    computed: {
-        highlighted_code() {
-            if (!this.code) {
-                return [];
-            }
-            if (!this.lang) {
-                return this.code.split('\n');
-            }
-            const highlighted = highlight(this.lang, this.code);
-            return highlighted.value.split('\n');
-        },
     },
 
     mounted() {
@@ -63,6 +60,7 @@ export default {
         },
 
         fileId() {
+            this.loading = true;
             this.getCode();
         },
     },
@@ -71,13 +69,30 @@ export default {
         getCode() {
             this.$http.get(`/api/v1/code/${this.fileId}`).then((data) => {
                 this.lang = data.data.lang;
-                this.code = data.data.code;
                 this.feedback = data.data.feedback;
+                this.codeLines = this.highlightCode(this.lang, data.data.code);
             });
         },
 
-        onChildCancel(line) {
-            this.clicks[line] = true;
+        // Highlights the given string and returns an array of highlighted strings
+        highlightCode(lang, code) {
+            let lines = code.split('\n');
+            if (getLanguage(lang) !== undefined) {
+                let state = null;
+                lines = lines.map((line) => {
+                    const { top, value } = highlight(lang, line, true, state);
+                    state = top;
+                    return value;
+                });
+            }
+            this.loading = false;
+            return lines;
+        },
+
+        onChildCancel(line, click) {
+            if (click !== false) {
+                this.clicks[line] = true;
+            }
             Vue.set(this.editing, line, false);
             Vue.set(this.feedback, line, null);
         },
@@ -92,8 +107,10 @@ export default {
         },
 
         feedbackChange(line, feedback) {
-            this.editing[line] = false;
-            this.feedback[line] = feedback;
+            if (this.editable) {
+                this.editing[line] = false;
+                this.feedback[line] = feedback;
+            }
         },
         // eslint-disable-next-line
         submitAllFeedback(event) {},
@@ -106,6 +123,7 @@ export default {
         bInputGroupButton,
         Icon,
         FeedbackArea,
+        Loader,
     },
 };
 </script>
@@ -146,5 +164,9 @@ code {
     li:hover & {
         display: block;
     }
+}
+
+.loader {
+    margin-top: 5em;
 }
 </style>

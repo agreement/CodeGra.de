@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-from flask import jsonify, request
+import os
+
+from flask import jsonify, request, send_file, after_this_request, make_response
 from flask_login import login_user, logout_user, current_user, login_required
 from sqlalchemy_utils.functions import dependent_objects
 from random import shuffle
@@ -11,36 +13,83 @@ from psef import db, app
 from psef.errors import APICodes, APIException
 
 
-@app.route("/api/v1/code/<int:file_id>")
-def get_code(file_id):
-    # Code not used yet:
-
-    code = db.session.query(models.File).filter(  # NOQA: F841
+@app.route("/api/v1/file/metadata/<int:file_id>", methods=['GET'])
+def get_file_metadata(file_id):
+    file = db.session.query(models.File).filter(
         models.File.id == file_id).first()
+
+    return jsonify({
+        "name": file.name,
+        "extension": file.extension
+    })
+
+
+@app.route("/api/v1/binary/<int:file_id>")
+def get_binary(file_id):
+    file = db.session.query(models.File).filter(
+        models.File.id == file_id).first()
+
+    file_data = psef.files.get_binary_contents(file)
+    response = make_response(file_data)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'inline; filename=' + file.name
+
+    return response
+
+
+@app.route("/api/v1/code/<int:file_id>", methods=['GET'])
+def get_code(file_id):
+    code = db.session.query(models.File).get(file_id)
+    assig = code.work.assignment
     line_feedback = {}
-    for comment in db.session.query(models.Comment).filter_by(
-            file_id=file_id).all():
-        line_feedback[str(comment.line)] = comment.comment
+
+    if code is None:
+        raise APIException('File not found',
+                           'The file with id {} was not found'.format(file_id),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    if (code.work.user.id != current_user.id):
+        auth.ensure_permission('can_view_files',
+                               code.work.assignment.course.id)
+
+    try:
+        auth.ensure_can_see_grade(code.work)
+        for comment in db.session.query(models.Comment).filter_by(
+                file_id=file_id).all():
+            line_feedback[str(comment.line)] = comment.comment
+    except auth.PermissionException:
+        line_feedback = {}
 
     # TODO: Return JSON following API
     return jsonify(
-        lang="python",  # TODO Detect the language automatically
+        lang=code.extension,
         code=psef.files.get_file_contents(code),
         feedback=line_feedback)
 
 
 @app.route("/api/v1/code/<int:id>/comments/<int:line>", methods=['PUT'])
 def put_comment(id, line):
+    """
+    Create or change a single line comment of a code file
+    """
     content = request.get_json()
 
     comment = db.session.query(models.Comment).filter(
-        models.Comment.file_id == id, models.Comment.line == line).first()
+        models.Comment.file_id == id,
+        models.Comment.line == line).one_or_none()
     if not comment:
-        # TODO: User id 0 for now, change later on
+        file = db.session.query(models.File).get(id)
+        auth.ensure_permission('can_grade_work',
+                               file.work.assignment.course.id)
         db.session.add(
             models.Comment(
-                file_id=id, user_id=0, line=line, comment=content['comment']))
+                file_id=id,
+                user_id=current_user.id,
+                line=line,
+                comment=content['comment']))
     else:
+        auth.ensure_permission('can_grade_work',
+                               comment.file.work.assignment.course.id)
         comment.comment = content['comment']
 
     db.session.commit()
@@ -50,10 +99,19 @@ def put_comment(id, line):
 
 @app.route("/api/v1/code/<int:id>/comments/<int:line>", methods=['DELETE'])
 def remove_comment(id, line):
+    """
+    Removes the comment on line X if the request is valid.
+
+    Raises APIException:
+        - If no comment on line X was found
+    """
     comment = db.session.query(models.Comment).filter(
-        models.Comment.file_id == id, models.Comment.line == line).first()
+        models.Comment.file_id == id,
+        models.Comment.line == line).one_or_none()
 
     if comment:
+        auth.ensure_permission('can_grade_work',
+                               comment.file.work.assignment.course.id)
         db.session.delete(comment)
         db.session.commit()
     else:
@@ -65,6 +123,14 @@ def remove_comment(id, line):
 
 @app.route("/api/v1/submissions/<int:submission_id>/files/", methods=['GET'])
 def get_dir_contents(submission_id):
+    """
+    Return the object containing all the files of submission X
+
+    Raises APIException:
+        - If there are no files to be returned
+        - If the submission id does not match the work id
+        - If the file with code {} is not a directory
+    """
     work = models.Work.query.get(submission_id)
     if work is None:
         raise APIException(
@@ -74,8 +140,6 @@ def get_dir_contents(submission_id):
 
     if (work.user.id != current_user.id):
         auth.ensure_permission('can_view_files', work.assignment.course.id)
-    else:
-        auth.ensure_permission('can_view_own_files', work.assignment.course.id)
 
     file_id = request.args.get('file_id')
     if file_id:
@@ -108,6 +172,9 @@ def get_dir_contents(submission_id):
 @app.route("/api/v1/assignments/", methods=['GET'])
 @login_required
 def get_student_assignments():
+    """
+    Get all the student assignments that the current user can see.
+    """
     perm = models.Permission.query.filter_by(
         name='can_see_assignments').first()
     courses = []
@@ -115,65 +182,120 @@ def get_student_assignments():
         if course_role.has_permission(perm):
             courses.append(course_role.course_id)
     if courses:
-        return jsonify([{
+        return (jsonify([{
             'id': assignment.id,
+            'state': assignment.state,
+            'date': assignment.created_at.strftime('%d-%m-%Y %H:%M'),
             'name': assignment.name,
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
         }
-                        for assignment in models.Assignment.query.filter(
-                            models.Assignment.course_id.in_(courses)).all()])
+            for assignment in models.Assignment.query.filter(
+            models.Assignment.course_id.in_(courses)).all()]),
+            200)
     else:
-        return jsonify([])
+        return (jsonify([]), 204)
 
 
 @app.route("/api/v1/assignments/<int:assignment_id>", methods=['GET'])
 def get_assignment(assignment_id):
+    """
+    Return student assignment X if the user permission is valid.
+    """
     assignment = models.Assignment.query.get(assignment_id)
     auth.ensure_permission('can_see_assignments', assignment.course_id)
-    return jsonify({
-        'name': assignment.name,
-        'description': assignment.description,
-        'course_name': assignment.course.name,
-        'course_id': assignment.course_id,
-    })
+    if assignment is None:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with id {} was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    else:
+        return (jsonify({
+            'name': assignment.name,
+            'state': assignment.state,
+            'description': assignment.description,
+            'course_name': assignment.course.name,
+            'course_id': assignment.course_id,
+        }), 200)
 
 
-@app.route('/api/v1/assignments/<int:assignment_id>/submissions/')
+@app.route(
+    '/api/v1/assignments/<int:assignment_id>/submissions/', methods=['GET'])
 def get_all_works_for_assignment(assignment_id):
+    """
+    Return all works for assignment X if the user permission is valid.
+    """
     assignment = models.Assignment.query.get(assignment_id)
     if current_user.has_permission(
             'can_see_others_work', course_id=assignment.course_id):
         obj = models.Work.query.filter_by(assignment_id=assignment_id)
     else:
-        auth.ensure_permission(
-            'can_see_own_work', course_id=assignment.course_id)
         obj = models.Work.query.filter_by(
             assignment_id=assignment_id, user_id=current_user.id)
+
     res = obj.order_by(models.Work.created_at.desc()).all()
 
-    return jsonify([{
-        'id': work.id,
-        'user_name': work.user.name if work.user else "Unknown",
-        'user_id': work.user_id,
-        'state': work.state,
-        'edit': work.edit,
-        'grade': work.grade,
-        'comment': work.comment,
-        'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
-    } for work in res])
+    if 'csv' in request.args:
+        if assignment.state != models.AssignmentStateEnum.done:
+            auth.ensure_permission('can_see_grade_before_open',
+                                   assignment.course.id)
+        headers = [
+            'id', 'user_name', 'user_id', 'state', 'edit', 'grade', 'comment',
+            'created_at'
+        ]
+        file = psef.files.create_csv_from_rows([headers] + [[
+            work.id, work.user.name
+            if work.user else "Unknown", work.user_id, work.grade,
+            work.comment, work.created_at.strftime("%d-%m-%Y %H:%M")
+        ] for work in res])
+
+        @after_this_request
+        def remove_file(response):
+            os.remove(file)
+            return response
+
+        return send_file(
+            file, attachment_filename=request.args['csv'], as_attachment=True)
+
+    out = []
+    for work in res:
+        item = {
+            'id': work.id,
+            'user_name': work.user.name if work.user else "Unknown",
+            'user_id': work.user_id,
+            'edit': work.edit,
+            'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
+        }
+        try:
+            auth.ensure_can_see_grade(work)
+            item['grade'] = work.grade
+            item['comment'] = work.comment
+        except auth.PermissionException:
+            item['grade'] = '-'
+            item['comment'] = '-'
+        finally:
+            out.append(item)
+
+    return jsonify(out)
 
 
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['GET'])
+@login_required
 def get_submission(submission_id):
-    work = db.session.query(models.Work).get(submission_id)
-    auth.ensure_permission('can_grade_work', work.assignment.course.id)
+    """
+    Return submission X if the user permission is valid.
 
-    if work and work.is_graded:
+    Raises APIException:
+        - If submission X was not found
+    """
+    work = db.session.query(models.Work).get(submission_id)
+
+    if work:
+        auth.ensure_can_see_grade(work)
+
         return jsonify({
             'id': work.id,
             'user_id': work.user_id,
-            'state': work.state,
             'edit': work.edit,
             'grade': work.grade,
             'comment': work.comment,
@@ -188,6 +310,14 @@ def get_submission(submission_id):
 
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['PATCH'])
 def patch_submission(submission_id):
+    """
+    Update submission X if it already exists and if the user permission is valid.
+
+    Raises APIException:
+        - If submission X was not found
+        - request file does not contain grade and/or feedback
+        - request file grade is not a float
+    """
     work = db.session.query(models.Work).get(submission_id)
     content = request.get_json()
 
@@ -214,13 +344,20 @@ def patch_submission(submission_id):
 
     work.grade = content['grade']
     work.comment = content['feedback']
-    work.state = 'done'
     db.session.commit()
     return ('', 204)
 
 
 @app.route("/api/v1/login", methods=["POST"])
 def login():
+    """
+    Login a user if the request is valid.
+
+    Raises APIException:
+        - request file does not contain email and/or password
+        - request file contains invalid login credentials
+        - request file contains inactive login credentials
+    """
     data = request.get_json()
 
     if 'email' not in data or 'password' not in data:
@@ -251,17 +388,17 @@ def login():
 @app.route("/api/v1/login", methods=["GET"])
 @login_required
 def me():
-    return jsonify({
+    return (jsonify({
         "id": current_user.id,
         "name": current_user.name,
         "email": current_user.email
-    }), 200
+    }), 200)
 
 
 @app.route("/api/v1/logout", methods=["POST"])
 def logout():
     logout_user()
-    return '', 204
+    return ('', 204)
 
 
 @app.route(
@@ -320,7 +457,7 @@ def upload_work(assignment_id):
 
     db.session.commit()
 
-    return ('', 204)
+    return (jsonify({'id': work.id}), 201)
 
 
 @app.route('/api/v1/assignments/<int:assignment_id>/divide', methods=['PATCH'])
@@ -423,4 +560,59 @@ def get_permissions():
                                '"{}" is not real permission'.format(perm),
                                APICodes.OBJECT_NOT_FOUND, 404)
     else:
-        return jsonify(current_user.get_all_permissions(course_id=course_id))
+        return (jsonify(current_user.get_all_permissions(course_id=course_id)),
+                200)
+
+
+@app.route('/api/v1/snippets/', methods=['GET'])
+@auth.permission_required('can_use_snippets')
+def get_snippets():
+    res = models.Snippet.get_all_snippets(current_user)
+    if res:
+        return jsonify({r.key: {'value': r.value, 'id': r.id} for r in res})
+    else:
+        return ('', 204)
+
+
+@app.route('/api/v1/snippet', methods=['PUT'])
+@auth.permission_required('can_use_snippets')
+def add_snippet():
+    content = request.get_json()
+    if 'key' not in content or 'value' not in content:
+        raise APIException(
+            'Not all required keys were in content',
+            'The given content ({}) does  not contain "key" and "value"'.
+            format(content), APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    snippet = models.Snippet.query.filter_by(
+        user_id=current_user.id, key=content['key']).first()
+    if snippet is None:
+        db.session.add(
+            models.Snippet(
+                key=content['key'], value=content['value'], user=current_user))
+    else:
+        snippet.value = content['value']
+    db.session.commit()
+
+    return ('', 204)
+
+
+@app.route('/api/v1/snippets/<int:snippet_id>', methods=['DELETE'])
+@auth.permission_required('can_use_snippets')
+def delete_snippets(snippet_id):
+    snip = models.Snippet.query.get(snippet_id)
+    if snip is None:
+        raise APIException(
+            'The specified snippet does not exits',
+            'The snipped with id "{}" does not exist'.format(snippet_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    elif snip.user_id != current_user.id:
+        raise APIException(
+            'The given snippet is not your snippet',
+            'The snippet "{}" does not belong to user "{}"'.format(
+                snip.id, current_user.id), APICodes.INCORRECT_PERMISSION, 403)
+    else:
+        db.session.delete(snip)
+        db.session.commit()
+        return ('', 204)
+    pass

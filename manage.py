@@ -87,14 +87,18 @@ def test_data():
     with open('./test_data/assignments.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
-            if m.Assignment.query.filter_by(
-                    name=c['name']).first() is not None:
-                continue
-            db.session.add(
-                m.Assignment(
-                    name=c['name'],
-                    description=c['description'],
-                    course=m.Course.query.filter_by(name=c['course']).first()))
+            assig = m.Assignment.query.filter_by(name=c['name']).first()
+            if assig is None:
+                db.session.add(
+                    m.Assignment(
+                        name=c['name'],
+                        state=c['state'],
+                        description=c['description'],
+                        course=m.Course.query.filter_by(name=c['course']).first()))
+            else:
+                assig.description = c['description']
+                assig.state = c['state']
+                assig.course = m.Course.query.filter_by(name=c['course']).first()
     with open('./test_data/users.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
@@ -139,9 +143,19 @@ def test_data():
                         name=c['assignment']).first(),
                     user=m.User.query.filter_by(name=c['user']).first(),
                     comment=c['comment'],
-                    state=c['state'],
                     grade=c['grade'],
                     edit=c['edit']))
+    with open('./test_data/snippets.json', 'r') as c:
+        cs = json.load(c)
+        for c in cs:
+            user = m.User.query.filter_by(name=c['user']).first()
+            snip = m.Snippet.query.filter_by(key=c['key'],
+                                              user=user).first()
+            if snip is None:
+                db.session.add(m.Snippet(key=c['key'], value=c['value'],
+                                         user=user))
+            else:
+                snip.value = c['value']
     db.session.commit()
 
 

@@ -273,8 +273,55 @@ Parameter | Description
 file* | A file that should be uploaded. It can be an archive which will be extracted. Multiple can be specified but all keys should start will `file`
 
 #### Get all submissions
+
+```python
+import requests
+
+requests.get('https://example.com/api/v1/assignments/1/submissions/')
+```
+
+> The above command returns JSON structured like below:
+```json
+[
+  {
+    "id": 1,
+    "user_name": John Doe
+    "user_id": 1,
+    "state": 0,
+    "edit": 0,
+    "grade": 6,
+    "comment": "General feedback",
+    "created_at": "13-01-2017 10:05",
+  },
+  ...
+]
+```
+
+```python
+import requests
+
+params = {
+  'csv' = 'filename.csv'
+}
+
+requests.get('https://example.com/api/v1/assignments/1/submissions/params=params')
+```
+> The above command will return a CSV file structured like below:
+```
+id,user.name,user_id,state,edit,grade,comment,created_at
+1,"John Doe",1,0,0,6,"General Feedback","13-01-2017 10:05"
+...
+```
+
 ###### HTTP Request
 `GET http://example.com/api/v1/assignments/<ID>/submissions/`
+
+###### Query Parameters
+Parameter | Description
+--------- | -----------
+csv | Optional parameter that can be set to retrieve all submissions as a csv file
+
+
 
 ## User
 ### Login
@@ -426,3 +473,78 @@ Get all assignments that the current user can see.
 
 ###### HTTP Request
 `GET http://example.com/api/v1/assignments/`
+
+## Snippets
+### Getting all snippets
+```python
+import requests
+
+# Logged in as a user
+requests.get('https://example.com/api/v1/snippets/')
+```
+
+> This will result in the following JSON object with status code of 200:
+```json
+{
+    "malloc": {
+      "id": 1,
+      "value": "Don't forget to check malloc for return value."
+    },
+    "free" {
+      "value": "Don't do a double free.",
+      "id": 2
+    }
+}
+```
+
+Get all snippets for the current user in a large object where the keys are the
+keys that should be used for the snippet.
+
+
+<aside class="notice">
+This is only valid for work when the current user has the `can_use_snippets`
+permission.
+</aside>
+
+#### HTTP Request
+`GET https://example.com/api/v1/snippets/`
+
+### Deleting a snippet
+```python
+import requests
+
+# Logged in as a user
+requests.delete('https://example.com/api/v1/snippets/{}'.format(snippet_id))
+```
+
+> This will result in an empty response with status code 204
+
+Delete the snippet with the specified id. Only snippets owned by the current
+user can be deleted.
+
+#### HTTP request
+`DELETE https://example.com/api/v1/snippets/<ID>`
+
+### Add or modify a snippet
+```python
+import requests
+
+json_data = {"key": "fgets", "value": 'Fgets is niet veilig.'}
+
+# Logged in as a user
+requests.delete('https://example.com/api/v1/snippet', json=json_data)
+```
+
+> This will return an empty response with status code 204
+
+Add a new snippet or modify an existing one. If the specified key is already a
+snippet for the current user, the value of this snippet will be changed.
+
+#### HTTP Request
+`PUT https://example.com/api/v1/snippet`
+
+#### Query Parameters
+| Parameter | Description                                                       |
+| --------- | -----------                                                       |
+| key       | The key of the new or existing snippet                            |
+| value     | The value of the new snippet or the new value of the old snippet. |

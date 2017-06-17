@@ -18,7 +18,8 @@
              :items="latestOnly ? latest : submissions"
              :fields="fields"
              :current-page="currentPage"
-             :filter="filter">
+             :filter="filter"
+             :show-empty="true">
       <template slot="user_name" scope="item">
         {{item.value ? item.value : '-'}}
       </template>
@@ -94,10 +95,15 @@ export default {
                 }
             }
         },
-        gotoSubmission(sub) {
+
+        gotoSubmission(submission) {
             this.submit();
-            this.$emit('goto', sub);
+            this.$router.push({
+                name: 'submission',
+                params: { submissionId: submission.id },
+            });
         },
+
         submit() {
             const query = { latest: this.latestOnly };
             if (this.filter) {
@@ -109,23 +115,9 @@ export default {
 };
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
 .table {
-    position: relative;
-
-    tbody:empty::after {
-        content: 'No results found!';
-        text-align: center;
-        position: absolute;
-        left: 0;
-        right: 0;
-        padding: .75rem;
-        background: #eceeef;
-    }
-
-    tr {
-        cursor: pointer;
-    }
+    cursor: pointer;
 }
 
 .custom-checkbox {
