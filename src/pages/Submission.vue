@@ -4,12 +4,14 @@
             <h1>{{ title }}</h1>
             <div class="col-8 code-and-grade">
                 <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
-                <code-viewer class="" v-bind:editable="editable" v-bind:id="fileId" v-else-if="fileExtension != ''" ref="codeViewer"></code-viewer>
-                <grade-viewer v-bind:id="submissionId" :editable="editable" v-on:submit="submitAllFeedback($event)"></grade-viewer>
+                <code-viewer class="" :editable="editable" :id="fileId"
+                    :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
+                <grade-viewer :id="submissionId" :editable="editable"
+                    @submit="submitAllFeedback($event)"></grade-viewer>
             </div>
 
             <loader class="col-2 text-center" :scale="3" v-if="!fileTree"></loader>
-            <file-tree class="col-2" v-bind:collapsed="false" v-bind:submissionId="submissionId" v-bind:tree="fileTree" v-else></file-tree>
+            <file-tree class="col-2" :collapsed="false" :tree="fileTree" v-else></file-tree>
         </div>
     </div>
 </template>
@@ -42,16 +44,14 @@ export default {
 
     data() {
         return {
+            courseId: Number(this.$route.params.courseId),
             assignmentId: Number(this.$route.params.assignmentId),
             submissionId: Number(this.$route.params.submissionId),
             fileId: Number(this.$route.params.fileId),
+            fileTree: null,
             editable: false,
             fileExtension: '',
             title: '',
-            description: '',
-            course_name: '',
-            courseId: this.$route.params.courseId,
-            fileTree: null,
             grade: 0,
             showGrade: false,
             feedback: '',
@@ -118,8 +118,10 @@ export default {
 
     watch: {
         $route() {
-            this.submissionId = this.$route.params.submissionId;
-            this.fileId = this.$route.params.fileId;
+            this.courseId = Number(this.$route.params.courseId);
+            this.assignmentId = Number(this.$route.params.assignmentId);
+            this.submissionId = Number(this.$route.params.submissionId);
+            this.fileId = Number(this.$route.params.fileId);
         },
 
         fileId() {
@@ -135,7 +137,7 @@ export default {
                     name: 'submission_file',
                     params: {
                         submissionId: this.submissionId,
-                        fileId: getFirstFile(this.fileTree).id,
+                        fileId: this.fileId ? this.fileId : getFirstFile(this.fileTree).id,
                     },
                 });
             });

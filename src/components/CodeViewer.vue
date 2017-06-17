@@ -2,7 +2,7 @@
   <loader class="col-md-12 text-center" v-if="loading"></loader>
   <ol class="code-viewer form-control" :class="{ editable }" v-else>
     <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines">
-      <code v-html="line"></code>
+      <code v-html="line" @click="onFileClick"></code>
 
 
       <feedback-area :editing="editing[i] === true"
@@ -36,18 +36,38 @@ import Loader from './Loader';
 export default {
     name: 'code-viewer',
 
-    props: ['editable', 'id'],
+    props: {
+        editable: {
+            type: Boolean,
+            default: false,
+        },
+        id: {
+            type: Number,
+            default: 0,
+        },
+        tree: {
+            type: Object,
+            default: {},
+        },
+    },
 
     data() {
         return {
-            fileId: this.id,
-            lang: '',
+            code: '',
             codeLines: [],
+            files: this.flattenFileTree(this.tree),
             loading: true,
             editing: {},
             feedback: {},
             clicks: {},
         };
+    },
+
+    computed: {
+        courseId() { return this.$route.params.courseId; },
+        assignmentId() { return this.$route.params.assignmentId; },
+        submissionId() { return this.$route.params.submissionId; },
+        fileId() { return this.$route.params.fileId; },
     },
 
     mounted() {
@@ -63,30 +83,87 @@ export default {
             this.loading = true;
             this.getCode();
         },
+
+        tree(to) {
+            this.files = this.flattenFileTree(to);
+        },
+
+        files() {
+            this.linkFiles();
+        },
     },
 
     methods: {
+        flattenFileTree(tree, prefix = []) {
+            const files = {};
+            if (!tree || !tree.entries) {
+                return files;
+            }
+            tree.entries.forEach((f) => {
+                if (f.entries) {
+                    Object.assign(files, this.flattenFileTree(f, prefix.concat(f.name)));
+                } else {
+                    const path = prefix.concat(f.name).join('/');
+                    let sep = 0;
+                    do {
+                        files[path.substr(sep)] = f.id;
+                        sep = path.indexOf('/', sep + 1);
+                    } while (sep > -1);
+                }
+            });
+            return files;
+        },
+
         getCode() {
-            this.$http.get(`/api/v1/code/${this.fileId}`).then((data) => {
-                this.lang = data.data.lang;
-                this.feedback = data.data.feedback;
-                this.codeLines = this.highlightCode(this.lang, data.data.code);
+            this.$http.get(`/api/v1/code/${this.fileId}`).then(({ data }) => {
+                this.feedback = data.feedback;
+                this.code = data.code;
+                this.codeLines = data.code.split('\n');
+                this.highlightCode(data.lang);
+                this.linkFiles();
+                this.loading = false;
             });
         },
 
         // Highlights the given string and returns an array of highlighted strings
-        highlightCode(lang, code) {
-            let lines = code.split('\n');
-            if (getLanguage(lang) !== undefined) {
-                let state = null;
-                lines = lines.map((line) => {
-                    const { top, value } = highlight(lang, line, true, state);
-                    state = top;
-                    return value;
+        highlightCode(lang) {
+            if (getLanguage(lang) === undefined) {
+                return;
+            }
+            let state = null;
+            this.codeLines = this.codeLines.map((line) => {
+                const { top, value } = highlight(lang, line, true, state);
+                state = top;
+                return value;
+            });
+        },
+
+        linkFiles() {
+            if (!Object.keys(this.files).length) {
+                return;
+            }
+            this.codeLines = this.codeLines.map(l =>
+                Object.keys(this.files).reduce((line, f) =>
+                    line.replace(f, `<a href="#" style="text-decoration: underline;" data-file-id="${this.files[f]}">${f}</a>`),
+                l),
+            );
+        },
+
+        onFileClick(event) {
+            const fileId = event.target.getAttribute('data-file-id');
+            if (fileId) {
+                event.stopImmediatePropagation();
+                event.preventDefault();
+                this.$router.push({
+                    name: 'submission_file',
+                    params: {
+                        courseId: this.courseId,
+                        assignmentId: this.assignmentId,
+                        submissionId: this.submissionId,
+                        fileId,
+                    },
                 });
             }
-            this.loading = false;
-            return lines;
         },
 
         onChildCancel(line, click) {
