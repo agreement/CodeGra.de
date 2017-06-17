@@ -30,7 +30,7 @@ def get_binary(file_id):
     file_data = psef.files.get_binary_contents(file)
     response = make_response(file_data)
     response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = 'inline; filename='
+    response.headers['Content-Disposition'] = 'inline; filename=' + file.name
 
     return response
 
