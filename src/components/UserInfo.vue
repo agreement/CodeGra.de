@@ -7,43 +7,71 @@
                         Your userdata has been updated.
                     </div>
                     Username: {{ username }} <br>
-                    Email: {{ email }}
-                    <button type="edit" class="btn btn-primary" v-on:click="edit = true">Edit</button>
+                    Email: {{ email }} <br>
+                    <b-button type="edit" variant="primary" v-on:click="edit = true">Edit</b-button>
                 </div>
 
                 <div v-else v-on:keyup.enter="submit()">
                     <div class="form-group">
-                        <label for="username">Username:</label>
-                        <input type="text" class="form-control" v-model="username">
+                        <b-input-group left="Username">
+                            <b-form-input  type="text" v-model="username"></b-form-input>
+                        </b-input-group>
                         <div v-show="submitted && invalid_username_error.length !== 0" class="help alert-danger">
                             {{ invalid_username_error }}
                         </div>
                     </div>
+
                     <div class="form-group">
-                        <label for="email">Email:</label>
-                        <input type="text" class="form-control" v-model="email">
+                        <b-input-group left="Email">
+                            <b-form-input  type="text" v-model="email"></b-form-input>
+                        </b-input-group>
                         <div v-show="submitted && !validator.validate(email)" class="help alert-danger">
                             Please enter a valid email
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label for="password">Old password:</label>
-                        <input type="password" class="form-control" v-model="oldPassword">
+                        <b-input-group left="Old Password">
+                            <b-form-input  v-if="!o_pw_visible" type="password" v-model="oldPassword"></b-form-input>
+                            <b-form-input  v-if="o_pw_visible" type="textt" v-model="oldPassword"></b-form-input>
+                            <b-input-group-button slot="right">
+                                <b-button @click="o_pw_visible = !o_pw_visible" >
+                                    <icon v-if="!o_pw_visible" name="eye" aria-hidden="true"></icon>
+                                    <icon v-if="o_pw_visible" name="eye-slash" aria-hidden="true"></icon>
+                                </b-button>
+                            </b-input-group-button>
+                        </b-input-group>
                         <div v-show="submitted && invalid_credentials" class="help alert-danger">
                             Wrong password
                         </div>
                     </div>
+
                     <div class="form-group">
-                        <label for="password">New password:</label>
-                        <input type="password" class="form-control" v-model="newPassword">
+                        <b-input-group left="New Password">
+                            <b-form-input  v-if="!n_pw_visible" type="password" v-model="newPassword"></b-form-input>
+                            <b-form-input  v-if="n_pw_visible" type="textt" v-model="newPassword"></b-form-input>
+                            <b-input-group-button slot="right">
+                                <b-button @click="n_pw_visible = !n_pw_visible" >
+                                    <icon v-if="!n_pw_visible" name="eye" aria-hidden="true"></icon>
+                                    <icon v-if="n_pw_visible" name="eye-slash" aria-hidden="true"></icon>
+                                </b-button>
+                            </b-input-group-button>
+                        </b-input-group>
                         <div v-show="submitted && invalid_password_error.length !== 0" class="help alert-danger">
                             {{ invalid_password_error }}
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="password">Confirm password:</label>
-                        <input type="password" class="form-control" v-model="confirmPassword">
+                        <b-input-group left="Confirm Password">
+                            <b-form-input  v-if="!c_pw_visible" type="password" v-model="confirmPassword"></b-form-input>
+                            <b-form-input  v-if="c_pw_visible" type="textt" v-model="confirmPassword"></b-form-input>
+                            <b-input-group-button slot="right">
+                                <b-button @click="c_pw_visible = !c_pw_visible" >
+                                    <icon v-if="!c_pw_visible" name="eye" aria-hidden="true"></icon>
+                                    <icon v-if="c_pw_visible" name="eye-slash" aria-hidden="true"></icon>
+                                </b-button>
+                            </b-input-group-button>
+                        </b-input-group>
                         <div v-show="submitted && (newPassword != confirmPassword)" class="help alert-danger">
                             New password is not equal to the confirmation password
                         </div>
@@ -64,6 +92,10 @@
 </template>
 
 <script>
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/eye';
+import 'vue-awesome/icons/eye-slash';
+
 const validator = require('email-validator');
 
 export default {
@@ -78,13 +110,18 @@ export default {
             edit: false,
             submitted: false,
             succes: false,
+            o_pw_visible: false,
+            n_pw_visible: false,
+            c_pw_visible: false,
             invalid_password_error: '',
             invalid_username_error: '',
             invalid_credentials: false,
             validator,
         };
     },
-
+    components: {
+        Icon,
+    },
     mounted() {
         this.$http.get('/api/v1/login').then((data) => {
             this.username = data.data.name;
@@ -104,6 +141,9 @@ export default {
             this.confirmPassword = '';
             this.succes = false;
             this.submitted = false;
+            this.o_pw_visible = false;
+            this.n_pw_visible = false;
+            this.c_pw_visible = false;
             this.resetErrors();
         },
         submit() {
