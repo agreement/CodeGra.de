@@ -1,6 +1,6 @@
 <template>
   <loader class="col-md-12 text-center" v-if="loading"></loader>
-  <ol class="code-viewer form-control" :class="{ editable }" v-else>
+  <ol v-else-if="codeLines != null" class="code-viewer form-control" :class="{ editable }">
     <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines">
       <code v-html="line"></code>
 
@@ -18,6 +18,7 @@
             v-on:click="addFeedback($event, value)"></icon>
     </li>
   </ol>
+  <span v-else> Cannot display file!</span>
 </template>
 
 <script>
@@ -70,7 +71,12 @@ export default {
             this.$http.get(`/api/v1/code/${this.fileId}`).then((data) => {
                 this.lang = data.data.lang;
                 this.feedback = data.data.feedback;
-                this.codeLines = this.highlightCode(this.lang, data.data.code);
+                if (data.data.code != null) {
+                    this.codeLines = this.highlightCode(this.lang, data.data.code);
+                } else {
+                    this.codeLines = null;
+                    this.loading = false;
+                }
             });
         },
 
@@ -149,6 +155,10 @@ li {
 
 code {
     white-space: pre-wrap;
+}
+
+span {
+    margin: 0 auto;
 }
 
 .feedback {

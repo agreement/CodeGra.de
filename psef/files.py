@@ -34,8 +34,11 @@ def get_file_contents(code):
     :rtype: str
     """
     filename = os.path.join(app.config['UPLOAD_DIR'], code.filename)
-    with open(filename, 'r') as codefile:
-        return codefile.read()
+    try:
+        with open(filename, 'r') as codefile:
+            return codefile.read()
+    except UnicodeDecodeError:
+        return None
 
 
 def rename_directory_structure(rootdir):
