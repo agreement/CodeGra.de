@@ -8,7 +8,7 @@
             </div>
             <span v-if="graders.length == 0"> No possible graders found for this assignment!</span>
             <b-button v-else variant="primary" v-on:click="divideAssignments()">
-                Divide Assignments
+                Divide Submissions
             </b-button>
         </div>
     </div>
@@ -43,7 +43,7 @@ export default {
         },
 
         divideAssignments() {
-            this.loader = true;
+            this.loading = true;
             this.$http.patch(`/api/v1/assignments/${this.assignmentId}/divide`,
                 {
                     graders: this.checkedNames,
@@ -54,8 +54,8 @@ export default {
             ).then(() => {
                 // eslint-disable-next-line
                 this.$emit('submit');
+                this.loading = false;
             });
-            this.loader = false;
         },
     },
 
