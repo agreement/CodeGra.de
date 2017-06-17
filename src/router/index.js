@@ -1,7 +1,6 @@
 import Vue from 'vue';
 import Router from 'vue-router';
 import { Assignments, Submission, Home, Login, Submit, Submissions } from '@/pages';
-import { DivideSubmissions } from '@/components';
 
 Vue.use(Router);
 
@@ -52,11 +51,6 @@ export default new Router({
             path: '/course/:courseId/assignments/:assignmentId/submit',
             name: 'assignment_submit',
             component: Submit,
-        },
-        {
-            path: '/assignments/:assignmentId/divide-submissions',
-            name: 'Divide Submissions',
-            component: DivideSubmissions,
         },
     ],
 });
