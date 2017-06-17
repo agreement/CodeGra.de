@@ -25,6 +25,9 @@ const actions = {
     addSnippet({ commit }, val) {
         commit(types.NEW_SNIPPET, val);
     },
+    deleteSnippet({ commit }, key) {
+        commit(types.REMOVE_SNIPPET, key);
+    },
     refreshSnippets({ commit }) {
         axios.get('/api/v1/snippets/').then((response) => {
             commit(types.SNIPPETS, response.data);
@@ -111,6 +114,9 @@ const mutations = {
     },
     [types.NEW_SNIPPET](state, { key, value }) {
         state.snippets[key] = value;
+    },
+    [types.REMOVE_SNIPPET](state, key) {
+        delete state.snippets[key];
     },
 };
 
