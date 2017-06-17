@@ -25,7 +25,7 @@
         </template>
         <template slot="actions" scope="item">
             <b-btn size="sm" variant="info" :disabled="item.item.pending" @click="saveSnippet(item.item)" v-if="item.item.editing">
-                <icon name="refresh" scale="1" spin v-if="item.item.pending"></icon>
+                <loader v-if="item.item.pending" :scale="1" ></loader>
                 <icon name="floppy-o" scale="1" v-else></icon>
             </b-btn>
             <b-btn size="sm" variant="warning" @click="editSnippet(item.item)" v-else>
@@ -39,9 +39,16 @@
             </b-btn>
         </template>
     </b-table>
-    <b-button size="sm" variant="success" @click="newSnippet">
-        <icon name="plus" scale="1"></icon>
-    </b-button>
+    <div class="row">
+        <div class="col">
+            <b-button-group>
+                <loader :scale="2" class="" v-if="loading"></loader>
+                <b-button size="sm" variant="success" @click="newSnippet" v-else>
+                    <icon name="plus" scale="1"></icon>
+                </b-button>
+            </b-button-group>
+        </div>
+    </div>
     </b-card>
 </template>
 
@@ -52,15 +59,19 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/pencil';
 import 'vue-awesome/icons/floppy-o';
-import 'vue-awesome/icons/refresh';
 import 'vue-awesome/icons/ban';
 import 'vue-awesome/icons/plus';
+
+
+import Loader from './Loader';
+
 
 export default {
     name: 'snippet-manager',
 
     data() {
         return {
+            loading: true,
             snippets: [],
             filter: null,
             currentPage: 1,
@@ -132,7 +143,6 @@ export default {
             if (!this.validSnippetKey(snippet) || !this.validSnippetValue(snippet)) {
                 return;
             }
-            snippet.error = '';
             if (snippet.id !== null && snippet.key === snippet.origKey &&
                 snippet.value === snippet.origValue) {
                 snippet.editing = false;
@@ -188,22 +198,25 @@ export default {
     },
 
     mounted() {
-        this.refreshSnippets();
-        const snips = this.getSnippetsFromStore();
-        this.snippets = Object.keys(snips).map((key) => {
-            const dict = {
-                key,
-                value: snips[key].value,
-                editing: false,
-                pending: false,
-                id: snips[key].id,
-            };
-            return dict;
+        this.$http.get('/api/v1/snippets/').then((response) => {
+            const snips = response.data;
+            this.snippets = Object.keys(snips).map((key) => {
+                const dict = {
+                    key,
+                    value: snips[key].value,
+                    editing: false,
+                    pending: false,
+                    id: snips[key].id,
+                };
+                return dict;
+            });
         });
+        this.loading = false;
     },
 
     components: {
         Icon,
+        Loader,
     },
 };
 </script>
