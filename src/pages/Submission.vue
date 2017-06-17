@@ -3,15 +3,13 @@
         <div class="row justify-content-center code-browser">
             <h1>{{ title }}</h1>
             <div class="col-8 code-and-grade">
-                <code-viewer class="" v-bind:editable="editable"
-                    v-bind:id="fileId" v-if="fileId" ref="codeViewer"></code-viewer>
-                <grade-viewer v-bind:id="submissionId" :editable="editable"
-                    v-on:submit="submitAllFeedback($event)"></grade-viewer>
+                <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
+                <code-viewer class="" v-bind:editable="editable" v-bind:id="fileId" v-else-if="fileExtension != ''" ref="codeViewer"></code-viewer>
+                <grade-viewer v-bind:id="submissionId" :editable="editable" v-on:submit="submitAllFeedback($event)"></grade-viewer>
             </div>
 
             <loader class="col-2 text-center" :scale="3" v-if="!fileTree"></loader>
-            <file-tree class="col-2" v-bind:collapsed="false" v-bind:submissionId="submissionId"
-                v-bind:tree="fileTree" v-else></file-tree>
+            <file-tree class="col-2" v-bind:collapsed="false" v-bind:submissionId="submissionId" v-bind:tree="fileTree" v-else></file-tree>
         </div>
     </div>
 </template>
@@ -44,9 +42,9 @@ export default {
 
     data() {
         return {
-            assignmentId: this.$route.params.assignmentId,
-            submissionId: this.$route.params.submissionId,
-            fileId: this.$route.params.fileId,
+            assignmentId: Number(this.$route.params.assignmentId),
+            submissionId: Number(this.$route.params.submissionId),
+            fileId: Number(this.$route.params.fileId),
             editable: false,
             fileExtension: '',
             title: '',
@@ -68,7 +66,7 @@ export default {
         this.getFileMetadata();
 
         const elements = Array.from(document.querySelectorAll('html, body, #app, nav, footer'));
-        const [html, body, app, header, main, nav, footer] = elements;
+        const [html, body, app, nav, footer] = elements;
 
         this.oldCSS = {
             html: {
@@ -137,7 +135,9 @@ export default {
                     name: 'submission_file',
                     params: {
                         submissionId: this.submissionId,
-                        fileId: getFirstFile(this.fileTree).id } });
+                        fileId: getFirstFile(this.fileTree).id,
+                    },
+                });
             });
         },
 
@@ -186,11 +186,8 @@ h1 {
     flex-direction: column;
 }
 
-.code-viewer,
 .pdfobject-container {
     flex-grow: 1;
-    flex-shrink: 1;
-    overflow: auto;
 }
 
 .code-viewer {
