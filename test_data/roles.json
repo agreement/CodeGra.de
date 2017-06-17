@@ -1,4 +1,5 @@
 [
-    {"name": "student", "permissions": []},
-    {"name": "admin", "permissions": ["can_add_users"]}
+    {"name": "student", "permissions": ["can_see_assignments", "can_submit_own_work"]},
+    {"name": "staff", "permissions": ["can_view_files", "can_grade_work", "can_see_assignments", "can_see_others_work"]},
+    {"name": "admin", "permissions": ["can_view_files", "can_grade_work", "can_see_assignments", "can_see_others_work", "can_submit_own_work", "can_add_users"]}
 ]

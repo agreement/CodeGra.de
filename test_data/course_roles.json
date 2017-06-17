@@ -6,7 +6,7 @@
     },
     {
         "name": "TA",
-        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files"],
+        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files", "can_see_grade_before_open"],
         "course": "Project Software Engineering"
     },
     {
@@ -16,7 +16,7 @@
     },
     {
         "name": "TA",
-        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files"],
+        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files", "can_see_grade_before_open"],
         "course": "Besturingssystemen"
     },
     {
@@ -25,8 +25,13 @@
         "course": "Programmeertalen"
     },
     {
+        "name": "stupid_student",
+        "permissions": [],
+        "course": "Programmeertalen"
+    },
+    {
         "name": "TA",
-        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files"],
+        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files", "can_see_grade_before_open"],
         "course": "Programmeertalen"
     },
 
@@ -36,8 +41,13 @@
         "course": "Inleiding Programmeren"
     },
     {
+        "name": "stupid_student",
+        "permissions": [],
+        "course": "Besturingssystemen"
+    },
+    {
         "name": "TA",
-        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files"],
+        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files", "can_see_grade_before_open"],
         "course": "Inleiding Programmeren"
     }
 ]
