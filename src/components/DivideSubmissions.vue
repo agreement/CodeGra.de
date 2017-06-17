@@ -1,5 +1,6 @@
 <template>
-    <div class="divide-submissions row">
+    <loader class="col-md-12 text-center" v-if="loading"></loader>
+    <div class="divide-submissions row" v-else>
         <div class="col-6">
             <div v-for="name_id in graders">
                 <input type="checkbox" :id="name_id[1]" :value="name_id[1]" v-model="checkedNames">
@@ -15,6 +16,7 @@
 
 <script>
 import { bButton, bInputGroup, bInputGroupButton } from 'bootstrap-vue/lib/components';
+import Loader from './Loader';
 
 export default {
     name: 'divide-submissions',
@@ -24,6 +26,7 @@ export default {
             assignmentId: Number(this.$route.params.assignmentId),
             graders: [],
             checkedNames: [],
+            loading: true,
         };
     },
 
@@ -35,10 +38,12 @@ export default {
         getGraders() {
             this.$http.get(`/api/v1/assignments/${this.assignmentId}/graders`).then((data) => {
                 this.graders = data.data.names_ids;
+                this.loading = false;
             });
         },
 
         divideAssignments() {
+            this.loader = true;
             this.$http.patch(`/api/v1/assignments/${this.assignmentId}/divide`,
                 {
                     graders: this.checkedNames,
@@ -48,8 +53,9 @@ export default {
                 },
             ).then(() => {
                 // eslint-disable-next-line
+                this.$emit('submit');
             });
-            this.$emit('submit');
+            this.loader = false;
         },
     },
 
@@ -57,6 +63,7 @@ export default {
         bButton,
         bInputGroup,
         bInputGroupButton,
+        Loader,
     },
 };
 </script>
