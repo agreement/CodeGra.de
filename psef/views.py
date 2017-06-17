@@ -471,7 +471,6 @@ def divide_assignments(assignment_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     content = request.get_json()
-    print(content['graders'])
     if 'graders' not in content or type(content['graders']) is not list or len(
             content['graders']) == 0:
         raise APIException('List of assigned graders is required',
