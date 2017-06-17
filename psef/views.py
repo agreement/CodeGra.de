@@ -469,7 +469,8 @@ def upload_work(assignment_id):
 @app.route('/api/v1/assignments/<int:assignment_id>/divide', methods=['PATCH'])
 def divide_assignments(assignment_id):
     assignment = models.Assignment.query.get(assignment_id)
-
+    auth.ensure_permission('can_manage_course',
+                            assignment.course.id)
     if not assignment:
         raise APIException(
             'Assignment not found',
@@ -506,6 +507,12 @@ def divide_assignments(assignment_id):
                            'Invalid grader (=user) id given',
                            APICodes.INVALID_PARAM, 400)
 
+    for grader in users:
+        if not grader.has_permission('can_grade_work', assignment.course.id):
+            raise APIException('Selected grader has no permission to grade',
+                               'Selected grader has no permission to grade',
+                               APICodes.INVALID_PARAM, 400)
+
     shuffle(submissions)
     shuffle(content['graders'])
     for submission, grader in zip(submissions, cycle(content['graders'])):
@@ -518,6 +525,8 @@ def divide_assignments(assignment_id):
 @app.route('/api/v1/assignments/<int:assignment_id>/graders', methods=['GET'])
 def get_all_graders(assignment_id):
     assignment = models.Assignment.query.get(assignment_id)
+    auth.ensure_permission('can_manage_course',
+                           assignment.course.id)
 
     if not assignment:
         raise APIException(
