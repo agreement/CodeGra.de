@@ -4,6 +4,9 @@ import os
 from flask import jsonify, request, send_file, after_this_request, make_response
 from flask_login import login_user, logout_user, current_user, login_required
 from sqlalchemy_utils.functions import dependent_objects
+from sqlalchemy.sql.expression import func
+from sqlalchemy import and_
+from itertools import cycle
 from random import shuffle
 
 import psef.auth as auth
@@ -480,8 +483,15 @@ def divide_assignments(assignment_id):
                            'List of assigned graders is required',
                            APICodes.MISSING_REQUIRED_PARAM, 400)
 
-    submissions = models.Work.query.filter(
-        models.Work.assignment_id == assignment_id).all()
+    sub = db.session.query(
+        models.Work.user_id.label('user_id'),
+        func.max(models.Work.created_at).label('max_date')).group_by(
+            models.Work.user_id).subquery('sub')
+    submissions = db.session.query(models.Work).join(
+        sub,
+        and_(sub.c.user_id == models.Work.user_id,
+             sub.c.max_date == models.Work.created_at)).filter(
+                 models.Work.assignment_id == assignment_id).all()
 
     if not submissions:
         raise APIException(
@@ -498,8 +508,7 @@ def divide_assignments(assignment_id):
 
     shuffle(submissions)
     shuffle(content['graders'])
-    for submission, grader in zip(submissions,
-                                  itertools.cycle(content['graders'])):
+    for submission, grader in zip(submissions, cycle(content['graders'])):
         submission.assigned_to = grader
 
     db.session.commit()
