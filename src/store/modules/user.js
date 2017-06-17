@@ -29,10 +29,13 @@ const actions = {
         commit(types.REMOVE_SNIPPET, key);
     },
     refreshSnippets({ commit }) {
-        axios.get('/api/v1/snippets/').then((response) => {
-            commit(types.SNIPPETS, response.data);
-        }).catch(() => {
-            setTimeout(() => actions.refreshSnippets({ commit }), 1000 * 15);
+        return new Promise((resolve) => {
+            axios.get('/api/v1/snippets/').then((response) => {
+                commit(types.SNIPPETS, response.data);
+                resolve();
+            }).catch(() => {
+                setTimeout(() => actions.refreshSnippets({ commit }).then(resolve), 1000 * 15);
+            });
         });
     },
     hasPermission({ commit, state }, perm) {

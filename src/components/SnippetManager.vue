@@ -198,8 +198,8 @@ export default {
     },
 
     mounted() {
-        this.$http.get('/api/v1/snippets/').then((response) => {
-            const snips = response.data;
+        this.refreshSnippets().then(() => {
+            const snips = this.getSnippetsFromStore();
             this.snippets = Object.keys(snips).map((key) => {
                 const dict = {
                     key,
@@ -210,8 +210,8 @@ export default {
                 };
                 return dict;
             });
+            this.loading = false;
         });
-        this.loading = false;
     },
 
     components: {
