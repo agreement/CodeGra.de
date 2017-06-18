@@ -21,6 +21,7 @@ Vue.use(Toasted);
 
 Vue.config.productionTip = false;
 
+let toastVisible = false;
 axios.interceptors.response.use(response => response, (error) => {
     if (error.response) {
         // The request was made and the server responded with a status code
@@ -32,7 +33,16 @@ axios.interceptors.response.use(response => response, (error) => {
         // The request was made but no response was received
         // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
         // http.ClientRequest in node.js
-        Vue.toasted.error('There was an error connecting to the server... Please try again later', { position: 'bottom-center', duration: 3000 });
+        if (!toastVisible) {
+            toastVisible = true;
+            Vue.toasted.error('There was an error connecting to the server... Please try again later', {
+                position: 'bottom-center',
+                duration: 3000,
+                onComplete: () => {
+                    toastVisible = false;
+                },
+            });
+        }
         return Promise.reject(error);
     }
     // Something happened in setting up the request that triggered an Error
