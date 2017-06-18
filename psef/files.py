@@ -1,8 +1,8 @@
-import csv
 import os
+import csv
+import uuid
 import shutil
 import tempfile
-import uuid
 from functools import reduce
 
 from werkzeug.utils import secure_filename
@@ -23,6 +23,26 @@ def get_file_contents(code):
     filename = os.path.join(app.config['UPLOAD_DIR'], code.filename)
     with open(filename, 'r') as codefile:
         return codefile.read()
+
+
+def restore_directory_structure(code, parent):
+    out = os.path.join(parent, code.get_filename())
+    if code.is_directory:
+        os.mkdir(out)
+        return {
+            "name":
+            code.get_filename(),
+            "id":
+            code.id,
+            "entries": [
+                restore_directory_structure(child, out)
+                for child in code.children
+            ]
+        }
+    else:  # this is a file
+        filename = os.path.join(app.config['UPLOAD_DIR'], code.filename)
+        shutil.copyfile(filename, out)
+        return {"name": code.get_filename(), "id": code.id}
 
 
 def rename_directory_structure(rootdir):
