@@ -32,7 +32,7 @@ axios.interceptors.response.use(response => response, (error) => {
         // The request was made but no response was received
         // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
         // http.ClientRequest in node.js
-        Vue.toasted.error('There was an error connecting to the server... Please try again later', { position: 'bottom-center', duration: 1500 });
+        Vue.toasted.error('There was an error connecting to the server... Please try again later', { position: 'bottom-center', duration: 3000 });
         return Promise.reject(error);
     }
     // Something happened in setting up the request that triggered an Error
