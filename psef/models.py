@@ -1,10 +1,11 @@
 import os
 import enum
+import uuid
 import datetime
 
 from flask_login import UserMixin
 from sqlalchemy_utils import PasswordType
-from sqlalchemy.sql.expression import or_, null, false
+from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from psef import db, login_manager
@@ -207,10 +208,6 @@ class Work(db.Model):
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', single_parent=True, foreign_keys=user_id)
 
-    @property
-    def is_graded(self):
-        return self.state == WorkStateEnum.done
-
     def add_file_tree(self, session, tree):
         """Add the given tree to the given db.
 
@@ -273,20 +270,33 @@ class File(db.Model):
     )
 
     def get_filename(self):
-        if self.extension != None and self.extension != "":
+        if self.extension is not None and self.extension != "":
             return "{}.{}".format(self.name, self.extension)
         else:
             return self.name
 
     def list_contents(self):
-        if self.is_directory == False:
-            return {"name": self.get_filename(), "id": self.id}
-        else:
+        if self.is_directory:
             return {
                 "name": self.get_filename(),
                 "id": self.id,
                 "entries": [child.list_contents() for child in self.children]
             }
+        else:
+            return {"name": self.get_filename(), "id": self.id}
+
+
+class LinterComment(db.Model):
+    __tablename__ = "LinterComment"
+    file_id = db.Column(
+        'File_id', db.Integer, db.ForeignKey('File.id'), index=True)
+    linter_name = db.Column('linter_name', db.Unicode, index=True)
+    line = db.Column('line', db.Integer)
+    linter_code = db.Column('linter_code', db.Unicode)
+    comment = db.Column('comment', db.Unicode)
+    __table_args__ = (db.PrimaryKeyConstraint(file_id, line, linter_name), )
+
+    file = db.relationship('File', foreign_keys=file_id)
 
 
 class Comment(db.Model):
@@ -299,6 +309,69 @@ class Comment(db.Model):
 
     file = db.relationship('File', foreign_keys=file_id)
     user = db.relationship('User', foreign_keys=user_id)
+
+
+@enum.unique
+class UnitTestState(enum.IntEnum):
+    queued = 0
+    starting = 1
+    running = 2
+    done = 3
+    crashed = 4
+
+
+class UnitTester(db.Model):
+    __tablename__ = 'UnitTester'
+    id = db.Column('id', db.Unicode, nullable=False, primary_key=True)
+    tests = db.relationship("UnitTest", back_populates="tester")
+    assignment_id = db.Column('Assignment_id', db.Integer,
+                              db.ForeignKey('Assignment.id'))
+
+    assignment = db.relationship('Assignment', foreign_keys=assignment_id)
+
+    @classmethod
+    def create_tester(cls, assignment_id):
+        id = str(uuid.uuid4())
+        while db.session.query(
+                UnitTester.query.filter(cls.id == id).exists()).scalar():
+            id = str(uuid.uuid4())
+        self = cls(id=id, assignment_id=assignment_id)
+        tests = []
+        sub = db.session.query(
+            Work.user_id.label('user_id'),
+            func.max(Work.created_at).label('max_date')).group_by(
+                Work.user_id).subquery('sub')
+        for work in db.session.query(Work).join(
+                sub,
+                and_(sub.c.user_id == Work.user_id,
+                     sub.c.max_date == Work.created_at)).filter(
+                         Work.assignment_id == assignment_id).all():
+            tests.append(UnitTest.create_test(work, self))
+        self.tests = tests
+        return self
+
+
+class UnitTest(db.Model):
+    __tablename__ = 'UnitTest'
+    id = db.Column('id', db.Unicode, nullable=False, primary_key=True)
+    state = db.Column(
+        'state',
+        db.Enum(UnitTestState),
+        default=UnitTestState.queued,
+        nullable=False)
+    work_id = db.Column('Work_id', db.Integer, db.ForeignKey('Work.id'))
+    tester_id = db.Column(db.Unicode, db.ForeignKey('UnitTester.id'))
+    tester = db.relationship("UnitTester", back_populates="tests")
+
+    work = db.relationship('Work', foreign_keys=work_id)
+
+    @classmethod
+    def create_test(cls, work, tester):
+        id = str(uuid.uuid4())
+        while db.session.query(
+                UnitTest.query.filter(cls.id == id).exists()).scalar():
+            id = str(uuid.uuid4())
+        return cls(id=id, work=work, tester=tester)
 
 
 @enum.unique

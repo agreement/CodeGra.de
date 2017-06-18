@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 import os
+import threading
 
 from flask import jsonify, request, send_file, after_this_request
 from flask_login import login_user, logout_user, current_user, login_required
+from sqlalchemy.orm import subqueryload
 
 import psef.auth as auth
 import psef.files
 import psef.models as models
+import psef.linters as linters
 from psef import db, app
 from psef.errors import APICodes, APIException
 
@@ -528,3 +531,66 @@ def delete_snippets(snippet_id):
         db.session.commit()
         return ('', 204)
     pass
+
+
+@app.route('/api/v1/linter_comments/<token>', methods=['PUT'])
+def put_linter_comment(token):
+    # TODO: Fix error messages
+    content = request.get_json()
+    unit = models.UnitTest.query.get(token)
+    name = content['name']
+
+    with db.session.no_autoflush:
+        if unit is not None:
+            for file_id, feedbacks in content['files'].items():
+                f = models.File.query.get(file_id)
+                if f is None or f.work_id != unit.work_id:
+                    pass
+
+                # TODO: maybe simply delete all comments for this linter on
+                # this file
+                comments = models.LinterComment.query.filter_by(
+                    linter_name=name,
+                    file_id=file_id).all()
+                lookup = {c.line: c for c in comments}
+
+                for line, code, feedback in feedbacks:
+                    if line in lookup:
+                        lookup[line].comment = feedback
+                        lookup[line].linter_code = code
+                    else:
+                        c = models.LinterComment(
+                            file_id=file_id,
+                            line=line,
+                            linter_code=code,
+                            linter_name=name,
+                            comment=feedback)
+                        lookup[line] = c
+                        db.session.add(c)
+
+    db.session.commit()
+    return '', 204
+
+
+@app.route('/api/v1/flake8/<int:assignment_id>')
+def start_autograde(assignment_id):
+    res = models.UnitTester.create_tester(assignment_id)
+    db.session.add(res)
+    db.session.commit()
+
+    codes = []
+    tokens = []
+    for test in res.tests:
+        tokens.append(test.id)
+        codes.append(
+            models.File.query.options(subqueryload('children')).filter_by(
+                parent=None, work_id=test.work_id).first())
+    runner = linters.LinterRunner(linters.Flake8,
+                                  linters.Flake8.DEFAULT_OPTIONS['No options'])
+    thread = threading.Thread(
+        target=runner.run,
+        args=(codes, tokens, '{}api/v1/linter_comments/{}'.format(
+            request.url_root, '{}')))
+
+    thread.start()
+    return '', 204
