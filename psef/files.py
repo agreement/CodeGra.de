@@ -174,7 +174,7 @@ def process_files(files):
                 new_file_name, filename = random_file_path()
                 res.append((file.filename, filename))
                 file.save(new_file_name)
-        res = {'.': res}
+        res = {'top': res}
     else:
         res = extract(files[0])
 
