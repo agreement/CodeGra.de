@@ -6,11 +6,12 @@ import GradeViewer from './GradeViewer';
 import HeaderBar from './HeaderBar';
 import Loader from './Loader';
 import Login from './Login';
-import SideBar from './SideBar';
-import Assignments from './Assignments';
+import NavBar from './NavBar';
+import AssignmentList from './AssignmentList';
 import CodeUploader from './CodeUploader';
 import SubmissionList from './SubmissionList';
 import SubmissionsExporter from './SubmissionsExporter';
+import PdfViewer from './PdfViewer';
 
 export {
     CodeViewer,
@@ -21,9 +22,10 @@ export {
     HeaderBar,
     Loader,
     Login,
-    SideBar,
-    Assignments,
+    NavBar,
+    AssignmentList,
     CodeUploader,
     SubmissionList,
     SubmissionsExporter,
+    PdfViewer,
 };

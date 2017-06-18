@@ -2,7 +2,7 @@
 import os
 import threading
 
-from flask import jsonify, request, send_file, after_this_request
+from flask import jsonify, request, send_file, after_this_request, make_response
 from flask_login import login_user, logout_user, current_user, login_required
 from sqlalchemy.orm import subqueryload
 
@@ -12,6 +12,30 @@ import psef.models as models
 import psef.linters as linters
 from psef import db, app
 from psef.errors import APICodes, APIException
+
+
+@app.route("/api/v1/file/metadata/<int:file_id>", methods=['GET'])
+def get_file_metadata(file_id):
+    file = db.session.query(models.File).filter(
+        models.File.id == file_id).first()
+
+    return jsonify({
+        "name": file.name,
+        "extension": file.extension
+    })
+
+
+@app.route("/api/v1/binary/<int:file_id>")
+def get_binary(file_id):
+    file = db.session.query(models.File).filter(
+        models.File.id == file_id).first()
+
+    file_data = psef.files.get_binary_contents(file)
+    response = make_response(file_data)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'inline; filename=' + file.name
+
+    return response
 
 
 @app.route("/api/v1/code/<int:file_id>", methods=['GET'])
@@ -183,9 +207,9 @@ def get_student_assignments():
             'course_id':
             assignment.course_id,
         }
-                         for assignment in models.Assignment.query.filter(
-                             models.Assignment.course_id.in_(courses)).all()]),
-                200)
+            for assignment in models.Assignment.query.filter(
+            models.Assignment.course_id.in_(courses)).all()]),
+            200)
     else:
         return (jsonify([]), 204)
 
@@ -366,12 +390,12 @@ def login():
         raise APIException('The supplied email or password is wrong.', (
             'The user with email {} does not exist ' +
             'or has a different password').format(data['email']),
-                           APICodes.LOGIN_FAILURE, 400)
+            APICodes.LOGIN_FAILURE, 400)
 
     if not login_user(user, remember=True):
         raise APIException('User is not active', (
             'The user with id "{}" is not active any more').format(user.id),
-                           APICodes.INACTIVE_USER, 403)
+            APICodes.INACTIVE_USER, 403)
 
     return me()
 
@@ -410,7 +434,7 @@ def upload_work(assignment_id):
         raise APIException('Uploaded files are too big.', (
             'Request is bigger than maximum ' +
             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-                           APICodes.REQUEST_TOO_LARGE, 400)
+            APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
