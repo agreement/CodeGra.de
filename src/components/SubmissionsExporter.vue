@@ -1,5 +1,5 @@
 <template>
-    <b-button v-on:click="downloadCSV">Export as CSV</b-button>
+    <b-button :href="link">Export as CSV</b-button>
 </template>
 
 <script>
@@ -18,11 +18,8 @@ export default {
         fileName: function fileName() {
             return this.assignment ? `${this.assignment.course_name}-${this.assignment.name}.csv` : 'export.csv';
         },
-    },
-
-    methods: {
-        downloadCSV: function downloadCSV() {
-            window.open(`/api/v1/assignments/${this.assignment.id}/submissions/?csv=${this.fileName}`);
+        link: function line() {
+            return this.assignment ? `/api/v1/assignments/${this.assignment.id}/submissions/?csv=${this.fileName}` : null;
         },
     },
 };
