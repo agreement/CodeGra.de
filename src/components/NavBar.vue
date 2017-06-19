@@ -76,7 +76,7 @@ export default {
     width: 100%;
 }
 
-.loggedin-nav {
+.loggedin-nav, .loggedout-nav {
     width: 100%;
 }
 
