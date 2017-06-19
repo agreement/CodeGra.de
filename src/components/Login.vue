@@ -2,7 +2,7 @@
     <div class="container">
         <div class="row justify-content-md-center">
         	<div class="col"></div>
-            <div class="col-md-6 col-xs-12">
+            <div class="col col-lg-9 col-m-12">
                 <form>
                     <div class="form-group">
                         <input type="text" class="form-control" placeholder="Email" v-model="email">
@@ -64,9 +64,11 @@ export default {
             }
 
             this.tryLogin({ email: this.email, password: this.password }).then(() => {
-                this.$router.replace('/assignments');
+                this.$router.replace('/');
             }).catch((reason) => {
-                this.error = reason.message;
+                if (reason) {
+                    this.error = reason.message;
+                }
             });
         },
         ...mapActions({

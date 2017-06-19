@@ -21,7 +21,7 @@
                     </router-link>
                 </b-nav>
                 <b-nav is-nav-bar class="navbar-right">
-                    <router-link class="nav-item" tag="li" :to="{ name: 'logout', }" @click.native.capture="logout"  active-class="active">
+                    <router-link class="nav-item" tag="li" to="#" @click.native.capture="logoutAndRedirect()"  active-class="active">
                         Logout
                     </router-link>
                 </b-nav>
@@ -76,7 +76,7 @@ export default {
     width: 100%;
 }
 
-.loggedin-nav, .loggedout-nav {
+.loggedin-nav {
     width: 100%;
 }
 

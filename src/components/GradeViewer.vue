@@ -24,7 +24,9 @@
               <b-form-input :textarea="true"
                             :placeholder="editable ? 'Feedback' : 'No feedback given :('"
                             :rows="3"
+                            ref="field"
                             v-model:value="feedback"
+                            v-on:keydown.native.tab.capture="expandSnippet"
                             :disabled="!editable">
               </b-form-input>
             </b-input-group>
@@ -36,6 +38,8 @@
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/refresh';
 import { bButton, bInputGroup, bInputGroupButton } from 'bootstrap-vue/lib/components';
+
+import { mapActions, mapGetters } from 'vuex';
 
 export default {
     name: 'grade-viewer',
@@ -66,6 +70,23 @@ export default {
             });
         },
 
+        expandSnippet(event) {
+            const field = this.$refs.field;
+            const end = field.$el.selectionEnd;
+            if (field.$el.selectionStart === end) {
+                event.preventDefault();
+                const val = this.feedback.slice(0, end);
+                const start = Math.max(val.lastIndexOf(' '), val.lastIndexOf('\n')) + 1;
+                const res = this.snippets()[val.slice(start, end)];
+                if (res !== undefined) {
+                    this.feedback = val.slice(0, start) + res.value + this.feedback.slice(end);
+                }
+                if (Math.random() < 0.25) {
+                    this.refreshSnippets();
+                }
+            }
+        },
+
         putFeedback() {
             this.submitting = true;
             this.$http.patch(`/api/v1/submissions/${this.submissionId}`,
@@ -85,6 +106,12 @@ export default {
                 }, 1000));
             });
         },
+        ...mapActions({
+            refreshSnippets: 'user/refreshSnippets',
+        }),
+        ...mapGetters({
+            snippets: 'user/snippets',
+        }),
     },
 
     components: {
