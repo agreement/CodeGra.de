@@ -61,9 +61,11 @@ export default {
     },
 
     mounted() {
-        this.$router.push({
-            name: this.loggedIn ? 'assignments' : 'login',
-        });
+        if (this.loggedIn) {
+            this.$router.push({
+                name: 'assignments',
+            });
+        }
     },
 };
 </script>
