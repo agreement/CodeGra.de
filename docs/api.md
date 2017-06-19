@@ -122,22 +122,22 @@ requests.get('/api/v1/assignments/')
 [
   {
     "id": 1,
+    "state": "submitting",
+    "description": "A assignment about bladiebla"
+    "date": "day-month-year hour:minute"
     "name": "Security",
     "course_name": "Besturingssystemen",
     "course_id": 1
   },
   {
     "id": 2,
+    "state": "submitting",
+    "description": "A assignment about bladiebla"
+    "date": "day-month-year hour:minute"
     "name": "Shell",
     "course_name": "Besturingssystemen",
     "course_id": 1
   },
-  {
-    "id": 3,
-    "name": "Final deadline",
-    "course_name": "Project Software Engineering",
-    "course_id": 2
-  }
 ]
 ```
 
@@ -263,8 +263,24 @@ Parameter | Description
 --------- | -----------
 file_id | Optional parameter that can be used to show the contents of a specific directory in the work
 
-## Submissions
+## Courses
+### Getting all assignments
+```python
+import requests
 
+# As logged in user
+requests.get('https://example.com/api/v1/courses/5/assigments/')
+```
+
+> The above command returns a list of assignments in the same format as the
+> `/api/v1/assignments/` command
+
+Get all assignments for a given course
+
+#### HTTP Request
+`GET http://example.com/api/v1/courses/<ID>/assignments/`
+
+## Submissions
 ### Get submission
 ##### HTTP Request
 `GET /api/v1/submissions/<ID>`

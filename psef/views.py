@@ -180,23 +180,11 @@ def get_student_assignments():
         if course_role.has_permission(perm):
             courses.append(course_role.course_id)
     if courses:
-        return (jsonify([{
-            'id':
-            assignment.id,
-            'state':
-            assignment.state,
-            'date':
-            assignment.created_at.strftime('%d-%m-%Y %H:%M'),
-            'name':
-            assignment.name,
-            'course_name':
-            assignment.course.name,
-            'course_id':
-            assignment.course_id,
-        }
-                         for assignment in models.Assignment.query.filter(
-                             models.Assignment.course_id.in_(courses)).all()]),
-                200)
+        return jsonify([
+            assignment.to_dict()
+            for assignment in models.Assignment.query.filter(
+                models.Assignment.course_id.in_(courses)).all()
+        ])
     else:
         return (jsonify([]), 204)
 
@@ -214,13 +202,7 @@ def get_assignment(assignment_id):
             'The assignment with id {} was not found'.format(assignment_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
     else:
-        return (jsonify({
-            'name': assignment.name,
-            'state': assignment.state,
-            'description': assignment.description,
-            'course_name': assignment.course.name,
-            'course_id': assignment.course_id,
-        }), 200)
+        return jsonify(assignment.to_dict())
 
 
 @app.route('/api/v1/assignments/<int:assignment_id>', methods=['PATCH'])
@@ -387,6 +369,19 @@ def patch_submission(submission_id):
     work.comment = content['feedback']
     db.session.commit()
     return ('', 204)
+
+
+@app.route('/api/v1/courses/<int:course_id>/assignments/', methods=['GET'])
+def get_all_course_assignments(course_id):
+    auth.ensure_permission('can_see_assignments', course_id)
+
+    course = models.Course.query.get(course_id)
+    if course is None:
+        return APIException('Specified course not found',
+                            'The course {} was not found'.format(course_id),
+                            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    return jsonify([assig.to_dict() for assig in course.assignments])
 
 
 @app.route("/api/v1/login", methods=["POST"])
