@@ -185,6 +185,22 @@ class User(db.Model, UserMixin):
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    @staticmethod
+    def validate_username(username):
+        min_len = 3
+        if len(username) < min_len:
+            return('use at least {} chars'.format(min_len))
+        else:
+            return('')
+
+    @staticmethod
+    def validate_password(password):
+        min_len = 3
+        if len(password) < min_len:
+            return('use at least {} chars'.format(min_len))
+        else:
+            return('')
+
 
 class Course(db.Model):
     __tablename__ = "Course"

@@ -139,7 +139,6 @@ export default {
             this.oldPassword = '';
             this.newPassword = '';
             this.confirmPassword = '';
-            this.succes = false;
             this.submitted = false;
             this.o_pw_visible = false;
             this.n_pw_visible = false;
@@ -154,7 +153,7 @@ export default {
                 return;
             }
 
-            this.$http.put('/api/v1/update_user',
+            this.$http.patch('/api/v1/update_user',
                 {
                     username: this.username,
                     email: this.email,
@@ -164,6 +163,7 @@ export default {
             ).then(() => {
                 this.edit = false;
                 this.succes = true;
+                this.resetParams();
             }).catch((reason) => {
                 if (reason.response.data.code === 5) {
                     this.invalid_password_error = reason.response.data.rest.password;

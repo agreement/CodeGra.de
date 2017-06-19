@@ -21,8 +21,6 @@ class APICodes(IntEnum):
     INVALID_CREDENTIALS = 11
 
 
-
-
 class APIException(Exception):
     """The exception to use if an API call failed.
     """

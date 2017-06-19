@@ -27,8 +27,8 @@ export default new Router({
             component: Submission,
         },
         {
-            path: '/user',
-            name: 'User',
+            path: '/me',
+            name: 'me',
             component: User,
         },
         {

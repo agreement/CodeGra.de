@@ -348,7 +348,8 @@ def get_permissions():
     else:
         return jsonify(current_user.get_all_permissions(course_id=course_id))
 
-@app.route('/api/v1/update_user', methods=['PUT'])
+@app.route('/api/v1/update_user', methods=['PATCH'])
+@login_required
 def get_user_update():
     data = request.get_json()
 
@@ -358,12 +359,7 @@ def get_user_update():
                            'Email, username, n_password or o_password was missing from the request',
                            APICodes.MISSING_REQUIRED_PARAM, 400)
 
-    user = models.User.query.get(current_user.id)
-    if user is None:
-        raise APIException(
-            'User_id not found',
-            'The user with id {} was not found'.format(current_user.id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    user = current_user
 
     if user.password != data['o_password']:
         raise APIException('Incorrect password.',
@@ -375,8 +371,8 @@ def get_user_update():
     auth.ensure_permission('can_edit_own_password')
 
     invalid_input = {'password':'','username':''}
-    invalid_input['password'] = validate_password(data['n_password'])
-    invalid_input['username'] = validate_username(data['username'])
+    invalid_input['password'] = user.validate_password(data['n_password'])
+    invalid_input['username'] = user.validate_username(data['username'])
 
     if invalid_input['password'] != '' or invalid_input['username'] != '':
         raise APIException('Invalid password or username.',
@@ -389,17 +385,3 @@ def get_user_update():
 
     db.session.commit()
     return ('', 204)
-
-def validate_username(username):
-    min_len = 3
-    if len(username) < min_len:
-        return('use at least ' + str(min_len) + ' chars')
-    else:
-        return('')
-
-def validate_password(password):
-    min_len = 3
-    if len(password) < min_len:
-        return('use at least ' + str(min_len) + ' chars')
-    else:
-        return('')
