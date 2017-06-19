@@ -1,8 +1,6 @@
 <template>
-    <footer class="footer">
-        <div class="container">
-            <span class="text-muted">&copy; {{ new Date().getFullYear() }} - CodeGra.de</span>
-        </div>
+    <footer class="footer col-lg-12">
+        <span class="text-muted">&copy; {{ new Date().getFullYear() }} - CodeGra.de</span>
     </footer>
 </template>
 
@@ -14,20 +12,21 @@ export default {
 
 <style>
 html {
-  position: relative;
-  min-height: 100%;
+    position: relative;
+    min-height: 100%;
 }
 body {
-  /* Margin bottom by footer height */
-  margin-bottom: 60px;
+    /* Margin bottom by footer height */
+    margin-bottom: 60px;
 }
 .footer {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  /* Set the fixed height of the footer here */
-  height: 60px;
-  line-height: 60px; /* Vertically center the text there */
-  background-color: #f5f5f5;
+    text-align: center;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    /* Set the fixed height of the footer here */
+    height: 60px;
+    line-height: 60px; /* Vertically center the text there */
+    background-color: #f5f5f5;
 }
 </style>

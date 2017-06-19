@@ -50,19 +50,20 @@
 
 <script>
 import { mapGetters } from 'vuex';
-import { Login } from '@/components';
 
 export default {
     name: 'home-page',
-
-    components: {
-        Login,
-    },
 
     computed: {
         ...mapGetters('user', [
             'loggedIn',
         ]),
+    },
+
+    mounted() {
+        this.$router.push({
+            name: this.loggedIn ? 'assignments' : 'login',
+        });
     },
 };
 </script>

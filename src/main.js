@@ -3,7 +3,7 @@
 
 import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap-vue/dist/bootstrap-vue.css';
-import 'highlightjs/styles/github.css';
+import 'highlightjs/styles/tomorrow.css';
 import '@/style.less';
 
 import Vue from 'vue';

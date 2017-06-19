@@ -8,13 +8,22 @@ html {
     box-sizing: inherit;
 }
 
-header,
-footer {
-    text-align: center;
-}
-
 header .logo {
     width: 12em;
+}
+
+.table {
+    position: relative;
+
+    /* Nothing-found label */
+    div.text-center {
+        text-align: center;
+        position: absolute;
+        left: 0;
+        right: 0;
+        padding: .75rem;
+        background: #eceeef;
+    }
 }
 
 .code-viewer {

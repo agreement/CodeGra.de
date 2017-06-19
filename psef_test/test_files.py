@@ -69,8 +69,7 @@ def seq_work(session, seq_assignment, thomas):
     work = m.Work(
         assignment=seq_assignment,
         user=thomas,
-        edit=0,
-        state=m.WorkStateEnum.initial)
+        edit=0)
     session.add(work)
     session.commit()
     yield work

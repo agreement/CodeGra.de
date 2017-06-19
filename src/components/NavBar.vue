@@ -53,6 +53,14 @@ export default {
     },
 
     methods: {
+        logoutAndRedirect() {
+            this.logout().then(() => {
+                this.$router.push({
+                    name: this.loggedIn ? 'assignments' : 'login',
+                });
+            });
+        },
+
         ...mapActions('user', [
             'logout',
         ]),
@@ -95,6 +103,7 @@ export default {
 }
 
 .nav-item:hover {
+    cursor: pointer;
     color: #cbcbcb;
 }
 
