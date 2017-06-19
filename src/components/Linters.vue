@@ -1,4 +1,5 @@
 <template>
+  <!-- TODO: Fix issues with iterations by relying on order !-->
   <div class="row justify-content-md-center" v-if="loading">
     <loader/>
   </div>
@@ -117,7 +118,7 @@ export default {
         getLinterState(linter) {
             switch (linter.state) {
             case -1: return 'New';
-            case 1: return '';
+            case 1: return 'Running';
             case 2: return 'Done';
             case 3: return 'Crashed';
             default: throw new TypeError('Wrong State!');
@@ -171,16 +172,16 @@ export default {
                 });
             });
         },
-        startUpdateLoop(key) {
+        startUpdateLoop(key, time) {
+            const timeout = time === undefined ? 1000 : time;
             this.$http.get(`/api/v1/linters/${this.linters[key].id}`).then((data) => {
-                console.log(data);
                 const linter = this.linters[key];
                 this.$set(linter, 'children', data.data.children);
                 linter.state = 1;
                 this.$set(this.linters, key, linter);
                 if (!data.data.done) {
                     this.$nextTick(() => {
-                        setTimeout(() => this.startUpdateLoop(key), 1000);
+                        setTimeout(() => this.startUpdateLoop(key, timeout * 2), timeout);
                     });
                 }
             });
@@ -188,18 +189,15 @@ export default {
         runLinter(linter, key) {
             let cfg;
             if (linter.selected === 'Custom config') {
-                cfg = linter.config !== undefined ? linter.config : '';
+                cfg = linter.config === undefined ? '' : linter.config;
             } else {
                 cfg = linter.opts[linter.selected];
             }
-            console.log(cfg);
-            console.log(linter.config);
             this.$http.post(`/api/v1/assignments/${this.assignmentId}/linter`, {
                 name: key,
                 cfg,
             }).then((data) => {
                 linter.state = 1;
-                console.log(data.data);
                 this.$set(linter, 'children', data.data.children);
                 linter.id = data.data.id;
                 this.$set(this.linters, key, linter);
@@ -237,5 +235,9 @@ export default {
 }
 .table-striped tbody tr:nth-of-type(odd) table.trans tr {
     background-color: #fff;
+}
+
+button {
+    cursor: pointer;
 }
 </style>
