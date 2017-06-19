@@ -13,13 +13,13 @@
       :response="true">
         <template slot="key" scope="item">
             <b-form-fieldset :state="validSnippetKey(item.item)?'success':'danger'" :feedback="item.item.keyError" v-if="item.item.editing">
-                <b-form-input type="text" v-model="item.item.key"></b-form-input>
+                <b-form-input type="text" placeholder="Key" v-model="item.item.key"></b-form-input>
             </b-form-fieldset>
             <span v-else>{{item.item.key ? item.item.key : '-'}}</span>
         </template>
         <template slot="text" scope="item">
             <b-form-fieldset :state="validSnippetValue(item.item)?'success':'danger'" :feedback="item.item.valueError" v-if="item.item.editing">
-                <b-form-input type="text" v-model="item.item.value"></b-form-input>
+                <b-form-input type="text" placeholder="Value" v-model="item.item.value"></b-form-input>
             </b-form-fieldset>
             <span v-else>{{item.item.value ? item.item.value : '-'}}</span>
         </template>
@@ -118,8 +118,8 @@ export default {
         },
         newSnippet() {
             this.snippets.push({
-                key: 'key',
-                value: 'value',
+                key: '',
+                value: '',
                 editing: true,
                 pending: false,
                 id: null,
