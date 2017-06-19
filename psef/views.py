@@ -223,7 +223,7 @@ def get_assignment(assignment_id):
         }), 200)
 
 
-@app.rout('/api/v1/assignments/<int:assignment_id>', methods=['PATCH'])
+@app.route('/api/v1/assignments/<int:assignment_id>', methods=['PATCH'])
 def update_assignment(assignment_id):
     assig = models.Assignment.query.get(assignment_id)
     if assig is None:
