@@ -399,7 +399,6 @@ class Assignment(db.Model):
     description = db.Column('description', db.Unicode, default='')
     course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    blocked = db.Column('blocked', db.Boolean, default=False, nullable=False)
 
     course = db.relationship('Course', foreign_keys=course_id)
 

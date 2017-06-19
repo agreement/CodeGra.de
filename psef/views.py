@@ -70,7 +70,6 @@ def get_code(file_id):
 
     return jsonify(
         lang=code.extension,
-        blocked=assig.blocked,
         code=psef.files.get_file_contents(code),
         feedback=line_feedback,
         linter_feedback=linter_feedback)
@@ -87,18 +86,10 @@ def put_comment(id, line):
         models.Comment.file_id == id,
         models.Comment.line == line).one_or_none()
 
-    def checked_blocked(assig):
-        if assig.blocked:
-            raise APIException(
-                'This assignment is blocked!',
-                'The assignment "{}" is blocked'.format(assig.id),
-                APICodes.BLOCKED_ASSIGNMENT, 423)
-
     if not comment:
         file = db.session.query(models.File).get(id)
         auth.ensure_permission('can_grade_work',
                                file.work.assignment.course.id)
-        checked_blocked(file.work.assignment)
         db.session.add(
             models.Comment(
                 file_id=id,
@@ -108,7 +99,6 @@ def put_comment(id, line):
     else:
         auth.ensure_permission('can_grade_work',
                                comment.file.work.assignment.course.id)
-        checked_blocked(comment.file.work.assignment)
         comment.comment = content['comment']
 
     db.session.commit()
@@ -669,6 +659,7 @@ def get_linter_state(linter_id):
 @app.route('/api/v1/assignments/<int:assignment_id>/linter', methods=['POST'])
 def start_linting(assignment_id):
     content = request.get_json()
+    db.session.commit()
 
     if db.session.query(
             models.LinterInstance.query.filter(
