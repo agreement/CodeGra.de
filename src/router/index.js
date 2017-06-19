@@ -22,7 +22,7 @@ export default new Router({
         {
             path: '/logout',
             name: 'logout',
-            redirect: 'home',
+            redirect: { name: 'home' },
         },
         {
             path: '/me',
