@@ -322,6 +322,28 @@ Parameter | Description
 csv | Optional parameter that can be set to retrieve all submissions as a csv file
 
 
+#### Import submissions from blackboard zip file
+
+```python
+import requests
+multipart_form_data = {
+    'file': open(bbzip, 'rb'),
+}
+
+requests.post('https://example.com/api/v1/assignments/1/submissions/', files=multipart_form_data)
+```
+
+> The return code will be 204 and the body will be empty if the submissions were added
+
+
+###### HTTP Request
+`POST http://example.com/api/v1/assignments/<ID>/submissions/`
+
+###### Query Parameters
+Parameter | Description
+--------- | -----------
+file | The file that will be uploaded and imported. This file must be a zip-archive containing a Blackboard Gradebook.
+
 
 ## User
 ### Login
