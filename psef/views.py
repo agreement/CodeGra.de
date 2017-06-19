@@ -148,9 +148,10 @@ def get_zip(submission_id):
                     zipf.write(path,  path[len(tmpdir):])
             zipf.close()
         fp.seek(0)
+        # return send_file(fp, attachment_filename="CG_archive.zip", as_attachment=True)
         response = make_response(fp.read())
         response.headers['Content-Type'] = 'application/zip'
-        filename = 'shitty.zip'
+        filename = 'CG_archive.zip'
         response.headers[
             'Content-Disposition'] = 'attachment; filename=' + filename
         return response

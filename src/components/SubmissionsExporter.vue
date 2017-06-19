@@ -15,7 +15,9 @@ export default {
     props: ['assignment'],
 
     computed: {
-        fileName: () => `${this.assignment.course_name}-${this.assignment.name}.csv`,
+        fileName: function fileName() {
+            return this.assignment ? `${this.assignment.course_name}-${this.assignment.name}.csv` : 'export.csv';
+        },
     },
 
     methods: {

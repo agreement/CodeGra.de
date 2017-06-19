@@ -135,7 +135,7 @@ export default {
                     name: 'submission_file',
                     params: {
                         submissionId: this.submissionId,
-                        fileId: getFirstFile(this.fileTree).id,
+                        fileId: this.fileId ? this.fileId : getFirstFile(this.fileTree).id,
                     },
                 });
             });
@@ -182,8 +182,8 @@ h1 {
     flex-grow: 0;
     flex-shrink: 0;
 }
-
 .code-browser {
+
     flex-grow: 1;
     flex-shrink: 1;
 }
