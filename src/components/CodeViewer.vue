@@ -37,6 +37,14 @@ import 'vue-awesome/icons/plus';
 import FeedbackArea from './FeedbackArea';
 import Loader from './Loader';
 
+const entityRE = /[&<>]/g;
+const entityMap = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+};
+const escape = text => String(text).replace(entityRE, entity => entityMap[entity]);
+
 export default {
     name: 'code-viewer',
 
@@ -110,6 +118,7 @@ export default {
         // Highlight this.codeLines.
         highlightCode(lang) {
             if (getLanguage(lang) === undefined) {
+                this.codeLines = this.codeLines.map(escape);
                 return;
             }
             let state = null;
