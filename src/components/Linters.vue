@@ -176,12 +176,15 @@ export default {
             this.$http.get(`/api/v1/linters/${this.linters[key].id}`).then((data) => {
                 const linter = this.linters[key];
                 this.$set(linter, 'children', data.data.children);
-                linter.state = 1;
+                this.$set(linter, 'state', 1);
                 this.$set(this.linters, key, linter);
                 if (!data.data.done) {
                     this.$nextTick(() => {
                         setTimeout(() => this.startUpdateLoop(key, timeout * 2), timeout);
                     });
+                } else {
+                    this.$set(linter, 'state', data.data.crashed ? 3 : 2);
+                    this.$set(this.linters, key, linter);
                 }
             });
         },
