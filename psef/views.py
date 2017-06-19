@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import threading
+import traceback
 
 from flask import jsonify, request, send_file, make_response, after_this_request
 from flask_login import login_user, logout_user, current_user, login_required
@@ -628,6 +629,7 @@ def get_linters(assignment_id):
             state = -1
         opts['state'] = state
         res[name] = opts
+    print(res)
     return jsonify(res)
 
 
@@ -689,10 +691,11 @@ def start_linting(assignment_id):
                 target=runner.run,
                 args=(codes, tokens, '{}api/v1/linter_comments/{}'.format(
                     request.url_root, '{}')))
+
+        thread.start()
+        return get_linter_state(res.id)
     except:
         for test in res.tests:
             test.state = models.LinterState.crashed
         db.session.commit()
-
-    thread.start()
-    return get_linter_state(res.id)
+        return '', 400
