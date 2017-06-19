@@ -17,7 +17,7 @@ class Linter:
 
 
 class Flake8(Linter):
-    NAME = 'flake8'
+    NAME = 'Flake8'
     DESCRIPTION = 'The flake8 linter with all "noqa"\'s disabled.'
     DEFAULT_OPTIONS = {'No options': ''}
 
@@ -66,7 +66,7 @@ class LinterRunner():
                 f = f[1:]
             if f not in temp_res:
                 temp_res[f] = []
-            temp_res[f].append((line + 1, code, msg))
+            temp_res[f].append((line - 1, code, msg))
 
         with tempfile.TemporaryDirectory() as tmpdir:
             files = psef.files.restore_directory_structure(code, tmpdir)
