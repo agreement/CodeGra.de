@@ -4,8 +4,9 @@ import datetime
 
 from flask_login import UserMixin
 from sqlalchemy_utils import PasswordType
-from sqlalchemy.sql.expression import or_, null, false
+from sqlalchemy.sql.expression import and_, or_, null, false, func
 from sqlalchemy.orm.collections import attribute_mapped_collection
+
 
 from psef import db, login_manager
 
@@ -203,9 +204,12 @@ class Work(db.Model):
     grade = db.Column('grade', db.Float, default=None)
     comment = db.Column('comment', db.Unicode, default=None)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    assigned_to = db.Column('assigned_to', db.Integer,
+                            db.ForeignKey('User.id'))
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', single_parent=True, foreign_keys=user_id)
+    assignee = db.relationship('User', foreign_keys=assigned_to)
 
     @property
     def is_graded(self):
@@ -268,9 +272,8 @@ class File(db.Model):
 
     work = db.relationship('Work', foreign_keys=work_id)
 
-    __table_args__ = (
-        db.CheckConstraint(or_(is_directory == false(), extension == null())),
-    )
+    __table_args__ = (db.CheckConstraint(
+        or_(is_directory == false(), extension == null())), )
 
     def get_filename(self):
         if self.extension != None and self.extension != "":
@@ -323,6 +326,17 @@ class Assignment(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
     course = db.relationship('Course', foreign_keys=course_id)
+
+    def get_all_latest_submissions(self):
+        sub = db.session.query(
+            Work.user_id.label('user_id'),
+            func.max(Work.created_at).label('max_date')).group_by(
+                Work.user_id).subquery('sub')
+        return db.session.query(Work).join(
+            sub,
+            and_(sub.c.user_id == Work.user_id,
+                 sub.c.max_date == Work.created_at)).filter(
+                     Work.assignment_id == self.id).all()
 
 
 class Snippet(db.Model):
