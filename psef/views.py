@@ -256,7 +256,7 @@ def get_all_works_for_assignment(assignment_id):
             auth.ensure_permission('can_see_grade_before_open',
                                    assignment.course.id)
         headers = [
-            'id', 'user_name', 'user_id', 'state', 'edit', 'grade', 'comment',
+            'id', 'user_name', 'user_id', 'grade', 'comment',
             'created_at'
         ]
         file = psef.files.create_csv_from_rows([headers] + [[
