@@ -3,6 +3,7 @@
 import os
 import uuid
 import tempfile
+import traceback
 import subprocess
 
 import requests
@@ -15,6 +16,46 @@ class Linter:
     NAME = None
     DESCRIPTION = None
     DEFAULT_OPTIONS = {}
+
+
+class Pylint(Linter):
+    NAME = 'Pylint'
+    DESCRIPTION = 'The pylint checker, this checker only works on modules!'
+    DEFAULT_OPTIONS = {'Empty config file': ''}
+
+    def __init__(self, config):
+        self.config = config
+
+    def run(self, tempdir, emit):
+        cfg = os.path.join(tempdir, '.flake8')
+        with open(cfg, 'w') as f:
+            f.write(self.config)
+
+        # This is not guessable
+        sep = uuid.uuid4()
+        fmt = '{1}{0}{2}{0}{3}{4}{0}{5}'.format(sep, '{path}', '{line}', '{C}',
+                                                '{msg_id}', '{msg}')
+
+        out = subprocess.run(
+            [
+                'pylint', '--rcfile={}'.format(cfg), '--msg-template', fmt,
+                tempdir
+            ],
+            stdout=subprocess.PIPE)
+        if out.returncode == 1:
+            for dir_name, _, files in os.walk(tempdir):
+                for f in files:
+                    if f.endswith('.py'):
+                        emit(os.path.join(dir_name, f), 1, 'ERR',
+                             'No init file was found, pylint did not run!')
+            return
+        for line in out.stdout.decode('utf8').split('\n'):
+            args = line.split(str(sep))
+            if len(args) == 4:
+                try:
+                    emit(args[0], int(args[1]), *args[2:])
+                except ValueError:
+                    pass
 
 
 class Flake8(Linter):
@@ -48,10 +89,6 @@ class Flake8(Linter):
                     pass
 
 
-class Flake9(Flake8):
-    NAME = 'Flake9'
-
-
 class LinterRunner():
     def __init__(self, cls, cfg):
         self.linter = cls(cfg)
@@ -60,7 +97,8 @@ class LinterRunner():
         for code, token in zip(codes, tokens):
             try:
                 self.test(code, urlpath.format(token))
-            except:
+            except Exception as e:
+                traceback.print_exc()
                 requests.put(urlpath.format(token), json={'crashed': True})
 
     def test(self, code, callback_url):
@@ -104,6 +142,7 @@ def get_all_linters():
             'opts': cls.DEFAULT_OPTIONS,
         }
     return res
+
 
 def get_linter_by_name(name):
     for linter in get_all_subclasses(Linter):
