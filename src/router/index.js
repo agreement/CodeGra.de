@@ -1,49 +1,56 @@
 import Vue from 'vue';
 import Router from 'vue-router';
-import { Assignments, Submission, Home, Login, Submit, SubmissionList, User } from '@/pages';
+import { Assignments, Submission, Home, Login, Submit, Submissions, User } from '@/pages';
+
 
 Vue.use(Router);
 
 export default new Router({
+    mode: 'history',
+
     routes: [
         {
             path: '/',
-            name: 'Home',
+            name: 'home',
             component: Home,
         },
         {
-            path: '/login/',
-            name: 'Login',
+            path: '/login',
+            name: 'login',
             component: Login,
         },
         {
-            path: '/assignments/:assignmentId/submissions/:submissionId/',
-            name: 'Assignment submission',
-            component: Submission,
-        },
-        {
-            path: '/assignments/:assignmentId/submissions/:submissionId/files/:fileId/',
-            name: 'Assignment submission file',
-            component: Submission,
+            path: '/logout',
+            name: 'logout',
+            redirect: 'home',
         },
         {
             path: '/me',
             name: 'me',
-            component: User,
         },
         {
-            path: '/assignments/:assignmentId/submissions/',
-            name: 'Assignment submissions',
-            component: SubmissionList,
+            path: '/course/:courseId/assignments/:assignmentId/submissions/:submissionId',
+            name: 'submission',
+            component: Submission,
+        },
+        {
+            path: '/course/:courseId/assignments/:assignmentId/submissions/:submissionId/files/:fileId',
+            name: 'submission_file',
+            component: Submission,
+        },
+        {
+            path: '/courses/:courseId/assignments/:assignmentId/submissions/',
+            name: 'assignment_submissions',
+            component: Submissions,
         },
         {
             path: '/assignments/',
-            name: 'Assignments',
+            name: 'assignments',
             component: Assignments,
         },
         {
-            path: '/assignments/:assignmentId/submit/',
-            name: 'Submit assignment',
+            path: '/course/:courseId/assignments/:assignmentId/submit',
+            name: 'assignment_submit',
             component: Submit,
         },
     ],

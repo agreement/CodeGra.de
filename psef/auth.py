@@ -2,14 +2,35 @@ from functools import wraps
 
 from flask_login import current_user
 
+import psef.models as models
 from psef import login_manager
 from psef.errors import APICodes, APIException
 
 
+class PermissionException(APIException):
+    def __init__(self, *args, **kwargs):
+        super(PermissionException, self).__init__(*args, **kwargs)
+
+
 @login_manager.unauthorized_handler
 def _raise_login_exception(desc='No user was logged in.'):
-    raise APIException('You need to be logged in to do this.', desc,
-                       APICodes.NOT_LOGGED_IN, 401)
+    raise PermissionException('You need to be logged in to do this.', desc,
+                              APICodes.NOT_LOGGED_IN, 401)
+
+
+def _user_active():
+    return (current_user and current_user.is_authenticated and
+            current_user.is_active)
+
+
+def ensure_can_see_grade(work):
+    if _user_active():
+        if work.user.id != current_user.id:
+            ensure_permission('can_see_others_work', work.assignment.course.id)
+        if work.assignment.state != models.AssignmentStateEnum.done:
+            ensure_permission('can_see_grade_before_open',
+                              work.assignment.course.id)
+    return False
 
 
 def ensure_permission(permission_name, course_id=None):
@@ -24,15 +45,14 @@ def ensure_permission(permission_name, course_id=None):
                       permission.
     :vartype course_id: None or int
     :rtype: None
-    :raises APIException: If the permission is not enabled for the current
+    :raises PermissionException: If the permission is not enabled for the current
                           user.
     """
-    if (current_user and current_user.is_authenticated and
-            current_user.is_active):
+    if _user_active():
         if current_user.has_permission(permission_name, course_id=course_id):
             return
         else:
-            raise APIException(
+            raise PermissionException(
                 'You do not have permission to do this.',
                 'The permission "{}" is not enabled for user "{}"'.format(
                     permission_name,
@@ -48,7 +68,7 @@ def permission_required(permission_name, course_id=None):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             ensure_permission(permission_name, course_id=course_id)
-            f(*args, **kwargs)
+            return f(*args, **kwargs)
 
         return decorated_function
 

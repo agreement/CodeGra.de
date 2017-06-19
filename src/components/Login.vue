@@ -1,7 +1,8 @@
 <template>
     <div class="container">
         <div class="row justify-content-md-center">
-            <div class="col col-lg-9">
+        	<div class="col"></div>
+            <div class="col col-lg-9 col-m-12">
                 <form>
                     <div class="form-group">
                         <input type="text" class="form-control" placeholder="Email" v-model="email">
@@ -22,11 +23,13 @@
                     </b-alert>
 
                     <div class="form-group">
-                        <input type="submit" class="form-control" value="Submit" @click="login()">
+                        <input type="submit" class="form-control" value="Submit" @click="login">
                     </div>
                 </form>
             </div>
+            <div class="col"></div>
         </div>
+
     </div>
 </template>
 
@@ -49,7 +52,8 @@ export default {
         };
     },
     methods: {
-        login() {
+        login(event) {
+            event.preventDefault();
             this.error = '';
             this.submitted = true;
             if (!validator.validate(this.email)) {
