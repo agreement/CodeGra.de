@@ -58,7 +58,10 @@ class LinterRunner():
 
     def run(self, codes, tokens, urlpath):
         for code, token in zip(codes, tokens):
-            self.test(code, urlpath.format(token))
+            try:
+                self.test(code, urlpath.format(token))
+            except:
+                requests.put(urlpath.format(token), json={'crashed': True})
 
     def test(self, code, callback_url):
         temp_res = {}
@@ -98,6 +101,11 @@ def get_all_linters():
     for cls in get_all_subclasses(Linter):
         res[cls.NAME] = {
             'desc': cls.DESCRIPTION,
-            'opts': list(cls.DEFAULT_OPTIONS.keys())
+            'opts': cls.DEFAULT_OPTIONS,
         }
     return res
+
+def get_linter_by_name(name):
+    for linter in get_all_subclasses(Linter):
+        if linter.NAME == name:
+            return linter

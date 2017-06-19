@@ -60,7 +60,7 @@ def get_code(file_id):
                 file_id=file_id).all():
             if str(comment.line) not in linter_feedback:
                 linter_feedback[str(comment.line)] = {}
-            linter_feedback[str(comment.line)][comment.linter_name] = {
+            linter_feedback[str(comment.line)][comment.linter.tester.name] = {
                 'code': comment.linter_code,
                 'msg': comment.comment
             }
@@ -569,8 +569,12 @@ def delete_snippets(snippet_id):
 @app.route('/api/v1/linter_comments/<token>', methods=['PUT'])
 def put_linter_comment(token):
     # TODO: Fix error messages
+    unit = models.LinterInstance.query.get(token)
     content = request.get_json()
-    unit = models.UnitTest.query.get(token)
+    if 'crashed' in content:
+        unit.state = models.LinterState.crashed
+        return '', 204
+    unit.state = models.LinterState.done
     name = content['name']
 
     with db.session.no_autoflush:
@@ -583,7 +587,7 @@ def put_linter_comment(token):
                 # TODO: maybe simply delete all comments for this linter on
                 # this file
                 comments = models.LinterComment.query.filter_by(
-                    linter_name=name, file_id=file_id).all()
+                    linter_id=unit.id, file_id=file_id).all()
                 lookup = {c.line: c for c in comments}
 
                 for line, code, feedback in feedbacks:
@@ -595,7 +599,7 @@ def put_linter_comment(token):
                             file_id=file_id,
                             line=line,
                             linter_code=code,
-                            linter_name=name,
+                            linter_id=unit.id,
                             comment=feedback)
                         lookup[line] = c
                         db.session.add(c)
@@ -603,30 +607,99 @@ def put_linter_comment(token):
     db.session.commit()
     return '', 204
 
-@app.route('/api/v1/linters/', methods=['GET'])
-def get_linters():
-    return jsonify(linters.get_all_linters())
+
+@app.route('/api/v1/assignments/<int:assignment_id>/linters/', methods=['GET'])
+def get_linters(assignment_id):
+    res = {}
+    for name, opts in linters.get_all_linters().items():
+        linter = models.AssignmentLinter.query.filter_by(
+            assignment_id=assignment_id, name=name).first()
+
+        print(linter)
+        if linter:
+            running = db.session.query(
+                models.LinterInstance.query.filter(
+                    models.LinterInstance.tester_id == linter.id,
+                    models.LinterInstance.state == models.LinterState.running)
+                .exists()).scalar()
+            crashed = db.session.query(
+                models.LinterInstance.query.filter(
+                    models.LinterInstance.tester_id == linter.id,
+                    models.LinterInstance.state == models.LinterState.crashed)
+                .exists()).scalar()
+            if running:
+                state = models.LinterState.running
+            elif crashed:
+                state = models.LinterState.crashed
+            else:
+                state = models.LinterState.done
+            opts['id'] = linter.id
+        else:
+            state = -1
+        opts['state'] = state
+        res[name] = opts
+    return jsonify(res)
 
 
-@app.route('/api/v1/flake8/<int:assignment_id>')
-def start_autograde(assignment_id):
-    res = models.UnitTester.create_tester(assignment_id)
+@app.route('/api/v1/linters/<linter_id>', methods=['DELETE'])
+def delete_linter_output(linter_id):
+    linter = models.AssignmentLinter.query.get(linter_id)
+    db.session.delete(linter)
+    db.session.commit()
+    return '', 204
+
+
+@app.route('/api/v1/linters/<linter_id>', methods=['GET'])
+def get_linter_state(linter_id):
+    res = []
+    any_working = False
+    print(linter_id)
+    for test in models.AssignmentLinter.query.get(linter_id).tests:
+        if test.state == models.LinterState.running:
+            any_working = True
+        res.append((test.work.user.name, test.state))
+    res.sort(key=lambda el: el[0])
+    return jsonify({
+        'children': res,
+        'done': not any_working,
+        'id': linter_id,
+    })
+
+
+@app.route('/api/v1/assignments/<int:assignment_id>/linter', methods=['POST'])
+def start_linting(assignment_id):
+    content = request.get_json()
+
+    if db.session.query(
+            models.LinterInstance.query.filter(
+                models.AssignmentLinter.assignment_id == assignment_id,
+                models.AssignmentLinter.name == content['name'])
+            .exists()).scalar():
+        # TODO Error
+        return
+
+    res = models.AssignmentLinter.create_tester(assignment_id, content['name'])
     db.session.add(res)
     db.session.commit()
 
     codes = []
     tokens = []
-    for test in res.tests:
-        tokens.append(test.id)
-        codes.append(
-            models.File.query.options(subqueryload('children')).filter_by(
-                parent=None, work_id=test.work_id).first())
-    runner = linters.LinterRunner(linters.Flake8,
-                                  linters.Flake8.DEFAULT_OPTIONS['No options'])
-    thread = threading.Thread(
-        target=runner.run,
-        args=(codes, tokens, '{}api/v1/linter_comments/{}'.format(
-            request.url_root, '{}')))
+    try:
+        for test in res.tests:
+            tokens.append(test.id)
+            codes.append(
+                models.File.query.options(subqueryload('children')).filter_by(
+                    parent=None, work_id=test.work_id).first())
+            runner = linters.LinterRunner(
+                linters.get_linter_by_name(content['name']), content['cfg'])
+            thread = threading.Thread(
+                target=runner.run,
+                args=(codes, tokens, '{}api/v1/linter_comments/{}'.format(
+                    request.url_root, '{}')))
+    except:
+        for test in res.tests:
+            test.state = models.LinterState.crashed
+        db.session.commit()
 
     thread.start()
-    return '', 204
+    return get_linter_state(res.id)
