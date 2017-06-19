@@ -12,6 +12,7 @@ import CodeUploader from './CodeUploader';
 import SubmissionList from './SubmissionList';
 import DivideSubmissions from './DivideSubmissions';
 import SubmissionsExporter from './SubmissionsExporter';
+import SnippetManager from './SnippetManager';
 import PdfViewer from './PdfViewer';
 
 export {
@@ -29,5 +30,6 @@ export {
     SubmissionList,
     DivideSubmissions,
     SubmissionsExporter,
+    SnippetManager,
     PdfViewer,
 };
