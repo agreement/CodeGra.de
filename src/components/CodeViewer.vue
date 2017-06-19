@@ -2,7 +2,7 @@
   <loader class="col-md-12 text-center" v-if="loading"></loader>
   <ol class="code-viewer form-control" :class="{ editable }" v-else>
     <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines">
-      <code v-html="line" @click="onFileClick"></code>
+      <code v-html="line" @click.capture="onFileClick"></code>
 
 
       <feedback-area :editing="editing[i] === true"
@@ -55,7 +55,6 @@ export default {
         return {
             code: '',
             codeLines: [],
-            files: this.flattenFileTree(this.tree),
             loading: true,
             editing: {},
             feedback: {},
@@ -64,10 +63,10 @@ export default {
     },
 
     computed: {
-        courseId() { return this.$route.params.courseId; },
-        assignmentId() { return this.$route.params.assignmentId; },
-        submissionId() { return this.$route.params.submissionId; },
-        fileId() { return this.$route.params.fileId; },
+        courseId() { return Number(this.$route.params.courseId); },
+        assignmentId() { return Number(this.$route.params.assignmentId); },
+        submissionId() { return Number(this.$route.params.submissionId); },
+        fileId() { return Number(this.$route.params.fileId); },
     },
 
     mounted() {
@@ -84,36 +83,12 @@ export default {
             this.getCode();
         },
 
-        tree(to) {
-            this.files = this.flattenFileTree(to);
-        },
-
-        files() {
+        tree() {
             this.linkFiles();
         },
     },
 
     methods: {
-        flattenFileTree(tree, prefix = []) {
-            const files = {};
-            if (!tree || !tree.entries) {
-                return files;
-            }
-            tree.entries.forEach((f) => {
-                if (f.entries) {
-                    Object.assign(files, this.flattenFileTree(f, prefix.concat(f.name)));
-                } else {
-                    const path = prefix.concat(f.name).join('/');
-                    let sep = 0;
-                    do {
-                        files[path.substr(sep)] = f.id;
-                        sep = path.indexOf('/', sep + 1);
-                    } while (sep > -1);
-                }
-            });
-            return files;
-        },
-
         getCode() {
             this.$http.get(`/api/v1/code/${this.fileId}`).then(({ data }) => {
                 this.feedback = data.feedback;
@@ -125,7 +100,7 @@ export default {
             });
         },
 
-        // Highlights the given string and returns an array of highlighted strings
+        // Highlight this.codeLines.
         highlightCode(lang) {
             if (getLanguage(lang) === undefined) {
                 return;
@@ -138,18 +113,57 @@ export default {
             });
         },
 
+        // Given a file-tree object as returned by the API, generate an
+        // object with file-paths as keys and file-ids as values and an
+        // array of file-paths. All // possible paths to a file will be
+        // included. E.g. if file `a/b/c` has id 3, the object shall
+        // contain the following keys: { 'a/b/c': 3, 'b/c': 3, 'c': 3 }.
+        // Longer paths to the same file shall come before shorter paths
+        // in the array, so the matching will prefer longer paths.
+        flattenFileTree(tree, prefix = []) {
+            const fileIds = {};
+            const filePaths = [];
+            if (!tree || !tree.entries) {
+                return [fileIds, filePaths];
+            }
+            tree.entries.forEach((f) => {
+                if (f.entries) {
+                    const [dirIds, dirPaths] = this.flattenFileTree(f, prefix.concat(f.name));
+                    Object.assign(fileIds, dirIds);
+                    filePaths.push(...dirPaths);
+                } else {
+                    const path = prefix.concat(f.name).join('/');
+                    let i = 0;
+                    do {
+                        const spath = path.substr(i);
+                        filePaths.push(spath);
+                        fileIds[path.substr(i)] = f.id;
+                        i = path.indexOf('/', i + 1) + 1;
+                    } while (i > 0);
+                }
+            });
+            return [fileIds, filePaths];
+        },
+
+        // Search for each file in this.files on each line, and
+        // replace each occurrence with a link to the file.
         linkFiles() {
-            if (!Object.keys(this.files).length) {
+            const [fileIds, filePaths] = this.flattenFileTree(this.tree);
+            if (!filePaths.length) {
                 return;
             }
-            this.codeLines = this.codeLines.map(l =>
-                Object.keys(this.files).reduce((line, f) =>
-                    line.replace(f, `<a href="#" style="text-decoration: underline;" data-file-id="${this.files[f]}">${f}</a>`),
-                l),
+            // Use a regex to match each file at most once.
+            const filesRegex = new RegExp(`\\b(${filePaths.join('|')})\\b`, 'g');
+            this.codeLines = this.codeLines.map(line =>
+                line.replace(filesRegex, (fileName) => {
+                    const fileId = fileIds[fileName];
+                    return `<a href="${fileId}" data-file-id="${fileId}" style="text-decoration: underline;">${fileName}</a>`;
+                }),
             );
         },
 
         onFileClick(event) {
+            // Check if the click was actually on a link to a file.
             const fileId = event.target.getAttribute('data-file-id');
             if (fileId) {
                 event.stopImmediatePropagation();
