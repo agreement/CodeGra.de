@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import os
+import zipfile
 
-from flask import jsonify, request, send_file, after_this_request, make_response
+from flask import jsonify, request, send_file, after_this_request, make_response, send_file
 from flask_login import login_user, logout_user, current_user, login_required
 
 import psef.auth as auth
@@ -117,6 +118,36 @@ def remove_comment(id, line):
                            'The comment on line {} was not found'.format(line),
                            APICodes.OBJECT_ID_NOT_FOUND, 404)
     return ('', 204)
+
+@app.route("/api/v1/submissions/<int:submission_id>/zip", methods=['GET'])
+def get_zip(submission_id):
+    work = models.Work.query.get(submission_id)
+    if work is None:
+        raise APIException(
+            'Submission not found',
+            'The submission with code {} was not found'.format(submission_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    if (work.user.id != current_user.id):
+        auth.ensure_permission('can_view_files', work.assignment.course.id)
+
+    code = models.File.query.filter(models.File.work_id == submission_id,
+                                    models.File.parent_id == None).one()
+
+    with tempfile.TemporaryFile() as fp:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            files = psef.files.restore_directory_structure(code, tmpdir)
+            
+            zipf = zipfile.ZipFile(fp, 'w', compression=zipfile.ZIP_DEFLATED)
+            for root, dirs, files in os.walk(tmpdir):
+                for file in files:
+                    zipf.write(os.path.join(root, file))
+        fp.seek(0)
+
+        response = make_response(fp.read())
+        response.headers['Content-Type'] = 'application/zip'
+        response.headers['Content-Disposition'] = 'attachment; filename=' + work.course.name + '.zip'
+        return response
 
 
 @app.route("/api/v1/submissions/<int:submission_id>/files/", methods=['GET'])
