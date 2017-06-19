@@ -162,6 +162,7 @@ export default {
 
                 this.$set(linter, 'selected', false);
                 this.$set(linter, 'opened', false);
+                this.$set(linter, 'deleting', false);
                 this.$set(this.linters, key, linter);
                 this.$root.$emit('collapse::toggle', `collapse_${key}`);
 
