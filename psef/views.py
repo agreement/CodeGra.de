@@ -673,6 +673,8 @@ def start_linting(assignment_id):
         # TODO Error
         return
 
+    assignment = models.Assignment.query.get(assignment_id)
+    auth.ensure_permission('can_grade_work', assignment.course_id)
     res = models.AssignmentLinter.create_tester(assignment_id, content['name'])
     db.session.add(res)
     db.session.commit()
