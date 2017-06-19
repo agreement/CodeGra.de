@@ -146,6 +146,36 @@ Get all assignments that the current user can see.
 ###### HTTP Request
 `GET http://example.com/api/v1/assignments/`
 
+### Getting all users that can grade the assignment
+
+```python
+import requests
+
+# As logged in user
+requests.get('/api/v1/assignments/5/graders')
+```
+
+> The above code returns JSON structured like this with a status code of 200:
+```json
+[
+  {
+    "names_ids": [('Thomas Schaper', 2), ('Devin Hillenius', 3)],
+  }
+]
+```
+
+#### HTTP Request
+`GET http://example.com/api/v1/assignments/<ID>/graders`
+
+### Divide assignments over graders
+
+##### HTTP Request
+`PATCH http://example.com/api/v1/assignments/<ID>/divide`
+
+##### Query Parameters
+Parameter | Description
+--------- | -----------
+graders | List of user id's of graders to divide the submissions of this assignment over
 
 ## Code
 ### Get code
@@ -176,28 +206,28 @@ requests.get('https://example.com/api/submissions/1/files/', params=params)
 > The above command returns JSON like below with a status code of 200:
 ```json
 {
-  "id": 1, 
+  "id": 1,
   "name": "rootdir"
   "entries": [
     {
-      "id": 2, 
+      "id": 2,
       "name": "file1.txt"
-    }, 
+    },
     {
-      "id": 3, 
+      "id": 3,
       "name": "subdir"
       "entries": [
         {
-          "id": 4, 
+          "id": 4,
           "name": "file2.txt."
-        }, 
+        },
         {
-          "id": 5, 
+          "id": 5,
           "name": "file3.txt"
         }
-      ], 
-    }, 
-  ], 
+      ],
+    },
+  ],
 }
 ```
 

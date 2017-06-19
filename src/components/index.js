@@ -10,6 +10,7 @@ import NavBar from './NavBar';
 import AssignmentList from './AssignmentList';
 import CodeUploader from './CodeUploader';
 import SubmissionList from './SubmissionList';
+import DivideSubmissions from './DivideSubmissions';
 import SubmissionsExporter from './SubmissionsExporter';
 import PdfViewer from './PdfViewer';
 
@@ -26,6 +27,7 @@ export {
     AssignmentList,
     CodeUploader,
     SubmissionList,
+    DivideSubmissions,
     SubmissionsExporter,
     PdfViewer,
 };
