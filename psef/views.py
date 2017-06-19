@@ -602,7 +602,7 @@ def put_linter_comment(token):
 
 @app.route('/api/v1/assignments/<int:assignment_id>/linters/', methods=['GET'])
 def get_linters(assignment_id):
-    res = {}
+    res = []
     for name, opts in linters.get_all_linters().items():
         linter = models.AssignmentLinter.query.filter_by(
             assignment_id=assignment_id, name=name).first()
@@ -628,8 +628,8 @@ def get_linters(assignment_id):
         else:
             state = -1
         opts['state'] = state
-        res[name] = opts
-    print(res)
+        res.append({'name': name, **opts})
+    res.sort(key=lambda item: item['name'])
     return jsonify(res)
 
 

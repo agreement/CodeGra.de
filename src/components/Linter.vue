@@ -10,7 +10,7 @@
           <div>
             <b-dropdown :text="selectedOption" class="margin">
               <b-dropdown-header>Select your config file</b-dropdown-header>
-              <b-dropdown-item v-for="(_, optionName) in options" v-on:click="clicked(false, optionName)">
+              <b-dropdown-item v-for="(_, optionName) in options" v-on:click="clicked(false, optionName)" :key="optionName">
                 {{ optionName }}
               </b-dropdown-item>
               <b-dropdown-divider></b-dropdown-divider>
@@ -94,6 +94,9 @@ export default {
     mounted() {
         this.state = this.initialState;
         this.id = this.initialId;
+        if (this.state === 1) {
+            this.startUpdateLoop();
+        }
     },
 
     components: {
@@ -103,8 +106,6 @@ export default {
 
     methods: {
         strState() {
-            console.log(this.state);
-            console.log(this.initialState);
             switch (this.state) {
             case -1: return 'New';
             case 1: return 'Running';
@@ -129,7 +130,6 @@ export default {
 
         deleteFeedback() {
             this.deleting = true;
-            console.log(this.id);
             this.$http.delete(`/api/v1/linters/${this.id}`).then(() => {
                 this.$root.$emit('hide::modal', `modal_${this.name}`);
 

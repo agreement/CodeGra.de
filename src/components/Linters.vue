@@ -14,12 +14,13 @@
         </tr>
       </thead>
       <tbody>
-        <linter v-for="(linter, key) in linters"
-                :name="key"
+        <linter v-for="linter in linters"
+                :name="linter.name"
                 :options="linter.opts"
                 :description="linter.desc"
                 :initialId="linter.id"
-                :initialState="linter.state"/>
+                :initialState="linter.state"
+                :key="linter.id"/>
       </tbody>
     </table>
   </div>
@@ -60,15 +61,8 @@ export default {
     methods: {
         getLinters() {
             this.$http.get(`/api/v1/assignments/${this.assignmentId}/linters/`).then((data) => {
-                console.log(data);
                 this.linters = data.data;
                 this.loading = false;
-                console.log(this.linters);
-                Object.keys(this.linters).forEach((key) => {
-                    if (this.linters[key].state === 1) {
-                        this.startUpdateLoop(key);
-                    }
-                });
             });
         },
     },
