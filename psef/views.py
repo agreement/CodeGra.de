@@ -804,9 +804,9 @@ def get_linter_state(linter_id):
 def start_linting(assignment_id):
     content = request.get_json()
 
-    if not ('children' in content and 'cfg' in content and 'name' in content):
+    if not ('cfg' in content and 'name' in content):
         raise APIException(
-            'Missing required params.'
+            'Missing required params.',
             'Missing one ore more of children, cfg or name in the payload',
             APICodes.MISSING_REQUIRED_PARAM, 400)
 
