@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 import os
+from random import shuffle
+from itertools import cycle
 
 from flask import jsonify, request, send_file, make_response, after_this_request
 from flask_login import login_user, logout_user, current_user, login_required
-from sqlalchemy_utils.functions import dependent_objects
-from itertools import cycle
-from random import shuffle
 
 import psef.auth as auth
 import psef.files
 import psef.models as models
 from psef import db, app
 from psef.errors import APICodes, APIException
+from sqlalchemy_utils.functions import dependent_objects
 
 
 @app.route("/api/v1/file/metadata/<int:file_id>", methods=['GET'])
@@ -239,7 +239,7 @@ def update_assignment(assignment_id):
 
     # TODO also make it possible to update the close date of an assignment
 
-    return 204, ''
+    return '', 204
 
 
 @app.route(
