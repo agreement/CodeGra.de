@@ -18,7 +18,7 @@ html {
 
 .page {
     /* Margin bottom by footer height */
-    margin-bottom: 60px;
+    margin-bottom: 80px;
 }
 
 /*.page.submission {
