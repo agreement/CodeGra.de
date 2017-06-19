@@ -1,9 +1,7 @@
 <template>
     <div id="app">
-        <main class="row">
-            <nav-bar class="col-lg-12"></nav-bar>
-            <router-view class="col-lg-12"></router-view>
-        </main>
+        <nav-bar></nav-bar>
+        <router-view></router-view>
         <footer-bar></footer-bar>
     </div>
 </template>

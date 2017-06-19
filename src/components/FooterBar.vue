@@ -15,10 +15,16 @@ html {
     position: relative;
     min-height: 100%;
 }
-body {
+
+.page {
     /* Margin bottom by footer height */
     margin-bottom: 60px;
 }
+
+/*.page.submission {
+    margin-bottom: 60px;
+}*/
+
 .footer {
     text-align: center;
     position: absolute;
