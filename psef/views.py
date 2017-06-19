@@ -124,6 +124,12 @@ def remove_comment(id, line):
 
 @app.route("/api/v1/submissions/<int:submission_id>/zip", methods=['GET'])
 def get_zip(submission_id):
+    """
+    Return a zip file of a submission.
+
+    Raises APIException:
+        - If the submission is None.
+    """
     work = models.Work.query.get(submission_id)
     if work is None:
         raise APIException(
@@ -148,7 +154,7 @@ def get_zip(submission_id):
                     zipf.write(path,  path[len(tmpdir):])
             zipf.close()
         fp.seek(0)
-        # return send_file(fp, attachment_filename="CG_archive.zip", as_attachment=True)
+
         response = make_response(fp.read())
         response.headers['Content-Type'] = 'application/zip'
         filename = 'CG_archive.zip'
@@ -232,9 +238,9 @@ def get_student_assignments():
             'course_id':
             assignment.course_id,
         }
-                         for assignment in models.Assignment.query.filter(
-                             models.Assignment.course_id.in_(courses)).all()]),
-                200)
+            for assignment in models.Assignment.query.filter(
+            models.Assignment.course_id.in_(courses)).all()]),
+            200)
     else:
         return (jsonify([]), 204)
 
@@ -641,6 +647,7 @@ def add_snippet():
     db.session.commit()
 
     return (jsonify({'id': snippet.id}), 201)
+
 
 @app.route('/api/v1/snippets/<int:snippet_id>', methods=['PATCH'])
 @auth.permission_required('can_use_snippets')
