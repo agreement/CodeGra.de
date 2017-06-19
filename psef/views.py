@@ -405,37 +405,45 @@ def logout():
     return ('', 204)
 
 
-@app.route("/api/v1/assignments/<int:assignment_id>/submissions/", methods=['POST'])
+@app.route(
+    "/api/v1/assignments/<int:assignment_id>/submissions/", methods=['POST'])
 def post_submissions(assignment_id):
     """Add submissions to the server from a blackboard zip file.
     """
     assignment = models.Assignment.query.get(assignment_id)
 
-    file = request.files['file[0]']
+    file = request.files['file']
     submissions = psef.files.process_blackboard_zip(file)
 
-    for student_id, submission_tree in submissions:
-        user = models.User.query.filter_by(name=student_id).first()
+    for submission_info, submission_tree in submissions:
+        user = models.User.query.filter_by(
+            name=submission_info.student_name).first()
 
         if user is None:
             perms = {
-                assignment.course.id: models.CourseRole.query.filter_by(
+                assignment.course.id:
+                models.CourseRole.query.filter_by(
                     name='student', course_id=assignment.course.id).first()
             }
-            user = models.User(name=student_id,
-                               courses=perms,
-                               email=student_id + '@example.com',
-                               password=student_id,
-                               role=models.Role.query.filter_by(name='student').first())
+            user = models.User(
+                name=submission_info.student_name,
+                courses=perms,
+                email=submission_info.student_name + '@example.com',
+                password='password',
+                role=models.Role.query.filter_by(name='student').first())
 
             db.session.add(user)
-        work = models.Work(assignment_id=assignment.id, user=user)
+        work = models.Work(
+            assignment_id=assignment.id,
+            user=user,
+            created_at=submission_info.created_at,
+            grade=submission_info.grade)
         db.session.add(work)
         work.add_file_tree(db.session, submission_tree)
 
     db.session.commit()
 
-    return ('cool', 204)
+    return ('', 204)
 
 
 @app.route(
@@ -637,6 +645,7 @@ def add_snippet():
 
     return (jsonify({'id': snippet.id}), 201)
 
+
 @app.route('/api/v1/snippets/<int:snippet_id>', methods=['PATCH'])
 @auth.permission_required('can_use_snippets')
 def patch_snippet(snippet_id):
@@ -648,10 +657,9 @@ def patch_snippet(snippet_id):
             format(content), APICodes.MISSING_REQUIRED_PARAM, 400)
     snip = models.Snippet.query.get(snippet_id)
     if snip is None:
-        raise APIException(
-            'Snippet not found',
-            'The snippet with id {} was not found'.format(snip),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+        raise APIException('Snippet not found',
+                           'The snippet with id {} was not found'.format(snip),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
     if snip.user.id != current_user.id:
         raise APIException(
             'The given snippet is not your snippet',

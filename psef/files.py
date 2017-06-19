@@ -10,10 +10,11 @@ from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 
 import archive
-from psef import app
-
+from psef import app, blackboard
 
 _known_archive_extensions = tuple(archive.extension_map.keys())
+
+# Gestolen van Erik Kooistra
 _bb_txt_format = re.compile(
     r"(?P<assignment_name>.+)_(?P<student_id>\d+)_attempt_"
     r"(?P<datetime>\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}).txt")
@@ -124,7 +125,6 @@ def extract_to_temp(file):
     tmpmode, tmparchive = tempfile.mkstemp()
     os.remove(tmparchive)
     tmparchive += os.path.basename(secure_filename('archive_' + file.filename))
-    print(tmparchive)
     tmpdir = tempfile.mkdtemp()
     try:
         file.save(tmparchive)
@@ -217,29 +217,20 @@ def process_blackboard_zip(file):
     the tree structure of each submission.
 
     :param files: The blackboard gradebook to import
-    :returns: List of tuples (student_id, tree)
+    :returns: List of tuples (BBInfo, tree)
     :rtype: list
     """
     tmpdir = extract_to_temp(file)
-    files = os.listdir(tmpdir)
-    info_files = filter(None, [_bb_txt_format.match(f) for f in files])
+    info_files = filter(None, [_bb_txt_format.match(f) for f in os.listdir(tmpdir)])
     submissions = []
     for info_file in info_files:
         files = []
-        f = open(os.path.join(tmpdir, info_file.string))
-        for ln in f.readlines():
-            if ln.startswith("\tOriginal filename:"):
-                filename = ln.split(':')[1].strip()
-            elif ln.startswith("\tFilename:"):
-                filepath = ln.split(':')[1].strip()
-                files.append(
-                    FileStorage(
-                        stream=open(os.path.join(tmpdir, filepath), mode='rb'),
-                        filename=filename))
-        f.close()
+        info = blackboard.parse_info_file(os.path.join(tmpdir, info_file.string))
+        for file in info.files:
+            files.append(FileStorage(stream=open(os.path.join(tmpdir, file.name), mode='rb'), filename=file.original_name))
         tree = process_files(files)
         map(lambda f: f.close(), files)
-        submissions.append((info_file.group('student_id'), tree))
+        submissions.append((info, tree))
     shutil.rmtree(tmpdir)
     return submissions
 
