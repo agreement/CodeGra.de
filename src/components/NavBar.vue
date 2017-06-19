@@ -27,11 +27,13 @@
                         </router-link>
                     </b-nav>
                 </div>
-                <b-nav is-nav-bar class="navbar-right" v-else>
-                    <router-link class="nav-item" tag="li" :to="{ name: 'login', }"  active-class="active">
-                        Login
-                    </router-link>
-                </b-nav>
+                <div v-else class="loggedout-nav">
+                    <b-nav is-nav-bar class="navbar-right">
+                        <router-link class="nav-item" tag="li" :to="{ name: 'login', }"  active-class="active">
+                            Login
+                        </router-link>
+                    </b-nav>
+                </div>
 
             </b-collapse>
         </b-navbar>
@@ -75,7 +77,7 @@ export default {
     margin-bottom: 2em;
 }
 
-.loggedin-nav {
+.loggedin-nav, .loggedout-nav {
     width: 100%;
 }
 
