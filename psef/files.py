@@ -39,9 +39,10 @@ def get_file_contents(code):
         with open(filename, 'r') as codefile:
             return codefile.read()
     except UnicodeDecodeError:
-        raise APIException('File was not readable',
-                           'The selected file was not UTF-8',
-                           APICodes.OBJECT_WRONG_TYPE, 400)
+        raise APIException(
+            'File was not readable',
+            'The selected file with id {} was not UTF-8'.format(code.id),
+            APICodes.OBJECT_WRONG_TYPE, 400)
 
 
 def rename_directory_structure(rootdir):

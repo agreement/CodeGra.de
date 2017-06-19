@@ -109,6 +109,7 @@ export default {
                 this.highlightCode(data.lang);
                 this.linkFiles();
                 this.loading = false;
+                this.error = false;
             }).catch(() => {
                 this.error = true;
                 this.loading = false;
