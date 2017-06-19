@@ -9,6 +9,7 @@ from werkzeug.utils import secure_filename
 
 import archive
 from psef import app
+from psef.errors import APICodes, APIException
 
 _known_archive_extensions = tuple(archive.extension_map.keys())
 
@@ -38,7 +39,9 @@ def get_file_contents(code):
         with open(filename, 'r') as codefile:
             return codefile.read()
     except UnicodeDecodeError:
-        return None
+        raise APIException('File was not readable',
+                           'The selected file was not UTF-8',
+                           APICodes.OBJECT_WRONG_TYPE, 400)
 
 
 def rename_directory_structure(rootdir):

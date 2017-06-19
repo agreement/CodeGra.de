@@ -71,12 +71,10 @@ export default {
             this.$http.get(`/api/v1/code/${this.fileId}`).then((data) => {
                 this.lang = data.data.lang;
                 this.feedback = data.data.feedback;
-                if (data.data.code != null) {
-                    this.codeLines = this.highlightCode(this.lang, data.data.code);
-                } else {
-                    this.codeLines = null;
-                    this.loading = false;
-                }
+                this.codeLines = this.highlightCode(this.lang, data.data.code);
+            }).catch((exception) => {
+                this.codeLines = null;
+                this.loading = false;
             });
         },
 
