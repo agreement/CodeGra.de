@@ -19,7 +19,6 @@
             </li>
         </ol>
     </div>
-    
 </template>
 
 <script>
@@ -99,7 +98,6 @@ export default {
     }
     .text {
         color: #FFF;
-        /*margin-bottom: 200px;*/
     }
 }
 </style>
