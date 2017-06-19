@@ -1,5 +1,5 @@
 <template>
-    <footer>
+    <footer class="footer">
         <small>&copy; {{ new Date().getFullYear() }} - CodeGra.de</small>
     </footer>
 </template>
@@ -20,10 +20,6 @@ html {
     /* Margin bottom by footer height */
     margin-bottom: 80px;
 }
-
-/*.page.submission {
-    margin-bottom: 60px;
-}*/
 
 .footer {
     text-align: center;
