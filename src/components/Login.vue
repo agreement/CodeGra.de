@@ -1,7 +1,7 @@
 <template>
     <div class="container">
         <div class="row justify-content-md-center">
-            <div class="col"></div>
+        	<div class="col"></div>
             <div class="col col-lg-9 col-m-12">
                 <form>
                     <div class="form-group">
@@ -64,7 +64,7 @@ export default {
             }
 
             this.tryLogin({ email: this.email, password: this.password }).then(() => {
-                this.$router.replace('/assignments');
+                this.$router.replace('/');
             }).catch((reason) => {
                 if (reason) {
                     this.error = reason.message;
@@ -92,4 +92,3 @@ export default {
     position: relative;
 }
 </style>
-
