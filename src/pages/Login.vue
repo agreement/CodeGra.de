@@ -17,7 +17,7 @@ export default {
 
     mounted() {
         if (this.loggedIn) {
-            this.$router.replace('/');
+            this.$router.replace({ name: 'home' });
         }
     },
 
