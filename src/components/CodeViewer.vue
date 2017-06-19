@@ -18,7 +18,10 @@
             v-on:click="addFeedback($event, value)"></icon>
     </li>
   </ol>
-  <span v-else> Cannot display file!</span>
+  <div v-else>
+      <span> Cannot display file!</span>
+      <icon name="fa-frown-o"></icon>
+  </div>
 </template>
 
 <script>
