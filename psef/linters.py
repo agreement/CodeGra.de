@@ -8,6 +8,7 @@ import subprocess
 import requests
 
 import psef.files
+from psef.helpers import get_all_subclasses
 
 
 class Linter:
@@ -18,8 +19,8 @@ class Linter:
 
 class Flake8(Linter):
     NAME = 'Flake8'
-    DESCRIPTION = 'The flake8 linter with all "noqa"\'s disabled.'
-    DEFAULT_OPTIONS = {'No options': ''}
+    DESCRIPTION = 'The flake8 linter with all "noqa"s disabled.'
+    DEFAULT_OPTIONS = {'Empty config file': ''}
 
     def __init__(self, config):
         self.config = config
@@ -45,6 +46,10 @@ class Flake8(Linter):
                     emit(args[0], int(args[1]), *args[2:])
                 except ValueError:
                     pass
+
+
+class Flake9(Flake8):
+    NAME = 'Flake9'
 
 
 class LinterRunner():
@@ -86,3 +91,13 @@ class LinterRunner():
         requests.put(
             callback_url, json={'files': res,
                                 'name': self.linter.NAME})
+
+
+def get_all_linters():
+    res = {}
+    for cls in get_all_subclasses(Linter):
+        res[cls.NAME] = {
+            'desc': cls.DESCRIPTION,
+            'opts': list(cls.DEFAULT_OPTIONS.keys())
+        }
+    return res

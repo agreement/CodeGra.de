@@ -8,9 +8,6 @@
 
 <script>
 import { bPopover } from 'bootstrap-vue/lib/components';
-import Icon from 'vue-awesome/components/Icon';
-import 'vue-awesome/icons/refresh';
-import 'vue-awesome/icons/times';
 
 const entityRE = /[&<>]/g;
 const entityMap = {
@@ -28,13 +25,11 @@ export default {
     data() {
         return {
             show: false,
-            loading: {},
         };
     },
 
     components: {
         bPopover,
-        Icon,
     },
 
     methods: {

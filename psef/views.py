@@ -603,6 +603,10 @@ def put_linter_comment(token):
     db.session.commit()
     return '', 204
 
+@app.route('/api/v1/linters/', methods=['GET'])
+def get_linters():
+    return jsonify(linters.get_all_linters())
+
 
 @app.route('/api/v1/flake8/<int:assignment_id>')
 def start_autograde(assignment_id):

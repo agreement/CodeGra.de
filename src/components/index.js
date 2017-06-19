@@ -1,6 +1,7 @@
 import CodeViewer from './CodeViewer';
 import FeedbackArea from './FeedbackArea';
 import LinterFeedbackArea from './LinterFeedbackArea';
+import Linters from './Linters';
 import FileTree from './FileTree';
 import FooterBar from './FooterBar';
 import GradeViewer from './GradeViewer';
@@ -15,6 +16,7 @@ import SubmissionsExporter from './SubmissionsExporter';
 import PdfViewer from './PdfViewer';
 
 export {
+    Linters,
     CodeViewer,
     LinterFeedbackArea,
     FeedbackArea,
