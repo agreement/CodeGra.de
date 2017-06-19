@@ -5,26 +5,23 @@
                 <b-form-input v-model="name"></b-form-input>
             </b-input-group>
         </b-form-fieldset>
-        <b-form-fieldset>
+        <b-form-fieldset label="Date & state">
             <b-input-group>
                 <b-input-group-button>
-                    <b-button variant="primary">Submit</b-button>
+                    <b-button variant="primary" @click="submitAssignment">Submit</b-button>
                 </b-input-group-button>
-                <b-form-input type="date" v-model="date"></b-form-input>
+                <b-form-input type="datetime-local" v-model="date"></b-form-input>
                 <b-input-group-button @click.native="updateState">
                     <b-button-group>
-                        <b-popover placement="top" triggers="hover" content="Hidden">
-                            <b-button :variant="state == 0 ? 'default' : 'secondary'" value="0"><icon name="eye-slash"></icon></b-button>
-                        </b-popover>
-                        <b-popover placement="top" triggers="hover" content="Submitting">
-                            <b-button :variant="state == 1 ? 'danger' : 'outline-danger'" value="1"><icon name="download"></icon></b-button>
-                        </b-popover>
-                        <b-popover placement="top" triggers="hover" content="Grading">
-                            <b-button :variant="state == 2 ? 'warning' : 'outline-warning'" value="2"><icon name="pencil"></icon></b-button>
-                        </b-popover>
-                        <b-popover placement="top" triggers="hover" content="Done">
-                            <b-button :variant="state == 3 ? 'success' : 'outline-success'" value="3"><icon name="check"></icon></b-button>
-                        </b-popover>
+                        <b-tooltip placement="bottom" content="Hidden">
+                            <b-button :variant="state == 'hidden' ? 'danger' : 'outline-danger'" value="hidden"><icon name="eye-slash"></icon></b-button>
+                        </b-tooltip>
+                        <b-tooltip placement="bottom" content="Open">
+                            <b-button :variant="state == 'open' ? 'warning' : 'outline-warning'" value="open"><icon name="clock-o"></icon></b-button>
+                        </b-tooltip>
+                        <b-tooltip placement="bottom" content="Done">
+                            <b-button :variant="state == 'done' ? 'success' : 'outline-success'" value="done"><icon name="check"></icon></b-button>
+                        </b-tooltip>
                     </b-button-group>
                 </b-input-group-button>
             </b-input-group>
@@ -33,13 +30,12 @@
 </template>
 
 <script>
-import { bButton, bButtonGroup, bFormFieldset, bFormInput, bInputGroup, bPopover } from
+import { bButton, bButtonGroup, bFormFieldset, bFormInput, bInputGroup, bPopover, bTooltip } from
     'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/eye-slash';
-import 'vue-awesome/icons/download';
-import 'vue-awesome/icons/pencil';
+import 'vue-awesome/icons/clock-o';
 import 'vue-awesome/icons/check';
 
 export default {
@@ -48,7 +44,7 @@ export default {
     props: {
         assignment: {
             type: Object,
-            default: {},
+            default: null,
         },
     },
 
@@ -56,17 +52,23 @@ export default {
         return {
             name: this.assignment ? this.assignment.name : '',
             date: this.assignment ? this.assignment.date : 0,
-            state: this.assignment ? this.assignment.state : -1,
+            state: this.assignment ? this.assignment.state : 'hidden',
+            sending: false,
         };
     },
 
     methods: {
-        patchAssignment() {
-            this.$http.patch(`/api/v1/courses/${this.courseId}/assignments/${this.assignmentId}`, {
-                assignment: this.assignment,
-            }).then((res) => {
-                // eslint-disable-next-line
-                console.log(res);
+        submitAssignment() {
+            this.sending = true;
+            const d = new Date(this.date);
+            this.$http.patch(`/api/v1/assignments/${this.assignment.id}`, {
+                assignment: {
+                    name: this.name,
+                    date: `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}T${d.getUTCHours()}:${d.getUTCMinutes()}`,
+                    state: this.state,
+                },
+            }).then(() => {
+                setTimeout(() => { this.sending = false; }, 500);
             });
         },
 
@@ -85,13 +87,20 @@ export default {
         bFormInput,
         bInputGroup,
         bPopover,
+        bTooltip,
         Icon,
     },
 };
 </script>
 
 <style lang="less" scoped>
+input.form-control {
+     flex-direction: row;
+}
+
 .btn-group {
+    cursor: pointer;
+
     button {
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
@@ -102,5 +111,4 @@ export default {
         border-bottom-right-radius: 0;
     }
 }
-
 </style>

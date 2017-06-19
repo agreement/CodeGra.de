@@ -1,7 +1,14 @@
 import Vue from 'vue';
 import Router from 'vue-router';
-import { Assignments, Submission, Home, Login, Submit, Submissions } from '@/pages';
-import { AssignmentState } from '@/components';
+import {
+    Assignments,
+    Submission,
+    Home,
+    Login,
+    ManageAssignments,
+    Submit,
+    Submissions,
+} from '@/pages';
 
 Vue.use(Router);
 
@@ -54,18 +61,9 @@ export default new Router({
             component: Submit,
         },
         {
-            path: '/course/:courseId/assignments/:assignmentId/manage',
+            path: '/courses/:courseId/manage',
             name: 'assignment_manage',
-            component: AssignmentState,
-            props: {
-                assignment: {
-                    id: 4,
-                    name: 'abc',
-                    course_id: 3,
-                    course_name: 'Course 1',
-                    state: 0,
-                },
-            },
+            component: ManageAssignments,
         },
     ],
 });

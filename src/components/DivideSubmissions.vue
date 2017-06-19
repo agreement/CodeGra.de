@@ -1,7 +1,7 @@
 <template>
-    <loader class="col-md-12 text-center" v-if="loading"></loader>
-    <div class="divide-submissions row" v-else>
-        <div class="col-6">
+    <div class="divide-submissions">
+        <loader class="text-center" v-if="loading"></loader>
+        <div class="form-control" v-else>
             <div v-for="name_id in graders">
                 <input type="checkbox" :id="name_id[1]" :value="name_id[1]" v-model="checkedNames">
                 <label :for="name_id[1]">{{ name_id[0] }}</label>
@@ -21,9 +21,15 @@ import Loader from './Loader';
 export default {
     name: 'divide-submissions',
 
+    props: {
+        assignment: {
+            type: Object,
+            default: null,
+        },
+    },
+
     data() {
         return {
-            assignmentId: Number(this.$route.params.assignmentId),
             graders: [],
             checkedNames: [],
             loading: true,
@@ -36,7 +42,7 @@ export default {
 
     methods: {
         getGraders() {
-            this.$http.get(`/api/v1/assignments/${this.assignmentId}/graders`).then((data) => {
+            this.$http.get(`/api/v1/assignments/${this.assignment.id}/graders`).then((data) => {
                 this.graders = data.data.names_ids;
                 this.loading = false;
             });
@@ -44,7 +50,7 @@ export default {
 
         divideAssignments() {
             this.loading = true;
-            this.$http.patch(`/api/v1/assignments/${this.assignmentId}/divide`,
+            this.$http.patch(`/api/v1/assignments/${this.assignment.id}/divide`,
                 {
                     graders: this.checkedNames,
                 },
