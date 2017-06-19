@@ -19,6 +19,7 @@ class APICodes(IntEnum):
     INVALID_URL = 9
     OBJECT_NOT_FOUND = 10
     BLOCKED_ASSIGNMENT = 11
+    INVALID_STATE = 12
 
 
 class APIException(Exception):

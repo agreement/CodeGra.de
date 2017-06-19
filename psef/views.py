@@ -559,42 +559,54 @@ def delete_snippets(snippet_id):
 
 @app.route('/api/v1/linter_comments/<token>', methods=['PUT'])
 def put_linter_comment(token):
-    # TODO: Fix error messages
     unit = models.LinterInstance.query.get(token)
+
+    if unit is None:
+        raise APIException(
+            'Linter was not found',
+            'The linter with token "{}" was not found'.format(token),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
     content = request.get_json()
+
     if 'crashed' in content:
         unit.state = models.LinterState.crashed
         db.session.commit()
         return '', 204
+
     unit.state = models.LinterState.done
-    name = content['name']
+
+    if 'files' not in content:
+        raise APIException(
+            'Not all required keys were found',
+            'The keys "file" was missing form the request body',
+            APICodes.MISSING_REQUIRED_PARAM, 400)
 
     with db.session.no_autoflush:
-        if unit is not None:
-            for file_id, feedbacks in content['files'].items():
-                f = models.File.query.get(file_id)
-                if f is None or f.work_id != unit.work_id:
-                    pass
+        for file_id, feedbacks in content['files'].items():
+            f = models.File.query.get(file_id)
+            if f is None or f.work_id != unit.work_id:
+                pass
 
-                # TODO: maybe simply delete all comments for this linter on
-                # this file
-                comments = models.LinterComment.query.filter_by(
-                    linter_id=unit.id, file_id=file_id).all()
-                lookup = {c.line: c for c in comments}
+            # TODO: maybe simply delete all comments for this linter on
+            # this file
+            comments = models.LinterComment.query.filter_by(
+                linter_id=unit.id, file_id=file_id).all()
+            lookup = {c.line: c for c in comments}
 
-                for line, code, feedback in feedbacks:
-                    if line in lookup:
-                        lookup[line].comment = feedback
-                        lookup[line].linter_code = code
-                    else:
-                        c = models.LinterComment(
-                            file_id=file_id,
-                            line=line,
-                            linter_code=code,
-                            linter_id=unit.id,
-                            comment=feedback)
-                        lookup[line] = c
-                        db.session.add(c)
+            for line, code, feedback in feedbacks:
+                if line in lookup:
+                    lookup[line].comment = feedback
+                    lookup[line].linter_code = code
+                else:
+                    c = models.LinterComment(
+                        file_id=file_id,
+                        line=line,
+                        linter_code=code,
+                        linter_id=unit.id,
+                        comment=feedback)
+                    lookup[line] = c
+                    db.session.add(c)
 
     db.session.commit()
     return '', 204
@@ -602,10 +614,17 @@ def put_linter_comment(token):
 
 @app.route('/api/v1/assignments/<int:assignment_id>/linters/', methods=['GET'])
 def get_linters(assignment_id):
+    assignment = models.Assignment.query.get(assignment_id)
+
+    if assignment is None:
+        raise APIException(
+            'The specified assignment could not be found',
+            'Assignment {} does not exist'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_use_linter', assignment.course_id)
+
     res = []
-    # check for user rights
-    perm = models.Assignment.query.get(assignment_id)
-    auth.ensure_permission('can_use_linter', perm.course_id)
     for name, opts in linters.get_all_linters().items():
         linter = models.AssignmentLinter.query.filter_by(
             assignment_id=assignment_id, name=name).first()
@@ -639,11 +658,17 @@ def get_linters(assignment_id):
 @app.route('/api/v1/linters/<linter_id>', methods=['DELETE'])
 def delete_linter_output(linter_id):
     linter = models.AssignmentLinter.query.get(linter_id)
-    # check for user rights
-    perm = db.session.query(models.AssignmentLinter).get(linter_id)
-    auth.ensure_permission('can_use_linter', perm.assignment.course_id)
+
+    if linter is None:
+        raise APIException('Specified linter was not found',
+                           'Linter {} was not found'.format(linter_id),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_use_linter', linter.assignment.course_id)
+
     db.session.delete(linter)
     db.session.commit()
+
     return '', 204
 
 
@@ -674,14 +699,22 @@ def get_linter_state(linter_id):
 def start_linting(assignment_id):
     content = request.get_json()
 
+    if not ('children' in content and 'cfg' in content and 'name' in content):
+        raise APIException(
+            'Missing required params.'
+            'Missing one ore more of children, cfg or name in the payload',
+            APICodes.MISSING_REQUIRED_PARAM, 400)
+
     if db.session.query(
             models.LinterInstance.query.filter(
                 models.AssignmentLinter.assignment_id == assignment_id,
                 models.AssignmentLinter.name == content['name'])
             .exists()).scalar():
-        # TODO Error
-        return
-    # check for user rights
+        raise APIException(
+            'There is still a linter instance running',
+            'There is a linter named "{}" running for assignment {}'.format(
+                content['name'], assignment_id), APICodes.INVALID_STATE, 409)
+
     perm = models.Assignment.query.get(assignment_id)
     auth.ensure_permission('can_use_linter', perm.course_id)
     res = models.AssignmentLinter.create_tester(assignment_id, content['name'])
@@ -702,11 +735,10 @@ def start_linting(assignment_id):
                 target=runner.run,
                 args=(codes, tokens, '{}api/v1/linter_comments/{}'.format(
                     request.url_root, '{}')))
-
         thread.start()
-        return get_linter_state(res.id)
     except:
         for test in res.tests:
             test.state = models.LinterState.crashed
         db.session.commit()
-        return '', 400
+    finally:
+        return get_linter_state(res.id)
