@@ -563,6 +563,7 @@ def put_linter_comment(token):
     content = request.get_json()
     if 'crashed' in content:
         unit.state = models.LinterState.crashed
+        db.session.commit()
         return '', 204
     unit.state = models.LinterState.done
     name = content['name']
@@ -605,7 +606,6 @@ def get_linters(assignment_id):
         linter = models.AssignmentLinter.query.filter_by(
             assignment_id=assignment_id, name=name).first()
 
-        print(linter)
         if linter:
             running = db.session.query(
                 models.LinterInstance.query.filter(
@@ -643,7 +643,6 @@ def delete_linter_output(linter_id):
 def get_linter_state(linter_id):
     res = []
     any_working = False
-    print(linter_id)
     for test in models.AssignmentLinter.query.get(linter_id).tests:
         if test.state == models.LinterState.running:
             any_working = True
@@ -659,7 +658,6 @@ def get_linter_state(linter_id):
 @app.route('/api/v1/assignments/<int:assignment_id>/linter', methods=['POST'])
 def start_linting(assignment_id):
     content = request.get_json()
-    db.session.commit()
 
     if db.session.query(
             models.LinterInstance.query.filter(
