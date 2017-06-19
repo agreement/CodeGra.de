@@ -18,7 +18,11 @@ const actions = {
                 resolve();
                 actions.refreshSnippets({ commit });
             }).catch((err) => {
-                reject(err.response.data);
+                if (err.response) {
+                    reject(err.response.data);
+                } else {
+                    reject(null);
+                }
             });
         });
     },
