@@ -40,17 +40,7 @@
         "course_permission": true
     },
     {
-        "name": "can_edit_own_name",
-        "default_value": true,
-        "course_permission": false
-    },
-    {
-        "name": "can_edit_own_email",
-        "default_value": true,
-        "course_permission": false
-    },
-    {
-        "name": "can_edit_own_password",
+        "name": "can_edit_own_info",
         "default_value": true,
         "course_permission": false
     }

@@ -1,8 +1,9 @@
 <template>
     <div id="userinfo">
         <div class="row justify-content-md-center">
-            <div class="col col-lg-9">
-                <div v-if="edit == false">
+            <loader class="col-md-10 text-center" v-if="loading"></loader>
+            <div v-else class="col col-lg-9">
+                <div v-if="!edit">
                     <div class="alert alert-success" v-show="succes">
                         Your userdata has been updated.
                     </div>
@@ -11,7 +12,7 @@
                     <b-button type="edit" variant="primary" v-on:click="edit = true">Edit</b-button>
                 </div>
 
-                <div v-else v-on:keyup.enter="submit()">
+                <div v-else v-on:keyup.enter="loading = true; submit()">
                     <div class="form-group">
                         <b-input-group left="Username">
                             <b-form-input  type="text" v-model="username"></b-form-input>
@@ -33,7 +34,7 @@
                     <div class="form-group">
                         <b-input-group left="Old Password">
                             <b-form-input  v-if="!o_pw_visible" type="password" v-model="oldPassword"></b-form-input>
-                            <b-form-input  v-if="o_pw_visible" type="textt" v-model="oldPassword"></b-form-input>
+                            <b-form-input  v-if="o_pw_visible" type="text" v-model="oldPassword"></b-form-input>
                             <b-input-group-button slot="right">
                                 <b-button @click="o_pw_visible = !o_pw_visible" >
                                     <icon v-if="!o_pw_visible" name="eye" aria-hidden="true"></icon>
@@ -49,7 +50,7 @@
                     <div class="form-group">
                         <b-input-group left="New Password">
                             <b-form-input  v-if="!n_pw_visible" type="password" v-model="newPassword"></b-form-input>
-                            <b-form-input  v-if="n_pw_visible" type="textt" v-model="newPassword"></b-form-input>
+                            <b-form-input  v-if="n_pw_visible" type="text" v-model="newPassword"></b-form-input>
                             <b-input-group-button slot="right">
                                 <b-button @click="n_pw_visible = !n_pw_visible" >
                                     <icon v-if="!n_pw_visible" name="eye" aria-hidden="true"></icon>
@@ -64,7 +65,7 @@
                     <div class="form-group">
                         <b-input-group left="Confirm Password">
                             <b-form-input  v-if="!c_pw_visible" type="password" v-model="confirmPassword"></b-form-input>
-                            <b-form-input  v-if="c_pw_visible" type="textt" v-model="confirmPassword"></b-form-input>
+                            <b-form-input  v-if="c_pw_visible" type="text" v-model="confirmPassword"></b-form-input>
                             <b-input-group-button slot="right">
                                 <b-button @click="c_pw_visible = !c_pw_visible" >
                                     <icon v-if="!c_pw_visible" name="eye" aria-hidden="true"></icon>
@@ -82,7 +83,7 @@
                             <button type="cancel" class="btn btn-primary" @click="edit = false; resetParams()">Cancel</button>
                         </div>
                         <div class="btn-group">
-                            <button type="submit" class="btn btn-primary" @click="submit()">Submit</button>
+                            <button type="submit" class="btn btn-primary" @click="loading = true; submit()">Submit</button>
                         </div>
                     </div>
                 </div>
@@ -95,6 +96,7 @@
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/eye';
 import 'vue-awesome/icons/eye-slash';
+import Loader from './Loader';
 
 const validator = require('email-validator');
 
@@ -117,15 +119,18 @@ export default {
             invalid_username_error: '',
             invalid_credentials: false,
             validator,
+            loading: true,
         };
     },
     components: {
         Icon,
+        Loader,
     },
     mounted() {
         this.$http.get('/api/v1/login').then((data) => {
             this.username = data.data.name;
             this.email = data.data.email;
+            this.loading = false;
         });
     },
 
@@ -172,6 +177,7 @@ export default {
                     this.invalid_credentials = true;
                 }
             });
+            this.loading = false;
         },
     },
 };
