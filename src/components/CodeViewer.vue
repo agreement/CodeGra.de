@@ -1,12 +1,15 @@
 <template>
   <loader class="col-md-12 text-center" v-if="loading"></loader>
-  <div v-else>
+  <div class="codeviewer" v-else>
     <b-alert show variant="danger" v-if="blocked && editable">
       <div class="text-center"><b>This assignment is blocked</b></div>
     </b-alert>
     <ol class="code-viewer form-control" :class="{ editable: editable && !blocked }">
-      <li v-on:click="editable && !blocked && addFeedback($event, i)" v-for="(line, i) in codeLines">
-        <code v-html="line"></code>
+      <li v-on:click="editable && !blocked && addFeedback($event, i)" v-for="(line, i) in codeLines"
+          :class="{ 'linter-feedback': linterFeedback[i] }">
+        <linter-feedback-area :feedback="linterFeedback[i]">
+        </linter-feedback-area>
+        <code class="nobold" v-html="line"></code>
 
 
         <feedback-area :editing="editing[i] === true"
@@ -36,6 +39,7 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
 
 import FeedbackArea from './FeedbackArea';
+import LinterFeedbackArea from './LinterFeedbackArea';
 import Loader from './Loader';
 
 export default {
@@ -52,6 +56,7 @@ export default {
             loading: true,
             editing: {},
             feedback: {},
+            linterFeedback: {},
             clicks: {},
         };
     },
@@ -78,6 +83,7 @@ export default {
                 this.lang = data.data.lang;
                 this.feedback = data.data.feedback;
                 this.codeLines = this.highlightCode(this.lang, data.data.code);
+                this.linterFeedback = data.data.linter_feedback;
             });
         },
 
@@ -129,6 +135,7 @@ export default {
         Icon,
         FeedbackArea,
         Loader,
+        LinterFeedbackArea,
     },
 };
 </script>
@@ -165,6 +172,7 @@ code {
     top: 0;
     right: .5em;
     display: none;
+    color: black;
 
     li:hover & {
         display: block;
@@ -173,5 +181,21 @@ code {
 
 .loader {
     margin-top: 5em;
+}
+
+.linter-feedback {
+    color: red;
+    font-weight: bold;
+    -webkit-text-decoration-style: wavy;
+    -moz-text-decoration-style: wavy;
+    text-decoration-style: wavy;
+}
+
+.nobold {
+    font-weight: normal;
+}
+
+div.codeviewer {
+    margin-bottom: 30px;
 }
 </style>

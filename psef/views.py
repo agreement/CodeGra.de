@@ -2,7 +2,7 @@
 import os
 import threading
 
-from flask import jsonify, request, send_file, after_this_request, make_response
+from flask import jsonify, request, send_file, make_response, after_this_request
 from flask_login import login_user, logout_user, current_user, login_required
 from sqlalchemy.orm import subqueryload
 
@@ -19,10 +19,7 @@ def get_file_metadata(file_id):
     file = db.session.query(models.File).filter(
         models.File.id == file_id).first()
 
-    return jsonify({
-        "name": file.name,
-        "extension": file.extension
-    })
+    return jsonify({"name": file.name, "extension": file.extension})
 
 
 @app.route("/api/v1/binary/<int:file_id>")
@@ -43,6 +40,7 @@ def get_code(file_id):
     code = db.session.query(models.File).get(file_id)
     assig = code.work.assignment
     line_feedback = {}
+    linter_feedback = {}
 
     if code is None:
         raise APIException('File not found',
@@ -58,14 +56,24 @@ def get_code(file_id):
         for comment in db.session.query(models.Comment).filter_by(
                 file_id=file_id).all():
             line_feedback[str(comment.line)] = comment.comment
+        for comment in db.session.query(models.LinterComment).filter_by(
+                file_id=file_id).all():
+            if str(comment.line) not in linter_feedback:
+                linter_feedback[str(comment.line)] = {}
+            linter_feedback[str(comment.line)][comment.linter_name] = {
+                'code': comment.linter_code,
+                'msg': comment.comment
+            }
     except auth.PermissionException:
         line_feedback = {}
+        linter_feedback = {}
 
     return jsonify(
         lang=code.extension,
         blocked=assig.blocked,
         code=psef.files.get_file_contents(code),
-        feedback=line_feedback)
+        feedback=line_feedback,
+        linter_feedback=linter_feedback)
 
 
 @app.route("/api/v1/code/<int:id>/comments/<int:line>", methods=['PUT'])
@@ -207,9 +215,9 @@ def get_student_assignments():
             'course_id':
             assignment.course_id,
         }
-            for assignment in models.Assignment.query.filter(
-            models.Assignment.course_id.in_(courses)).all()]),
-            200)
+                         for assignment in models.Assignment.query.filter(
+                             models.Assignment.course_id.in_(courses)).all()]),
+                200)
     else:
         return (jsonify([]), 204)
 
@@ -328,7 +336,8 @@ def get_submission(submission_id):
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['PATCH'])
 def patch_submission(submission_id):
     """
-    Update submission X if it already exists and if the user permission is valid.
+    Update submission X if it already exists and if the user permission is
+    valid.
 
     Raises APIException:
         - If submission X was not found
@@ -390,12 +399,12 @@ def login():
         raise APIException('The supplied email or password is wrong.', (
             'The user with email {} does not exist ' +
             'or has a different password').format(data['email']),
-            APICodes.LOGIN_FAILURE, 400)
+                           APICodes.LOGIN_FAILURE, 400)
 
     if not login_user(user, remember=True):
         raise APIException('User is not active', (
             'The user with id "{}" is not active any more').format(user.id),
-            APICodes.INACTIVE_USER, 403)
+                           APICodes.INACTIVE_USER, 403)
 
     return me()
 
@@ -434,7 +443,7 @@ def upload_work(assignment_id):
         raise APIException('Uploaded files are too big.', (
             'Request is bigger than maximum ' +
             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-            APICodes.REQUEST_TOO_LARGE, 400)
+                           APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
@@ -574,8 +583,7 @@ def put_linter_comment(token):
                 # TODO: maybe simply delete all comments for this linter on
                 # this file
                 comments = models.LinterComment.query.filter_by(
-                    linter_name=name,
-                    file_id=file_id).all()
+                    linter_name=name, file_id=file_id).all()
                 lookup = {c.line: c for c in comments}
 
                 for line, code, feedback in feedbacks:
