@@ -1,5 +1,5 @@
 <template>
-    <b-form method="post" action="/api/v1/assignments/3/submissions/" enctype="multipart/form-data">
+    <b-form method="post" :action="action" enctype="multipart/form-data">
         <b-form-file name="file" v-model="file"></b-form-file>
         <br> Selected file: {{file && file.name}}
         <br>
