@@ -397,6 +397,39 @@ def logout():
     return ('', 204)
 
 
+@app.route("/api/v1/assignments/<int:assignment_id>/submissions/", methods=['POST'])
+def post_submissions(assignment_id):
+    """Add submissions to the server from a blackboard zip file.
+    """
+    assignment = models.Assignment.query.get(assignment_id)
+
+    file = request.files['file[0]']
+    submissions = psef.files.process_blackboard_zip(file)
+
+    for student_id, submission_tree in submissions:
+        user = models.User.query.filter_by(name=student_id).first()
+
+        if user is None:
+            perms = {
+                assignment.course.id: models.CourseRole.query.filter_by(
+                    name='student', course_id=assignment.course.id).first()
+            }
+            user = models.User(name=student_id,
+                               courses=perms,
+                               email=student_id + '@example.com',
+                               password=student_id,
+                               role=models.Role.query.filter_by(name='student').first())
+
+            db.session.add(user)
+        work = models.Work(assignment_id=assignment.id, user=user)
+        db.session.add(work)
+        work.add_file_tree(db.session, submission_tree)
+
+    db.session.commit()
+
+    return ('cool', 204)
+
+
 @app.route(
     "/api/v1/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id):

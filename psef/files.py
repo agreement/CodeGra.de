@@ -1,16 +1,22 @@
 import csv
 import os
+import re
 import shutil
 import tempfile
 import uuid
 from functools import reduce
 
 from werkzeug.utils import secure_filename
+from werkzeug.datastructures import FileStorage
 
 import archive
 from psef import app
 
+
 _known_archive_extensions = tuple(archive.extension_map.keys())
+_bb_txt_format = re.compile(
+    r"(?P<assignment_name>.+)_(?P<student_id>\d+)_attempt_"
+    r"(?P<datetime>\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}).txt")
 
 
 def get_binary_contents(file):
@@ -108,27 +114,39 @@ def is_archive(file):
     return file.filename.endswith(_known_archive_extensions)
 
 
-def extract(file):
-    "Extracts all files in archive with random name to uploads folder."
+def extract_to_temp(file):
+    """Extracts the contents of file into a temporary directory
+
+    :param file: FileStorage object that is an archive
+    :returns: The path to the temporary directory
+    :rtype: str
+    """
     tmpmode, tmparchive = tempfile.mkstemp()
     os.remove(tmparchive)
-    tmparchive += '_' + os.path.basename(secure_filename(file.filename))
+    tmparchive += os.path.basename(secure_filename('archive_' + file.filename))
+    print(tmparchive)
     tmpdir = tempfile.mkdtemp()
     try:
         file.save(tmparchive)
-        archive.extract(tmparchive, to_path=tmpdir)
-        rootdir = tmpdir.rstrip(os.sep)
-        start = rootdir.rfind(os.sep) + 1
-        res = rename_directory_structure(tmpdir)[tmpdir[start:]]
-        if len(res) > 1:
-            return {'archive': res if isinstance(res, list) else [res]}
-        elif not isinstance(res[0], dict):
-            return {'archive': res}
-        else:
-            return res[0]
+        archive.extract(tmparchive, to_path=tmpdir, method='safe')
     finally:
         os.remove(tmparchive)
-        shutil.rmtree(tmpdir)
+    return tmpdir
+
+
+def extract(file):
+    "Extracts all files in archive with random name to uploads folder."
+    tmpdir = extract_to_temp(file)
+    rootdir = tmpdir.rstrip(os.sep)
+    start = rootdir.rfind(os.sep) + 1
+    res = rename_directory_structure(tmpdir)[tmpdir[start:]]
+    if len(res) > 1:
+        return {'archive': res if isinstance(res, list) else [res]}
+    elif not isinstance(res[0], dict):
+        return {'archive': res}
+    else:
+        return res[0]
+    shutil.rmtree(tmpdir)
 
 
 def random_file_path():
@@ -192,6 +210,38 @@ def process_files(files):
         res = extract(files[0])
 
     return dehead_filetree(res)
+
+
+def process_blackboard_zip(file):
+    """Process the given blackboard zip file by extracting, moving and saving
+    the tree structure of each submission.
+
+    :param files: The blackboard gradebook to import
+    :returns: List of tuples (student_id, tree)
+    :rtype: list
+    """
+    tmpdir = extract_to_temp(file)
+    files = os.listdir(tmpdir)
+    info_files = filter(None, [_bb_txt_format.match(f) for f in files])
+    submissions = []
+    for info_file in info_files:
+        files = []
+        f = open(os.path.join(tmpdir, info_file.string))
+        for ln in f.readlines():
+            if ln.startswith("\tOriginal filename:"):
+                filename = ln.split(':')[1].strip()
+            elif ln.startswith("\tFilename:"):
+                filepath = ln.split(':')[1].strip()
+                files.append(
+                    FileStorage(
+                        stream=open(os.path.join(tmpdir, filepath), mode='rb'),
+                        filename=filename))
+        f.close()
+        tree = process_files(files)
+        map(lambda f: f.close(), files)
+        submissions.append((info_file.group('student_id'), tree))
+    shutil.rmtree(tmpdir)
+    return submissions
 
 
 def rgetattr(obj, attr):
