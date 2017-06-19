@@ -6387,6 +6387,10 @@ vue-template-es2015-compiler@^1.2.2:
   version "1.5.2"
   resolved "https://registry.yarnpkg.com/vue-template-es2015-compiler/-/vue-template-es2015-compiler-1.5.2.tgz#a0a6c50c941d2a4abda963f2f42c337ac450ee95"
 
+vue-toasted@^1.0.28:
+  version "1.0.28"
+  resolved "https://registry.yarnpkg.com/vue-toasted/-/vue-toasted-1.0.28.tgz#37cdd767b69119d7a63fa88700abc2925b7cdef2"
+
 vue2-dropzone@^2.2.8:
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/vue2-dropzone/-/vue2-dropzone-2.3.1.tgz#cf7244e03d3cd67d1b229dc16d0cb907e4b247dc"
