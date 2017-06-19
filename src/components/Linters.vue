@@ -146,11 +146,10 @@ export default {
             this.$http.get(`/api/v1/assignments/${this.assignmentId}/linters/`).then((data) => {
                 this.linters = data.data;
                 this.loading = false;
-                Object.keys(this.linters).map((key) => {
+                Object.keys(this.linters).forEach((key) => {
                     if (this.linters[key].state === 1) {
                         this.startUpdateLoop(key);
                     }
-                    return 5;
                 });
             });
         },
