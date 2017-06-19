@@ -32,10 +32,26 @@
         "edit": 0
     },
     {
-        "user": "Devin Hillenius",
-        "assignment": "Final deadline",
+        "user": "Stupid2",
+        "assignment": "Python",
         "comment": "Wow. Did you even try?",
         "grade": 1.1,
+        "state": "done",
+        "edit": 0
+    },
+    {
+        "user": "Stupid3",
+        "assignment": "Python",
+        "comment": "Meh, check for malloc next time plz",
+        "grade": 6,
+        "state": "done",
+        "edit": 0
+    },
+    {
+        "user": "Stupid4",
+        "assignment": "Python",
+        "comment": "Great!!!",
+        "grade": 8.8,
         "state": "done",
         "edit": 0
     }

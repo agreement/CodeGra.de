@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import os
 import threading
-import traceback
+from random import shuffle
+from itertools import cycle
 
 from flask import jsonify, request, send_file, make_response, after_this_request
 from flask_login import login_user, logout_user, current_user, login_required
@@ -39,7 +40,6 @@ def get_binary(file_id):
 @app.route("/api/v1/code/<int:file_id>", methods=['GET'])
 def get_code(file_id):
     code = db.session.query(models.File).get(file_id)
-    assig = code.work.assignment
     line_feedback = {}
     linter_feedback = {}
 
@@ -474,6 +474,85 @@ def upload_work(assignment_id):
     return (jsonify({'id': work.id}), 201)
 
 
+@app.route('/api/v1/assignments/<int:assignment_id>/divide', methods=['PATCH'])
+def divide_assignments(assignment_id):
+    assignment = models.Assignment.query.get(assignment_id)
+    auth.ensure_permission('can_manage_course', assignment.course.id)
+    if not assignment:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with code {} was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    content = request.get_json()
+    if 'graders' not in content or not isinstance(
+            content['graders'], list) or len(content['graders']) == 0:
+        raise APIException('List of assigned graders is required',
+                           'List of assigned graders is required',
+                           APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    submissions = assignment.get_all_latest_submissions()
+
+    if not submissions:
+        raise APIException(
+            'No submissions found',
+            'No submissions found for assignment {}'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    users = models.User.query.filter(
+        models.User.id.in_(content['graders'])).all()
+    if len(users) != len(content['graders']):
+        raise APIException('Invalid grader id given',
+                           'Invalid grader (=user) id given',
+                           APICodes.INVALID_PARAM, 400)
+
+    for grader in users:
+        if not grader.has_permission('can_grade_work', assignment.course.id):
+            raise APIException('Selected grader has no permission to grade',
+                               'Selected grader has no permission to grade',
+                               APICodes.INVALID_PARAM, 400)
+
+    shuffle(submissions)
+    shuffle(content['graders'])
+    for submission, grader in zip(submissions, cycle(content['graders'])):
+        submission.assigned_to = grader
+
+    db.session.commit()
+    return ('', 204)
+
+
+@app.route('/api/v1/assignments/<int:assignment_id>/graders', methods=['GET'])
+def get_all_graders(assignment_id):
+    assignment = models.Assignment.query.get(assignment_id)
+    auth.ensure_permission('can_manage_course', assignment.course.id)
+
+    if not assignment:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with code {} was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    permission = db.session.query(models.Permission.id).filter(
+        models.Permission.name == 'can_grade_work').as_scalar()
+
+    us = db.session.query(
+        models.User.id, models.User.name, models.user_course.c.course_id).join(
+            models.user_course,
+            models.User.id == models.user_course.c.user_id).subquery('us')
+    per = db.session.query(models.course_permissions.c.course_role_id).join(
+        models.CourseRole,
+        models.CourseRole.id == models.course_permissions.c.course_role_id
+    ).filter(
+        models.course_permissions.c.permission_id == permission,
+        models.CourseRole.course_id == assignment.course_id).subquery('per')
+    result = db.session.query(us.c.name, us.c.id).join(
+        per, us.c.course_id == per.c.course_role_id).all()
+
+    return jsonify({
+        'names_ids': result,
+    })
+
+
 @app.route('/api/v1/permissions/', methods=['GET'])
 @login_required
 def get_permissions():
@@ -526,11 +605,38 @@ def add_snippet():
     snippet = models.Snippet.query.filter_by(
         user_id=current_user.id, key=content['key']).first()
     if snippet is None:
-        db.session.add(
-            models.Snippet(
-                key=content['key'], value=content['value'], user=current_user))
+        snippet = models.Snippet(
+            key=content['key'], value=content['value'], user=current_user)
+        db.session.add(snippet)
     else:
         snippet.value = content['value']
+    db.session.commit()
+
+    return (jsonify({'id': snippet.id}), 201)
+
+
+@app.route('/api/v1/snippets/<int:snippet_id>', methods=['PATCH'])
+@auth.permission_required('can_use_snippets')
+def patch_snippet(snippet_id):
+    content = request.get_json()
+    if 'key' not in content or 'value' not in content:
+        raise APIException(
+            'Not all required keys were in content',
+            'The given content ({}) does  not contain "key" and "value"'.
+            format(content), APICodes.MISSING_REQUIRED_PARAM, 400)
+    snip = models.Snippet.query.get(snippet_id)
+    if snip is None:
+        raise APIException('Snippet not found',
+                           'The snippet with id {} was not found'.format(snip),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
+    if snip.user.id != current_user.id:
+        raise APIException(
+            'The given snippet is not your snippet',
+            'The snippet "{}" does not belong to user "{}"'.format(
+                snip.id, current_user.id), APICodes.INCORRECT_PERMISSION, 403)
+
+    snip.key = content['key']
+    snip.value = content['value']
     db.session.commit()
 
     return ('', 204)
@@ -577,10 +683,9 @@ def put_linter_comment(token):
     unit.state = models.LinterState.done
 
     if 'files' not in content:
-        raise APIException(
-            'Not all required keys were found',
-            'The keys "file" was missing form the request body',
-            APICodes.MISSING_REQUIRED_PARAM, 400)
+        raise APIException('Not all required keys were found',
+                           'The keys "file" was missing form the request body',
+                           APICodes.MISSING_REQUIRED_PARAM, 400)
 
     with db.session.no_autoflush:
         for file_id, feedbacks in content['files'].items():

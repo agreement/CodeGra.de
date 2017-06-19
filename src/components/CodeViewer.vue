@@ -1,6 +1,6 @@
 <template>
   <loader class="col-md-12 text-center" v-if="loading"></loader>
-  <div class="codeviewer" v-else>
+  <div class="codeviewer" v-else-if="!error">
     <ol class="code-viewer form-control" :class="{ editable: editable }">
       <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
           :class="{ 'linter-feedback': linterFeedback[i] }">
@@ -23,13 +23,16 @@
       </li>
     </ol>
   </div>
+  <b-alert variant="danger" show v-else>
+    <center><span>Cannot display file!</span></center>
+  </b-alert>
 </template>
 
 <script>
 import { getLanguage, highlight } from 'highlightjs';
 import Vue from 'vue';
 
-import { bButton, bFormInput, bInputGroup, bInputGroupButton }
+import { bAlert, bButton, bFormInput, bInputGroup, bInputGroupButton }
     from 'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
@@ -39,22 +42,50 @@ import FeedbackArea from './FeedbackArea';
 import LinterFeedbackArea from './LinterFeedbackArea';
 import Loader from './Loader';
 
+const entityRE = /[&<>]/g;
+const entityMap = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+};
+const escape = text => String(text).replace(entityRE, entity => entityMap[entity]);
+
 export default {
     name: 'code-viewer',
 
-    props: ['editable', 'id'],
+    props: {
+        editable: {
+            type: Boolean,
+            default: false,
+        },
+        id: {
+            type: Number,
+            default: 0,
+        },
+        tree: {
+            type: Object,
+            default: {},
+        },
+    },
 
     data() {
         return {
-            fileId: this.id,
-            lang: '',
+            code: '',
             codeLines: [],
             loading: true,
             editing: {},
             feedback: {},
             linterFeedback: {},
             clicks: {},
+            error: false,
         };
+    },
+
+    computed: {
+        courseId() { return Number(this.$route.params.courseId); },
+        assignmentId() { return Number(this.$route.params.assignmentId); },
+        submissionId() { return Number(this.$route.params.submissionId); },
+        fileId() { return Number(this.$route.params.fileId); },
     },
 
     mounted() {
@@ -70,31 +101,108 @@ export default {
             this.loading = true;
             this.getCode();
         },
+
+        tree() {
+            this.linkFiles();
+        },
     },
 
     methods: {
         getCode() {
-            this.$http.get(`/api/v1/code/${this.fileId}`).then((data) => {
-                this.lang = data.data.lang;
-                this.feedback = data.data.feedback;
-                this.codeLines = this.highlightCode(this.lang, data.data.code);
-                this.linterFeedback = data.data.linter_feedback;
+            this.$http.get(`/api/v1/code/${this.fileId}`).then(({ data }) => {
+                this.linterFeedback = data.linter_feedback;
+                this.feedback = data.feedback;
+                this.code = data.code;
+                this.codeLines = data.code.split('\n');
+                this.highlightCode(data.lang);
+                this.linkFiles();
+                this.loading = false;
+                this.error = false;
+            }).catch(() => {
+                this.error = true;
+                this.loading = false;
             });
         },
 
-        // Highlights the given string and returns an array of highlighted strings
-        highlightCode(lang, code) {
-            let lines = code.split('\n');
-            if (getLanguage(lang) !== undefined) {
-                let state = null;
-                lines = lines.map((line) => {
-                    const { top, value } = highlight(lang, line, true, state);
-                    state = top;
-                    return value;
+        // Highlight this.codeLines.
+        highlightCode(lang) {
+            if (getLanguage(lang) === undefined) {
+                this.codeLines = this.codeLines.map(escape);
+                return;
+            }
+            let state = null;
+            this.codeLines = this.codeLines.map((line) => {
+                const { top, value } = highlight(lang, line, true, state);
+                state = top;
+                return value;
+            });
+        },
+
+        // Given a file-tree object as returned by the API, generate an
+        // object with file-paths as keys and file-ids as values and an
+        // array of file-paths. All // possible paths to a file will be
+        // included. E.g. if file `a/b/c` has id 3, the object shall
+        // contain the following keys: { 'a/b/c': 3, 'b/c': 3, 'c': 3 }.
+        // Longer paths to the same file shall come before shorter paths
+        // in the array, so the matching will prefer longer paths.
+        flattenFileTree(tree, prefix = []) {
+            const fileIds = {};
+            const filePaths = [];
+            if (!tree || !tree.entries) {
+                return [fileIds, filePaths];
+            }
+            tree.entries.forEach((f) => {
+                if (f.entries) {
+                    const [dirIds, dirPaths] = this.flattenFileTree(f, prefix.concat(f.name));
+                    Object.assign(fileIds, dirIds);
+                    filePaths.push(...dirPaths);
+                } else {
+                    const path = prefix.concat(f.name).join('/');
+                    let i = 0;
+                    do {
+                        const spath = path.substr(i);
+                        filePaths.push(spath);
+                        fileIds[path.substr(i)] = f.id;
+                        i = path.indexOf('/', i + 1) + 1;
+                    } while (i > 0);
+                }
+            });
+            return [fileIds, filePaths];
+        },
+
+        // Search for each file in this.files on each line, and
+        // replace each occurrence with a link to the file.
+        linkFiles() {
+            const [fileIds, filePaths] = this.flattenFileTree(this.tree);
+            if (!filePaths.length) {
+                return;
+            }
+            // Use a regex to match each file at most once.
+            const filesRegex = new RegExp(`\\b(${filePaths.join('|')})\\b`, 'g');
+            this.codeLines = this.codeLines.map(line =>
+                line.replace(filesRegex, (fileName) => {
+                    const fileId = fileIds[fileName];
+                    return `<a href="${fileId}" data-file-id="${fileId}" style="text-decoration: underline;">${fileName}</a>`;
+                }),
+            );
+        },
+
+        onFileClick(event) {
+            // Check if the click was actually on a link to a file.
+            const fileId = event.target.getAttribute('data-file-id');
+            if (fileId) {
+                event.stopImmediatePropagation();
+                event.preventDefault();
+                this.$router.push({
+                    name: 'submission_file',
+                    params: {
+                        courseId: this.courseId,
+                        assignmentId: this.assignmentId,
+                        submissionId: this.submissionId,
+                        fileId,
+                    },
                 });
             }
-            this.loading = false;
-            return lines;
         },
 
         onChildCancel(line) {
@@ -127,6 +235,7 @@ export default {
         bFormInput,
         bInputGroup,
         bInputGroupButton,
+        bAlert,
         Icon,
         FeedbackArea,
         Loader,

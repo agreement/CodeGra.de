@@ -13,7 +13,9 @@ import NavBar from './NavBar';
 import AssignmentList from './AssignmentList';
 import CodeUploader from './CodeUploader';
 import SubmissionList from './SubmissionList';
+import DivideSubmissions from './DivideSubmissions';
 import SubmissionsExporter from './SubmissionsExporter';
+import SnippetManager from './SnippetManager';
 import PdfViewer from './PdfViewer';
 
 export {
@@ -32,6 +34,8 @@ export {
     AssignmentList,
     CodeUploader,
     SubmissionList,
+    DivideSubmissions,
     SubmissionsExporter,
+    SnippetManager,
     PdfViewer,
 };
