@@ -75,7 +75,7 @@ export default {
         updateState(event) {
             const button = event.target.closest('button');
             if (button != null) {
-                this.state = Number(button.getAttribute('value'));
+                this.state = button.getAttribute('value');
             }
         },
     },
