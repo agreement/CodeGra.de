@@ -29,11 +29,17 @@ const actions = {
     addSnippet({ commit }, val) {
         commit(types.NEW_SNIPPET, val);
     },
+    deleteSnippet({ commit }, key) {
+        commit(types.REMOVE_SNIPPET, key);
+    },
     refreshSnippets({ commit }) {
-        axios.get('/api/v1/snippets/').then((response) => {
-            commit(types.SNIPPETS, response.data);
-        }).catch(() => {
-            setTimeout(() => actions.refreshSnippets({ commit }), 1000 * 15);
+        return new Promise((resolve) => {
+            axios.get('/api/v1/snippets/').then((response) => {
+                commit(types.SNIPPETS, response.data);
+                resolve();
+            }).catch(() => {
+                setTimeout(() => actions.refreshSnippets({ commit }).then(resolve), 1000 * 15);
+            });
         });
     },
     hasPermission({ commit, state }, perm) {
@@ -115,6 +121,9 @@ const mutations = {
     },
     [types.NEW_SNIPPET](state, { key, value }) {
         state.snippets[key] = value;
+    },
+    [types.REMOVE_SNIPPET](state, key) {
+        delete state.snippets[key];
     },
 };
 

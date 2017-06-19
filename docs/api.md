@@ -146,6 +146,36 @@ Get all assignments that the current user can see.
 ###### HTTP Request
 `GET http://example.com/api/v1/assignments/`
 
+### Getting all users that can grade the assignment
+
+```python
+import requests
+
+# As logged in user
+requests.get('/api/v1/assignments/5/graders')
+```
+
+> The above code returns JSON structured like this with a status code of 200:
+```json
+[
+  {
+    "names_ids": [('Thomas Schaper', 2), ('Devin Hillenius', 3)],
+  }
+]
+```
+
+#### HTTP Request
+`GET http://example.com/api/v1/assignments/<ID>/graders`
+
+### Divide assignments over graders
+
+##### HTTP Request
+`PATCH http://example.com/api/v1/assignments/<ID>/divide`
+
+##### Query Parameters
+Parameter | Description
+--------- | -----------
+graders | List of user id's of graders to divide the submissions of this assignment over
 
 ## Code
 ### Get code
@@ -176,28 +206,28 @@ requests.get('https://example.com/api/submissions/1/files/', params=params)
 > The above command returns JSON like below with a status code of 200:
 ```json
 {
-  "id": 1, 
+  "id": 1,
   "name": "rootdir"
   "entries": [
     {
-      "id": 2, 
+      "id": 2,
       "name": "file1.txt"
-    }, 
+    },
     {
-      "id": 3, 
+      "id": 3,
       "name": "subdir"
       "entries": [
         {
-          "id": 4, 
+          "id": 4,
           "name": "file2.txt."
-        }, 
+        },
         {
-          "id": 5, 
+          "id": 5,
           "name": "file3.txt"
         }
-      ], 
-    }, 
-  ], 
+      ],
+    },
+  ],
 }
 ```
 
@@ -257,8 +287,6 @@ requests.get('https://example.com/api/v1/assignments/1/submissions/')
     "id": 1,
     "user_name": John Doe
     "user_id": 1,
-    "state": 0,
-    "edit": 0,
     "grade": 6,
     "comment": "General feedback",
     "created_at": "13-01-2017 10:05",
@@ -278,8 +306,8 @@ requests.get('https://example.com/api/v1/assignments/1/submissions/params=params
 ```
 > The above command will return a CSV file structured like below:
 ```
-id,user.name,user_id,state,edit,grade,comment,created_at
-1,"John Doe",1,0,0,6,"General Feedback","13-01-2017 10:05"
+id,user.name,user_id,grade,comment,created_at
+1,"John Doe",1,6,"General Feedback","13-01-2017 10:05"
 ...
 ```
 
@@ -502,10 +530,16 @@ import requests
 json_data = {"key": "fgets", "value": 'Fgets is niet veilig.'}
 
 # Logged in as a user
-requests.delete('https://example.com/api/v1/snippet', json=json_data)
+requests.put('https://example.com/api/v1/snippet', json=json_data)
 ```
 
-> This will return an empty response with status code 204
+> This will return JSON structured like below with status code 201
+
+```json
+{
+    "id": 1
+}
+```
 
 Add a new snippet or modify an existing one. If the specified key is already a
 snippet for the current user, the value of this snippet will be changed.
@@ -518,3 +552,26 @@ snippet for the current user, the value of this snippet will be changed.
 | --------- | -----------                                                       |
 | key       | The key of the new or existing snippet                            |
 | value     | The value of the new snippet or the new value of the old snippet. |
+
+### Patch a snippet
+```python
+import requests
+
+json_data = {"key": "fgets", "value": 'Fgets is niet veilig.'}
+
+# Logged in as a user
+requests.patch('https://example.com/api/v1/snippets/1', json=json_data)
+```
+
+> The return code will be 204 and the body will be empty
+
+Updates the key and value of the snippet with the given id.
+
+#### HTTP Request
+`PATCH https://example.com/api/v1/snippets/<ID>`
+
+#### Query Parameters
+| Parameter | Description                                  |
+| --------- | -----------                                  |
+| key       | The current or updated key of the snippet.   |
+| value     | The current or updatet value of the snippet. |

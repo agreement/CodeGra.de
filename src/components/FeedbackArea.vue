@@ -158,6 +158,7 @@ export default {
             const val = {
                 key: this.snippetKey,
                 value: { value: this.internalFeedback },
+                id: null,
             };
             if (val.key.indexOf(' ') > -1 || val.key.indexOf('\n') > -1) {
                 this.error = 'No spaces allowed!';
@@ -171,11 +172,12 @@ export default {
             }
             this.error = '';
             this.pending = true;
-            this.addSnippetToStore(val);
             this.$http.put('/api/v1/snippet', {
                 key: val.key,
                 value: val.value.value,
-            }).then(() => {
+            }).then((response) => {
+                val.id = response.data.id;
+                this.addSnippetToStore(val);
                 this.pending = false;
                 this.snippetDone = true;
                 // Add a small timeout such that the green sign is visible
