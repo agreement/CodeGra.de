@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import os
 import zipfile
+import tempfile
+from os.path import relpath
 
-from flask import jsonify, request, send_file, after_this_request, make_response, send_file
+from flask import jsonify, request, send_file, after_this_request, make_response
 from flask_login import login_user, logout_user, current_user, login_required
 
 import psef.auth as auth
@@ -119,6 +121,7 @@ def remove_comment(id, line):
                            APICodes.OBJECT_ID_NOT_FOUND, 404)
     return ('', 204)
 
+
 @app.route("/api/v1/submissions/<int:submission_id>/zip", methods=['GET'])
 def get_zip(submission_id):
     work = models.Work.query.get(submission_id)
@@ -134,19 +137,22 @@ def get_zip(submission_id):
     code = models.File.query.filter(models.File.work_id == submission_id,
                                     models.File.parent_id == None).one()
 
-    with tempfile.TemporaryFile() as fp:
+    with tempfile.TemporaryFile(mode='w+b') as fp:
         with tempfile.TemporaryDirectory() as tmpdir:
             files = psef.files.restore_directory_structure(code, tmpdir)
-            
+
             zipf = zipfile.ZipFile(fp, 'w', compression=zipfile.ZIP_DEFLATED)
             for root, dirs, files in os.walk(tmpdir):
                 for file in files:
-                    zipf.write(os.path.join(root, file))
+                    path = os.path.join(root, file)
+                    zipf.write(path,  path[len(tmpdir):])
+            zipf.close()
         fp.seek(0)
-
         response = make_response(fp.read())
         response.headers['Content-Type'] = 'application/zip'
-        response.headers['Content-Disposition'] = 'attachment; filename=' + work.course.name + '.zip'
+        filename = 'shitty.zip'
+        response.headers[
+            'Content-Disposition'] = 'attachment; filename=' + filename
         return response
 
 
