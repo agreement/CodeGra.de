@@ -334,6 +334,7 @@ class Assignment(db.Model):
         return {
             'id': self.id,
             'state': self.state,
+            'state_name': AssignmentStateEnum(self.state).name,
             'description': self.description,
             'date': self.created_at.strftime('%d-%m-%Y %H:%M'),
             'name': self.name,
