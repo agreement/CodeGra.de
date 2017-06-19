@@ -44,7 +44,10 @@ def get_file_contents(code):
             'The selected file with id {} was not UTF-8'.format(code.id),
             APICodes.OBJECT_WRONG_TYPE, 400)
 
+
 def restore_directory_structure(code, parent):
+    """Restores the directory structure recursively for a submission.
+    """
     out = os.path.join(parent, code.get_filename())
     if code.is_directory:
         os.mkdir(out)
