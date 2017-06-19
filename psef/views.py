@@ -603,6 +603,9 @@ def put_linter_comment(token):
 @app.route('/api/v1/assignments/<int:assignment_id>/linters/', methods=['GET'])
 def get_linters(assignment_id):
     res = []
+    # check for user rights
+    perm = models.Assignment.query.get(assignment_id)
+    auth.ensure_permission('can_use_linter', perm.course_id)
     for name, opts in linters.get_all_linters().items():
         linter = models.AssignmentLinter.query.filter_by(
             assignment_id=assignment_id, name=name).first()
@@ -636,6 +639,9 @@ def get_linters(assignment_id):
 @app.route('/api/v1/linters/<linter_id>', methods=['DELETE'])
 def delete_linter_output(linter_id):
     linter = models.AssignmentLinter.query.get(linter_id)
+    # check for user rights
+    perm = db.session.query(models.AssignmentLinter).get(linter_id)
+    auth.ensure_permission('can_use_linter', perm.assignment.course_id)
     db.session.delete(linter)
     db.session.commit()
     return '', 204
@@ -646,6 +652,9 @@ def get_linter_state(linter_id):
     res = []
     any_working = False
     crashed = False
+    # check for user rights
+    perm = db.session.query(models.AssignmentLinter).get(linter_id)
+    auth.ensure_permission('can_use_linter', perm.assignment.course_id)
     for test in models.AssignmentLinter.query.get(linter_id).tests:
         if test.state == models.LinterState.running:
             any_working = True
@@ -672,9 +681,9 @@ def start_linting(assignment_id):
             .exists()).scalar():
         # TODO Error
         return
-
-    assignment = models.Assignment.query.get(assignment_id)
-    auth.ensure_permission('can_grade_work', assignment.course_id)
+    # check for user rights
+    perm = models.Assignment.query.get(assignment_id)
+    auth.ensure_permission('can_use_linter', perm.course_id)
     res = models.AssignmentLinter.create_tester(assignment_id, content['name'])
     db.session.add(res)
     db.session.commit()
