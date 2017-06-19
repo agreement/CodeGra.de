@@ -1,5 +1,4 @@
 <template>
-
     <b-navbar toggleable type="inverse" sticky="true" class="navbar">
 
         <b-nav-toggle target="nav_collapse"></b-nav-toggle>
@@ -22,20 +21,21 @@
                     </router-link>
                 </b-nav>
                 <b-nav is-nav-bar class="navbar-right">
-                    <router-link class="nav-item" tag="li" to="#" @click.native.capture="logoutAndRedirect()"  active-class="active">
+                    <router-link class="nav-item" tag="li" :to="{ name: 'logout', }" @click.native.capture="logout"  active-class="active">
                         Logout
                     </router-link>
                 </b-nav>
             </div>
-            <b-nav is-nav-bar class="navbar-right" v-else>
-                <router-link class="nav-item" tag="li" :to="{ name: 'login', }"  active-class="active">
-                    Login
-                </router-link>
-            </b-nav>
+            <div v-else class="loggedout-nav">
+                <b-nav is-nav-bar class="navbar-right">
+                    <router-link class="nav-item" tag="li" :to="{ name: 'login', }"  active-class="active">
+                        Login
+                    </router-link>
+                </b-nav>
+            </div>
 
         </b-collapse>
     </b-navbar>
-
 </template>
 
 <script scoped>
@@ -73,6 +73,7 @@ export default {
 .navbar {
     background-color: #2c3e50;
     margin-bottom: 2em;
+    width: 100%;
 }
 
 .loggedin-nav {
