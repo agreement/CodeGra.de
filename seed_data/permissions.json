@@ -38,5 +38,10 @@
         "name": "can_use_snippets",
         "default_value": true,
         "course_permission": false
+    },
+    {
+        "name": "can_manage_assignments",
+        "default_value": false,
+        "course_permission": true
     }
 ]

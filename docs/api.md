@@ -146,6 +146,29 @@ Get all assignments that the current user can see.
 ###### HTTP Request
 `GET http://example.com/api/v1/assignments/`
 
+### Update an assignments
+
+```python
+import requests
+
+json = {'name': 'new name', 'state': 'open'}
+
+# As logged in user
+requests.patch('/api/v1/assignments/', json=json)
+```
+
+> The above code returns an emtpy response with status code 204
+
+Update the given assignment using the given fields
+
+###### HTTP Request
+`PATCH http://example.com/api/v1/assignments/<ID>`
+
+##### Query Parameters
+| Parameter | Description                                                          |
+| --------- | -----------                                                          |
+| name      | The new name of the assignment, should be a string.                  |
+| state     | The new state of the assignment, can be 'hidden', 'open' and 'done'. |
 
 ## Code
 ### Get code

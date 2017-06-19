@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import os
 
-from flask import jsonify, request, send_file, after_this_request, make_response
+from flask import jsonify, request, send_file, make_response, after_this_request
 from flask_login import login_user, logout_user, current_user, login_required
 
 import psef.auth as auth
@@ -16,10 +16,7 @@ def get_file_metadata(file_id):
     file = db.session.query(models.File).filter(
         models.File.id == file_id).first()
 
-    return jsonify({
-        "name": file.name,
-        "extension": file.extension
-    })
+    return jsonify({"name": file.name, "extension": file.extension})
 
 
 @app.route("/api/v1/binary/<int:file_id>")
@@ -181,16 +178,22 @@ def get_student_assignments():
             courses.append(course_role.course_id)
     if courses:
         return (jsonify([{
-            'id': assignment.id,
-            'state': assignment.state,
-            'date': assignment.created_at.strftime('%d-%m-%Y %H:%M'),
-            'name': assignment.name,
-            'course_name': assignment.course.name,
-            'course_id': assignment.course_id,
+            'id':
+            assignment.id,
+            'state':
+            assignment.state,
+            'date':
+            assignment.created_at.strftime('%d-%m-%Y %H:%M'),
+            'name':
+            assignment.name,
+            'course_name':
+            assignment.course.name,
+            'course_id':
+            assignment.course_id,
         }
-            for assignment in models.Assignment.query.filter(
-            models.Assignment.course_id.in_(courses)).all()]),
-            200)
+                         for assignment in models.Assignment.query.filter(
+                             models.Assignment.course_id.in_(courses)).all()]),
+                200)
     else:
         return (jsonify([]), 204)
 
@@ -215,6 +218,43 @@ def get_assignment(assignment_id):
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
         }), 200)
+
+
+@app.rout('/api/v1/assignments/<int:assignment_id>', methods=['PATCH'])
+def update_assignment(assignment_id):
+    assig = models.Assignment.query.get(assignment_id)
+    if assig is None:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with id "{}" was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_manage_assignments', assig.course_id)
+
+    content = request.get_json()
+
+    if 'state' in content:
+        if content['state'] not in ['hidden', 'open', 'done']:
+            raise APIException(
+                'Invalid new state',
+                'The state {} is not a valid state'.format(content['state']),
+                APICodes.INVALID_PARAM, 400)
+        if content['state'] == 'open':
+            assig.state = 'submitting'
+        else:
+            assig.state = content['state']
+
+    if 'name' in content:
+        if not isinstance(content['name'], str):
+            raise APIException(
+                'The name of an assignment should be a a string',
+                '{} is not a string'.format(content['name']),
+                APICodes.INVALID_PARAM, 400)
+        assig.name = content['name']
+
+    # TODO also make it possible to update the close date of an assignment
+
+    return 204, ''
 
 
 @app.route(
@@ -371,12 +411,12 @@ def login():
         raise APIException('The supplied email or password is wrong.', (
             'The user with email {} does not exist ' +
             'or has a different password').format(data['email']),
-            APICodes.LOGIN_FAILURE, 400)
+                           APICodes.LOGIN_FAILURE, 400)
 
     if not login_user(user, remember=True):
         raise APIException('User is not active', (
             'The user with id "{}" is not active any more').format(user.id),
-            APICodes.INACTIVE_USER, 403)
+                           APICodes.INACTIVE_USER, 403)
 
     return me()
 
@@ -415,7 +455,7 @@ def upload_work(assignment_id):
         raise APIException('Uploaded files are too big.', (
             'Request is bigger than maximum ' +
             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-            APICodes.REQUEST_TOO_LARGE, 400)
+                           APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
