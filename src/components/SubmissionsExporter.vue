@@ -22,14 +22,7 @@ export default {
 
     methods: {
         downloadCSV: function downloadCSV() {
-            this.$http.get(`/api/v1/assignments/${this.assignment.course_id}/submissions/?csv=${this.fileName}`).then((response) => {
-                const blob = new Blob([response.data], { type: response.headers['content-type'] });
-                const link = document.createElement('a');
-                link.href = window.URL.createObjectURL(blob);
-                link.setAttribute('download', this.fileName);
-                link.download = this.fileName;
-                link.click();
-            });
+            window.open(`/api/v1/assignments/${this.assignment.id}/submissions/?csv=${this.fileName}`);
         },
     },
 };
