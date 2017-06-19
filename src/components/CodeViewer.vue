@@ -98,7 +98,7 @@ export default {
                 this.highlightCode(data.lang);
                 this.linkFiles();
                 this.loading = false;
-            }).catch((exception) => {
+            }).catch(() => {
                 this.codeLines = null;
                 this.loading = false;
             });
