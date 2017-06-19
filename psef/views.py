@@ -549,7 +549,6 @@ def get_user_update():
                            APICodes.MISSING_REQUIRED_PARAM, 400)
 
     user = current_user
-
     if user.password != data['o_password']:
         raise APIException('Incorrect password.',
             'The supplied old password was incorrect',
@@ -558,7 +557,8 @@ def get_user_update():
     auth.ensure_permission('can_edit_own_info')
 
     invalid_input = {'password':'','username':''}
-    invalid_input['password'] = user.validate_password(data['n_password'])
+    if data['n_password'] != '':
+        invalid_input['password'] = user.validate_password(data['n_password'])
     invalid_input['username'] = user.validate_username(data['username'])
 
     if invalid_input['password'] != '' or invalid_input['username'] != '':
@@ -566,9 +566,10 @@ def get_user_update():
             'The supplied username or password did not meet the requirements',
             APICodes.INVALID_PARAM, 422, rest=invalid_input)
 
-    user.username = data['username']
+    user.name = data['username']
     user.email = data['email']
-    user.password = data['n_password']
+    if data['n_password'] != '':
+        user.password = data['n_password']
 
     db.session.commit()
     return ('', 204)

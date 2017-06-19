@@ -12,7 +12,7 @@
                     <b-button type="edit" variant="primary" v-on:click="edit = true">Edit</b-button>
                 </div>
 
-                <div v-else v-on:keyup.enter="loading = true; submit()">
+                <div v-else v-on:keyup.enter="submit()">
                     <div class="form-group">
                         <b-input-group left="Username">
                             <b-form-input  type="text" v-model="username"></b-form-input>
@@ -83,7 +83,7 @@
                             <button type="cancel" class="btn btn-primary" @click="edit = false; resetParams()">Cancel</button>
                         </div>
                         <div class="btn-group">
-                            <button type="submit" class="btn btn-primary" @click="loading = true; submit()">Submit</button>
+                            <button type="submit" class="btn btn-primary" @click="submit()">Submit</button>
                         </div>
                     </div>
                 </div>
@@ -158,6 +158,7 @@ export default {
                 return;
             }
 
+            this.loading = true;
             this.$http.patch('/api/v1/update_user',
                 {
                     username: this.username,
