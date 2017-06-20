@@ -1,5 +1,5 @@
 <template>
-    <div class="page submission-list container">
+    <div class="page submission-list">
         <div class="row justify-content-center">
             <loader :class="`col-md-${canUpload ? 6 : 12} text-center`" v-if="loading < 2"></loader>
             <div :class="`col-md-${canUpload ? 6 : 12}`" v-else>

@@ -1,5 +1,5 @@
 <template>
-    <div class="page submission container">
+    <div class="page submission">
         <div class="row justify-content-center code-browser">
             <h1>{{ title }}</h1>
             <div class="col-10 code-and-grade">

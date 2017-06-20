@@ -1,6 +1,6 @@
 <template>
     <div class="page assignments">
-        <div class="container justify-content-center">
+        <div class="justify-content-center">
             <loader class="col-md-12 text-center" v-if="loading"></loader>
             <div class="col-md-12" v-else>
                 <h1>Assignments</h1>

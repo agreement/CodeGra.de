@@ -11,20 +11,8 @@ export default {
 </script>
 
 <style>
-html {
-    position: relative;
-    min-height: 100%;
-}
-
-.page {
-    /* Margin bottom by footer height */
-    margin-bottom: 80px;
-}
-
 .footer {
     text-align: center;
-    position: absolute;
-    bottom: 0;
     width: 100%;
     /* Set the fixed height of the footer here */
     height: 60px;
