@@ -28,11 +28,11 @@ def login():
 
     # TODO: Use bcrypt password validation (as soon as we got that)
     # TODO: Return error whether user or password is wrong
-    # if user is None or user.password != data['password']:
-    #     raise APIException('The supplied email or password is wrong.', (
-    #         'The user with email {} does not exist ' +
-    #         'or has a different password').format(data['email']),
-    #                        APICodes.LOGIN_FAILURE, 400)
+    if user is None or user.password != data['password']:
+        raise APIException('The supplied email or password is wrong.', (
+            'The user with email {} does not exist ' +
+            'or has a different password').format(data['email']),
+                           APICodes.LOGIN_FAILURE, 400)
 
     if not login_user(user, remember=True):
         raise APIException('User is not active', (
