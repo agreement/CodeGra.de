@@ -7,6 +7,7 @@ import HeaderBar from './HeaderBar';
 import Loader from './Loader';
 import Login from './Login';
 import NavBar from './NavBar';
+import UserInfo from './UserInfo';
 import AssignmentList from './AssignmentList';
 import CodeUploader from './CodeUploader';
 import SubmissionList from './SubmissionList';
@@ -25,6 +26,7 @@ export {
     Loader,
     Login,
     NavBar,
+    UserInfo,
     AssignmentList,
     CodeUploader,
     SubmissionList,
