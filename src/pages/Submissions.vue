@@ -47,6 +47,7 @@ export default {
         this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then((data) => {
             this.loading += 1;
             this.assignment = data.data;
+            this.assignment.id = this.assignmentId;
             const checkDownload = () => {
                 if (this.assignment.state === 3) {
                     this.canDownload = true;

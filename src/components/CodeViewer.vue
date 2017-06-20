@@ -1,6 +1,6 @@
 <template>
   <loader class="col-md-12 text-center" v-if="loading"></loader>
-  <ol class="code-viewer form-control" :class="{ editable }" v-else>
+  <ol v-else-if="!error" class="code-viewer form-control" :class="{ editable }">
     <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines">
       <code v-html="line" @click.capture="onFileClick"></code>
 
@@ -18,13 +18,16 @@
             v-on:click="addFeedback($event, value)"></icon>
     </li>
   </ol>
+  <b-alert variant="danger" show v-else>
+      <center><span>Cannot display file!</span></center>
+  </b-alert>
 </template>
 
 <script>
 import { getLanguage, highlight } from 'highlightjs';
 import Vue from 'vue';
 
-import { bButton, bFormInput, bInputGroup, bInputGroupButton }
+import { bAlert, bButton, bFormInput, bInputGroup, bInputGroupButton }
     from 'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
@@ -67,6 +70,7 @@ export default {
             editing: {},
             feedback: {},
             clicks: {},
+            error: false,
         };
     },
 
@@ -104,6 +108,10 @@ export default {
                 this.codeLines = data.code.split('\n');
                 this.highlightCode(data.lang);
                 this.linkFiles();
+                this.loading = false;
+                this.error = false;
+            }).catch(() => {
+                this.error = true;
                 this.loading = false;
             });
         },
@@ -221,6 +229,7 @@ export default {
         bFormInput,
         bInputGroup,
         bInputGroupButton,
+        bAlert,
         Icon,
         FeedbackArea,
         Loader,

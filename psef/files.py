@@ -11,6 +11,7 @@ from werkzeug.datastructures import FileStorage
 
 import archive
 from psef import app, blackboard
+from psef.errors import APICodes, APIException
 
 _known_archive_extensions = tuple(archive.extension_map.keys())
 
@@ -41,8 +42,14 @@ def get_file_contents(code):
     :rtype: str
     """
     filename = os.path.join(app.config['UPLOAD_DIR'], code.filename)
-    with open(filename, 'r') as codefile:
-        return codefile.read()
+    try:
+        with open(filename, 'r') as codefile:
+            return codefile.read()
+    except UnicodeDecodeError:
+        raise APIException(
+            'File was not readable',
+            'The selected file with id {} was not UTF-8'.format(code.id),
+            APICodes.OBJECT_WRONG_TYPE, 400)
 
 
 def rename_directory_structure(rootdir):
@@ -221,13 +228,16 @@ def process_blackboard_zip(file):
     :rtype: list
     """
     tmpdir = extract_to_temp(file)
-    info_files = filter(None, [_bb_txt_format.match(f) for f in os.listdir(tmpdir)])
+    info_files = filter(None, [_bb_txt_format.match(f)
+                               for f in os.listdir(tmpdir)])
     submissions = []
     for info_file in info_files:
         files = []
-        info = blackboard.parse_info_file(os.path.join(tmpdir, info_file.string))
+        info = blackboard.parse_info_file(
+            os.path.join(tmpdir, info_file.string))
         for file in info.files:
-            files.append(FileStorage(stream=open(os.path.join(tmpdir, file.name), mode='rb'), filename=file.original_name))
+            files.append(FileStorage(stream=open(os.path.join(
+                tmpdir, file.name), mode='rb'), filename=file.original_name))
         tree = process_files(files)
         map(lambda f: f.close(), files)
         submissions.append((info, tree))
