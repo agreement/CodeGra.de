@@ -145,7 +145,7 @@ export default {
             }
 
             this.fileExtension = '';
-            this.$http.get(`/api/v1/file/metadata/${this.fileId}`).then((response) => {
+            this.$http.get(`/api/v1/code/${this.fileId}?type=metadata`).then((response) => {
                 this.fileExtension = response.data.extension;
             });
         },
