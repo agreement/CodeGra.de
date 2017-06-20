@@ -885,11 +885,9 @@ def start_linting(assignment_id):
     db.session.commit()
 
     try:
-        import logging
-        logging.basicConfig()
-        logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
         runner = linters.LinterRunner(
             linters.get_linter_by_name(content['name']), content['cfg'])
+
         thread = threading.Thread(
             target=runner.run,
             args=([t.work_id for t in res.tests], [t.id for t in res.tests],
@@ -897,7 +895,6 @@ def start_linting(assignment_id):
                       request.url_root, '{}')))
 
         thread.start()
-        logging.getLogger('sqlalchemy.engine').setLevel(logging.CRITICAL)
     except:
         for test in res.tests:
             test.state = models.LinterState.crashed
