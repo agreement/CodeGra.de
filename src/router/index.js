@@ -21,19 +21,19 @@ export default new Router({
         {
             path: '/logout',
             name: 'logout',
-            redirect: 'home',
+            redirect: { name: 'home' },
         },
         {
             path: '/me',
             name: 'me',
         },
         {
-            path: '/course/:courseId/assignments/:assignmentId/submissions/:submissionId',
+            path: '/courses/:courseId/assignments/:assignmentId/submissions/:submissionId',
             name: 'submission',
             component: Submission,
         },
         {
-            path: '/course/:courseId/assignments/:assignmentId/submissions/:submissionId/files/:fileId',
+            path: '/courses/:courseId/assignments/:assignmentId/submissions/:submissionId/files/:fileId',
             name: 'submission_file',
             component: Submission,
         },
@@ -48,7 +48,7 @@ export default new Router({
             component: Assignments,
         },
         {
-            path: '/course/:courseId/assignments/:assignmentId/submit',
+            path: '/courses/:courseId/assignments/:assignmentId/submit',
             name: 'assignment_submit',
             component: Submit,
         },

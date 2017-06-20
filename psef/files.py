@@ -11,6 +11,7 @@ from werkzeug.datastructures import FileStorage
 
 import archive
 from psef import app, blackboard
+from psef.errors import APICodes, APIException
 
 _known_archive_extensions = tuple(archive.extension_map.keys())
 
@@ -41,8 +42,14 @@ def get_file_contents(code):
     :rtype: str
     """
     filename = os.path.join(app.config['UPLOAD_DIR'], code.filename)
-    with open(filename, 'r') as codefile:
-        return codefile.read()
+    try:
+        with open(filename, 'r') as codefile:
+            return codefile.read()
+    except UnicodeDecodeError:
+        raise APIException(
+            'File was not readable',
+            'The selected file with id {} was not UTF-8'.format(code.id),
+            APICodes.OBJECT_WRONG_TYPE, 400)
 
 
 def rename_directory_structure(rootdir):
