@@ -1,31 +1,29 @@
 <template>
-  <loader class="col-md-12 text-center" v-if="loading"></loader>
-  <div class="codeviewer" v-else-if="!error">
-    <ol class="code-viewer form-control" :class="{ editable: editable }">
-      <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
-          :class="{ 'linter-feedback': linterFeedback[i] }">
+    <loader class="col-md-12 text-center" v-if="loading"></loader>
+    <ol class="code-viewer form-control" v-else-if="!error" :class="{ editable: editable }">
+        <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
+            :class="{ 'linter-feedback': linterFeedback[i] }">
         <linter-feedback-area :feedback="linterFeedback[i]">
         </linter-feedback-area>
         <code class="nobold" v-html="line"></code>
 
 
         <feedback-area :editing="editing[i] === true"
-                       :feedback='feedback[i]'
-                       :editable='editable'
-                       :line='i'
-                       :fileId='fileId'
-                       v-on:feedbackChange="val => { feedbackChange(i, val); }"
-                       v-on:cancel='onChildCancel'
-                       v-if="feedback[i] != null">
+                        :feedback='feedback[i]'
+                        :editable='editable'
+                        :line='i'
+                        :fileId='fileId'
+                        v-on:feedbackChange="val => { feedbackChange(i, val); }"
+                        v-on:cancel='onChildCancel'
+                        v-if="feedback[i] != null">
         </feedback-area>
         <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
-              v-on:click="addFeedback($event, value)"></icon>
-      </li>
+                v-on:click="addFeedback($event, value)"></icon>
+        </li>
     </ol>
-  </div>
-  <b-alert variant="danger" show v-else>
-    <center><span>Cannot display file!</span></center>
-  </b-alert>
+    <b-alert variant="danger" show v-else>
+        <center><span>Cannot display file!</span></center>
+    </b-alert>
 </template>
 
 <script>
