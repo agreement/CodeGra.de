@@ -47,8 +47,11 @@ def login():
 @api.route("/login", methods=["GET"])
 @login_required
 def me():
+    hidden = current_user.has_course_permission_once(
+        'can_see_hidden_assignments')
     return (jsonify({
         "id": current_user.id,
+        'hidden': hidden,
         "name": current_user.name,
         "email": current_user.email
     }), 200)

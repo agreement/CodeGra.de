@@ -32,21 +32,15 @@ def get_student_assignments():
 
     res = []
 
-    hidden = current_user.has_course_permission_once('can_see_hidden_assignments')
-
     if courses:
         for assignment in models.Assignment.query.filter(
                 models.Assignment.course_id.in_(courses)).all():
-            if (not assignment.is_hidden):
+            print(assignment.course_id, current_user.has_permission(
+                    'can_see_hidden_assignments', assignment.course_id))
+            if ((not assignment.is_hidden) or current_user.has_permission(
+                    'can_see_hidden_assignments', assignment.course_id)):
                 res.append(assignment.to_dict())
-            elif (current_user.has_permission('can_see_hidden_assignments'),
-                  assignment.course_id):
-                hidden = True
-                res.append(assignment.to_dict())
-    return jsonify({
-        'assignments': res,
-        'hidden': hidden,
-    })
+    return jsonify(res)
 
 
 @api.route("/assignments/<int:assignment_id>", methods=['GET'])

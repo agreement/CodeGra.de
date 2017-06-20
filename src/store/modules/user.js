@@ -8,6 +8,7 @@ const getters = {
     snippets: state => state.snippets,
     name: state => state.name,
     permissions: state => state.permissions,
+    canSeeHidden: state => state.canSeeHidden,
 };
 
 const actions = {
@@ -98,6 +99,7 @@ const mutations = {
         state.id = userdata.id;
         state.email = userdata.email;
         state.name = userdata.name;
+        state.canSeeHidden = userdata.hidden;
     },
     [types.SNIPPETS](state, snippets) {
         state.snippets = snippets;
@@ -118,6 +120,7 @@ const mutations = {
         state.name = '';
         state.snippets = null;
         state.permissions = null;
+        state.canSeeHidden = false;
     },
     [types.NEW_SNIPPET](state, { key, value }) {
         state.snippets[key] = value;
@@ -135,6 +138,7 @@ export default {
         name: '',
         snippets: null,
         permissions: null,
+        canSeeHidden: false,
     },
     getters,
     actions,

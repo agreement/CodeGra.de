@@ -171,17 +171,18 @@ class User(db.Model, UserMixin):
     def has_course_permission_once(self, permission):
         if not isinstance(permission, Permission):
             permission = Permission.query.filter_by(name=permission).first()
+        assert permission.course_permission
 
         course_roles = db.session.query(user_course.c.course_id).join(
             User, User.id == user_course.c.user_id).filter(
                 User.id == self.id).subquery('course_roles')
         crp = db.session.query(course_permissions.c.course_role_id).join(
-            Permission, course_permissions.c.permission_id ==
-            Permission.id).subquery('crp')
-        link = db.session.query(
-            db.session.query(course_roles.c.course_id).join(
-                crp, course_roles.c.course_id == crp.c.course_role_id)
-            .exists()).scalar()
+            Permission,
+            course_permissions.c.permission_id == Permission.id).filter(
+                Permission.id == permission.id).subquery('crp')
+        res = db.session.query(course_roles.c.course_id).join(
+            crp, course_roles.c.course_id == crp.c.course_role_id)
+        link = db.session.query(res.exists()).scalar()
 
         return (not link) if permission.default_value else link
 

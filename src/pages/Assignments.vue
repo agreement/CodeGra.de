@@ -11,6 +11,7 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import { AssignmentList, Loader } from '@/components';
 
 export default {
@@ -19,7 +20,6 @@ export default {
     data() {
         return {
             loading: true,
-            canSeeHidden: false,
             assignments: [],
         };
     },
@@ -27,14 +27,19 @@ export default {
     mounted() {
         this.$http.get('/api/v1/assignments/').then(({ data }) => {
             this.loading = false;
-            this.assignments = data.assignments;
-            this.canSeeHidden = data.hidden;
+            this.assignments = data;
+            console.log(this.canSeeHidden);
         });
     },
 
     components: {
         AssignmentList,
         Loader,
+    },
+    computed: {
+        ...mapGetters('user', [
+            'canSeeHidden',
+        ]),
     },
 };
 </script>
