@@ -21,6 +21,15 @@ def get_file_metadata(file_id):
     file = db.session.query(models.File).filter(
         models.File.id == file_id).first()
 
+    if file is None:
+        raise APIException('File not found',
+                           'The file with id {} was not found'.format(file_id),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    if file.work.user.id != current_user.id:
+        auth.ensure_permission('can_view_files',
+                               file.work.assignment.course.id)
+
     return jsonify({"name": file.name, "extension": file.extension})
 
 
@@ -28,6 +37,15 @@ def get_file_metadata(file_id):
 def get_binary(file_id):
     file = db.session.query(models.File).filter(
         models.File.id == file_id).first()
+
+    if file is None:
+        raise APIException('File not found',
+                           'The file with id {} was not found'.format(file_id),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    if file.work.user.id != current_user.id:
+        auth.ensure_permission('can_view_files',
+                               file.work.assignment.course.id)
 
     file_data = psef.files.get_binary_contents(file)
     response = make_response(file_data)
@@ -48,7 +66,7 @@ def get_code(file_id):
                            'The file with id {} was not found'.format(file_id),
                            APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    if (code.work.user.id != current_user.id):
+    if code.work.user.id != current_user.id:
         auth.ensure_permission('can_view_files',
                                code.work.assignment.course.id)
 
@@ -206,9 +224,9 @@ def get_student_assignments():
             'course_id':
             assignment.course_id,
         }
-                         for assignment in models.Assignment.query.filter(
-                             models.Assignment.course_id.in_(courses)).all()]),
-                200)
+            for assignment in models.Assignment.query.filter(
+            models.Assignment.course_id.in_(courses)).all()]),
+            200)
     else:
         return (jsonify([]), 204)
 
@@ -389,12 +407,12 @@ def login():
         raise APIException('The supplied email or password is wrong.', (
             'The user with email {} does not exist ' +
             'or has a different password').format(data['email']),
-                           APICodes.LOGIN_FAILURE, 400)
+            APICodes.LOGIN_FAILURE, 400)
 
     if not login_user(user, remember=True):
         raise APIException('User is not active', (
             'The user with id "{}" is not active any more').format(user.id),
-                           APICodes.INACTIVE_USER, 403)
+            APICodes.INACTIVE_USER, 403)
 
     return me()
 
@@ -493,7 +511,7 @@ def upload_work(assignment_id):
         raise APIException('Uploaded files are too big.', (
             'Request is bigger than maximum ' +
             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-                           APICodes.REQUEST_TOO_LARGE, 400)
+            APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
