@@ -31,6 +31,7 @@
               </b-form-input>
             </b-input-group>
         </div>
+        <feedback-exporter :id="submissionId"></feedback-exporter>
     </div>
 </template>
 
@@ -40,6 +41,8 @@ import 'vue-awesome/icons/refresh';
 import { bButton, bInputGroup, bInputGroupButton } from 'bootstrap-vue/lib/components';
 
 import { mapActions, mapGetters } from 'vuex';
+
+import FeedbackExporter from './FeedbackExporter';
 
 export default {
     name: 'grade-viewer',
@@ -119,6 +122,7 @@ export default {
         bInputGroup,
         bInputGroupButton,
         Icon,
+        FeedbackExporter,
     },
 };
 </script>

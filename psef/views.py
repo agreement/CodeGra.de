@@ -387,6 +387,40 @@ def patch_submission(submission_id):
     return ('', 204)
 
 
+@app.route("/api/v1/submissions/<int:submission_id>/feedback", methods=['GET'])
+def get_raw_feedback(submission_id):
+    comments = models.Comment.query.filter(
+        models.Comment.file.has(work_id=submission_id)).order_by(
+            models.Comment.file_id.desc(), models.Comment.line.desc())
+
+    work = comments.first().file.work
+    assignment = work.assignment
+
+    if 'filename' in request.args:
+        filename = request.args['filename']
+    else:
+        filename = 'test.txt'
+
+    fd, file = tempfile.mkstemp()
+    with open(file, 'w') as fp:
+        fp.write('Assignment: {}\n'
+                 'Grade: {}\n'
+                 'General feedback: \n{}\n\n'
+                 'Comments:\n'.format(assignment.name, work.grade,
+                                      work.comment))
+        for comment in comments:
+            fp.write('{}:{}:0: {}\n'.format(comment.file.get_filename(),
+                                            comment.line, comment.comment))
+
+    @after_this_request
+    def remove_file(response):
+        os.close(fd)
+        os.remove(file)
+        return response
+
+    return send_file(file, attachment_filename=filename, as_attachment=True)
+
+
 @app.route('/api/v1/courses/<int:course_id>/assignments/', methods=['GET'])
 def get_all_course_assignments(course_id):
     auth.ensure_permission('can_see_assignments', course_id)
