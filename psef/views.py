@@ -570,7 +570,7 @@ def get_all_graders(assignment_id):
         models.course_permissions.c.permission_id == permission,
         models.CourseRole.course_id == assignment.course_id).subquery('per')
     result = db.session.query(us.c.name, us.c.id).join(
-        per, us.c.course_id == per.c.course_role_id).all()
+        per, us.c.course_id == per.c.course_role_id).order_by(us.c.name).all()
 
     return jsonify({
         'names_ids': result,
