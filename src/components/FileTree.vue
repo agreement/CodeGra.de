@@ -36,7 +36,7 @@ export default {
         },
         collapsed: {
             type: Boolean,
-            default: true,
+            default: false,
         },
     },
 
