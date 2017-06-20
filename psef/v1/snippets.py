@@ -87,3 +87,4 @@ def delete_snippets(snippet_id):
         db.session.commit()
         return ('', 204)
     pass
+

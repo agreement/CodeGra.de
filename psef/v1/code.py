@@ -1,9 +1,10 @@
-from flask import request
+from flask import request, jsonify
 from flask_login import current_user
 
 import psef.auth as auth
 import psef.models as models
 from psef import db
+import psef.files
 from psef.errors import APICodes, APIException
 from . import api
 
@@ -61,3 +62,43 @@ def remove_comment(id, line):
                            'The comment on line {} was not found'.format(line),
                            APICodes.OBJECT_ID_NOT_FOUND, 404)
     return ('', 204)
+
+
+@api.route("/code/<int:file_id>", methods=['GET'])
+def get_code(file_id):
+    code = db.session.query(models.File).get(file_id)
+    line_feedback = {}
+    linter_feedback = {}
+
+    if code is None:
+        raise APIException('File not found',
+                           'The file with id {} was not found'.format(file_id),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    if (code.work.user.id != current_user.id):
+        auth.ensure_permission('can_view_files',
+                               code.work.assignment.course.id)
+
+    try:
+        auth.ensure_can_see_grade(code.work)
+        for comment in db.session.query(models.Comment).filter_by(
+                file_id=file_id).all():
+            line_feedback[str(comment.line)] = comment.comment
+        for comment in db.session.query(models.LinterComment).filter_by(
+                file_id=file_id).all():
+            if str(comment.line) not in linter_feedback:
+                linter_feedback[str(comment.line)] = {}
+            linter_feedback[str(comment.line)][comment.linter.tester.name] = {
+                'code': comment.linter_code,
+                'msg': comment.comment
+            }
+    except auth.PermissionException:
+        line_feedback = {}
+        linter_feedback = {}
+
+    return jsonify(
+        lang=code.extension,
+        code=psef.files.get_file_contents(code),
+        feedback=line_feedback,
+        linter_feedback=linter_feedback)
+

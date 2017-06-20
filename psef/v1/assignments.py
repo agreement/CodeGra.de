@@ -1,11 +1,15 @@
+import os
+import threading
 from random import shuffle
 from itertools import cycle
 
-from flask import jsonify, request
+from flask import jsonify, request, after_this_request, send_file
 from flask_login import current_user, login_required
+from sqlalchemy.orm import subqueryload
 
 import psef.auth as auth
 import psef.models as models
+import psef.linters as linters
 import psef.files
 from psef import db, app
 from psef.errors import APICodes, APIException
@@ -88,21 +92,6 @@ def update_assignment(assignment_id):
     db.session.commit()
 
     return '', 204
-
-
-@api.route('/courses/<int:course_id>/assignments/', methods=['GET'])
-def get_all_course_assignments(course_id):
-    auth.ensure_permission('can_see_assignments', course_id)
-
-    course = models.Course.query.get(course_id)
-    if course is None:
-        return APIException('Specified course not found',
-                            'The course {} was not found'.format(course_id),
-                            APICodes.OBJECT_ID_NOT_FOUND, 404)
-
-    res = [assig.to_dict() for assig in course.assignments]
-    res.sort(key=lambda item: item['date'])
-    return jsonify(res)
 
 
 @api.route(
@@ -249,4 +238,214 @@ def get_all_graders(assignment_id):
         'divided': res[1] in divided
     } for res in result])
 
+
+@api.route(
+    '/assignments/<int:assignment_id>/submissions/', methods=['GET'])
+def get_all_works_for_assignment(assignment_id):
+    """
+    Return all works for assignment X if the user permission is valid.
+    """
+    assignment = models.Assignment.query.get(assignment_id)
+    if current_user.has_permission(
+            'can_see_others_work', course_id=assignment.course_id):
+        obj = models.Work.query.filter_by(assignment_id=assignment_id)
+    else:
+        obj = models.Work.query.filter_by(
+            assignment_id=assignment_id, user_id=current_user.id)
+
+    res = obj.order_by(models.Work.created_at.desc()).all()
+
+    if 'csv' in request.args:
+        if assignment.state != models.AssignmentStateEnum.done:
+            auth.ensure_permission('can_see_grade_before_open',
+                                   assignment.course.id)
+        headers = [
+            'id', 'user_name', 'user_id', 'grade', 'comment', 'created_at'
+        ]
+        file = psef.files.create_csv_from_rows([headers] + [[
+            work.id, work.user.name
+            if work.user else "Unknown", work.user_id, work.grade,
+            work.comment, work.created_at.strftime("%d-%m-%Y %H:%M")
+        ] for work in res])
+
+        @after_this_request
+        def remove_file(response):
+            os.remove(file)
+            return response
+
+        return send_file(
+            file, attachment_filename=request.args['csv'], as_attachment=True)
+
+    out = []
+    for work in res:
+        item = {
+            'id': work.id,
+            'user_name': work.user.name if work.user else "Unknown",
+            'user_id': work.user_id,
+            'edit': work.edit,
+            'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
+        }
+        try:
+            auth.ensure_can_see_grade(work)
+            item['grade'] = work.grade
+            item['comment'] = work.comment
+        except auth.PermissionException:
+            item['grade'] = '-'
+            item['comment'] = '-'
+        finally:
+            out.append(item)
+
+    return jsonify(out)
+
+
+@api.route(
+    "/assignments/<int:assignment_id>/submissions/", methods=['POST'])
+@login_required
+def post_submissions(assignment_id):
+    """Add submissions to the server from a blackboard zip file.
+    """
+    assignment = models.Assignment.query.get(assignment_id)
+
+    if not assignment:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with code {} was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    auth.ensure_permission('can_manage_course', assignment.course.id)
+
+    if len(request.files) == 0:
+        raise APIException("No file in HTTP request.",
+                           "There was no file in the HTTP request.",
+                           APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    if not 'file' in request.files:
+        key_string = ", ".join(request.files.keys())
+        raise APIException('The parameter name should be "file".',
+                           'Expected ^file$ got [{}].'.format(key_string),
+                           APICodes.INVALID_PARAM, 400)
+
+    file = request.files['file']
+    submissions = psef.files.process_blackboard_zip(file)
+
+    for submission_info, submission_tree in submissions:
+        user = models.User.query.filter_by(
+            name=submission_info.student_name).first()
+
+        if user is None:
+            perms = {
+                assignment.course.id:
+                models.CourseRole.query.filter_by(
+                    name='student', course_id=assignment.course.id).first()
+            }
+            user = models.User(
+                name=submission_info.student_name,
+                courses=perms,
+                email=submission_info.student_name + '@example.com',
+                password='password',
+                role=models.Role.query.filter_by(name='student').first())
+
+            db.session.add(user)
+        work = models.Work(
+            assignment_id=assignment.id,
+            user=user,
+            created_at=submission_info.created_at,
+            grade=submission_info.grade)
+        db.session.add(work)
+        work.add_file_tree(db.session, submission_tree)
+
+    db.session.commit()
+
+    return ('', 204)
+
+
+@api.route('/assignments/<int:assignment_id>/linters/', methods=['GET'])
+def get_linters(assignment_id):
+    assignment = models.Assignment.query.get(assignment_id)
+
+    if assignment is None:
+        raise APIException(
+            'The specified assignment could not be found',
+            'Assignment {} does not exist'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_use_linter', assignment.course_id)
+
+    res = []
+    for name, opts in linters.get_all_linters().items():
+        linter = models.AssignmentLinter.query.filter_by(
+            assignment_id=assignment_id, name=name).first()
+
+        if linter:
+            running = db.session.query(
+                models.LinterInstance.query.filter(
+                    models.LinterInstance.tester_id == linter.id,
+                    models.LinterInstance.state == models.LinterState.running)
+                .exists()).scalar()
+            crashed = db.session.query(
+                models.LinterInstance.query.filter(
+                    models.LinterInstance.tester_id == linter.id,
+                    models.LinterInstance.state == models.LinterState.crashed)
+                .exists()).scalar()
+            if running:
+                state = models.LinterState.running
+            elif crashed:
+                state = models.LinterState.crashed
+            else:
+                state = models.LinterState.done
+            opts['id'] = linter.id
+        else:
+            state = -1
+        opts['state'] = state
+        res.append({'name': name, **opts})
+    res.sort(key=lambda item: item['name'])
+    return jsonify(res)
+
+
+@api.route('/assignments/<int:assignment_id>/linter', methods=['POST'])
+def start_linting(assignment_id):
+    content = request.get_json()
+
+    if not ('cfg' in content and 'name' in content):
+        raise APIException(
+            'Missing required params.',
+            'Missing one ore more of children, cfg or name in the payload',
+            APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    if db.session.query(
+            models.LinterInstance.query.filter(
+                models.AssignmentLinter.assignment_id == assignment_id,
+                models.AssignmentLinter.name == content['name'])
+            .exists()).scalar():
+        raise APIException(
+            'There is still a linter instance running',
+            'There is a linter named "{}" running for assignment {}'.format(
+                content['name'], assignment_id), APICodes.INVALID_STATE, 409)
+
+    perm = models.Assignment.query.get(assignment_id)
+    auth.ensure_permission('can_use_linter', perm.course_id)
+    res = models.AssignmentLinter.create_tester(assignment_id, content['name'])
+    db.session.add(res)
+    db.session.commit()
+
+    codes = []
+    tokens = []
+    try:
+        for test in res.tests:
+            tokens.append(test.id)
+            codes.append(
+                models.File.query.options(subqueryload('children')).filter_by(
+                    parent=None, work_id=test.work_id).first())
+            runner = linters.LinterRunner(
+                linters.get_linter_by_name(content['name']), content['cfg'])
+            thread = threading.Thread(
+                target=runner.run,
+                args=(codes, tokens, '{}api/v1/linter_comments/{}'.format(
+                    request.url_root, '{}')))
+        thread.start()
+    except:
+        for test in res.tests:
+            test.state = models.LinterState.crashed
+        db.session.commit()
+    finally:
+        return linters.get_linter_state(res.id)
 
