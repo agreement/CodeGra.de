@@ -1,7 +1,7 @@
 <template>
   <div class="page submission-list">
     <div class="row justify-content-center">
-      <loader :class="`col-md-${canUpload ? 5 : 10} text-center`" v-if="loading < 2"></loader>
+      <loader :class="`col-md-${canUpload ? 5 : 10} text-center`" v-if="loading < 4"></loader>
       <div :class="`col-md-${canUpload ? 5 : 10}`" v-else>
         <h1>Submissions</h1>
         <submission-list :submissions="submissions"></submission-list>
@@ -21,6 +21,8 @@ import { mapActions } from 'vuex';
 import { SubmissionList, CodeUploader, Loader, SubmissionsExporter }
     from '@/components';
 
+import * as assignmentState from '../store/assignment-states';
+
 export default {
     name: 'submission-list-page',
 
@@ -37,23 +39,28 @@ export default {
     },
 
     mounted() {
-        this.hasPermission('can_submit_own_work').then((val) => {
-            this.canUpload = val;
-        });
         this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then((data) => {
-            this.loading += 1;
+            this.partDone();
             this.submissions = data.data;
         });
+
         this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then((data) => {
-            this.loading += 1;
             this.assignment = data.data;
             this.assignment.id = this.assignmentId;
+
+            this.hasPermission('can_submit_own_work').then((val) => {
+                this.canUpload = val && this.assignment.open;
+                this.partDone();
+            });
+
             const checkDownload = () => {
-                if (this.assignment.state === 3) {
+                if (this.assignment.state === assignmentState.DONE) {
                     this.canDownload = true;
+                    this.partDone();
                 } else {
                     this.hasPermission('can_see_grade_before_open').then((res) => {
                         this.canDownload = res;
+                        this.partDone();
                     });
                 }
             };
@@ -61,6 +68,8 @@ export default {
             this.hasPermission('can_see_others_work').then((res) => {
                 if (res) {
                     this.checkDownload();
+                } else {
+                    this.partDone();
                 }
             });
         });
@@ -69,6 +78,9 @@ export default {
     methods: {
         hasPermission(perm) {
             return this.u_hasPermission({ name: perm, course_id: this.courseId });
+        },
+        partDone() {
+            this.loading += 1;
         },
         gotoSubmission(submission) {
             this.$router.push({

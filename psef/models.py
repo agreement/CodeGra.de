@@ -8,6 +8,7 @@ from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 from psef import db, login_manager
+from psef.helpers import get_request_start_time
 from sqlalchemy_utils import PasswordType
 
 permissions = db.Table('roles-permissions',
@@ -157,6 +158,8 @@ class User(db.Model, UserMixin):
     role = db.relationship('Role', foreign_keys=role_id)
 
     def has_permission(self, permission, course_id=None):
+        if not self.active:
+            return False
         if course_id is None:
             return self.role.has_permission(permission)
         else:
@@ -164,6 +167,23 @@ class User(db.Model, UserMixin):
                 course_id = course_id.id
             return (course_id in self.courses and
                     self.courses[course_id].has_permission(permission))
+
+    def has_course_permission_once(self, permission):
+        if not isinstance(permission, Permission):
+            permission = Permission.query.filter_by(name=permission).first()
+
+        course_roles = db.session.query(user_course.c.course_id).join(
+            User, User.id == user_course.c.user_id).filter(
+                User.id == self.id).subquery('course_roles')
+        crp = db.session.query(course_permissions.c.course_role_id).join(
+            Permission, course_permissions.c.permission_id ==
+            Permission.id).subquery('crp')
+        link = db.session.query(
+            db.session.query(course_roles.c.course_id).join(
+                crp, course_roles.c.course_id == crp.c.course_role_id)
+            .exists()).scalar()
+
+        return (not link) if permission.default_value else link
 
     def get_all_permissions(self, course_id=None):
         if isinstance(course_id, Course):
@@ -193,17 +213,17 @@ class User(db.Model, UserMixin):
     def validate_username(username):
         min_len = 3
         if len(username) < min_len:
-            return('use at least {} chars'.format(min_len))
+            return ('use at least {} chars'.format(min_len))
         else:
-            return('')
+            return ('')
 
     @staticmethod
     def validate_password(password):
         min_len = 3
         if len(password) < min_len:
-            return('use at least {} chars'.format(min_len))
+            return ('use at least {} chars'.format(min_len))
         else:
-            return('')
+            return ('')
 
 
 class Course(db.Model):
@@ -409,11 +429,10 @@ class LinterInstance(db.Model):
 
 
 @enum.unique
-class AssignmentStateEnum(enum.IntEnum):
+class _AssignmentStateEnum(enum.IntEnum):
     hidden = 0
-    submitting = 1
-    grading = 2
-    done = 3
+    open = 1
+    done = 2
 
 
 class Assignment(db.Model):
@@ -422,30 +441,71 @@ class Assignment(db.Model):
     name = db.Column('name', db.Unicode)
     state = db.Column(
         'state',
-        db.Enum(AssignmentStateEnum),
-        default=AssignmentStateEnum.hidden,
+        db.Enum(_AssignmentStateEnum),
+        default=_AssignmentStateEnum.hidden,
         nullable=False)
     description = db.Column('description', db.Unicode, default='')
     course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    deadline = db.Column('deadline', db.DateTime)
 
     course = db.relationship(
         'Course', foreign_keys=course_id, back_populates='assignments')
 
+    @property
+    def is_open(self):
+        if (self.state == _AssignmentStateEnum.open and
+                self.deadline >= get_request_start_time()):
+            return True
+        return False
+
+    @property
+    def is_hidden(self):
+        return self.state == _AssignmentStateEnum.hidden
+
+    @property
+    def is_closed(self):
+        return self.state == _AssignmentStateEnum.closed
+
+    @property
+    def is_done(self):
+        return self.state == _AssignmentStateEnum.done
+
+    @property
+    def state_name(self):
+        if self.state == _AssignmentStateEnum.open:
+            return 'submitting' if self.is_open else 'grading'
+        return _AssignmentStateEnum(self.state).name
+
     def to_dict(self):
-        state_name = '-'
-        if self.state is not None:
-            state_name = AssignmentStateEnum(self.state).name
         return {
             'id': self.id,
-            'state': self.state,
-            'state_name': state_name,
+            'state': self.state_name,
+            'open': self.is_open,
             'description': self.description,
             'date': self.created_at.strftime('%Y-%m-%dT%H:%M'),
             'name': self.name,
             'course_name': self.course.name,
             'course_id': self.course_id,
         }
+
+    def set_state(self, state):
+        """Update the current state.
+
+        You can update the state to hidden, done or open. A assignment can not
+        be updated to 'submitting' or 'grading' as this is an assignment with
+        state of 'open' and, respectively, a deadline before or after the
+        current time.
+
+        :param str state: The new state, can be 'hidden', 'done' or 'open'
+        :rtype: None
+        """
+        if state == 'open':
+            self.state = _AssignmentStateEnum.open
+        elif state in {'done', 'hidden'}:
+            self.state = _AssignmentStateEnum(state)
+        else:
+            raise TypeError()
 
     def get_all_latest_submissions(self):
         sub = db.session.query(

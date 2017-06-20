@@ -17,13 +17,13 @@
                 <b-input-group-button @click.native="updateState">
                     <b-button-group>
                         <b-tooltip placement="bottom" content="Hidden">
-                            <b-button :variant="state_name == 'hidden' ? 'danger' : 'outline-danger'" value="hidden"><icon name="eye-slash"></icon></b-button>
+                            <b-button :variant="state == assignmentState.HIDDEN ? 'danger' : 'outline-danger'" value="hidden"><icon name="eye-slash"></icon></b-button>
                         </b-tooltip>
                         <b-tooltip placement="bottom" content="Open">
-                            <b-button :variant="['open', 'grading', 'submitting'].indexOf(state_name) >= 0 ? 'warning' : 'outline-warning'" value="open"><icon name="clock-o"></icon></b-button>
+                            <b-button :variant="state == assignmentState.SUBMITTING || state == assignmentState.GRADING ? 'warning' : 'outline-warning'" value="open"><icon name="clock-o"></icon></b-button>
                         </b-tooltip>
                         <b-tooltip placement="bottom" content="Done">
-                            <b-button :variant="state_name == 'done' ? 'success' : 'outline-success'" value="done"><icon name="check"></icon></b-button>
+                            <b-button :variant="state_name == assignmentState.DONE ? 'success' : 'outline-success'" value="done"><icon name="check"></icon></b-button>
                         </b-tooltip>
                     </b-button-group>
                 </b-input-group-button>
@@ -41,6 +41,8 @@ import 'vue-awesome/icons/eye-slash';
 import 'vue-awesome/icons/clock-o';
 import 'vue-awesome/icons/check';
 
+import * as assignmentState from '../store/assignment-states';
+
 export default {
     name: 'assignment-state',
 
@@ -53,6 +55,7 @@ export default {
 
     data() {
         return {
+            assignmentState,
             name: this.assignment ? this.assignment.name : '',
             date: this.assignment ? this.assignment.date : 0,
             state_name: this.assignment ? this.assignment.state_name : 'hidden',

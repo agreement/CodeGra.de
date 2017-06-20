@@ -29,14 +29,24 @@ def get_student_assignments():
     for course_role in current_user.courses.values():
         if course_role.has_permission(perm):
             courses.append(course_role.course_id)
+
+    res = []
+
+    hidden = current_user.has_course_permission_once('can_see_hidden_assignments')
+
     if courses:
-        return jsonify([
-            assignment.to_dict()
-            for assignment in models.Assignment.query.filter(
-                models.Assignment.course_id.in_(courses)).all()
-        ])
-    else:
-        return (jsonify([]), 204)
+        for assignment in models.Assignment.query.filter(
+                models.Assignment.course_id.in_(courses)).all():
+            if (not assignment.is_hidden):
+                res.append(assignment.to_dict())
+            elif (current_user.has_permission('can_see_hidden_assignments'),
+                  assignment.course_id):
+                hidden = True
+                res.append(assignment.to_dict())
+    return jsonify({
+        'assignments': res,
+        'hidden': hidden,
+    })
 
 
 @api.route("/assignments/<int:assignment_id>", methods=['GET'])
@@ -46,6 +56,9 @@ def get_assignment(assignment_id):
     """
     assignment = models.Assignment.query.get(assignment_id)
     auth.ensure_permission('can_see_assignments', assignment.course_id)
+    if assignment.is_hidden:
+        auth.ensure_permission('can_see_hidden_assignments',
+                               assignment.course_id)
     if assignment is None:
         raise APIException(
             'Assignment not found',
@@ -68,17 +81,13 @@ def update_assignment(assignment_id):
 
     content = request.get_json()
 
-    print(content)
     if 'state' in content:
         if content['state'] not in ['hidden', 'open', 'done']:
             raise APIException(
                 'Invalid new state',
                 'The state {} is not a valid state'.format(content['state']),
                 APICodes.INVALID_PARAM, 400)
-        if content['state'] == 'open':
-            assig.state = 'submitting'
-        else:
-            assig.state = content['state']
+        assig.set_state(content['state'])
 
     if 'name' in content:
         if not isinstance(content['name'], str):
@@ -140,6 +149,9 @@ def upload_work(assignment_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     auth.ensure_permission('can_submit_own_work', assignment.course.id)
+    if not assignment.is_open:
+        auth.ensure_permission('can_upload_after_deadline',
+                               assignment.course.id)
 
     work = models.Work(assignment_id=assignment_id, user_id=current_user.id)
     db.session.add(work)
@@ -252,10 +264,14 @@ def get_all_works_for_assignment(assignment_id):
         obj = models.Work.query.filter_by(
             assignment_id=assignment_id, user_id=current_user.id)
 
+    if assignment.is_hidden:
+        current_user.has_permission('can_see_hidden_assignments',
+                                    assignment.course_id)
+
     res = obj.order_by(models.Work.created_at.desc()).all()
 
     if 'csv' in request.args:
-        if assignment.state != models.AssignmentStateEnum.done:
+        if not assignment.is_done:
             auth.ensure_permission('can_see_grade_before_open',
                                    assignment.course.id)
         headers = [
@@ -298,7 +314,6 @@ def get_all_works_for_assignment(assignment_id):
 
 
 @api.route("/assignments/<int:assignment_id>/submissions/", methods=['POST'])
-@login_required
 def post_submissions(assignment_id):
     """Add submissions to the server from a blackboard zip file.
     """
@@ -358,6 +373,8 @@ def post_submissions(assignment_id):
 
 @api.route('/assignments/<int:assignment_id>/linters/', methods=['GET'])
 def get_linters(assignment_id):
+    """Get all linters for the given assignment.
+    """
     assignment = models.Assignment.query.get(assignment_id)
 
     if assignment is None:
