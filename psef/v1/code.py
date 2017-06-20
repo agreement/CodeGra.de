@@ -1,11 +1,12 @@
-from flask import request, jsonify
+from flask import jsonify, request, make_response
 from flask_login import current_user
 
 import psef.auth as auth
+import psef.files
 import psef.models as models
 from psef import db
-import psef.files
 from psef.errors import APICodes, APIException
+
 from . import api
 
 
@@ -64,8 +65,36 @@ def remove_comment(id, line):
     return ('', 204)
 
 
+def get_binary_file(file_id):
+    file = db.session.query(models.File).filter(
+        models.File.id == file_id).first()
+
+    file_data = psef.files.get_binary_contents(file)
+    response = make_response(file_data)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = 'inline; filename=' + file.name
+
+    return response
+
+
+def get_file_metadata(file_id):
+    file = db.session.query(models.File).filter(
+        models.File.id == file_id).first()
+
+    return jsonify({"name": file.name, "extension": file.extension})
+
+
 @api.route("/code/<int:file_id>", methods=['GET'])
 def get_code(file_id):
+    if 'type' in request.args and request.args['type'] == 'metadata':
+        return get_file_metadata(file_id)
+    if 'type' in request.args and request.args['type'] == 'binary':
+        return get_binary_file(file_id)
+    else:
+        return get_plain_text_code(file_id)
+
+
+def get_plain_text_code(file_id):
     code = db.session.query(models.File).get(file_id)
     line_feedback = {}
     linter_feedback = {}
@@ -101,4 +130,3 @@ def get_code(file_id):
         code=psef.files.get_file_contents(code),
         feedback=line_feedback,
         linter_feedback=linter_feedback)
-
