@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 import os
-
-from flask import jsonify, request, send_file, after_this_request, make_response
-from flask_login import login_user, logout_user, current_user, login_required
-from sqlalchemy_utils.functions import dependent_objects
-from itertools import cycle
+import threading
 from random import shuffle
+from itertools import cycle
+
+from flask import jsonify, request, send_file, make_response, after_this_request
+from flask_login import login_user, logout_user, current_user, login_required
+from sqlalchemy.orm import subqueryload
 
 import psef.auth as auth
 import psef.files
 import psef.models as models
+import psef.linters as linters
 from psef import db, app
 from psef.errors import APICodes, APIException
 
@@ -38,8 +40,8 @@ def get_binary(file_id):
 @app.route("/api/v1/code/<int:file_id>", methods=['GET'])
 def get_code(file_id):
     code = db.session.query(models.File).get(file_id)
-    assig = code.work.assignment
     line_feedback = {}
+    linter_feedback = {}
 
     if code is None:
         raise APIException('File not found',
@@ -55,14 +57,23 @@ def get_code(file_id):
         for comment in db.session.query(models.Comment).filter_by(
                 file_id=file_id).all():
             line_feedback[str(comment.line)] = comment.comment
+        for comment in db.session.query(models.LinterComment).filter_by(
+                file_id=file_id).all():
+            if str(comment.line) not in linter_feedback:
+                linter_feedback[str(comment.line)] = {}
+            linter_feedback[str(comment.line)][comment.linter.tester.name] = {
+                'code': comment.linter_code,
+                'msg': comment.comment
+            }
     except auth.PermissionException:
         line_feedback = {}
+        linter_feedback = {}
 
-    # TODO: Return JSON following API
     return jsonify(
         lang=code.extension,
         code=psef.files.get_file_contents(code),
-        feedback=line_feedback)
+        feedback=line_feedback,
+        linter_feedback=linter_feedback)
 
 
 @app.route("/api/v1/code/<int:id>/comments/<int:line>", methods=['PUT'])
@@ -75,6 +86,7 @@ def put_comment(id, line):
     comment = db.session.query(models.Comment).filter(
         models.Comment.file_id == id,
         models.Comment.line == line).one_or_none()
+
     if not comment:
         file = db.session.query(models.File).get(id)
         auth.ensure_permission('can_grade_work',
@@ -244,13 +256,12 @@ def get_all_works_for_assignment(assignment_id):
             auth.ensure_permission('can_see_grade_before_open',
                                    assignment.course.id)
         headers = [
-            'id', 'user_name', 'user_id', 'state', 'edit', 'grade', 'comment',
-            'created_at'
+            'id', 'user_name', 'user_id', 'grade', 'comment', 'created_at'
         ]
         file = psef.files.create_csv_from_rows([headers] + [[
-            work.id, work.user.name if work.user else "Unknown", work.user_id,
-            work.grade, work.comment,
-            work.created_at.strftime("%d-%m-%Y %H:%M")
+            work.id, work.user.name
+            if work.user else "Unknown", work.user_id, work.grade,
+            work.comment, work.created_at.strftime("%d-%m-%Y %H:%M")
         ] for work in res])
 
         @after_this_request
@@ -315,7 +326,8 @@ def get_submission(submission_id):
 @app.route("/api/v1/submissions/<int:submission_id>", methods=['PATCH'])
 def patch_submission(submission_id):
     """
-    Update submission X if it already exists and if the user permission is valid.
+    Update submission X if it already exists and if the user permission is
+    valid.
 
     Raises APIException:
         - If submission X was not found
@@ -374,17 +386,15 @@ def login():
     # TODO: Use bcrypt password validation (as soon as we got that)
     # TODO: Return error whether user or password is wrong
     if user is None or user.password != data['password']:
-        raise APIException(
-            'The supplied email or password is wrong.',
-            ('The user with email {} does not exist ' +
-             'or has a different password').format(data['email']),
-            APICodes.LOGIN_FAILURE, 400)
+        raise APIException('The supplied email or password is wrong.', (
+            'The user with email {} does not exist ' +
+            'or has a different password').format(data['email']),
+                           APICodes.LOGIN_FAILURE, 400)
 
     if not login_user(user, remember=True):
-        raise APIException(
-            'User is not active',
-            ('The user with id "{}" is not active any more').format(user.id),
-            APICodes.INACTIVE_USER, 403)
+        raise APIException('User is not active', (
+            'The user with id "{}" is not active any more').format(user.id),
+                           APICodes.INACTIVE_USER, 403)
 
     return me()
 
@@ -406,6 +416,66 @@ def logout():
 
 
 @app.route(
+    "/api/v1/assignments/<int:assignment_id>/submissions/", methods=['POST'])
+@login_required
+def post_submissions(assignment_id):
+    """Add submissions to the server from a blackboard zip file.
+    """
+    assignment = models.Assignment.query.get(assignment_id)
+
+    if not assignment:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with code {} was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    auth.ensure_permission('can_manage_course', assignment.course.id)
+
+    if len(request.files) == 0:
+        raise APIException("No file in HTTP request.",
+                           "There was no file in the HTTP request.",
+                           APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    if not 'file' in request.files:
+        key_string = ", ".join(request.files.keys())
+        raise APIException('The parameter name should be "file".',
+                           'Expected ^file$ got [{}].'.format(key_string),
+                           APICodes.INVALID_PARAM, 400)
+
+    file = request.files['file']
+    submissions = psef.files.process_blackboard_zip(file)
+
+    for submission_info, submission_tree in submissions:
+        user = models.User.query.filter_by(
+            name=submission_info.student_name).first()
+
+        if user is None:
+            perms = {
+                assignment.course.id:
+                models.CourseRole.query.filter_by(
+                    name='student', course_id=assignment.course.id).first()
+            }
+            user = models.User(
+                name=submission_info.student_name,
+                courses=perms,
+                email=submission_info.student_name + '@example.com',
+                password='password',
+                role=models.Role.query.filter_by(name='student').first())
+
+            db.session.add(user)
+        work = models.Work(
+            assignment_id=assignment.id,
+            user=user,
+            created_at=submission_info.created_at,
+            grade=submission_info.grade)
+        db.session.add(work)
+        work.add_file_tree(db.session, submission_tree)
+
+    db.session.commit()
+
+    return ('', 204)
+
+
+@app.route(
     "/api/v1/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id):
     """
@@ -420,11 +490,10 @@ def upload_work(assignment_id):
 
     if (request.content_length and
             request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException(
-            'Uploaded files are too big.',
-            ('Request is bigger than maximum ' +
-             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-            APICodes.REQUEST_TOO_LARGE, 400)
+        raise APIException('Uploaded files are too big.', (
+            'Request is bigger than maximum ' +
+            'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
+                           APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
@@ -604,6 +673,7 @@ def add_snippet():
 
     return (jsonify({'id': snippet.id}), 201)
 
+
 @app.route('/api/v1/snippets/<int:snippet_id>', methods=['PATCH'])
 @auth.permission_required('can_use_snippets')
 def patch_snippet(snippet_id):
@@ -615,10 +685,9 @@ def patch_snippet(snippet_id):
             format(content), APICodes.MISSING_REQUIRED_PARAM, 400)
     snip = models.Snippet.query.get(snippet_id)
     if snip is None:
-        raise APIException(
-            'Snippet not found',
-            'The snippet with id {} was not found'.format(snip),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+        raise APIException('Snippet not found',
+                           'The snippet with id {} was not found'.format(snip),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
     if snip.user.id != current_user.id:
         raise APIException(
             'The given snippet is not your snippet',
@@ -651,3 +720,232 @@ def delete_snippets(snippet_id):
         db.session.commit()
         return ('', 204)
     pass
+
+
+@app.route('/api/v1/linter_comments/<token>', methods=['PUT'])
+def put_linter_comment(token):
+    unit = models.LinterInstance.query.get(token)
+
+    if unit is None:
+        raise APIException(
+            'Linter was not found',
+            'The linter with token "{}" was not found'.format(token),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    content = request.get_json()
+
+    if 'crashed' in content:
+        unit.state = models.LinterState.crashed
+        db.session.commit()
+        return '', 204
+
+    unit.state = models.LinterState.done
+
+    if 'files' not in content:
+        raise APIException('Not all required keys were found',
+                           'The keys "file" was missing form the request body',
+                           APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    with db.session.no_autoflush:
+        for file_id, feedbacks in content['files'].items():
+            f = models.File.query.get(file_id)
+            if f is None or f.work_id != unit.work_id:
+                pass
+
+            # TODO: maybe simply delete all comments for this linter on
+            # this file
+            comments = models.LinterComment.query.filter_by(
+                linter_id=unit.id, file_id=file_id).all()
+            lookup = {c.line: c for c in comments}
+
+            for line, code, feedback in feedbacks:
+                if line in lookup:
+                    lookup[line].comment = feedback
+                    lookup[line].linter_code = code
+                else:
+                    c = models.LinterComment(
+                        file_id=file_id,
+                        line=line,
+                        linter_code=code,
+                        linter_id=unit.id,
+                        comment=feedback)
+                    lookup[line] = c
+                    db.session.add(c)
+
+    db.session.commit()
+    return '', 204
+
+
+@app.route('/api/v1/assignments/<int:assignment_id>/linters/', methods=['GET'])
+def get_linters(assignment_id):
+    assignment = models.Assignment.query.get(assignment_id)
+
+    if assignment is None:
+        raise APIException(
+            'The specified assignment could not be found',
+            'Assignment {} does not exist'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_use_linter', assignment.course_id)
+
+    res = []
+    for name, opts in linters.get_all_linters().items():
+        linter = models.AssignmentLinter.query.filter_by(
+            assignment_id=assignment_id, name=name).first()
+
+        if linter:
+            running = db.session.query(
+                models.LinterInstance.query.filter(
+                    models.LinterInstance.tester_id == linter.id,
+                    models.LinterInstance.state == models.LinterState.running)
+                .exists()).scalar()
+            crashed = db.session.query(
+                models.LinterInstance.query.filter(
+                    models.LinterInstance.tester_id == linter.id,
+                    models.LinterInstance.state == models.LinterState.crashed)
+                .exists()).scalar()
+            if running:
+                state = models.LinterState.running
+            elif crashed:
+                state = models.LinterState.crashed
+            else:
+                state = models.LinterState.done
+            opts['id'] = linter.id
+        else:
+            state = -1
+        opts['state'] = state
+        res.append({'name': name, **opts})
+    res.sort(key=lambda item: item['name'])
+    return jsonify(res)
+
+
+@app.route('/api/v1/linters/<linter_id>', methods=['DELETE'])
+def delete_linter_output(linter_id):
+    linter = models.AssignmentLinter.query.get(linter_id)
+
+    if linter is None:
+        raise APIException('Specified linter was not found',
+                           'Linter {} was not found'.format(linter_id),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_use_linter', linter.assignment.course_id)
+
+    db.session.delete(linter)
+    db.session.commit()
+
+    return '', 204
+
+
+@app.route('/api/v1/linters/<linter_id>', methods=['GET'])
+def get_linter_state(linter_id):
+    res = []
+    any_working = False
+    crashed = False
+    # check for user rights
+    perm = db.session.query(models.AssignmentLinter).get(linter_id)
+    auth.ensure_permission('can_use_linter', perm.assignment.course_id)
+    for test in models.AssignmentLinter.query.get(linter_id).tests:
+        if test.state == models.LinterState.running:
+            any_working = True
+        elif test.state == models.LinterState.crashed:
+            crashed = True
+        res.append((test.work.user.name, test.state))
+    res.sort(key=lambda el: el[0])
+    return jsonify({
+        'children': res,
+        'done': not any_working,
+        'crashed': not any_working and crashed,
+        'id': linter_id,
+    })
+
+
+@app.route('/api/v1/assignments/<int:assignment_id>/linter', methods=['POST'])
+def start_linting(assignment_id):
+    content = request.get_json()
+
+    if not ('cfg' in content and 'name' in content):
+        raise APIException(
+            'Missing required params.',
+            'Missing one ore more of children, cfg or name in the payload',
+            APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    if db.session.query(
+            models.LinterInstance.query.filter(
+                models.AssignmentLinter.assignment_id == assignment_id,
+                models.AssignmentLinter.name == content['name'])
+            .exists()).scalar():
+        raise APIException(
+            'There is still a linter instance running',
+            'There is a linter named "{}" running for assignment {}'.format(
+                content['name'], assignment_id), APICodes.INVALID_STATE, 409)
+
+    perm = models.Assignment.query.get(assignment_id)
+    auth.ensure_permission('can_use_linter', perm.course_id)
+    res = models.AssignmentLinter.create_tester(assignment_id, content['name'])
+    db.session.add(res)
+    db.session.commit()
+
+    codes = []
+    tokens = []
+    try:
+        for test in res.tests:
+            tokens.append(test.id)
+            codes.append(
+                models.File.query.options(subqueryload('children')).filter_by(
+                    parent=None, work_id=test.work_id).first())
+            runner = linters.LinterRunner(
+                linters.get_linter_by_name(content['name']), content['cfg'])
+            thread = threading.Thread(
+                target=runner.run,
+                args=(codes, tokens, '{}api/v1/linter_comments/{}'.format(
+                    request.url_root, '{}')))
+        thread.start()
+    except:
+        for test in res.tests:
+            test.state = models.LinterState.crashed
+        db.session.commit()
+    finally:
+        return get_linter_state(res.id)
+
+
+@app.route('/api/v1/update_user', methods=['PATCH'])
+@login_required
+def get_user_update():
+    data = request.get_json()
+
+    required_keys = ['email', 'o_password', 'username', 'n_password']
+    if not all(k in data for k in required_keys):
+        raise APIException(
+            'Email, username, n_password and o_password are required fields',
+            ('Email, username, n_password or ' +
+             'o_password was missing from the request'),
+            APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    user = current_user
+    if user.password != data['o_password']:
+        raise APIException('Incorrect password.',
+                           'The supplied old password was incorrect',
+                           APICodes.INVALID_CREDENTIALS, 422)
+
+    auth.ensure_permission('can_edit_own_info')
+
+    invalid_input = {'password': '', 'username': ''}
+    if data['n_password'] != '':
+        invalid_input['password'] = user.validate_password(data['n_password'])
+    invalid_input['username'] = user.validate_username(data['username'])
+
+    if invalid_input['password'] != '' or invalid_input['username'] != '':
+        raise APIException(
+            'Invalid password or username.',
+            'The supplied username or password did not meet the requirements',
+            APICodes.INVALID_PARAM,
+            422,
+            rest=invalid_input)
+
+    user.name = data['username']
+    user.email = data['email']
+    if data['n_password'] != '':
+        user.password = data['n_password']
+
+    db.session.commit()
+    return ('', 204)

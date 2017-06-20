@@ -2,7 +2,7 @@
     <div class="page submission">
         <div class="row justify-content-center code-browser">
             <h1>{{ title }}</h1>
-            <div class="col-10 code-and-grade">
+            <div class="col-8 code-and-grade">
                 <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
                 <code-viewer class="" :editable="editable" :id="fileId"
                     :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>

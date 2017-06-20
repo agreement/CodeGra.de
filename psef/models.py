@@ -1,14 +1,14 @@
 import os
 import enum
+import uuid
 import datetime
 
 from flask_login import UserMixin
-from sqlalchemy_utils import PasswordType
-from sqlalchemy.sql.expression import and_, or_, null, false, func
+from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
-
 from psef import db, login_manager
+from sqlalchemy_utils import PasswordType
 
 permissions = db.Table('roles-permissions',
                        db.Column('permission_id', db.Integer,
@@ -60,6 +60,7 @@ class CourseRole(db.Model):
             permission_name = permission.name
         else:
             permission_name = permission
+
         if permission_name in self._permissions:
             perm = self._permissions[permission_name]
             return perm.course_permission and not perm.default_value
@@ -67,6 +68,7 @@ class CourseRole(db.Model):
             if not isinstance(permission, Permission):
                 permission = Permission.query.filter_by(
                     name=permission).first()
+
             if permission is None:
                 raise KeyError('The permission "{}" does not exist'.format(
                     permission_name))
@@ -104,7 +106,8 @@ class Role(db.Model):
 
     def has_permission(self, permission):
         if permission in self._permissions:
-            return not self._permissions[permission].course_permission
+            perm = self._permissions[permission]
+            return (not perm.default_value) and (not perm.course_permission)
         else:
             permission = Permission.query.filter_by(name=permission).first()
             if permission is None:
@@ -186,6 +189,22 @@ class User(db.Model, UserMixin):
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    @staticmethod
+    def validate_username(username):
+        min_len = 3
+        if len(username) < min_len:
+            return('use at least {} chars'.format(min_len))
+        else:
+            return('')
+
+    @staticmethod
+    def validate_password(password):
+        min_len = 3
+        if len(password) < min_len:
+            return('use at least {} chars'.format(min_len))
+        else:
+            return('')
+
 
 class Course(db.Model):
     __tablename__ = "Course"
@@ -210,10 +229,6 @@ class Work(db.Model):
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', single_parent=True, foreign_keys=user_id)
     assignee = db.relationship('User', foreign_keys=assigned_to)
-
-    @property
-    def is_graded(self):
-        return self.state == WorkStateEnum.done
 
     def add_file_tree(self, session, tree):
         """Add the given tree to the given db.
@@ -272,24 +287,40 @@ class File(db.Model):
 
     work = db.relationship('Work', foreign_keys=work_id)
 
-    __table_args__ = (db.CheckConstraint(
-        or_(is_directory == false(), extension == null())), )
+    __table_args__ = (
+        db.CheckConstraint(or_(is_directory == false(), extension == null())),
+    )
 
     def get_filename(self):
-        if self.extension != None and self.extension != "":
+        if self.extension is not None and self.extension != "":
             return "{}.{}".format(self.name, self.extension)
         else:
             return self.name
 
     def list_contents(self):
-        if self.is_directory == False:
-            return {"name": self.get_filename(), "id": self.id}
-        else:
+        if self.is_directory:
             return {
                 "name": self.get_filename(),
                 "id": self.id,
                 "entries": [child.list_contents() for child in self.children]
             }
+        else:
+            return {"name": self.get_filename(), "id": self.id}
+
+
+class LinterComment(db.Model):
+    __tablename__ = "LinterComment"
+    file_id = db.Column(
+        'File_id', db.Integer, db.ForeignKey('File.id'), index=True)
+    linter_id = db.Column(db.Unicode, db.ForeignKey('LinterInstance.id'))
+
+    line = db.Column('line', db.Integer)
+    linter_code = db.Column('linter_code', db.Unicode)
+    comment = db.Column('comment', db.Unicode)
+    __table_args__ = (db.PrimaryKeyConstraint(file_id, line, linter_id), )
+
+    linter = db.relationship("LinterInstance", back_populates="comments")
+    file = db.relationship('File', foreign_keys=file_id)
 
 
 class Comment(db.Model):
@@ -302,6 +333,72 @@ class Comment(db.Model):
 
     file = db.relationship('File', foreign_keys=file_id)
     user = db.relationship('User', foreign_keys=user_id)
+
+
+@enum.unique
+class LinterState(enum.IntEnum):
+    running = 1
+    done = 2
+    crashed = 3
+
+
+class AssignmentLinter(db.Model):
+    __tablename__ = 'AssignmentLinter'
+    id = db.Column('id', db.Unicode, nullable=False, primary_key=True)
+    name = db.Column('name', db.Unicode)
+    tests = db.relationship(
+        "LinterInstance", back_populates="tester", cascade='all,delete')
+    assignment_id = db.Column('Assignment_id', db.Integer,
+                              db.ForeignKey('Assignment.id'))
+
+    assignment = db.relationship('Assignment', foreign_keys=assignment_id)
+
+    @classmethod
+    def create_tester(cls, assignment_id, name):
+        id = str(uuid.uuid4())
+        while db.session.query(
+                AssignmentLinter.query.filter(cls.id == id).exists()).scalar():
+            id = str(uuid.uuid4())
+        self = cls(id=id, assignment_id=assignment_id, name=name)
+        tests = []
+        sub = db.session.query(
+            Work.user_id.label('user_id'),
+            func.max(Work.created_at).label('max_date')).group_by(
+                Work.user_id).subquery('sub')
+        for work in db.session.query(Work).join(
+                sub,
+                and_(sub.c.user_id == Work.user_id,
+                     sub.c.max_date == Work.created_at)).filter(
+                         Work.assignment_id == assignment_id).all():
+            tests.append(LinterInstance.create_test(work, self))
+        self.tests = tests
+        return self
+
+
+class LinterInstance(db.Model):
+    __tablename__ = 'LinterInstance'
+    id = db.Column('id', db.Unicode, nullable=False, primary_key=True)
+    state = db.Column(
+        'state',
+        db.Enum(LinterState),
+        default=LinterState.running,
+        nullable=False)
+    work_id = db.Column('Work_id', db.Integer, db.ForeignKey('Work.id'))
+    tester_id = db.Column(db.Unicode, db.ForeignKey('AssignmentLinter.id'))
+
+    tester = db.relationship("AssignmentLinter", back_populates="tests")
+    work = db.relationship('Work', foreign_keys=work_id)
+
+    comments = db.relationship(
+        "LinterComment", back_populates="linter", cascade='all,delete')
+
+    @classmethod
+    def create_test(cls, work, tester):
+        id = str(uuid.uuid4())
+        while db.session.query(
+                LinterInstance.query.filter(cls.id == id).exists()).scalar():
+            id = str(uuid.uuid4())
+        return cls(id=id, work=work, tester=tester)
 
 
 @enum.unique

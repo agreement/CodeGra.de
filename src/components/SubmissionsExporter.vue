@@ -1,5 +1,5 @@
 <template>
-    <b-button v-on:click="downloadCSV">Export as CSV</b-button>
+    <b-button :href="link">Export as CSV</b-button>
 </template>
 
 <script>
@@ -18,18 +18,8 @@ export default {
         fileName: function fileName() {
             return this.assignment ? `${this.assignment.course_name}-${this.assignment.name}.csv` : 'export.csv';
         },
-    },
-
-    methods: {
-        downloadCSV: function downloadCSV() {
-            this.$http.get(`/api/v1/assignments/${this.assignment.course_id}/submissions/?csv=${this.fileName}`).then((response) => {
-                const blob = new Blob([response.data], { type: response.headers['content-type'] });
-                const link = document.createElement('a');
-                link.href = window.URL.createObjectURL(blob);
-                link.setAttribute('download', this.fileName);
-                link.download = this.fileName;
-                link.click();
-            });
+        link: function line() {
+            return this.assignment ? `/api/v1/assignments/${this.assignment.id}/submissions/?csv=${this.fileName}` : null;
         },
     },
 };
