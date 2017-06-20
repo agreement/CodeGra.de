@@ -45,6 +45,11 @@
         "course_permission": false
     },
     {
+        "name": "can_use_linter",
+        "default_value": false,
+        "course_permission": true
+    },
+    {
         "name": "can_manage_course",
         "default_value": false,
         "course_permission": true
