@@ -406,6 +406,68 @@ def logout():
 
 
 @app.route(
+    "/api/v1/assignments/<int:assignment_id>/submissions/", methods=['POST'])
+@login_required
+def post_submissions(assignment_id):
+    """Add submissions to the server from a blackboard zip file.
+    """
+    assignment = models.Assignment.query.get(assignment_id)
+
+    if not assignment:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with code {} was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    auth.ensure_permission('can_manage_course', assignment.course.id)
+
+    if len(request.files) == 0:
+        raise APIException("No file in HTTP request.",
+                           "There was no file in the HTTP request.",
+                           APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    if not 'file' in request.files:
+        key_string = ", ".join(request.files.keys())
+        raise APIException('The parameter name should be "file".',
+                           'Expected ^file$ got [{}].'.format(key_string),
+                           APICodes.INVALID_PARAM, 400)
+
+
+    file = request.files['file']
+    submissions = psef.files.process_blackboard_zip(file)
+
+
+    for submission_info, submission_tree in submissions:
+        user = models.User.query.filter_by(
+            name=submission_info.student_name).first()
+
+        if user is None:
+            perms = {
+                assignment.course.id:
+                models.CourseRole.query.filter_by(
+                    name='student', course_id=assignment.course.id).first()
+            }
+            user = models.User(
+                name=submission_info.student_name,
+                courses=perms,
+                email=submission_info.student_name + '@example.com',
+                password='password',
+                role=models.Role.query.filter_by(name='student').first())
+
+            db.session.add(user)
+        work = models.Work(
+            assignment_id=assignment.id,
+            user=user,
+            created_at=submission_info.created_at,
+            grade=submission_info.grade)
+        db.session.add(work)
+        work.add_file_tree(db.session, submission_tree)
+
+    db.session.commit()
+
+    return ('', 204)
+
+
+@app.route(
     "/api/v1/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id):
     """
@@ -604,6 +666,7 @@ def add_snippet():
 
     return (jsonify({'id': snippet.id}), 201)
 
+
 @app.route('/api/v1/snippets/<int:snippet_id>', methods=['PATCH'])
 @auth.permission_required('can_use_snippets')
 def patch_snippet(snippet_id):
@@ -615,10 +678,9 @@ def patch_snippet(snippet_id):
             format(content), APICodes.MISSING_REQUIRED_PARAM, 400)
     snip = models.Snippet.query.get(snippet_id)
     if snip is None:
-        raise APIException(
-            'Snippet not found',
-            'The snippet with id {} was not found'.format(snip),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+        raise APIException('Snippet not found',
+                           'The snippet with id {} was not found'.format(snip),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
     if snip.user.id != current_user.id:
         raise APIException(
             'The given snippet is not your snippet',

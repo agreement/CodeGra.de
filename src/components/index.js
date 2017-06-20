@@ -15,8 +15,10 @@ import DivideSubmissions from './DivideSubmissions';
 import SubmissionsExporter from './SubmissionsExporter';
 import SnippetManager from './SnippetManager';
 import PdfViewer from './PdfViewer';
+import BlackboardUploader from './BlackboardUploader';
 
 export {
+    BlackboardUploader,
     CodeViewer,
     FeedbackArea,
     FileTree,
