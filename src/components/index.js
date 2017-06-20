@@ -1,5 +1,8 @@
 import CodeViewer from './CodeViewer';
 import FeedbackArea from './FeedbackArea';
+import LinterFeedbackArea from './LinterFeedbackArea';
+import Linters from './Linters';
+import Linter from './Linter';
 import FileTree from './FileTree';
 import FooterBar from './FooterBar';
 import GradeViewer from './GradeViewer';
@@ -19,8 +22,11 @@ import PdfViewer from './PdfViewer';
 import BlackboardUploader from './BlackboardUploader';
 
 export {
+    Linters,
+    Linter,
     BlackboardUploader,
     CodeViewer,
+    LinterFeedbackArea,
     FeedbackArea,
     FileTree,
     FooterBar,

@@ -24,7 +24,8 @@ echo "Echo starting python and NPM, press Ctrl-C to stop"
 quit() {
     STOPPING=true
     echo "Stopping!"
-    kill "$python" "$npm"
+    kill "$python"
+    kill "$npm"
 }
 
 trap "quit" SIGINT SIGTERM
@@ -43,7 +44,7 @@ while true; do
             echo "NPM or python crashed!"
             quit
         fi
-        exit $?
+        exit "$status"
     fi
     if kill -0 "$python" 2> /dev/null; then
         echo "Restarting NPM"

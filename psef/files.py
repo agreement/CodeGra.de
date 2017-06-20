@@ -1,9 +1,9 @@
-import csv
 import os
 import re
+import csv
+import uuid
 import shutil
 import tempfile
-import uuid
 from functools import reduce
 
 from werkzeug.utils import secure_filename
@@ -50,6 +50,26 @@ def get_file_contents(code):
             'File was not readable',
             'The selected file with id {} was not UTF-8'.format(code.id),
             APICodes.OBJECT_WRONG_TYPE, 400)
+
+
+def restore_directory_structure(code, parent):
+    out = os.path.join(parent, code.get_filename())
+    if code.is_directory:
+        os.mkdir(out)
+        return {
+            "name":
+            code.get_filename(),
+            "id":
+            code.id,
+            "entries": [
+                restore_directory_structure(child, out)
+                for child in code.children
+            ]
+        }
+    else:  # this is a file
+        filename = os.path.join(app.config['UPLOAD_DIR'], code.filename)
+        shutil.copyfile(filename, out)
+        return {"name": code.get_filename(), "id": code.id}
 
 
 def rename_directory_structure(rootdir):
@@ -212,7 +232,7 @@ def process_files(files):
                 new_file_name, filename = random_file_path()
                 res.append((file.filename, filename))
                 file.save(new_file_name)
-        res = {'.': res}
+        res = {'top': res}
     else:
         res = extract(files[0])
 

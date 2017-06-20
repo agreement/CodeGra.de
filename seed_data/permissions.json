@@ -37,12 +37,17 @@
     {
         "name": "can_use_snippets",
         "default_value": true,
-        "course_permission": true
+        "course_permission": false
     },
     {
         "name": "can_edit_own_info",
         "default_value": true,
         "course_permission": false
+    },
+    {
+        "name": "can_use_linter",
+        "default_value": false,
+        "course_permission": true
     },
     {
         "name": "can_manage_course",

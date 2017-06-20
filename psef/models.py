@@ -1,5 +1,6 @@
 import os
 import enum
+import uuid
 import datetime
 
 from flask_login import UserMixin
@@ -298,7 +299,7 @@ class File(db.Model):
     )
 
     def get_filename(self):
-        if self.extension != None and self.extension != "":
+        if self.extension is not None and self.extension != "":
             return "{}.{}".format(self.name, self.extension)
         else:
             return self.name
@@ -314,6 +315,21 @@ class File(db.Model):
             }
 
 
+class LinterComment(db.Model):
+    __tablename__ = "LinterComment"
+    file_id = db.Column(
+        'File_id', db.Integer, db.ForeignKey('File.id'), index=True)
+    linter_id = db.Column(db.Unicode, db.ForeignKey('LinterInstance.id'))
+
+    line = db.Column('line', db.Integer)
+    linter_code = db.Column('linter_code', db.Unicode)
+    comment = db.Column('comment', db.Unicode)
+    __table_args__ = (db.PrimaryKeyConstraint(file_id, line, linter_id), )
+
+    linter = db.relationship("LinterInstance", back_populates="comments")
+    file = db.relationship('File', foreign_keys=file_id)
+
+
 class Comment(db.Model):
     __tablename__ = "Comment"
     file_id = db.Column('File_id', db.Integer, db.ForeignKey('File.id'))
@@ -324,6 +340,72 @@ class Comment(db.Model):
 
     file = db.relationship('File', foreign_keys=file_id)
     user = db.relationship('User', foreign_keys=user_id)
+
+
+@enum.unique
+class LinterState(enum.IntEnum):
+    running = 1
+    done = 2
+    crashed = 3
+
+
+class AssignmentLinter(db.Model):
+    __tablename__ = 'AssignmentLinter'
+    id = db.Column('id', db.Unicode, nullable=False, primary_key=True)
+    name = db.Column('name', db.Unicode)
+    tests = db.relationship(
+        "LinterInstance", back_populates="tester", cascade='all,delete')
+    assignment_id = db.Column('Assignment_id', db.Integer,
+                              db.ForeignKey('Assignment.id'))
+
+    assignment = db.relationship('Assignment', foreign_keys=assignment_id)
+
+    @classmethod
+    def create_tester(cls, assignment_id, name):
+        id = str(uuid.uuid4())
+        while db.session.query(
+                AssignmentLinter.query.filter(cls.id == id).exists()).scalar():
+            id = str(uuid.uuid4())
+        self = cls(id=id, assignment_id=assignment_id, name=name)
+        tests = []
+        sub = db.session.query(
+            Work.user_id.label('user_id'),
+            func.max(Work.created_at).label('max_date')).group_by(
+                Work.user_id).subquery('sub')
+        for work in db.session.query(Work).join(
+                sub,
+                and_(sub.c.user_id == Work.user_id,
+                     sub.c.max_date == Work.created_at)).filter(
+                         Work.assignment_id == assignment_id).all():
+            tests.append(LinterInstance.create_test(work, self))
+        self.tests = tests
+        return self
+
+
+class LinterInstance(db.Model):
+    __tablename__ = 'LinterInstance'
+    id = db.Column('id', db.Unicode, nullable=False, primary_key=True)
+    state = db.Column(
+        'state',
+        db.Enum(LinterState),
+        default=LinterState.running,
+        nullable=False)
+    work_id = db.Column('Work_id', db.Integer, db.ForeignKey('Work.id'))
+    tester_id = db.Column(db.Unicode, db.ForeignKey('AssignmentLinter.id'))
+
+    tester = db.relationship("AssignmentLinter", back_populates="tests")
+    work = db.relationship('Work', foreign_keys=work_id)
+
+    comments = db.relationship(
+        "LinterComment", back_populates="linter", cascade='all,delete')
+
+    @classmethod
+    def create_test(cls, work, tester):
+        id = str(uuid.uuid4())
+        while db.session.query(
+                LinterInstance.query.filter(cls.id == id).exists()).scalar():
+            id = str(uuid.uuid4())
+        return cls(id=id, work=work, tester=tester)
 
 
 @enum.unique
