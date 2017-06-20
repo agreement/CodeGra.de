@@ -35,8 +35,6 @@ def get_student_assignments():
     if courses:
         for assignment in models.Assignment.query.filter(
                 models.Assignment.course_id.in_(courses)).all():
-            print(assignment.course_id, current_user.has_permission(
-                    'can_see_hidden_assignments', assignment.course_id))
             if ((not assignment.is_hidden) or current_user.has_permission(
                     'can_see_hidden_assignments', assignment.course_id)):
                 res.append(assignment.to_dict())

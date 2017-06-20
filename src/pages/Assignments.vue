@@ -28,7 +28,6 @@ export default {
         this.$http.get('/api/v1/assignments/').then(({ data }) => {
             this.loading = false;
             this.assignments = data;
-            console.log(this.canSeeHidden);
         });
     },
 
