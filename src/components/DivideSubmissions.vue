@@ -58,14 +58,12 @@ export default {
                     .filter(item => this.graders[item].divided)
                     .map(item => this.graders[item].id),
             };
-            console.log(data);
             this.$http.patch(`/api/v1/assignments/${this.assignment.id}/divide`, data).then(() => {
                 // eslint-disable-next-line
                 this.$emit('submit');
                 this.loading = false;
-            }).catch((err) => {
+            }).catch(() => {
                 // TODO give feedback!!
-                console.log(err.response.data);
                 this.loading = false;
             });
         },
