@@ -1,7 +1,7 @@
 from flask import jsonify, request
 
 import psef.models as models
-import psef.models as auth
+import psef.auth as auth
 from psef import db
 from psef.errors import APICodes, APIException
 from . import api
