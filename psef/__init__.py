@@ -26,7 +26,6 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 import psef.auth
-# import psef.views
 import psef.models
 import psef.errors
 import psef.auth
