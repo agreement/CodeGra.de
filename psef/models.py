@@ -60,6 +60,7 @@ class CourseRole(db.Model):
             permission_name = permission.name
         else:
             permission_name = permission
+
         if permission_name in self._permissions:
             perm = self._permissions[permission_name]
             return perm.course_permission and not perm.default_value
@@ -67,6 +68,7 @@ class CourseRole(db.Model):
             if not isinstance(permission, Permission):
                 permission = Permission.query.filter_by(
                     name=permission).first()
+
             if permission is None:
                 raise KeyError('The permission "{}" does not exist'.format(
                     permission_name))
@@ -104,7 +106,8 @@ class Role(db.Model):
 
     def has_permission(self, permission):
         if permission in self._permissions:
-            return not self._permissions[permission].course_permission
+            perm = self._permissions[permission]
+            return (not perm.default_value) and (not perm.course_permission)
         else:
             permission = Permission.query.filter_by(name=permission).first()
             if permission is None:
