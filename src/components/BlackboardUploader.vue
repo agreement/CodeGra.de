@@ -1,9 +1,9 @@
 <template>
     <b-form method="post" :action="action" enctype="multipart/form-data">
-        <b-form-file name="file" v-model="file"></b-form-file>
-        <br> Selected file: {{file && file.name}}
-        <br>
-        <b-button type="submit">Submit</b-button>
+        <b-form-fieldset :label="`Selected file: ${this.file ? this.file.name : ''}`">
+            <b-form-file name="file" v-model="file"></b-form-file>
+        </b-form-fieldset>
+        <b-button variant="primary" type="submit">Submit</b-button>
     </b-form>
 </template>
 
@@ -11,11 +11,16 @@
 export default {
     name: 'blackboard-uploader',
 
-    props: ['assignmentId'],
+    props: {
+        assignment: {
+            type: Object,
+            default: null,
+        },
+    },
 
     computed: {
         action: function action() {
-            return this.assignmentId ? `/api/v1/assignments/${this.assignmentId}/submissions/` : null;
+            return this.assignment ? `/api/v1/assignments/${this.assignment.id}/submissions/` : null;
         },
     },
 

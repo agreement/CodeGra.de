@@ -5,7 +5,7 @@ import {
     Submission,
     Home,
     Login,
-    ManageAssignments,
+    ManageCourse,
     Submit,
     Submissions,
     User,
@@ -65,7 +65,7 @@ export default new Router({
         {
             path: '/courses/:courseId/manage',
             name: 'assignment_manage',
-            component: ManageAssignments,
+            component: ManageCourse,
         },
     ],
 });
