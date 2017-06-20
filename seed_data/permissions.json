@@ -37,7 +37,7 @@
     {
         "name": "can_use_snippets",
         "default_value": true,
-        "course_permission": true
+        "course_permission": false
     },
     {
         "name": "can_edit_own_info",
