@@ -1,7 +1,7 @@
 import Vue from 'vue';
 import Router from 'vue-router';
-import { Assignments, Submission, Home, Login, Submit, Submissions } from '@/pages';
 import { Linters } from '@/components';
+import { Assignments, Submission, Home, Login, Submit, Submissions, User } from '@/pages';
 
 Vue.use(Router);
 
@@ -27,6 +27,7 @@ export default new Router({
         {
             path: '/me',
             name: 'me',
+            component: User,
         },
         {
             path: '/courses/:courseId/assignments/:assignmentId/submissions/:submissionId',
