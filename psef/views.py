@@ -14,6 +14,7 @@ import psef.models as models
 import psef.linters as linters
 from psef import db, app
 from psef.errors import APICodes, APIException
+from sqlalchemy_utils.functions import dependent_objects
 
 
 @app.route("/api/v1/file/metadata/<int:file_id>", methods=['GET'])
@@ -192,23 +193,11 @@ def get_student_assignments():
         if course_role.has_permission(perm):
             courses.append(course_role.course_id)
     if courses:
-        return (jsonify([{
-            'id':
-            assignment.id,
-            'state':
-            assignment.state,
-            'date':
-            assignment.created_at.strftime('%d-%m-%Y %H:%M'),
-            'name':
-            assignment.name,
-            'course_name':
-            assignment.course.name,
-            'course_id':
-            assignment.course_id,
-        }
-                         for assignment in models.Assignment.query.filter(
-                             models.Assignment.course_id.in_(courses)).all()]),
-                200)
+        return jsonify([
+            assignment.to_dict()
+            for assignment in models.Assignment.query.filter(
+                models.Assignment.course_id.in_(courses)).all()
+        ])
     else:
         return (jsonify([]), 204)
 
@@ -226,13 +215,47 @@ def get_assignment(assignment_id):
             'The assignment with id {} was not found'.format(assignment_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
     else:
-        return (jsonify({
-            'name': assignment.name,
-            'state': assignment.state,
-            'description': assignment.description,
-            'course_name': assignment.course.name,
-            'course_id': assignment.course_id,
-        }), 200)
+        return jsonify(assignment.to_dict())
+
+
+@app.route('/api/v1/assignments/<int:assignment_id>', methods=['PATCH'])
+def update_assignment(assignment_id):
+    assig = models.Assignment.query.get(assignment_id)
+    if assig is None:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with id "{}" was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_manage_course', assig.course_id)
+
+    content = request.get_json()
+
+    print(content)
+    if 'state' in content:
+        if content['state'] not in ['hidden', 'open', 'done']:
+            raise APIException(
+                'Invalid new state',
+                'The state {} is not a valid state'.format(content['state']),
+                APICodes.INVALID_PARAM, 400)
+        if content['state'] == 'open':
+            assig.state = 'submitting'
+        else:
+            assig.state = content['state']
+
+    if 'name' in content:
+        if not isinstance(content['name'], str):
+            raise APIException(
+                'The name of an assignment should be a a string',
+                '{} is not a string'.format(content['name']),
+                APICodes.INVALID_PARAM, 400)
+        assig.name = content['name']
+
+    # TODO also make it possible to update the close date of an assignment
+
+    db.session.commit()
+
+    return '', 204
 
 
 @app.route(
@@ -362,6 +385,21 @@ def patch_submission(submission_id):
     work.comment = content['feedback']
     db.session.commit()
     return ('', 204)
+
+
+@app.route('/api/v1/courses/<int:course_id>/assignments/', methods=['GET'])
+def get_all_course_assignments(course_id):
+    auth.ensure_permission('can_see_assignments', course_id)
+
+    course = models.Course.query.get(course_id)
+    if course is None:
+        return APIException('Specified course not found',
+                            'The course {} was not found'.format(course_id),
+                            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    res = [assig.to_dict() for assig in course.assignments]
+    res.sort(key=lambda item: item['date'])
+    return jsonify(res)
 
 
 @app.route("/api/v1/login", methods=["POST"])
@@ -544,6 +582,7 @@ def divide_assignments(assignment_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     content = request.get_json()
+
     if 'graders' not in content or not isinstance(
             content['graders'], list) or len(content['graders']) == 0:
         raise APIException('List of assigned graders is required',
@@ -605,11 +644,18 @@ def get_all_graders(assignment_id):
         models.course_permissions.c.permission_id == permission,
         models.CourseRole.course_id == assignment.course_id).subquery('per')
     result = db.session.query(us.c.name, us.c.id).join(
-        per, us.c.course_id == per.c.course_role_id).all()
+        per, us.c.course_id == per.c.course_role_id).order_by(us.c.name).all()
 
-    return jsonify({
-        'names_ids': result,
-    })
+    divided = set(r[0]for r in
+        db.session.query(models.Work.assigned_to).filter(
+        models.Work.assignment_id == assignment_id).group_by(
+            models.Work.assigned_to).all())
+
+    return jsonify([{
+        'id': res[1],
+        'name': res[0],
+        'divided': res[1] in divided
+    } for res in result])
 
 
 @app.route('/api/v1/permissions/', methods=['GET'])
