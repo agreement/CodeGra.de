@@ -25,18 +25,16 @@ def not_found(error):
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-# Register blueprint(s)
-# app.register_blueprint(auth_module)
-# app.register_blueprint(xyz_module)
-# ..
-
 import psef.auth
-import psef.views
+# import psef.views
 import psef.models
 import psef.errors
 import psef.auth
 import psef.files
 
+# Register blueprint(s)
+from .v1 import api as api_v1_blueprint
+app.register_blueprint(api_v1_blueprint, url_prefix='/api/v1')
 
 def create_app(config=None):
     if config is not None:
