@@ -407,13 +407,34 @@ def logout():
 
 @app.route(
     "/api/v1/assignments/<int:assignment_id>/submissions/", methods=['POST'])
+@login_required
 def post_submissions(assignment_id):
     """Add submissions to the server from a blackboard zip file.
     """
     assignment = models.Assignment.query.get(assignment_id)
 
+    if not assignment:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with code {} was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    auth.ensure_permission('can_manage_course', assignment.course.id)
+
+    if len(request.files) == 0:
+        raise APIException("No file in HTTP request.",
+                           "There was no file in the HTTP request.",
+                           APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    if not 'file' in request.files:
+        key_string = ", ".join(request.files.keys())
+        raise APIException('The parameter name should be "file".',
+                           'Expected ^file$ got [{}].'.format(key_string),
+                           APICodes.INVALID_PARAM, 400)
+
+
     file = request.files['file']
     submissions = psef.files.process_blackboard_zip(file)
+
 
     for submission_info, submission_tree in submissions:
         user = models.User.query.filter_by(
