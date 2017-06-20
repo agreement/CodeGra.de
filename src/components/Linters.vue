@@ -20,7 +20,8 @@
                 :description="linter.desc"
                 :initialId="linter.id"
                 :initialState="linter.state"
-                :key="linter.id"/>
+                :key="linter.id"
+                :assignment="assignment"/>
       </tbody>
     </table>
   </div>
