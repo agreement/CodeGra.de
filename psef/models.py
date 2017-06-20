@@ -59,6 +59,7 @@ class CourseRole(db.Model):
             permission_name = permission.name
         else:
             permission_name = permission
+
         if permission_name in self._permissions:
             perm = self._permissions[permission_name]
             return perm.course_permission and not perm.default_value
@@ -66,6 +67,7 @@ class CourseRole(db.Model):
             if not isinstance(permission, Permission):
                 permission = Permission.query.filter_by(
                     name=permission).first()
+
             if permission is None:
                 raise KeyError('The permission "{}" does not exist'.format(
                     permission_name))
@@ -103,7 +105,8 @@ class Role(db.Model):
 
     def has_permission(self, permission):
         if permission in self._permissions:
-            return not self._permissions[permission].course_permission
+            perm = self._permissions[permission]
+            return (not perm.default_value) and (not perm.course_permission)
         else:
             permission = Permission.query.filter_by(name=permission).first()
             if permission is None:
@@ -184,6 +187,22 @@ class User(db.Model, UserMixin):
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
+
+    @staticmethod
+    def validate_username(username):
+        min_len = 3
+        if len(username) < min_len:
+            return('use at least {} chars'.format(min_len))
+        else:
+            return('')
+
+    @staticmethod
+    def validate_password(password):
+        min_len = 3
+        if len(password) < min_len:
+            return('use at least {} chars'.format(min_len))
+        else:
+            return('')
 
 
 class Course(db.Model):
