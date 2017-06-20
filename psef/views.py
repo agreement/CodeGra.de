@@ -270,9 +270,9 @@ def get_all_works_for_assignment(assignment_id):
             'created_at'
         ]
         file = psef.files.create_csv_from_rows([headers] + [[
-            work.id, work.user.name if work.user else "Unknown", work.user_id,
-            work.grade, work.comment,
-            work.created_at.strftime("%d-%m-%Y %H:%M")
+            work.id, work.user.name
+            if work.user else "Unknown", work.user_id, work.grade,
+            work.comment, work.created_at.strftime("%d-%m-%Y %H:%M")
         ] for work in res])
 
         @after_this_request
@@ -509,6 +509,7 @@ def divide_assignments(assignment_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     content = request.get_json()
+
     if 'graders' not in content or not isinstance(
             content['graders'], list) or len(content['graders']) == 0:
         raise APIException('List of assigned graders is required',
@@ -572,9 +573,16 @@ def get_all_graders(assignment_id):
     result = db.session.query(us.c.name, us.c.id).join(
         per, us.c.course_id == per.c.course_role_id).order_by(us.c.name).all()
 
-    return jsonify({
-        'names_ids': result,
-    })
+    divided = set(r[0]for r in
+        db.session.query(models.Work.assigned_to).filter(
+        models.Work.assignment_id == assignment_id).group_by(
+            models.Work.assigned_to).all())
+
+    return jsonify([{
+        'id': res[1],
+        'name': res[0],
+        'divided': res[1] in divided
+    } for res in result])
 
 
 @app.route('/api/v1/permissions/', methods=['GET'])
@@ -638,6 +646,7 @@ def add_snippet():
 
     return (jsonify({'id': snippet.id}), 201)
 
+
 @app.route('/api/v1/snippets/<int:snippet_id>', methods=['PATCH'])
 @auth.permission_required('can_use_snippets')
 def patch_snippet(snippet_id):
@@ -649,10 +658,9 @@ def patch_snippet(snippet_id):
             format(content), APICodes.MISSING_REQUIRED_PARAM, 400)
     snip = models.Snippet.query.get(snippet_id)
     if snip is None:
-        raise APIException(
-            'Snippet not found',
-            'The snippet with id {} was not found'.format(snip),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+        raise APIException('Snippet not found',
+                           'The snippet with id {} was not found'.format(snip),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
     if snip.user.id != current_user.id:
         raise APIException(
             'The given snippet is not your snippet',
