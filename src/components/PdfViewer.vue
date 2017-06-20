@@ -28,7 +28,7 @@ export default {
 
     computed: {
         url() {
-            return `/api/v1/binary/${this.id}`;
+            return `/api/v1/code/${this.id}?type=binary`;
         },
     },
 
