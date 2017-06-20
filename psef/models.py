@@ -193,17 +193,17 @@ class User(db.Model, UserMixin):
     def validate_username(username):
         min_len = 3
         if len(username) < min_len:
-            return('use at least {} chars'.format(min_len))
+            return ('use at least {} chars'.format(min_len))
         else:
-            return('')
+            return ('')
 
     @staticmethod
     def validate_password(password):
         min_len = 3
         if len(password) < min_len:
-            return('use at least {} chars'.format(min_len))
+            return ('use at least {} chars'.format(min_len))
         else:
-            return('')
+            return ('')
 
 
 class Course(db.Model):
@@ -283,7 +283,10 @@ class File(db.Model):
     filename = db.Column('path', db.Unicode)
     is_directory = db.Column('is_directory', db.Boolean)
     parent_id = db.Column(db.Integer, db.ForeignKey('File.id'))
-    parent = db.relationship('File', remote_side=[id], backref='children')
+    parent = db.relationship(
+        'File',
+        remote_side=[id],
+        backref=db.backref('children'))
 
     work = db.relationship('Work', foreign_keys=work_id)
 
