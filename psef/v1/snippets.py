@@ -5,6 +5,7 @@ import psef.auth as auth
 import psef.models as models
 from psef import db
 from psef.errors import APICodes, APIException
+
 from . import api
 
 
@@ -87,4 +88,3 @@ def delete_snippets(snippet_id):
         db.session.commit()
         return ('', 204)
     pass
-

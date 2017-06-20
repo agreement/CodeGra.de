@@ -3,6 +3,7 @@ from flask import jsonify
 import psef.auth as auth
 import psef.models as models
 from psef.errors import APICodes, APIException
+
 from . import api
 
 
@@ -19,4 +20,3 @@ def get_all_course_assignments(course_id):
     res = [assig.to_dict() for assig in course.assignments]
     res.sort(key=lambda item: item['date'])
     return jsonify(res)
-

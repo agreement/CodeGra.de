@@ -5,6 +5,7 @@ import psef.auth as auth
 import psef.models as models
 from psef import db, app
 from psef.errors import APICodes, APIException
+
 from . import api
 
 
@@ -124,4 +125,3 @@ def get_dir_contents(submission_id):
     dir_contents = jsonify(file.list_contents())
 
     return (dir_contents, 200)
-

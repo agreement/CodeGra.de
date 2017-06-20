@@ -1,5 +1,7 @@
+# -*- py-isort-options: '("-sg *"); -*-
 from flask import Blueprint
 
 api = Blueprint('api', __name__)
-from . import (assignments, binary, code, courses, files, linters, login,
-               logout, permissions, snippets, submissions, updateusers)
+
+from . import (code, login, courses, linters, snippets, assignments,
+               permissions, submissions, updateusers)

@@ -3,16 +3,17 @@ import threading
 from random import shuffle
 from itertools import cycle
 
-from flask import jsonify, request, after_this_request, send_file
+from flask import jsonify, request, send_file, after_this_request
 from flask_login import current_user, login_required
 from sqlalchemy.orm import subqueryload
 
 import psef.auth as auth
+import psef.files
 import psef.models as models
 import psef.linters as linters
-import psef.files
 from psef import db, app
 from psef.errors import APICodes, APIException
+
 from . import api
 
 
@@ -94,8 +95,7 @@ def update_assignment(assignment_id):
     return '', 204
 
 
-@api.route(
-    "/assignments/<int:assignment_id>/submission", methods=['POST'])
+@api.route("/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id):
     """
     Saves the work on the server if the request is valid.
@@ -227,10 +227,10 @@ def get_all_graders(assignment_id):
     result = db.session.query(us.c.name, us.c.id).join(
         per, us.c.course_id == per.c.course_role_id).order_by(us.c.name).all()
 
-    divided = set(r[0]for r in
-        db.session.query(models.Work.assigned_to).filter(
-        models.Work.assignment_id == assignment_id).group_by(
-            models.Work.assigned_to).all())
+    divided = set(r[0]
+                  for r in db.session.query(models.Work.assigned_to).filter(
+                      models.Work.assignment_id == assignment_id).group_by(
+                          models.Work.assigned_to).all())
 
     return jsonify([{
         'id': res[1],
@@ -239,8 +239,7 @@ def get_all_graders(assignment_id):
     } for res in result])
 
 
-@api.route(
-    '/assignments/<int:assignment_id>/submissions/', methods=['GET'])
+@api.route('/assignments/<int:assignment_id>/submissions/', methods=['GET'])
 def get_all_works_for_assignment(assignment_id):
     """
     Return all works for assignment X if the user permission is valid.
@@ -298,8 +297,7 @@ def get_all_works_for_assignment(assignment_id):
     return jsonify(out)
 
 
-@api.route(
-    "/assignments/<int:assignment_id>/submissions/", methods=['POST'])
+@api.route("/assignments/<int:assignment_id>/submissions/", methods=['POST'])
 @login_required
 def post_submissions(assignment_id):
     """Add submissions to the server from a blackboard zip file.
@@ -318,7 +316,7 @@ def post_submissions(assignment_id):
                            "There was no file in the HTTP request.",
                            APICodes.MISSING_REQUIRED_PARAM, 400)
 
-    if not 'file' in request.files:
+    if 'file' not in request.files:
         key_string = ", ".join(request.files.keys())
         raise APIException('The parameter name should be "file".',
                            'Expected ^file$ got [{}].'.format(key_string),
@@ -448,4 +446,3 @@ def start_linting(assignment_id):
         db.session.commit()
     finally:
         return linters.get_linter_state(res.id)
-

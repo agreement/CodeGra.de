@@ -1,9 +1,10 @@
 from flask import jsonify, request
 
-import psef.models as models
 import psef.auth as auth
+import psef.models as models
 from psef import db
 from psef.errors import APICodes, APIException
+
 from . import api
 
 
@@ -99,4 +100,3 @@ def get_linter_state(linter_id):
         'crashed': not any_working and crashed,
         'id': linter_id,
     })
-

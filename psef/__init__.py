@@ -35,6 +35,7 @@ import psef.files
 from .v1 import api as api_v1_blueprint
 app.register_blueprint(api_v1_blueprint, url_prefix='/api/v1')
 
+
 def create_app(config=None):
     if config is not None:
         app.config.update(config)

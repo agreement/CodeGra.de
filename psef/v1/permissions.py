@@ -2,6 +2,7 @@ from flask import jsonify, request
 from flask_login import current_user, login_required
 
 from psef.errors import APICodes, APIException
+
 from . import api
 
 
@@ -32,4 +33,3 @@ def get_permissions():
     else:
         return (jsonify(current_user.get_all_permissions(course_id=course_id)),
                 200)
-

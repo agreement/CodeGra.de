@@ -58,7 +58,8 @@ def ensure_permission(permission_name, course_id=None):
                       permission.
     :vartype course_id: None or int
     :rtype: None
-    :raises PermissionException: If the permission is not enabled for the current
+    :raises PermissionException: If the permission is not enabled for the
+                                 current
                           user.
     """
     if _user_active():
