@@ -10,14 +10,19 @@ import Vue from 'vue';
 import { mapActions } from 'vuex';
 import BootstrapVue from 'bootstrap-vue';
 import axios from 'axios';
+import Toasted from 'vue-toasted';
 
 import App from '@/App';
 import router from '@/router';
 import store from './store';
 
 Vue.use(BootstrapVue);
+Vue.use(Toasted);
 
 Vue.config.productionTip = false;
+
+// Execute additional setup code
+require('./setup.js');
 
 Vue.prototype.$http = axios;
 

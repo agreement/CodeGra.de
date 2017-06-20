@@ -43,5 +43,10 @@
         "name": "can_edit_own_info",
         "default_value": true,
         "course_permission": false
+    },
+    {
+        "name": "can_manage_course",
+        "default_value": false,
+        "course_permission": true
     }
 ]

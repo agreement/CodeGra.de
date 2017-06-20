@@ -64,9 +64,11 @@ export default {
             }
 
             this.tryLogin({ email: this.email, password: this.password }).then(() => {
-                this.$router.replace('/');
+                this.$router.replace({ name: 'home' });
             }).catch((reason) => {
-                this.error = reason.message;
+                if (reason) {
+                    this.error = reason.message;
+                }
             });
         },
         ...mapActions({
