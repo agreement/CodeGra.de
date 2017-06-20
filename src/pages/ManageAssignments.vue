@@ -2,10 +2,18 @@
     <div class="page manage-assignment container-fluid">
         <div class="row justify-content-center">
             <b-list-group class="col-10">
-                <b-list-group-item v-for="a in assignments">
-                    <h5 class="assignment-title" @click="toggleRow(a.id)">{{ a.name }}</h5>
+                <b-list-group-item v-for="(a, i) in assignments">
+                    <h5 class="assignment-title" @click="toggleRow(a.id)"
+                        v-if="">
+                        {{ a.name }}
+                        <span class="icon text-muted">
+                            <icon name="eye-slash" v-if="a.state_name == 'hidden'"></icon>
+                            <icon name="clock-o" v-if="a.state_name == 'submitting' || a.state_name == 'grading'"></icon>
+                            <icon name="check" v-if="a.state_name == 'done'"></icon>
+                        </span>
+                    </h5>
                     <b-collapse class="row" :id="`assignment-${a.id}`">
-                        <assignment-state class="col-6" :assignment="a"></assignment-state>
+                        <assignment-state class="col-6" :assignment="a" @updateName="(n) => updateName(i, n)" @updateState="(s) => updateState(i, s)"></assignment-state>
                         <divide-submissions class="col-6" :assignment="a"></divide-submissions>
                     </b-collapse>
                 </b-list-group-item>
@@ -16,6 +24,11 @@
 
 <script>
 import { bCollapse, bListGroup, bListGroupItem } from 'bootstrap-vue/lib/components';
+
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/eye-slash';
+import 'vue-awesome/icons/clock-o';
+import 'vue-awesome/icons/check';
 
 import { AssignmentState, DivideSubmissions } from '@/components';
 
@@ -46,6 +59,14 @@ export default {
         toggleRow(id) {
             this.$root.$emit('collapse::toggle', `assignment-${id}`);
         },
+
+        updateName(i, name) {
+            this.assignments[i].name = name;
+        },
+
+        updateState(i, state) {
+            this.assignments[i].state_name = state;
+        },
     },
 
     components: {
@@ -54,6 +75,7 @@ export default {
         bCollapse,
         bListGroup,
         bListGroupItem,
+        Icon,
     },
 };
 </script>
@@ -66,5 +88,9 @@ export default {
 .assignment-title {
     width: 100%;
     cursor: pointer;
+
+    .icon {
+        float: right;
+    }
 }
 </style>
