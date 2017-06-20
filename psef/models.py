@@ -211,6 +211,9 @@ class Course(db.Model):
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode)
 
+    assignments = db.relationship(
+        "Assignment", back_populates="course", cascade='all,delete')
+
 
 class Work(db.Model):
     __tablename__ = "Work"
@@ -229,6 +232,10 @@ class Work(db.Model):
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', single_parent=True, foreign_keys=user_id)
     assignee = db.relationship('User', foreign_keys=assigned_to)
+
+    @property
+    def is_graded(self):
+        raise NotImplementedError()
 
     def add_file_tree(self, session, tree):
         """Add the given tree to the given db.
@@ -298,14 +305,14 @@ class File(db.Model):
             return self.name
 
     def list_contents(self):
-        if self.is_directory:
+        if not self.is_directory:
+            return {"name": self.get_filename(), "id": self.id}
+        else:
             return {
                 "name": self.get_filename(),
                 "id": self.id,
                 "entries": [child.list_contents() for child in self.children]
             }
-        else:
-            return {"name": self.get_filename(), "id": self.id}
 
 
 class LinterComment(db.Model):
@@ -422,7 +429,23 @@ class Assignment(db.Model):
     course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-    course = db.relationship('Course', foreign_keys=course_id)
+    course = db.relationship(
+        'Course', foreign_keys=course_id, back_populates='assignments')
+
+    def to_dict(self):
+        state_name = '-'
+        if self.state is not None:
+            state_name = AssignmentStateEnum(self.state).name
+        return {
+            'id': self.id,
+            'state': self.state,
+            'state_name': state_name,
+            'description': self.description,
+            'date': self.created_at.strftime('%Y-%m-%dT%H:%M'),
+            'name': self.name,
+            'course_name': self.course.name,
+            'course_id': self.course_id,
+        }
 
     def get_all_latest_submissions(self):
         sub = db.session.query(
