@@ -359,7 +359,7 @@ class Assignment(db.Model):
             'state': self.state,
             'state_name': state_name,
             'description': self.description,
-            'date': self.created_at.strftime('%d-%m-%Y %H:%M'),
+            'date': self.created_at.strftime('%Y-%m-%dT%H:%M'),
             'name': self.name,
             'course_name': self.course.name,
             'course_id': self.course_id,
