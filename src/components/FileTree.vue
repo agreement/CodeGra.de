@@ -1,8 +1,5 @@
 <template>
     <div class="file-tree" v-bind:class="{ collapsed: isCollapsed, }">
-        <b-button class="btn" @click="download()" title="Download archive">
-            <icon name="download" class="download-icon"></icon><span class="text"> Download archive </span>
-        </b-button>
         <div v-on:click="toggle($event)">
             <icon name="caret-right" v-if="isCollapsed"></icon>
             <icon name="caret-down" v-else></icon>
@@ -28,7 +25,7 @@ import 'vue-awesome/icons/folder-open';
 import 'vue-awesome/icons/file';
 import 'vue-awesome/icons/caret-right';
 import 'vue-awesome/icons/caret-down';
-import 'vue-awesome/icons/download';
+
 
 export default {
     name: 'file-tree',
@@ -58,9 +55,6 @@ export default {
             event.stopPropagation();
             this.isCollapsed = !this.isCollapsed;
         },
-        download() {
-            window.open(`/api/v1/submissions/${this.submissionId}/zip`);
-        },
     },
 
     components: {
@@ -85,19 +79,6 @@ export default {
 
     .active-file {
         font-weight: bold;
-    }
-    .btn {
-        margin-bottom: 15px;
-        width:100%;
-        background-color: #2c3e50;
-        cursor: pointer;
-
-    }
-    .download-icon {
-        color: #FFF;
-    }
-    .text {
-        color: #FFF;
     }
 }
 </style>

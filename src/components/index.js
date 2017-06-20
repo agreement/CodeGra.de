@@ -1,6 +1,7 @@
 import CodeViewer from './CodeViewer';
 import FeedbackArea from './FeedbackArea';
 import FileTree from './FileTree';
+import FileTreeContainer from './FileTreeContainer';
 import FooterBar from './FooterBar';
 import GradeViewer from './GradeViewer';
 import HeaderBar from './HeaderBar';
@@ -15,10 +16,12 @@ import SubmissionsExporter from './SubmissionsExporter';
 import SnippetManager from './SnippetManager';
 import PdfViewer from './PdfViewer';
 
+
 export {
     CodeViewer,
     FeedbackArea,
     FileTree,
+    FileTreeContainer,
     FooterBar,
     GradeViewer,
     HeaderBar,
