@@ -37,7 +37,7 @@
     {
         "name": "can_see_hidden_assignments",
         "default_value": false,
-        "course_permission": false
+        "course_permission": true
     },
     {
         "name": "can_use_snippets",
