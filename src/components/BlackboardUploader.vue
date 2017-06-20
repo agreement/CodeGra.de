@@ -1,13 +1,16 @@
 <template>
     <b-form method="post" :action="action" enctype="multipart/form-data">
-        <b-form-fieldset :label="`Selected file: ${this.file ? this.file.name : ''}`">
+        <b-form-fieldset>
             <b-form-file name="file" v-model="file"></b-form-file>
         </b-form-fieldset>
+        Selected file: {{ file && file.name }}
         <b-button variant="primary" type="submit">Submit</b-button>
     </b-form>
 </template>
 
 <script>
+import { bForm, bFormFieldset, bFormFile, bFormButton, bButton } from 'bootstrap-vue/lib/components';
+
 export default {
     name: 'blackboard-uploader',
 
@@ -28,6 +31,14 @@ export default {
         return {
             file: null,
         };
+    },
+
+    components: {
+        bForm,
+        bFormFieldset,
+        bFormFile,
+        bFormButton,
+        bButton,
     },
 };
 </script>

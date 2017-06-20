@@ -18,7 +18,7 @@
 </template>
 
 <script>
-import { bButton, bCheckbox, bFormFieldset, bInputGroup, bInputGroupButton } from 'bootstrap-vue/lib/components';
+import { bButton, bFormCheckbox, bFormFieldset, bInputGroup, bInputGroupButton } from 'bootstrap-vue/lib/components';
 import Loader from './Loader';
 
 export default {
@@ -73,11 +73,11 @@ export default {
 
     components: {
         bButton,
+        bFormCheckbox,
         bFormFieldset,
         bInputGroup,
         bInputGroupButton,
         Loader,
-        bCheckbox,
     },
 };
 </script>

@@ -1,43 +1,22 @@
 <template>
-    <div class="page manage-assignment container-fluid">
+    <div class="page manage-course container-fluid">
         <div class="row justify-content-center">
-            <b-list-group class="col-10">
-                <b-list-group-item v-for="(a, i) in assignments">
-                    <span class="assignment-title" @click="toggleRow(a.id)">
-                        {{ a.name }}
-                        <span class="icon text-muted">
-                            <icon name="eye-slash" v-if="a.state_name == 'hidden'"></icon>
-                            <icon name="clock-o" v-if="a.state_name == 'submitting' || a.state_name == 'grading'"></icon>
-                            <icon name="check" v-if="a.state_name == 'done'"></icon>
-                        </span>
-                    </span>
-                    <b-collapse class="row" :id="`assignment-${a.id}`">
-                        <assignment-state class="col-6" :assignment="a" @updateName="(n) => updateName(i, n)" @updateState="(s) => updateState(i, s)"></assignment-state>
-                        <divide-submissions class="col-6" :assignment="a"></divide-submissions>
-                        <blackboard-uploader class="col-12" :assignment="a"></blackboard-uploader>
-                    </b-collapse>
-                </b-list-group-item>
-            </b-list-group>
+            <loader v-if="loading"></loader>
+            <manage-course v-else :assignments="assignments"></manage-course>
         </div>
     </div>
 </template>
 
 <script>
-import { bCollapse, bListGroup, bListGroupItem } from 'bootstrap-vue/lib/components';
-
-import Icon from 'vue-awesome/components/Icon';
-import 'vue-awesome/icons/eye-slash';
-import 'vue-awesome/icons/clock-o';
-import 'vue-awesome/icons/check';
-
-import { AssignmentState, BlackboardUploader, DivideSubmissions } from '@/components';
+import { ManageCourse, Loader } from '@/components';
 
 export default {
-    name: 'manage-assignment-page',
+    name: 'manage-course-page',
 
     data() {
         return {
             assignments: [],
+            loading: true,
         };
     },
 
@@ -52,31 +31,15 @@ export default {
     methods: {
         getAssignments() {
             this.$http.get(`/api/v1/courses/${this.courseId}/assignments/`).then(({ data }) => {
+                this.loading = false;
                 this.assignments = data;
             });
-        },
-
-        toggleRow(id) {
-            this.$root.$emit('collapse::toggle', `assignment-${id}`);
-        },
-
-        updateName(i, name) {
-            this.assignments[i].name = name;
-        },
-
-        updateState(i, state) {
-            this.assignments[i].state_name = state;
         },
     },
 
     components: {
-        AssignmentState,
-        BlackboardUploader,
-        DivideSubmissions,
-        bCollapse,
-        bListGroup,
-        bListGroupItem,
-        Icon,
+        Loader,
+        ManageCourse,
     },
 };
 </script>
@@ -84,15 +47,5 @@ export default {
 <style lang="less" scoped>
 .row {
     width: 100%;
-}
-
-.assignment-title {
-    width: 100%;
-    font-size: 1.25em;
-    cursor: pointer;
-
-    .icon {
-        float: right;
-    }
 }
 </style>
