@@ -1,10 +1,12 @@
-from flask import jsonify, request
+from flask import jsonify, request, after_this_request
 from flask_login import current_user, login_required
 
 import psef.auth as auth
 import psef.models as models
 from psef import db, app
 from psef.errors import APICodes, APIException
+
+import tempfile
 
 from . import api
 
@@ -127,27 +129,37 @@ def get_dir_contents(submission_id):
     return (dir_contents, 200)
 
 
-
 @app.route("/submissions/<int:submission_id>/feedback", methods=['GET'])
-def get_raw_feedback(submission_id):
+@login_required
+def get_feedback(submission_id):
+    """
+    Get the feedback of submission X as a plain text file.
+
+    Raises APIException:
+        - If submission X was not found
+    """
+    work = models.Work.query.get.submission_id().first()
+
+    if not work:
+        raise APIException(
+            'Submission not found',
+            'The submission with code {} was not found'.format(submission_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_can_see_grade(work)
     comments = models.Comment.query.filter(
         models.Comment.file.has(work_id=submission_id)).order_by(
             models.Comment.file_id.desc(), models.Comment.line.desc())
 
-    work = comments.first().file.work
-    assignment = work.assignment
-
-    if 'filename' in request.args:
-        filename = request.args['filename']
-    else:
-        filename = 'test.txt'
+    filename = '{}-{}-feedback.txt'.format(work.assignment.name,
+                                           work.user.name)
 
     fd, file = tempfile.mkstemp()
     with open(file, 'w') as fp:
         fp.write('Assignment: {}\n'
                  'Grade: {}\n'
                  'General feedback: \n{}\n\n'
-                 'Comments:\n'.format(assignment.name, work.grade,
+                 'Comments:\n'.format(work.assignment.name, work.grade,
                                       work.comment))
         for comment in comments:
             fp.write('{}:{}:0: {}\n'.format(comment.file.get_filename(),

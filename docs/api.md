@@ -280,6 +280,35 @@ Get all assignments for a given course
 #### HTTP Request
 `GET http://example.com/api/v1/courses/<ID>/assignments/`
 
+
+## Feedback
+### Submission
+#### Get all feedback as plain text file
+```python
+import requests
+
+# As logged in user
+requests.get('https://example.com/api/v1/submissions/5/feedback')
+```
+> The above command returns a plain text file with the following structure
+```
+Assignment: Hello, world!
+Grade: 6.0
+General feedback:
+Great how you printed your own name
+
+Comments:
+hello.py:10:0: That is very clever!
+hello.py:12:0: That not so much.
+...
+```
+
+Export the feedback for the given submission as plain text
+
+##### HTTP Request
+`GET /api/v1/submissions/<ID>/feedback`
+
+
 ## Submissions
 ### Get submission
 ##### HTTP Request
