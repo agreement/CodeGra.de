@@ -74,7 +74,7 @@ const actions = {
     },
     logout({ commit }) {
         return new Promise((resolve, reject) => {
-            axios.post('/api/v1/logout').then(() => {
+            axios.delete('/api/v1/login').then(() => {
                 commit(types.LOGOUT);
                 resolve();
             }).catch(() => {
