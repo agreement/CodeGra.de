@@ -76,11 +76,10 @@ import Loader from './Loader';
 export default {
     name: 'linter',
 
-    props: ['name', 'options', 'description', 'initialState', 'initialId'],
+    props: ['name', 'options', 'description', 'initialState', 'initialId', 'assignment'],
 
     data() {
         return {
-            assignmentId: this.$route.params.assignmentId,
             selectedOption: 'Select config file',
             show: {},
             state: -1,
@@ -164,7 +163,7 @@ export default {
             } else {
                 cfg = this.options[this.selectedOption];
             }
-            this.$http.post(`/api/v1/assignments/${this.assignmentId}/linter`, {
+            this.$http.post(`/api/v1/assignments/${this.assignment.id}/linter`, {
                 name: this.name,
                 cfg,
             }).then((data) => {
