@@ -1,7 +1,7 @@
 <template>
   <div class="page submission-list">
     <div class="row justify-content-center">
-      <loader :class="`col-md-${canUpload ? 5 : 10} text-center`" v-if="loading < 4"></loader>
+      <loader :class="`col-md-${canUpload ? 5 : 10} text-center`" v-if="loading < 3"></loader>
       <div :class="`col-md-${canUpload ? 5 : 10}`" v-else>
         <h1>Submissions</h1>
         <submission-list :submissions="submissions"></submission-list>
@@ -64,10 +64,10 @@ export default {
                     });
                 }
             };
-            checkDownload();
+
             this.hasPermission('can_see_others_work').then((res) => {
                 if (res) {
-                    this.checkDownload();
+                    checkDownload();
                 } else {
                     this.partDone();
                 }
