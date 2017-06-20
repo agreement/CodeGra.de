@@ -9,7 +9,7 @@
 </template>
 
 <script>
-import { bForm, bFormFieldset, bFormFile, bFormButton, bButton } from 'bootstrap-vue/lib/components';
+import { bForm, bFormFieldset, bFormFile, bButton } from 'bootstrap-vue/lib/components';
 
 export default {
     name: 'blackboard-uploader',
@@ -37,7 +37,6 @@ export default {
         bForm,
         bFormFieldset,
         bFormFile,
-        bFormButton,
         bButton,
     },
 };
