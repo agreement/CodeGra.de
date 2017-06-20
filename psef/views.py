@@ -218,6 +218,7 @@ def update_assignment(assignment_id):
 
     content = request.get_json()
 
+    print(content)
     if 'state' in content:
         if content['state'] not in ['hidden', 'open', 'done']:
             raise APIException(
@@ -238,6 +239,8 @@ def update_assignment(assignment_id):
         assig.name = content['name']
 
     # TODO also make it possible to update the close date of an assignment
+
+    db.session.commit()
 
     return '', 204
 
@@ -381,7 +384,9 @@ def get_all_course_assignments(course_id):
                             'The course {} was not found'.format(course_id),
                             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    return jsonify([assig.to_dict() for assig in course.assignments])
+    res = [assig.to_dict() for assig in course.assignments]
+    res.sort(key=lambda item: item['date'])
+    return jsonify(res)
 
 
 @app.route("/api/v1/login", methods=["POST"])

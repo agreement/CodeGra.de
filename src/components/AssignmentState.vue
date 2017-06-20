@@ -17,7 +17,7 @@
                             <b-button :variant="state == 'hidden' ? 'danger' : 'outline-danger'" value="hidden"><icon name="eye-slash"></icon></b-button>
                         </b-tooltip>
                         <b-tooltip placement="bottom" content="Open">
-                            <b-button :variant="state == 'open' ? 'warning' : 'outline-warning'" value="open"><icon name="clock-o"></icon></b-button>
+                            <b-button :variant="['open', 'grading', 'submitting'].indexOf(state) >= 0 ? 'warning' : 'outline-warning'" value="open"><icon name="clock-o"></icon></b-button>
                         </b-tooltip>
                         <b-tooltip placement="bottom" content="Done">
                             <b-button :variant="state == 'done' ? 'success' : 'outline-success'" value="done"><icon name="check"></icon></b-button>
@@ -52,7 +52,7 @@ export default {
         return {
             name: this.assignment ? this.assignment.name : '',
             date: this.assignment ? this.assignment.date : 0,
-            state: this.assignment ? this.assignment.state : 'hidden',
+            state: this.assignment ? this.assignment.state_name : 'hidden',
             sending: false,
         };
     },
@@ -62,11 +62,9 @@ export default {
             this.sending = true;
             const d = new Date(this.date);
             this.$http.patch(`/api/v1/assignments/${this.assignment.id}`, {
-                assignment: {
-                    name: this.name,
-                    date: `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}T${d.getUTCHours()}:${d.getUTCMinutes()}`,
-                    state: this.state,
-                },
+                name: this.name,
+                date: `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}T${d.getUTCHours()}:${d.getUTCMinutes()}`,
+                state: this.state,
             }).then(() => {
                 setTimeout(() => { this.sending = false; }, 500);
             });

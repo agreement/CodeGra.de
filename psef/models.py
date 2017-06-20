@@ -274,8 +274,9 @@ class File(db.Model):
 
     work = db.relationship('Work', foreign_keys=work_id)
 
-    __table_args__ = (db.CheckConstraint(
-        or_(is_directory == false(), extension == null())), )
+    __table_args__ = (
+        db.CheckConstraint(or_(is_directory == false(), extension == null())),
+    )
 
     def get_filename(self):
         if self.extension != None and self.extension != "":
@@ -331,9 +332,13 @@ class Assignment(db.Model):
         'Course', foreign_keys=course_id, back_populates='assignments')
 
     def to_dict(self):
+        state_name = '-'
+        if self.state is not None:
+            state_name = AssignmentStateEnum(self.state).name
         return {
             'id': self.id,
             'state': self.state,
+            'state_name': state_name,
             'description': self.description,
             'date': self.created_at.strftime('%d-%m-%Y %H:%M'),
             'name': self.name,
