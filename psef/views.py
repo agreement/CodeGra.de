@@ -7,6 +7,7 @@ from itertools import cycle
 from flask import jsonify, request, send_file, make_response, after_this_request
 from flask_login import login_user, logout_user, current_user, login_required
 from sqlalchemy.orm import subqueryload
+from sqlalchemy import func
 
 import psef.auth as auth
 import psef.files
@@ -381,7 +382,8 @@ def login():
                            'Email or password was missing from the request',
                            APICodes.MISSING_REQUIRED_PARAM, 400)
 
-    user = db.session.query(models.User).filter_by(email=data['email']).first()
+    user = db.session.query(models.User).filter(
+        func.lower(models.User.email) == func.lower(data['email'])).first()
 
     # TODO: Use bcrypt password validation (as soon as we got that)
     # TODO: Return error whether user or password is wrong
