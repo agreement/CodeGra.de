@@ -54,9 +54,17 @@ const actions = {
                 return state.permissions[`course_${perm.course_id}`];
             };
 
-            const checkPermission = () => getPermission()[perm.name] === true;
+            const getPermissionvalues = () => {
+                if (typeof perm.name === 'string') {
+                    return [getPermission()[perm.name]];
+                }
+                return perm.name.map(val => getPermission()[val]);
+            };
 
-            if (getPermission() === undefined || getPermission()[perm.name] === undefined) {
+            const checkPermission = () => getPermissionvalues().map(val => val === true);
+
+            if (getPermission() === undefined ||
+                getPermissionvalues().some(val => val === undefined)) {
                 axios.get('/api/v1/permissions/', {
                     params: perm.course_id ? { course_id: perm.course_id } : {},
                 }).then((response) => {

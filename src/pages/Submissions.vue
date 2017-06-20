@@ -1,7 +1,7 @@
 <template>
   <div class="page submission-list">
     <div class="row justify-content-center">
-      <loader :class="`col-md-${canUpload ? 5 : 10} text-center`" v-if="loading < 3"></loader>
+      <loader :class="`col-md-${canUpload ? 5 : 10} text-center`" v-if="loading < 2"></loader>
       <div :class="`col-md-${canUpload ? 5 : 10}`" v-else>
         <h1>Submissions</h1>
         <submission-list :submissions="submissions"></submission-list>
@@ -39,8 +39,12 @@ export default {
     },
 
     mounted() {
+        const partDone = () => {
+            this.loading += 1;
+        };
+
         this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then((data) => {
-            this.partDone();
+            partDone();
             this.submissions = data.data;
         });
 
@@ -48,29 +52,15 @@ export default {
             this.assignment = data.data;
             this.assignment.id = this.assignmentId;
 
-            this.hasPermission('can_submit_own_work').then((val) => {
-                this.canUpload = val && this.assignment.open;
-                this.partDone();
-            });
+            this.hasPermission(['can_submit_own_work', 'can_see_others_work', 'can_see_grade_before_open']).then(([submit, others, before]) => {
+                this.canUpload = submit && this.assignment.open;
 
-            const checkDownload = () => {
-                if (this.assignment.state === assignmentState.DONE) {
+                if (others && this.assignment.state === assignmentState.DONE) {
                     this.canDownload = true;
-                    this.partDone();
-                } else {
-                    this.hasPermission('can_see_grade_before_open').then((res) => {
-                        this.canDownload = res;
-                        this.partDone();
-                    });
+                } else if (others) {
+                    this.canDownload = before;
                 }
-            };
-
-            this.hasPermission('can_see_others_work').then((res) => {
-                if (res) {
-                    checkDownload();
-                } else {
-                    this.partDone();
-                }
+                partDone();
             });
         });
     },
@@ -78,9 +68,6 @@ export default {
     methods: {
         hasPermission(perm) {
             return this.u_hasPermission({ name: perm, course_id: this.courseId });
-        },
-        partDone() {
-            this.loading += 1;
         },
         gotoSubmission(submission) {
             this.$router.push({
