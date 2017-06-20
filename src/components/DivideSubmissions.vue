@@ -1,22 +1,24 @@
 <template>
     <div class="divide-submissions">
         <loader class="text-center" v-if="loading"></loader>
-        <div class="form-control" v-else>
-            <div v-for="grader in graders">
-              <b-form-checkbox v-model="grader.divided">
-                {{ grader.name }}
-              </b-form-checkbox>
+        <b-form-fieldset label="Divide submissions" v-else>
+            <div class="form-control">
+                <div v-for="grader in graders">
+                <b-form-checkbox v-model="grader.divided">
+                    {{ grader.name }}
+                </b-form-checkbox>
+                </div>
+                <span v-if="graders.length == 0"> No possible graders found for this assignment!</span>
+                <b-button v-else variant="primary" v-on:click="divideAssignments()">
+                    Divide Submissions
+                </b-button>
             </div>
-            <span v-if="graders.length == 0"> No possible graders found for this assignment!</span>
-            <b-button v-else variant="primary" v-on:click="divideAssignments()">
-                Divide Submissions
-            </b-button>
-        </div>
+        </b-form-fieldset>
     </div>
 </template>
 
 <script>
-import { bCheckbox, bButton, bInputGroup, bInputGroupButton } from 'bootstrap-vue/lib/components';
+import { bButton, bCheckbox, bFormFieldset, bInputGroup, bInputGroupButton } from 'bootstrap-vue/lib/components';
 import Loader from './Loader';
 
 export default {
@@ -71,6 +73,7 @@ export default {
 
     components: {
         bButton,
+        bFormFieldset,
         bInputGroup,
         bInputGroupButton,
         Loader,

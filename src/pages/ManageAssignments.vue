@@ -3,8 +3,7 @@
         <div class="row justify-content-center">
             <b-list-group class="col-10">
                 <b-list-group-item v-for="(a, i) in assignments">
-                    <h5 class="assignment-title" @click="toggleRow(a.id)"
-                        v-if="">
+                    <h5 class="assignment-title" @click="toggleRow(a.id)">
                         {{ a.name }}
                         <span class="icon text-muted">
                             <icon name="eye-slash" v-if="a.state_name == 'hidden'"></icon>
