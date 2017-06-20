@@ -1,7 +1,5 @@
 <template>
-
     <b-navbar toggleable type="inverse" sticky="true" class="navbar">
-
         <b-nav-toggle target="nav_collapse"></b-nav-toggle>
 
         <b-link class="navbar-brand" to="#">
@@ -11,7 +9,6 @@
         </b-link>
 
         <b-collapse is-nav id="nav_collapse">
-
             <div v-if="loggedIn" class="loggedin-nav">
                 <b-nav is-nav-bar class="navbar-left">
                     <router-link class="nav-item" tag="li" :to="{ name: 'me', params: { userId: this.userid, }, }" active-class="active">
@@ -36,7 +33,6 @@
             </div>
         </b-collapse>
     </b-navbar>
-
 </template>
 
 <script scoped>

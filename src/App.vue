@@ -1,7 +1,11 @@
 <template>
     <div id="app">
         <nav-bar></nav-bar>
-        <router-view class="container-fluid"></router-view>
+        <main class="container-fluid">
+            <div class="row justify-content-center">
+                <router-view class="col-10"></router-view>
+            </div>
+        </main>
         <footer-bar></footer-bar>
     </div>
 </template>
@@ -26,3 +30,18 @@ export default {
 
 };
 </script>
+
+<style lang="less" scoped>
+main {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    flex-shrink: 1;
+    width: 100%;
+
+    > .row {
+        flex-grow: 1;
+        flex-shrink: 1;
+    }
+}
+</style>
