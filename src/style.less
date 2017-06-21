@@ -41,8 +41,19 @@ footer {
     }
 }
 
-.custom-control-input:checked ~ .custom-control-indicator {
-    background-color: @color-primary;
+.custom-control-input {
+    &:active ~ .custom-control-indicator {
+        background-color: fade(@color-primary, 60);
+    }
+
+    &:focus ~ .custom-control-indicator {
+        box-shadow: 0 0 0 1px white,
+                    0 0 0 3px @color-primary;
+    }
+
+    &:checked ~ .custom-control-indicator {
+        background-color: @color-primary;
+    }
 }
 
 input[type="number"] {
