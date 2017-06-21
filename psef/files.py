@@ -53,6 +53,8 @@ def get_file_contents(code):
 
 
 def restore_directory_structure(code, parent):
+    """Restores the directory structure recursively for a submission.
+    """
     out = os.path.join(parent, code.get_filename())
     if code.is_directory:
         os.mkdir(out)
@@ -279,7 +281,7 @@ def create_csv(objects, attributes, headers=None):
     :returns: The path to the csv file
     :rtype: str
     """
-    if headers == None:
+    if headers is None:
         headers = attributes
 
     return create_csv_from_rows([headers] + [[

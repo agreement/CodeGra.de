@@ -1,43 +1,36 @@
 <template>
     <div>
-        <div class="row">
-            <b-input-group class="col-12">
-                <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
-                <b-button-group>
-                    <b-popover placement="top" triggers="hover" content="Submitting">
-                        <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
-                            @click="toggleFilter('submitting')">
-                            <icon name="download"></icon>
-                        </b-button>
-                    </b-popover>
-                    <b-popover placement="top" triggers="hover" content="Grading">
-                        <b-button class="btn-warning" :class="{ 'btn-outline-warning': !toggles.grading }"
-                            @click="toggleFilter('grading')">
-                            <icon name="pencil"></icon>
-                        </b-button>
-                    </b-popover>
-                    <b-popover placement="top" triggers="hover" content="Done">
-                        <b-button class="btn-success" :class="{ 'btn-outline-success': !toggles.done }"
-                            @click="toggleFilter('done')">
-                            <icon name="check"></icon>
-                        </b-button>
-                    </b-popover>
-                </b-button-group>
-                <div class="col-3">
-                    <b-form-checkbox v-model="cb_student">student</b-form-checkbox>
-                    <b-form-checkbox v-model="cb_ta">assistant</b-form-checkbox>
-                    <!-- <input type="checkbox" value="student" v-model="roles_selected">
-                    <label>student</label>
-                    <input type="checkbox" value="assistant" v-model="roles_selected">
-                    <label>assistant</label> -->
-                </div>
-            </b-input-group>
-            {{ roles_selected }}
-        </div>
+        <b-input-group>
+            <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
+            <b-button-group>
+                <b-tooltip placement="bottom" content="Submitting">
+                    <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
+                        @click="toggleFilter('submitting')">
+                        <icon name="download"></icon>
+                    </b-button>
+                </b-tooltip>
+                <b-tooltip placement="bottom" content="Grading">
+                    <b-button class="btn-warning" :class="{ 'btn-outline-warning': !toggles.grading }"
+                        @click="toggleFilter('grading')">
+                        <icon name="pencil"></icon>
+                    </b-button>
+                </b-tooltip>
+                <b-tooltip placement="bottom" content="Done">
+                    <b-button class="btn-success" :class="{ 'btn-outline-success': !toggles.done }"
+                        @click="toggleFilter('done')">
+                        <icon name="check"></icon>
+                    </b-button>
+                </b-tooltip>
+            </b-button-group>
+            <div class="col-3">
+                <b-form-checkbox v-model="cb_student">student</b-form-checkbox>
+                <b-form-checkbox v-model="cb_ta">assistant</b-form-checkbox>
+            </div>
+        </b-input-group>
 
         <!-- Main table element -->
         <b-table striped hover
-                v-on:row-clicked="gotoAssignment"
+                @row-clicked="gotoAssignment"
                 :items="assignments"
                 :fields="fields"
                 :current-page="currentPage"
@@ -68,7 +61,7 @@
 </template>
 
 <script>
-import { bButton, bButtonGroup, bFormFieldset, bInputGroup, bPopover, bTable } from
+import { bButton, bButtonGroup, bFormInput, bInputGroup, bTooltip, bTable } from
     'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
@@ -204,9 +197,9 @@ export default {
         Icon,
         bButton,
         bButtonGroup,
-        bFormFieldset,
+        bFormInput,
         bInputGroup,
-        bPopover,
+        bTooltip,
         bTable,
     },
 };

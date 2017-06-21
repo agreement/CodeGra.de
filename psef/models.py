@@ -146,7 +146,7 @@ class User(db.Model, UserMixin):
         collection_class=attribute_mapped_collection('course.id'),
         secondary=user_course,
         backref=db.backref('users', lazy='dynamic'))
-    email = db.Column('email', db.Unicode, unique=True)
+    email = db.Column('email', db.Unicode(collation='NOCASE'), unique=True)
     password = db.Column(
         'password',
         PasswordType(schemes=[
@@ -193,23 +193,26 @@ class User(db.Model, UserMixin):
     def validate_username(username):
         min_len = 3
         if len(username) < min_len:
-            return('use at least {} chars'.format(min_len))
+            return ('use at least {} chars'.format(min_len))
         else:
-            return('')
+            return ('')
 
     @staticmethod
     def validate_password(password):
         min_len = 3
         if len(password) < min_len:
-            return('use at least {} chars'.format(min_len))
+            return ('use at least {} chars'.format(min_len))
         else:
-            return('')
+            return ('')
 
 
 class Course(db.Model):
     __tablename__ = "Course"
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode)
+
+    assignments = db.relationship(
+        "Assignment", back_populates="course", cascade='all,delete')
 
 
 class Work(db.Model):
@@ -229,6 +232,10 @@ class Work(db.Model):
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', single_parent=True, foreign_keys=user_id)
     assignee = db.relationship('User', foreign_keys=assigned_to)
+
+    @property
+    def is_graded(self):
+        raise NotImplementedError()
 
     def add_file_tree(self, session, tree):
         """Add the given tree to the given db.
@@ -283,7 +290,8 @@ class File(db.Model):
     filename = db.Column('path', db.Unicode)
     is_directory = db.Column('is_directory', db.Boolean)
     parent_id = db.Column(db.Integer, db.ForeignKey('File.id'))
-    parent = db.relationship('File', remote_side=[id], backref='children')
+    parent = db.relationship(
+        'File', remote_side=[id], backref=db.backref('children'))
 
     work = db.relationship('Work', foreign_keys=work_id)
 
@@ -298,14 +306,14 @@ class File(db.Model):
             return self.name
 
     def list_contents(self):
-        if self.is_directory:
+        if not self.is_directory:
+            return {"name": self.get_filename(), "id": self.id}
+        else:
             return {
                 "name": self.get_filename(),
                 "id": self.id,
                 "entries": [child.list_contents() for child in self.children]
             }
-        else:
-            return {"name": self.get_filename(), "id": self.id}
 
 
 class LinterComment(db.Model):
@@ -347,7 +355,10 @@ class AssignmentLinter(db.Model):
     id = db.Column('id', db.Unicode, nullable=False, primary_key=True)
     name = db.Column('name', db.Unicode)
     tests = db.relationship(
-        "LinterInstance", back_populates="tester", cascade='all,delete')
+        "LinterInstance",
+        back_populates="tester",
+        cascade='all,delete',
+        order_by='LinterInstance.work_id')
     assignment_id = db.Column('Assignment_id', db.Integer,
                               db.ForeignKey('Assignment.id'))
 
@@ -369,7 +380,8 @@ class AssignmentLinter(db.Model):
                 sub,
                 and_(sub.c.user_id == Work.user_id,
                      sub.c.max_date == Work.created_at)).filter(
-                         Work.assignment_id == assignment_id).all():
+                         Work.assignment_id == assignment_id).order_by(
+                             Work.id).all():
             tests.append(LinterInstance.create_test(work, self))
         self.tests = tests
         return self
@@ -400,6 +412,12 @@ class LinterInstance(db.Model):
             id = str(uuid.uuid4())
         return cls(id=id, work=work, tester=tester)
 
+    def to_dict(self):
+        return {
+            'name': self.work.user.name,
+            'state': LinterState(self.state).name,
+        }
+
 
 @enum.unique
 class AssignmentStateEnum(enum.IntEnum):
@@ -422,7 +440,23 @@ class Assignment(db.Model):
     course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-    course = db.relationship('Course', foreign_keys=course_id)
+    course = db.relationship(
+        'Course', foreign_keys=course_id, back_populates='assignments')
+
+    def to_dict(self):
+        state_name = '-'
+        if self.state is not None:
+            state_name = AssignmentStateEnum(self.state).name
+        return {
+            'id': self.id,
+            'state': self.state,
+            'state_name': state_name,
+            'description': self.description,
+            'date': self.created_at.strftime('%Y-%m-%dT%H:%M'),
+            'name': self.name,
+            'course_name': self.course.name,
+            'course_id': self.course_id,
+        }
 
     def get_all_latest_submissions(self):
         sub = db.session.query(
