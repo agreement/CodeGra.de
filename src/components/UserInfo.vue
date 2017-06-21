@@ -2,19 +2,15 @@
     <div class="userinfo">
         <loader class="col-md-10 text-center" v-if="loading"></loader>
 
-        <div v-else-if="!edit">
+        <div v-else @keyup.enter="submit()">
             <b-alert variant="success" :show="success">
                 Your userdata has been updated.
             </b-alert>
-            Username: {{ username }} <br>
-            Email: {{ email }} <br>
-            <b-button type="edit" variant="primary" @click="edit = true">Edit</b-button>
-        </div>
 
-        <div v-else @keyup.enter="submit()">
             <b-form-fieldset>
                 <b-input-group left="Username">
-                    <b-form-input  type="text" v-model="username"></b-form-input>
+                    <b-form-input type="text" v-model="username" v-if="edit"></b-form-input>
+                    <p class="form-control" v-else>{{ username }}</p>
                 </b-input-group>
                 <b-alert variant="danger" :show="submitted && invalid_username_error.length">
                     {{ invalid_username_error }}
@@ -23,14 +19,15 @@
 
             <b-form-fieldset>
                 <b-input-group left="Email">
-                    <b-form-input  type="text" v-model="email"></b-form-input>
+                    <b-form-input type="text" v-model="email" v-if="edit"></b-form-input>
+                    <p class="form-control" v-else>{{ email }}</p>
                 </b-input-group>
                 <b-alert variant="danger" :show="submitted && !validator.validate(email)">
                     Please enter a valid email
                 </b-alert>
             </b-form-fieldset>
 
-            <b-form-fieldset>
+            <b-form-fieldset v-if="edit">
                 <b-input-group left="Old Password">
                     <b-form-input  :type="o_pw_visible ? 'text' : 'password'" v-model="oldPassword"></b-form-input>
                     <b-input-group-button slot="right">
@@ -45,7 +42,7 @@
                 </b-alert>
             </b-form-fieldset>
 
-            <b-form-fieldset>
+            <b-form-fieldset v-if="edit">
                 <b-input-group left="New Password">
                     <b-form-input :type="n_pw_visible ? 'text' : 'password'" v-model="newPassword"></b-form-input>
                     <b-input-group-button slot="right">
@@ -60,7 +57,7 @@
                 </b-alert>
             </b-form-fieldset>
 
-            <b-form-fieldset>
+            <b-form-fieldset v-if="edit">
                 <b-input-group left="Confirm Password">
                     <b-form-input :type="c_pw_visible ? 'text' : 'password'" v-model="confirmPassword"></b-form-input>
                     <b-input-group-button slot="right">
@@ -76,8 +73,9 @@
             </b-form-fieldset>
 
             <b-button-group justify>
-                <b-button variant="primary" @click="edit = false; resetParams()">Cancel</b-button>
-                <b-button variant="primary" @click="submit()">Submit</b-button>
+                <b-button variant="primary" @click="edit = true" v-if="!edit">Edit</b-button>
+                <b-button variant="primary" @click="edit = false; resetParams()" v-if="edit">Cancel</b-button>
+                <b-button variant="primary" @click="submit()" v-if="edit">Submit</b-button>
             </b-button-group>
         </div>
     </div>
@@ -98,6 +96,13 @@ const validator = require('email-validator');
 export default {
     name: 'userinfo',
 
+    props: {
+        edit: {
+            type: Boolean,
+            default: false,
+        },
+    },
+
     data() {
         return {
             username: '',
@@ -105,9 +110,8 @@ export default {
             oldPassword: '',
             newPassword: '',
             confirmPassword: '',
-            edit: false,
             submitted: false,
-            succes: false,
+            success: false,
             o_pw_visible: false,
             n_pw_visible: false,
             c_pw_visible: false,
