@@ -66,7 +66,7 @@
             </b-form-fieldset>
 
             <b-button-toolbar justify>
-                <b-button :variant="success ? 'success' : 'primary'" @click="submit()">
+                <b-button :variant="success ? 'success' : failure ? 'danger' : 'primary'" @click="submit()">
                     <icon name="refresh" spin v-if="submitted"></icon>
                     <span v-else>Submit</span>
                 </b-button>
@@ -78,9 +78,11 @@
 
 <script>
 import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/eye';
 import 'vue-awesome/icons/eye-slash';
 import 'vue-awesome/icons/refresh';
+import 'vue-awesome/icons/times';
 
 import { bAlert, bButton, bButtonToolbar, bFormFieldset, bFormInput, bInputGroup }
     from 'bootstrap-vue/lib/components';
@@ -103,6 +105,7 @@ export default {
             loading: false,
             submitted: false,
             success: false,
+            failure: false,
             o_pw_visible: false,
             n_pw_visible: false,
             c_pw_visible: false,
@@ -167,10 +170,10 @@ export default {
                 o_password: this.oldPassword,
                 n_password: this.newPassword,
             }).then(() => {
-                this.success = true;
                 this.original.name = this.username;
                 this.original.email = this.email;
                 this.resetParams();
+                this.success = true;
                 setTimeout(() => { this.success = false; }, 1000);
             }, ({ response }) => {
                 if (response.data.code === 5) {
@@ -179,6 +182,8 @@ export default {
                 } else if (response.data.code === 12) {
                     this.invalid_credentials_error = response.data.message;
                 }
+                this.failure = true;
+                setTimeout(() => { this.failure = false; }, 1000);
             }).then(() => {
                 this.submitted = false;
             });
