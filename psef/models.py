@@ -146,7 +146,7 @@ class User(db.Model, UserMixin):
         collection_class=attribute_mapped_collection('course.id'),
         secondary=user_course,
         backref=db.backref('users', lazy='dynamic'))
-    email = db.Column('email', db.Unicode, unique=True)
+    email = db.Column('email', db.Unicode(collation='NOCASE'), unique=True)
     password = db.Column(
         'password',
         PasswordType(schemes=[

@@ -38,7 +38,7 @@ def get_submission(submission_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
 
-@app.route("/submissions/<int:submission_id>", methods=['PATCH'])
+@api.route("/submissions/<int:submission_id>", methods=['PATCH'])
 def patch_submission(submission_id):
     """
     Update submission X if it already exists and if the user permission is

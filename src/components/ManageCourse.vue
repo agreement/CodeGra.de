@@ -1,6 +1,6 @@
 <template>
-    <b-list-group class="col-10 manage-course">
-        <b-list-group-item v-for="a in assignments">
+    <b-list-group class="manage-course">
+        <b-list-group-item v-for="a in assignments" :key="a.id">
             <manage-assignment :assignment="a"></manage-assignment>
         </b-list-group-item>
     </b-list-group>
@@ -9,7 +9,6 @@
 <script>
 import { bListGroup, bListGroupItem } from 'bootstrap-vue/lib/components';
 
-// import { ManageAssignment } from '@/components';
 import ManageAssignment from './ManageAssignment';
 
 export default {

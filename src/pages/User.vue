@@ -1,7 +1,9 @@
 <template>
-    <div class="page home row">
-        <user-info class="col-5"></user-info>
-        <snippet-manager class="col-5"></snippet-manager>
+    <div class="page user">
+        <div class="row">
+            <user-info class="col-6"></user-info>
+            <snippet-manager class="col-6"></snippet-manager>
+        </div>
     </div>
 </template>
 

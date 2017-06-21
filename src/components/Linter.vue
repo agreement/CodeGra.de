@@ -1,56 +1,56 @@
 <template>
-  <tr>
-    <!-- TODO: Fix issues with iterations by relying on order !-->
-    <td class="align-middle">{{ name }}</td>
+    <tr>
+        <!-- TODO: Fix issues with iterations by relying on order !-->
+        <td class="align-middle">{{ name }}</td>
 
-    <td class="align-middle">
-      {{ description }}
-      <b-collapse :id="`collapse_${name}`" class="mt-2">
-        <div v-if="state == 'new'">
-          <div>
-            <b-dropdown :text="selectedOption" class="margin">
-              <b-dropdown-header>Select your config file</b-dropdown-header>
-              <b-dropdown-item v-for="(_, optionName) in options" v-on:click="clicked(false, optionName)" :key="optionName">
-                {{ optionName }}
-              </b-dropdown-item>
-              <b-dropdown-divider></b-dropdown-divider>
-              <b-dropdown-item v-on:click="clicked(true, 'Custom config')">Custom config</b-dropdown-item>
-            </b-dropdown>
-            <b-collapse :id="`sub_collapse_${name}`">
-              <form>
-                <b-form-input class="margin" :textarea="true" :rows="10" placeholder="Enter your custom config" v-model="config">
-                </b-form-input>
-              </form>
+        <td class="align-middle">
+            {{ description }}
+            <b-collapse :id="`collapse_${name}`" class="mt-2">
+                <div v-if="state == 'new'">
+                    <div>
+                        <b-dropdown :text="selectedOption" class="margin">
+                            <b-dropdown-header>Select your config file</b-dropdown-header>
+                            <b-dropdown-item v-for="(_, optionName) in options" v-on:click="clicked(false, optionName)" :key="optionName">
+                                {{ optionName }}
+                            </b-dropdown-item>
+                            <b-dropdown-divider></b-dropdown-divider>
+                            <b-dropdown-item v-on:click="clicked(true, 'Custom config')">Custom config</b-dropdown-item>
+                        </b-dropdown>
+                        <b-collapse :id="`sub_collapse_${name}`">
+                            <form>
+                                <b-form-input class="margin" :textarea="true" :rows="10" placeholder="Enter your custom config" v-model="config">
+                                </b-form-input>
+                            </form>
+                        </b-collapse>
+                    </div>
+                    <b-btn variant="primary" :disabled="selectedOption === 'Select config file'" v-on:click="run">
+                        <loader :scale="1" v-if="starting"/>
+                        <span v-else>Run!</span>
+                    </b-btn>
+                </div>
+                <div v-else-if="state == 'running'">
+                    <b-progress v-model="done" :max="done + working + crashed" :precision="1" animated></b-progress>
+                    <span class="text-center progress-text">{{ done }} out of {{ working + done }}</span>
+                </div>
+                <div v-else>
+                    <div class="row justify-content-md-center">
+                        <b-btn class="text-center margin large-btn" variant="danger" @click="$root.$emit('show::modal',`modal_${name}`)">Remove output</b-btn>
+                        <b-modal :id="`modal_${name}`" title="Are you sure?" :hide-footer="true">
+                            <div class="row justify-content-md-center" v-if="deleting">
+                                <b-btn class="text-center" variant="outline-danger"><loader :scale="1"/></b-btn>
+                            </div>
+                            <div v-else>
+                                <b-btn class="text-center" variant="outline-danger" v-on:click="deleteFeedback">Yes, delete this data.</b-btn>
+                                <b-btn class="text-center right-float" variant="success" v-on:click="$root.$emit('hide::modal', `modal_${name}`)">No!</b-btn>
+                            </div>
+                        </b-modal>
+                    </div>
+                </div>
             </b-collapse>
-          </div>
-          <b-btn variant="primary" :disabled="selectedOption === 'Select config file'" v-on:click="run">
-              <loader :scale="1" v-if="starting"/>
-              <span v-else>Run!</span>
-          </b-btn>
-        </div>
-        <div v-else-if="state == 'running'">
-            <b-progress v-model="done" :max="done + working + crashed" :precision="1" animated></b-progress>
-            <span class="text-center progress-text">{{ done }} out of {{ working + done }}</span>
-        </div>
-        <div v-else>
-          <div class="row justify-content-md-center">
-            <b-btn class="text-center margin large-btn" variant="danger" @click="$root.$emit('show::modal',`modal_${name}`)">Remove output</b-btn>
-            <b-modal :id="`modal_${name}`" title="Are you sure?" :hide-footer="true">
-              <div class="row justify-content-md-center" v-if="deleting">
-                <b-btn class="text-center" variant="outline-danger"><loader :scale="1"/></b-btn>
-              </div>
-              <div v-else>
-                <b-btn class="text-center" variant="outline-danger" v-on:click="deleteFeedback">Yes, delete this data.</b-btn>
-                <b-btn class="text-center right-float" variant="success" v-on:click="$root.$emit('hide::modal', `modal_${name}`)">No!</b-btn>
-              </div>
-            </b-modal>
-          </div>
-        </div>
-      </b-collapse>
-    </td>
-    <td class="align-middle">{{ strState() }}</td>
-    <td><b-btn v-b-toggle="`collapse_${name}`" v-on:click="opened = !opened" variant="primary">{{ opened ? 'Less' : 'More' }}</b-btn></td>
-  </tr>
+        </td>
+        <td class="align-middle">{{ strState() }}</td>
+        <td><b-btn v-b-toggle="`collapse_${name}`" v-on:click="opened = !opened" variant="primary">{{ opened ? 'Less' : 'More' }}</b-btn></td>
+    </tr>
 </template>
 
 <script>
