@@ -90,7 +90,7 @@ export default {
 };
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
 .loader {
     padding-top: 3.5em;
 }

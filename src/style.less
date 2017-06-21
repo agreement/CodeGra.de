@@ -8,6 +8,10 @@ html {
     box-sizing: inherit;
 }
 
+.navbar {
+    background: #2c3e50;
+}
+
 #app {
     display: flex;
     min-height: 100vh;
@@ -15,12 +19,6 @@ html {
 }
 
 footer {
-    @footer-height: 60px;
-    height: @footer-height;
-    /* Vertically center the text there */
-    line-height: @footer-height;
-
-    text-align: center;
     background: #f5f5f5;
 }
 
@@ -33,9 +31,52 @@ footer {
     }
 }
 
+.custom-control-input:checked ~ .custom-control-indicator {
+    background: @color-primary;
+}
+
+input[type="number"] {
+    text-align: right;
+    padding-right: 1em;
+
+    &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+    }
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+input:disabled,
+textarea:disabled {
+    background: white;
+}
+
 .card-primary.card-inverse {
     background: @color-primary;
     border-color: @color-primary;
+}
+
+.table-hover tbody tr {
+    cursor: pointer;
+}
+
+.input-group .custom-checkbox {
+    margin-right: 0;
+    padding: .5rem .75rem;
+    padding-left: 2.25rem;
+    font-size: 0.95em;
+
+    .custom-control-indicator {
+        top: .625rem;
+        left: .75rem;
+    }
+}
+
+.form-group .alert {
+    position: relative;
+    margin-top: -4px;
+    margin-bottom: 0;
+    z-index: -1;
 }
 
 .code-viewer {
@@ -97,18 +138,12 @@ footer {
     text-decoration-style: wavy;
 }
 
-.table-hover tbody tr {
-    cursor: pointer;
-}
+.file-tree {
+    a {
+        color: #2c3e50;
+    }
 
-.input-group .custom-checkbox {
-    margin-right: 0;
-    padding: .5rem .75rem;
-    padding-left: 2.25rem;
-    font-size: 0.95em;
-
-    .custom-control-indicator {
-        top: .625rem;
-        left: .75rem;
+    .active-file {
+        font-weight: bold;
     }
 }

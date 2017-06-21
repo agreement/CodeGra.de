@@ -124,22 +124,3 @@ export default {
     },
 };
 </script>
-
-<style lang="less" scoped>
-input.grade {
-    text-align: right;
-    padding-right: 1em;
-
-    &::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-    }
-    -moz-appearance: textfield;
-    appearance: textfield;
-}
-
-input:disabled,
-textarea:disabled {
-    background: white;
-    cursor: text;
-}
-</style>

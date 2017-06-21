@@ -73,35 +73,3 @@ export default {
     },
 };
 </script>
-
-<style lang="less" scoped>
-.margin {
-    margin-bottom: 15px;
-}
-
-.large-btn {
-    margin-top: 1em;
-    padding: 15px 5em;
-}
-.right-float {
-    float: right;
-}
-
-.center-table {
-    text-align: center;
-}
-.center-table th {
-    text-align: center;
-}
-
-.table-striped tbody tr:nth-of-type(even) table.trans tr {
-    background-color: rgba(0, 0, 0, 0.05);
-}
-.table-striped tbody tr:nth-of-type(odd) table.trans tr {
-    background-color: #fff;
-}
-
-button {
-    cursor: pointer;
-}
-</style>
