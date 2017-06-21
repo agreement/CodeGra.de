@@ -165,6 +165,13 @@ class User(db.Model, UserMixin):
             return (course_id in self.courses and
                     self.courses[course_id].has_permission(permission))
 
+    def __to_json__(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+        }
+
     def get_all_permissions(self, course_id=None):
         if isinstance(course_id, Course):
             course_id = course_id.id

@@ -47,11 +47,7 @@ def login():
 @api.route("/login", methods=["GET"])
 @login_required
 def me():
-    return (jsonify({
-        "id": current_user.id,
-        "name": current_user.name,
-        "email": current_user.email
-    }), 200)
+    return jsonify(current_user)
 
 
 @api.route('/login', methods=['PATCH'])
