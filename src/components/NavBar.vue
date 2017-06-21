@@ -22,7 +22,7 @@
                     </router-link>
                 </b-nav>
                 <b-nav is-nav-bar class="navbar-right">
-                    <router-link class="nav-item" tag="li" :to="{ name: 'logout', }" @click.native.capture="logout"  active-class="active">
+                    <router-link class="nav-item" tag="li" :to="{ name: 'logout', }" @click.native.capture="logoutAndRedirect"  active-class="active">
                         Logout
                     </router-link>
                 </b-nav>
