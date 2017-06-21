@@ -24,12 +24,12 @@
                     </b-popover>
                 </b-button-group>
                 <div class="col-3">
-                    <!-- <b-form-checkbox v-model="roles_selected" value="student">student</b-form-checkbox>
-                    <b-form-checkbox v-model="roles_selected" value="assistant">assistant</b-form-checkbox> -->
-                    <input type="checkbox" value="student" v-model="roles_selected">
+                    <b-form-checkbox v-model="cb_student">student</b-form-checkbox>
+                    <b-form-checkbox v-model="cb_ta">assistant</b-form-checkbox>
+                    <!-- <input type="checkbox" value="student" v-model="roles_selected">
                     <label>student</label>
                     <input type="checkbox" value="assistant" v-model="roles_selected">
-                    <label>assistant</label>
+                    <label>assistant</label> -->
                 </div>
             </b-input-group>
             {{ roles_selected }}
@@ -119,7 +119,8 @@ export default {
                     class: 'text-center',
                 },
             },
-            roles_selected: [],
+            cb_student: true,
+            cb_ta: true,
         };
     },
 
@@ -129,11 +130,16 @@ export default {
         this.toggles.grading = q.grading == null ? false : q.grading === 'true';
         this.toggles.done = q.done == null ? true : q.done === 'true';
         this.filter = q.q;
-        console.log(this.assignments);
     },
 
     methods: {
         filterItems(item) {
+            if (!this.cb_student && !item.can_grade) {
+                return false;
+            } else if (!this.cb_ta && item.can_grade) {
+                return false;
+            }
+
             if (!this.filterState(item)) {
                 return false;
             } else if (!this.filter) {

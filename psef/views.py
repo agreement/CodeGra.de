@@ -185,17 +185,18 @@ def get_student_assignments():
     """
     Get all the student assignments that the current user can see.
     """
-    perm = models.Permission.query.filter_by(
+    perm_can_see = models.Permission.query.filter_by(
         name='can_see_assignments').first()
+    perm_can_grade = models.Permission.query.filter_by(
+        name='can_grade_work').first()
     courses = []
 
     for course_role in current_user.courses.values():
-        if course_role.has_permission(perm):
+        if course_role.has_permission(perm_can_see):
             courses.append(course_role.course_id)
 
     if courses:
         course_roles = current_user.courses.values()
-        print(course_roles)
         return (jsonify([{
             'id':assignment.id,
             'state': assignment.state,
@@ -203,7 +204,9 @@ def get_student_assignments():
             'name': assignment.name,
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
-            'course_role': helper(course_roles, assignment.course_id),
+            'course_role': helper(course_roles, assignment.course_id).name,
+            'can_grade' : helper(course_roles, assignment.course_id)
+                          .has_permission(perm_can_grade),
         } for assignment in models.Assignment.query.filter(
             models.Assignment.course_id.in_(courses)).all()]), 200)
     else:
@@ -212,8 +215,7 @@ def get_student_assignments():
 def helper(course_roles, course_id):
     for course_role in course_roles:
         if course_role.course_id == course_id:
-            return(course_role.name)
-    return('iets mis')
+            return(course_role)
 
 @app.route("/api/v1/assignments/<int:assignment_id>", methods=['GET'])
 def get_assignment(assignment_id):
