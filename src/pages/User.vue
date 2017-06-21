@@ -1,18 +1,20 @@
 <template>
-    <div class="page home">
-        <user-info></user-info>
+    <div class="page home row">
+        <user-info class="col-5"></user-info>
+        <snippet-manager class="col-5"></snippet-manager>
     </div>
 </template>
 
 <script>
 import { mapGetters } from 'vuex';
-import { UserInfo } from '@/components';
+import { UserInfo, SnippetManager } from '@/components';
 
 export default {
     name: 'user-page',
 
     components: {
         UserInfo,
+        SnippetManager,
     },
 
     computed: {
