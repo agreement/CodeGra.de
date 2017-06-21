@@ -53,6 +53,8 @@ def get_file_contents(code):
 
 
 def restore_directory_structure(code, parent):
+    """Restores the directory structure recursively for a submission.
+    """
     out = os.path.join(parent, code.get_filename())
     if code.is_directory:
         os.mkdir(out)

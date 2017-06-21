@@ -5,7 +5,6 @@ from itertools import cycle
 
 from flask import jsonify, request, send_file, after_this_request
 from flask_login import current_user, login_required
-from sqlalchemy.orm import subqueryload
 
 import psef.auth as auth
 import psef.files
@@ -14,6 +13,7 @@ import psef.linters as linters
 from psef import db, app
 from psef.errors import APICodes, APIException
 
+from . import linters as linters_routes
 from . import api
 
 
@@ -386,14 +386,14 @@ def get_linters(assignment_id):
                     models.LinterInstance.state == models.LinterState.crashed)
                 .exists()).scalar()
             if running:
-                state = models.LinterState.running
+                state = models.LinterState.running.name
             elif crashed:
-                state = models.LinterState.crashed
+                state = models.LinterState.crashed.name
             else:
-                state = models.LinterState.done
+                state = models.LinterState.done.name
             opts['id'] = linter.id
         else:
-            state = -1
+            state = 'new'
         opts['state'] = state
         res.append({'name': name, **opts})
     res.sort(key=lambda item: item['name'])
@@ -426,24 +426,22 @@ def start_linting(assignment_id):
     db.session.add(res)
     db.session.commit()
 
-    codes = []
-    tokens = []
     try:
-        for test in res.tests:
-            tokens.append(test.id)
-            codes.append(
-                models.File.query.options(subqueryload('children')).filter_by(
-                    parent=None, work_id=test.work_id).first())
-            runner = linters.LinterRunner(
-                linters.get_linter_by_name(content['name']), content['cfg'])
-            thread = threading.Thread(
-                target=runner.run,
-                args=(codes, tokens, '{}api/v1/linter_comments/{}'.format(
-                    request.url_root, '{}')))
+        runner = linters.LinterRunner(
+            linters.get_linter_by_name(content['name']), content['cfg'])
+
+        tests = res.tests
+
+        thread = threading.Thread(
+            target=runner.run,
+            args=([t.work_id for t in res.tests], [t.id for t in res.tests],
+                  ('{}api/v1/linter' + '_comments/{}').format(
+                      request.url_root, '{}')))
+
         thread.start()
     except:
         for test in res.tests:
             test.state = models.LinterState.crashed
         db.session.commit()
     finally:
-        return linters.get_linter_state(res.id)
+        return linters_routes.get_linter_state(res.id)
