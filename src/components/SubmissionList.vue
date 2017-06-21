@@ -1,23 +1,26 @@
 <template>
     <div class="submission-list">
-        <div class="row">
-            <b-form-fieldset class="col-10">
-                <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
-            </b-form-fieldset>
+        <b-form-fieldset>
+            <b-input-group>
+                <b-form-input v-model="filter" placeholder="Type to Search" @keyup.enter="submit"></b-form-input>
 
-            <b-form-checkbox v-model="latestOnly" class="col-2 text-right"
-                v-if="latest.length !== submissions.length" checked="latestOnly" v-on:change="submit">
-                Latest only
-            </b-form-checkbox>
-        </div>
+                <b-form-checkbox class="input-group-addon" v-model="latestOnly" @change="submit"
+                    v-if="latest.length !== submissions.length">
+                    Latest only
+                </b-form-checkbox>
 
-        <!-- Main table element -->
+                <b-form-checkbox class="input-group-addon" v-model="mineOnly" @change="submit">
+                    My submissions only
+                </b-form-checkbox>
+            </b-input-group>
+        </b-form-fieldset>
+
         <b-table striped hover
             v-on:row-clicked='gotoSubmission'
             :items="latestOnly ? latest : submissions"
             :fields="fields"
             :current-page="currentPage"
-            :filter="filter"
+            :filter="filterItems"
             :show-empty="true">
             <template slot="user_name" scope="item">
                 {{item.value ? item.value : '-'}}
@@ -36,6 +39,9 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
+import { bInputGroupButton, bFormCheckbox } from 'bootstrap-vue/lib/components';
+
 export default {
     name: 'submission-list',
 
@@ -48,10 +54,11 @@ export default {
 
     data() {
         return {
-            latestOnly: true,
+            latestOnly: this.$route.query.latest !== 'false',
+            mineOnly: this.$route.query.mine !== 'false',
             currentPage: 1,
-            filter: null,
-            latest: [],
+            filter: this.$route.query.q || '',
+            latest: this.getLatest(this.submissions),
             fields: {
                 user_name: {
                     label: 'User',
@@ -73,33 +80,27 @@ export default {
         };
     },
 
-    mounted() {
-        if (this.$route.query.latest === null) {
-            this.latestOnly = true;
-        } else {
-            this.latestOnly = this.$route.query.latest === 'true';
-        }
-        this.filter = this.$route.query.q;
-        this.updateSubmissions(null);
+    computed: {
+        ...mapGetters('user', {
+            userId: 'id',
+            userName: 'name',
+        }),
     },
 
     watch: {
-        submissions() {
-            this.updateSubmissions();
+        submissions(submissions) {
+            this.latest = this.getLatest(submissions);
         },
     },
 
     methods: {
-        updateSubmissions() {
-            this.latest = [];
-            const seen = {};
-            const len = this.submissions.length;
-            for (let i = 0; i < len; i += 1) {
-                if (seen[this.submissions[i].user_id] !== true) {
-                    this.latest.push(this.submissions[i]);
-                    seen[this.submissions[i].user_id] = true;
-                }
-            }
+        getLatest(submissions) {
+            const seen = [];
+            return submissions.filter((item) => {
+                const ret = !seen[item.user_id];
+                seen[item.user_id] = true;
+                return ret;
+            });
         },
 
         gotoSubmission(submission) {
@@ -111,22 +112,58 @@ export default {
         },
 
         submit() {
-            const query = { latest: this.latestOnly };
+            const query = {
+                latest: this.latestOnly,
+                mine: this.mineOnly,
+            };
             if (this.filter) {
                 query.q = this.filter;
             }
             this.$router.replace({ query });
         },
+
+        filterItems(item) {
+            if ((this.latestOnly && !this.latest.includes(item)) ||
+                // TODO: change to user id
+                (this.mineOnly && item.assignee !== this.userName)) {
+                return false;
+            } else if (!this.filter) {
+                return true;
+            }
+
+            const terms = {
+                user_name: item.user_name.toLowerCase(),
+                grade: (item.grade || 0).toString(),
+                created_at: item.created_at,
+                assignee: item.assignee.toLowerCase(),
+            };
+            return this.filter.toLowerCase().split(' ').every(word =>
+                Object.keys(terms).some(key =>
+                    terms[key].indexOf(word) >= 0));
+        },
+    },
+
+    components: {
+        bInputGroupButton,
+        bFormCheckbox,
     },
 };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
 .table {
     cursor: pointer;
 }
 
 .custom-checkbox {
+    margin-right: 0;
+    padding: .75rem;
+    padding-left: 2.25rem;
     font-size: 0.95em;
+
+    .custom-control-indicator {
+        top: .75rem;
+        left: .75rem;
+    }
 }
 </style>

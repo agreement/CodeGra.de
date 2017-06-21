@@ -124,8 +124,9 @@ export default {
                 course_name: item.course_name.toLowerCase(),
                 date: item.date,
             };
-            return this.filter.toLowerCase().split(' ')
-                .every(word => this.matchesWord(terms, word));
+            return this.filter.toLowerCase().split(' ').every(word =>
+                Object.keys(terms).some(key =>
+                    terms[key].indexOf(word) >= 0));
         },
 
         filterState(item) {
@@ -136,12 +137,6 @@ export default {
             case 3: return this.toggles.done;
             default: throw TypeError('Unknown assignment state');
             }
-        },
-
-        matchesWord(item, word) {
-            return item.name.indexOf(word) >= 0 ||
-                item.course_name.indexOf(word) >= 0 ||
-                item.date.indexOf(word) >= 0;
         },
 
         toggleFilter(filter) {
