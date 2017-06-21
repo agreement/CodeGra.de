@@ -81,6 +81,7 @@ export default {
                 actions: {
                     label: 'Actions',
                     sortable: false,
+                    class: 'text-center',
                 },
             },
         };
