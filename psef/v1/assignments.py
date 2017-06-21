@@ -385,14 +385,14 @@ def get_linters(assignment_id):
                     models.LinterInstance.state == models.LinterState.crashed)
                 .exists()).scalar()
             if running:
-                state = models.LinterState.running
+                state = models.LinterState.running.name
             elif crashed:
-                state = models.LinterState.crashed
+                state = models.LinterState.crashed.name
             else:
-                state = models.LinterState.done
+                state = models.LinterState.done.name
             opts['id'] = linter.id
         else:
-            state = -1
+            state = 'new'
         opts['state'] = state
         res.append({'name': name, **opts})
     res.sort(key=lambda item: item['name'])
@@ -428,6 +428,8 @@ def start_linting(assignment_id):
     try:
         runner = linters.LinterRunner(
             linters.get_linter_by_name(content['name']), content['cfg'])
+
+        tests = res.tests
 
         thread = threading.Thread(
             target=runner.run,

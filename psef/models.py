@@ -291,9 +291,7 @@ class File(db.Model):
     is_directory = db.Column('is_directory', db.Boolean)
     parent_id = db.Column(db.Integer, db.ForeignKey('File.id'))
     parent = db.relationship(
-        'File',
-        remote_side=[id],
-        backref=db.backref('children'))
+        'File', remote_side=[id], backref=db.backref('children'))
 
     work = db.relationship('Work', foreign_keys=work_id)
 
@@ -357,7 +355,10 @@ class AssignmentLinter(db.Model):
     id = db.Column('id', db.Unicode, nullable=False, primary_key=True)
     name = db.Column('name', db.Unicode)
     tests = db.relationship(
-        "LinterInstance", back_populates="tester", cascade='all,delete')
+        "LinterInstance",
+        back_populates="tester",
+        cascade='all,delete',
+        order_by='LinterInstance.work_id')
     assignment_id = db.Column('Assignment_id', db.Integer,
                               db.ForeignKey('Assignment.id'))
 
@@ -379,7 +380,8 @@ class AssignmentLinter(db.Model):
                 sub,
                 and_(sub.c.user_id == Work.user_id,
                      sub.c.max_date == Work.created_at)).filter(
-                         Work.assignment_id == assignment_id).all():
+                         Work.assignment_id == assignment_id).order_by(
+                             Work.id).all():
             tests.append(LinterInstance.create_test(work, self))
         self.tests = tests
         return self
@@ -409,6 +411,12 @@ class LinterInstance(db.Model):
                 LinterInstance.query.filter(cls.id == id).exists()).scalar():
             id = str(uuid.uuid4())
         return cls(id=id, work=work, tester=tester)
+
+    def to_dict(self):
+        return {
+            'name': self.work.user.name,
+            'state': LinterState(self.state).name,
+        }
 
 
 @enum.unique
