@@ -149,21 +149,3 @@ export default {
     },
 };
 </script>
-
-<style lang="less">
-.table {
-    cursor: pointer;
-}
-
-.custom-checkbox {
-    margin-right: 0;
-    padding: .75rem;
-    padding-left: 2.25rem;
-    font-size: 0.95em;
-
-    .custom-control-indicator {
-        top: .75rem;
-        left: .75rem;
-    }
-}
-</style>

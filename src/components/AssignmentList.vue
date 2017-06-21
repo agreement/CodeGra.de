@@ -1,30 +1,31 @@
 <template>
-    <div>
-        <b-input-group>
-            <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
-            <b-button-group>
-                <b-tooltip placement="bottom" content="Submitting">
-                    <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
-                        @click="toggleFilter('submitting')">
-                        <icon name="download"></icon>
-                    </b-button>
-                </b-tooltip>
-                <b-tooltip placement="bottom" content="Grading">
-                    <b-button class="btn-warning" :class="{ 'btn-outline-warning': !toggles.grading }"
-                        @click="toggleFilter('grading')">
-                        <icon name="pencil"></icon>
-                    </b-button>
-                </b-tooltip>
-                <b-tooltip placement="bottom" content="Done">
-                    <b-button class="btn-success" :class="{ 'btn-outline-success': !toggles.done }"
-                        @click="toggleFilter('done')">
-                        <icon name="check"></icon>
-                    </b-button>
-                </b-tooltip>
-            </b-button-group>
-        </b-input-group>
+    <div class="assignment-list">
+        <b-form-fieldset>
+            <b-input-group>
+                <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
+                <b-button-group>
+                    <b-tooltip placement="bottom" content="Submitting">
+                        <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
+                            @click="toggleFilter('submitting')">
+                            <icon name="download"></icon>
+                        </b-button>
+                    </b-tooltip>
+                    <b-tooltip placement="bottom" content="Grading">
+                        <b-button class="btn-warning" :class="{ 'btn-outline-warning': !toggles.grading }"
+                            @click="toggleFilter('grading')">
+                            <icon name="pencil"></icon>
+                        </b-button>
+                    </b-tooltip>
+                    <b-tooltip placement="bottom" content="Done">
+                        <b-button class="btn-success" :class="{ 'btn-outline-success': !toggles.done }"
+                            @click="toggleFilter('done')">
+                            <icon name="check"></icon>
+                        </b-button>
+                    </b-tooltip>
+                </b-button-group>
+            </b-input-group>
+        </b-form-fieldset>
 
-        <!-- Main table element -->
         <b-table striped hover
                 @row-clicked="gotoAssignment"
                 :items="assignments"
@@ -181,10 +182,6 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.input-group {
-    margin-bottom: 30px;
-}
-
 .btn-group {
     button {
         border-top-left-radius: 0;
@@ -195,10 +192,5 @@ export default {
         border-top-right-radius: 0;
         border-bottom-right-radius: 0;
     }
-}
-
-.table,
-button {
-    cursor: pointer;
 }
 </style>
