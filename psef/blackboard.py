@@ -2,6 +2,7 @@
 import re
 import mmap
 from collections import namedtuple
+
 from dateutil import parser as dateparser
 
 _txt_fmt = re.compile(r"Name: (?P<name>.+) \((?P<id>[0-9]+)\)\n"
@@ -20,8 +21,7 @@ Info = namedtuple('SubmissionInfo', [
     'student_name', 'student_id', 'assignment_name', 'created_at', 'grade',
     'text', 'comment', 'files'
 ])
-FileInfo = namedtuple('SubmissionFileInfo',
-                                ['original_name', 'name'])
+FileInfo = namedtuple('SubmissionFileInfo', ['original_name', 'name'])
 
 
 def parse_info_file(file):
