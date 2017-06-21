@@ -9,7 +9,7 @@ html {
 }
 
 .navbar {
-    background: #2c3e50;
+    background: @color-primary;
 }
 
 #app {
@@ -28,6 +28,11 @@ footer {
     &-primary {
         background: @color-primary;
         border-color: @color-primary;
+
+        &.disabled {
+            background: fade(@color-primary, 80);
+            border-color: fade(@color-primary, 60);
+        }
     }
 }
 
