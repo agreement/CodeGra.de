@@ -135,8 +135,6 @@ export default {
                 .then(({ data }) => this.updateData(data));
         },
         updateData(data) {
-            console.log(data);
-
             this.done = data.done;
             this.working = data.working;
             this.crashed = data.crashed;
