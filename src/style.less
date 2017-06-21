@@ -29,7 +29,12 @@ footer {
         background: @color-primary;
         border-color: @color-primary;
 
-        &.disabled {
+        &:hover {
+            background: saturate(lighten(@color-primary, 7.5%), 10%);
+            border-color: saturate(lighten(@color-primary, 7.5%), 10%);
+        }
+
+        &[disabled] {
             background: fade(@color-primary, 80);
             border-color: fade(@color-primary, 60);
         }
