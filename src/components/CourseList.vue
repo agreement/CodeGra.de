@@ -20,12 +20,18 @@
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="actions" scope="item">
-                <b-btn size="sm" variant="success" @click="gotoCourse(item.item)">
-                    <icon name="list"></icon>
-                </b-btn>
-                <b-btn v-if="canEdit(item.item)" @click="gotoCourseEdit(item.item) "size="sm" variant="warning">
-                    <icon name="pencil"></icon>
-                </b-btn>
+                <div class="row">
+                    <b-tooltip placement="bottom" :delay="500" content="View assignments">
+                        <b-btn size="sm" variant="success" @click="gotoCourse(item.item)">
+                            <icon name="list"></icon>
+                        </b-btn>
+                    </b-tooltip>
+                    <b-tooltip placement="bottom" :delay="500" content="Manage course">
+                        <b-btn v-if="canEdit(item.item)" @click="gotoCourseEdit(item.item) "size="sm" variant="warning">
+                            <icon name="pencil"></icon>
+                        </b-btn>
+                    </b-tooltip>
+                </div>
             </template>
             <template slot="empty">
                 No results found.
@@ -35,7 +41,7 @@
 </template>
 
 <script>
-import { bInputGroup, bTable, bButton } from
+import { bInputGroup, bTable, bButton, bTooltip } from
     'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
@@ -112,6 +118,7 @@ export default {
         bInputGroup,
         bTable,
         bButton,
+        bTooltip,
         Icon,
     },
 };
