@@ -35,3 +35,5 @@ def add_course():
     new_course = models.Course(name=content['name'])
     db.session.add(new_course)
     db.session.commit()
+
+    return ('', 204)
