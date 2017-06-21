@@ -109,7 +109,7 @@ export default {
                     sortable: true,
                 },
                 deadline: {
-                    label: 'Due date',
+                    label: 'Deadline',
                     sortable: true,
                 },
                 state: {
@@ -140,7 +140,7 @@ export default {
             const terms = {
                 name: item.name.toLowerCase(),
                 course_name: item.course_name.toLowerCase(),
-                date: item.date,
+                deadline: item.deadline,
             };
             return this.filter.toLowerCase().split(' ')
                 .every(word => this.matchesWord(terms, word));
@@ -157,9 +157,10 @@ export default {
         },
 
         matchesWord(item, word) {
+            console.log(item);
             return item.name.indexOf(word) >= 0 ||
                 item.course_name.indexOf(word) >= 0 ||
-                item.date.indexOf(word) >= 0;
+                item.deadline.indexOf(word) >= 0;
         },
 
         toggleFilter(filter) {
