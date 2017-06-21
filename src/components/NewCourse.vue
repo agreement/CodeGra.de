@@ -2,7 +2,7 @@
     <div id="newCourse">
         <div class="justify-content-md-center">
             <loader class="text-center" v-if="loading"></loader>
-            <div v-if="done && !error">
+            <div v-if="done && error == ''">
                 <b-alert variant="success" show>
                     <center><span>Succesfully created course!</span></center>
                 </b-alert>
@@ -18,7 +18,7 @@
                     </div>
                 </div>
 
-                <div class="btn-group btn-group-justified">
+                <div class="btn-group btn-group-justified pull-right">
                     <div class="btn-group">
                         <button type="cancel" class="btn btn-primary" @click="reset()">Cancel</button>
                     </div>
@@ -41,7 +41,7 @@ export default {
             name: '',
             done: false,
             error: '',
-            loading: true,
+            loading: false,
         };
     },
     components: {
@@ -57,10 +57,10 @@ export default {
         submit() {
             this.loading = true;
             this.done = true;
-            this.resetErrors();
             this.$http.post('/api/v1/courses/', { name: this.name }).catch(
                 () => {
                     this.error = 'An error occurred adding the course, try again please!';
+                    this.loading = false;
                 },
             );
             this.loading = false;

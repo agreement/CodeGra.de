@@ -1,7 +1,8 @@
-from flask import jsonify
+from flask import jsonify, request
 
 import psef.auth as auth
 import psef.models as models
+from psef import db
 from psef.errors import APICodes, APIException
 
 from . import api
@@ -22,7 +23,7 @@ def get_all_course_assignments(course_id):
     return jsonify(res)
 
 @api.route('/courses/', methods=['POST'])
-@auth.permission_required('can_create_courses')
+# @auth.permission_required('can_create_courses')
 def add_course():
     content = request.get_json()
 
@@ -31,7 +32,6 @@ def add_course():
             'Required parameter "name" is missing',
             'The given content ({}) does  not contain "name"'.format(content),
             APICodes.MISSING_REQUIRED_PARAM, 400)
-
     new_course = models.Course(name=content['name'])
     db.session.add(new_course)
     db.session.commit()
