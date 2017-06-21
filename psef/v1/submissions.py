@@ -139,7 +139,12 @@ def get_feedback(work):
     """
     comments = models.Comment.query.filter(
         models.Comment.file.has(work=work)).order_by(
-            models.Comment.file_id.desc(), models.Comment.line.desc())
+            models.Comment.file_id.asc(), models.Comment.line.asc())
+
+    linter_comments = models.LinterComment.query.filter(
+        models.LinterComment.file.has(work=work)).order_by(
+            models.LinterComment.file_id.asc(),
+            models.LinterComment.line.asc())
 
     filename = '{}-{}-feedback.txt'.format(work.assignment.name,
                                            work.user.name)
@@ -154,6 +159,12 @@ def get_feedback(work):
         for comment in comments:
             fp.write('{}:{}:0: {}\n'.format(comment.file.get_filename(),
                                             comment.line, comment.comment))
+        fp.write('\nLinter comments:\n')
+
+        for lcomment in linter_comments:
+            fp.write('{}:{}:0: ({} {}) {}\n'.format(
+                lcomment.file.get_filename(), lcomment.line,
+                lcomment.linter.tester.name, lcomment.linter_code, lcomment.comment))
 
     @after_this_request
     def remove_file(response):

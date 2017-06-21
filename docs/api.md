@@ -287,8 +287,12 @@ Get all assignments for a given course
 ```python
 import requests
 
+query = {
+  'type' : 'feedback'
+}
+
 # As logged in user
-requests.get('https://example.com/api/v1/submissions/5/feedback')
+requests.get('https://example.com/api/v1/submissions/5', query=query)
 ```
 > The above command returns a plain text file with the following structure
 ```
@@ -300,6 +304,10 @@ Great how you printed your own name
 Comments:
 hello.py:10:0: That is very clever!
 hello.py:12:0: That not so much.
+...
+
+Linter comments:
+hello.py:5:0: (Flake8 W191) indentation contains tabs
 ...
 ```
 
