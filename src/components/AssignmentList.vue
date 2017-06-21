@@ -1,32 +1,32 @@
 <template>
     <div>
-        <b-input-group>
-            <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
-            <b-button-group>
-                <b-tooltip placement="bottom" content="Submitting">
-                    <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
-                        @click="toggleFilter('submitting')">
-                        <icon name="download"></icon>
-                    </b-button>
-                </b-tooltip>
-                <b-tooltip placement="bottom" content="Grading">
-                    <b-button class="btn-warning" :class="{ 'btn-outline-warning': !toggles.grading }"
-                        @click="toggleFilter('grading')">
-                        <icon name="pencil"></icon>
-                    </b-button>
-                </b-tooltip>
-                <b-tooltip placement="bottom" content="Done">
-                    <b-button class="btn-success" :class="{ 'btn-outline-success': !toggles.done }"
-                        @click="toggleFilter('done')">
-                        <icon name="check"></icon>
-                    </b-button>
-                </b-tooltip>
-            </b-button-group>
-            <div class="col-3">
-                <b-form-checkbox v-model="cb_student">student</b-form-checkbox>
-                <b-form-checkbox v-model="cb_ta">assistant</b-form-checkbox>
-            </div>
-        </b-input-group>
+        <b-form-fieldset>
+            <b-input-group>
+                <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
+                <b-form-checkbox class="input-group-addon" v-model="cb_student">student</b-form-checkbox>
+                <b-form-checkbox class="input-group-addon" v-model="cb_ta">assistant</b-form-checkbox>
+                <b-button-group>
+                    <b-tooltip placement="bottom" content="Submitting">
+                        <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
+                            @click="toggleFilter('submitting')">
+                            <icon name="download"></icon>
+                        </b-button>
+                    </b-tooltip>
+                    <b-tooltip placement="bottom" content="Grading">
+                        <b-button class="btn-warning" :class="{ 'btn-outline-warning': !toggles.grading }"
+                            @click="toggleFilter('grading')">
+                            <icon name="pencil"></icon>
+                        </b-button>
+                    </b-tooltip>
+                    <b-tooltip placement="bottom" content="Done">
+                        <b-button class="btn-success" :class="{ 'btn-outline-success': !toggles.done }"
+                            @click="toggleFilter('done')">
+                            <icon name="check"></icon>
+                        </b-button>
+                    </b-tooltip>
+                </b-button-group>
+            </b-input-group>
+        </b-form-fieldset>
 
         <!-- Main table element -->
         <b-table striped hover
@@ -61,7 +61,7 @@
 </template>
 
 <script>
-import { bButton, bButtonGroup, bFormInput, bInputGroup, bTooltip, bTable } from
+import { bButton, bButtonGroup, bFormInput, bInputGroup, bTooltip, bTable, bFormCheckbox } from
     'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
@@ -199,13 +199,14 @@ export default {
         bButtonGroup,
         bFormInput,
         bInputGroup,
+        bFormCheckbox,
         bTooltip,
         bTable,
     },
 };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
 .input-group {
     margin-bottom: 30px;
 }
@@ -219,6 +220,17 @@ export default {
     & > :not(:last-child) button {
         border-top-right-radius: 0;
         border-bottom-right-radius: 0;
+    }
+}
+
+.custom-checkbox {
+    margin-right: 0;
+    padding-left: 2.25rem;
+    font-size: 0.95em;
+
+    .custom-control-indicator {
+        top: .75rem;
+        left: .75rem;
     }
 }
 
