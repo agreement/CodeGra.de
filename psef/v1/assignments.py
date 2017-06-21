@@ -68,7 +68,6 @@ def update_assignment(assignment_id):
 
     content = request.get_json()
 
-    print(content)
     if 'state' in content:
         if content['state'] not in ['hidden', 'open', 'done']:
             raise APIException(
