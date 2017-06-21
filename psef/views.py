@@ -188,30 +188,32 @@ def get_student_assignments():
     perm = models.Permission.query.filter_by(
         name='can_see_assignments').first()
     courses = []
+
     for course_role in current_user.courses.values():
         if course_role.has_permission(perm):
             courses.append(course_role.course_id)
+
     if courses:
+        course_roles = current_user.courses.values()
+        print(course_roles)
         return (jsonify([{
-            'id':
-            assignment.id,
-            'state':
-            assignment.state,
-            'date':
-            assignment.created_at.strftime('%d-%m-%Y %H:%M'),
-            'name':
-            assignment.name,
-            'course_name':
-            assignment.course.name,
-            'course_id':
-            assignment.course_id,
-        }
-                         for assignment in models.Assignment.query.filter(
-                             models.Assignment.course_id.in_(courses)).all()]),
-                200)
+            'id':assignment.id,
+            'state': assignment.state,
+            'date': assignment.created_at.strftime('%d-%m-%Y %H:%M'),
+            'name': assignment.name,
+            'course_name': assignment.course.name,
+            'course_id': assignment.course_id,
+            'course_role': helper(course_roles, assignment.course_id),
+        } for assignment in models.Assignment.query.filter(
+            models.Assignment.course_id.in_(courses)).all()]), 200)
     else:
         return (jsonify([]), 204)
 
+def helper(course_roles, course_id):
+    for course_role in course_roles:
+        if course_role.course_id == course_id:
+            return(course_role.name)
+    return('iets mis')
 
 @app.route("/api/v1/assignments/<int:assignment_id>", methods=['GET'])
 def get_assignment(assignment_id):

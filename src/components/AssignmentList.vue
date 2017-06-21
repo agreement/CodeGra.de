@@ -23,7 +23,16 @@
                         </b-button>
                     </b-popover>
                 </b-button-group>
+                <div class="col-3">
+                    <!-- <b-form-checkbox v-model="roles_selected" value="student">student</b-form-checkbox>
+                    <b-form-checkbox v-model="roles_selected" value="assistant">assistant</b-form-checkbox> -->
+                    <input type="checkbox" value="student" v-model="roles_selected">
+                    <label>student</label>
+                    <input type="checkbox" value="assistant" v-model="roles_selected">
+                    <label>assistant</label>
+                </div>
             </b-input-group>
+            {{ roles_selected }}
         </div>
 
         <!-- Main table element -->
@@ -35,6 +44,9 @@
                 :filter="filterItems"
                 :show-empty="true">
             <template slot="course_name" scope="item">
+                {{item.value ? item.value : '-'}}
+            </template>
+            <template slot="course_role" scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="name" scope="item">
@@ -89,6 +101,10 @@ export default {
                     label: 'Course',
                     sortable: true,
                 },
+                course_role: {
+                    label: 'Role',
+                    sortable: true,
+                },
                 name: {
                     label: 'Assignment',
                     sortable: true,
@@ -103,6 +119,7 @@ export default {
                     class: 'text-center',
                 },
             },
+            roles_selected: [],
         };
     },
 
@@ -112,6 +129,7 @@ export default {
         this.toggles.grading = q.grading == null ? false : q.grading === 'true';
         this.toggles.done = q.done == null ? true : q.done === 'true';
         this.filter = q.q;
+        console.log(this.assignments);
     },
 
     methods: {
@@ -124,6 +142,7 @@ export default {
             const terms = {
                 name: item.name.toLowerCase(),
                 course_name: item.course_name.toLowerCase(),
+                course_role: item.course_role,
                 date: item.date,
             };
             return this.filter.toLowerCase().split(' ')
