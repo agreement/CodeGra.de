@@ -1,8 +1,8 @@
 <template>
     <div>
-        <b-form-fieldset>
+        <b-form-fieldset class="table-control">
             <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"/>
-            <b-button-input-group>
+            <b-button-input-group class="buttons">
             <b-button-group>
                 <b-popover placement="top" triggers="hover" content="Hidden" v-if="canSeeHidden">
                     <b-button class="btn-info" :class="{ 'btn-outline-info': !toggles.hidden}"
@@ -221,8 +221,25 @@ export default {
     }
 }
 
+.table-control input {
+    display: table-cell;
+    width: 100%;
+}
+
+.table-control .buttons {
+    width: 1px;
+    display: table-cell;
+}
+
 .table,
 button {
     cursor: pointer;
+}
+</style>
+
+<style>
+div.table-control > div {
+    display: table !important;
+    width: 100%;
 }
 </style>
