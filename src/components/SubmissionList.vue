@@ -28,6 +28,9 @@
             <template slot="created_at" scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
+            <template slot="assignee" scope="item">
+                {{item.value ? item.value : '-'}}
+            </template>
         </b-table>
     </div>
 </template>
@@ -60,6 +63,10 @@ export default {
                 },
                 created_at: {
                     label: 'Created at',
+                    sortable: true,
+                },
+                assignee: {
+                    label: 'Assigned to',
                     sortable: true,
                 },
             },

@@ -165,7 +165,7 @@ export default {
             }
 
             this.loading = true;
-            this.$http.patch('/api/v1/update_user',
+            this.$http.patch('/api/v1/login',
                 {
                     username: this.username,
                     email: this.email,
