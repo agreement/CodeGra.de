@@ -27,7 +27,7 @@
                         </b-btn>
                     </b-tooltip>
                     <b-tooltip placement="bottom" :delay="500" content="Manage course">
-                        <b-btn v-if="canEdit(item.item)" @click="gotoCourseEdit(item.item) "size="sm" variant="warning">
+                        <b-btn v-if="item.item.manageable" @click="gotoCourseEdit(item.item) "size="sm" variant="warning">
                             <icon name="pencil"></icon>
                         </b-btn>
                     </b-tooltip>
@@ -107,10 +107,6 @@ export default {
             if (this.filter) {
                 this.$router.replace({ query: { q: this.filter } });
             }
-        },
-
-        canEdit(course) {
-            return course.role !== 'student';
         },
     },
 

@@ -24,9 +24,13 @@ export default {
     },
 
     mounted() {
-        this.$http.get('/api/v1/courses/').then(({ data }) => {
+        Promise.all([this.$http.get('/api/v1/courses/'), this.$http.get('/api/v1/permissions/', { params: { permission: 'can_manage_course', course_id: 'all' } })]).then(([coursesResponse, permsResponse]) => {
+            this.courses = coursesResponse.data;
             this.loading = false;
-            this.courses = data;
+            for (let i = 0; i < this.courses.length; i += 1) {
+                const course = this.courses[i];
+                course.manageable = permsResponse.data[course.id];
+            }
         });
     },
 
