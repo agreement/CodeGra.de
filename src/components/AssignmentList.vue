@@ -224,11 +224,19 @@ export default {
 .table-control input {
     display: table-cell;
     width: 100%;
+    border-bottom-right-radius: 0px;
+    border-top-right-radius: 0px;
+    height: 2.35em;
+}
+
+.table-control .buttons button {
+    height: 2.35em;
 }
 
 .table-control .buttons {
     width: 1px;
     display: table-cell;
+    vertical-align: middle;
 }
 
 .table,
