@@ -1,5 +1,5 @@
 from flask import jsonify, request, make_response
-from flask_login import current_user
+from flask_login import current_user, login_required
 
 import psef.auth as auth
 import psef.files
@@ -65,10 +65,33 @@ def remove_comment(id, line):
     return ('', 204)
 
 
-def get_binary_file(file_id):
+@api.route("/code/<int:file_id>", methods=['GET'])
+@login_required
+def get_code(file_id):
     file = db.session.query(models.File).filter(
         models.File.id == file_id).first()
 
+    if file is None:
+        raise APIException('File not found',
+                           'The file with id {} was not found'.format(file_id),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    if file.work.user.id != current_user.id:
+        auth.ensure_permission('can_view_files',
+                               file.work.assignment.course.id)
+
+    if 'type' in request.args and request.args['type'] == 'metadata':
+        return get_file_metadata(file)
+    if 'type' in request.args and request.args['type'] == 'binary':
+        return get_binary_file(file)
+    return get_plain_text_code(file)
+
+
+def get_file_metadata(file):
+    return jsonify({"name": file.name, "extension": file.extension})
+
+
+def get_binary_file(file):
     file_data = psef.files.get_binary_contents(file)
     response = make_response(file_data)
     response.headers['Content-Type'] = 'application/pdf'
@@ -77,44 +100,17 @@ def get_binary_file(file_id):
     return response
 
 
-def get_file_metadata(file_id):
-    file = db.session.query(models.File).filter(
-        models.File.id == file_id).first()
-
-    return jsonify({"name": file.name, "extension": file.extension})
-
-
-@api.route("/code/<int:file_id>", methods=['GET'])
-def get_code(file_id):
-    if 'type' in request.args and request.args['type'] == 'metadata':
-        return get_file_metadata(file_id)
-    if 'type' in request.args and request.args['type'] == 'binary':
-        return get_binary_file(file_id)
-    else:
-        return get_plain_text_code(file_id)
-
-
-def get_plain_text_code(file_id):
-    code = db.session.query(models.File).get(file_id)
+def get_plain_text_code(file):
     line_feedback = {}
     linter_feedback = {}
 
-    if code is None:
-        raise APIException('File not found',
-                           'The file with id {} was not found'.format(file_id),
-                           APICodes.OBJECT_ID_NOT_FOUND, 404)
-
-    if (code.work.user.id != current_user.id):
-        auth.ensure_permission('can_view_files',
-                               code.work.assignment.course.id)
-
     try:
-        auth.ensure_can_see_grade(code.work)
+        auth.ensure_can_see_grade(file.work)
         for comment in db.session.query(models.Comment).filter_by(
-                file_id=file_id).all():
+                file_id=file.id).all():
             line_feedback[str(comment.line)] = comment.comment
         for comment in db.session.query(models.LinterComment).filter_by(
-                file_id=file_id).all():
+                file_id=file.id).all():
             if str(comment.line) not in linter_feedback:
                 linter_feedback[str(comment.line)] = {}
             linter_feedback[str(comment.line)][comment.linter.tester.name] = {
@@ -126,7 +122,7 @@ def get_plain_text_code(file_id):
         linter_feedback = {}
 
     return jsonify(
-        lang=code.extension,
-        code=psef.files.get_file_contents(code),
+        lang=file.extension,
+        code=psef.files.get_file_contents(file),
         feedback=line_feedback,
         linter_feedback=linter_feedback)
