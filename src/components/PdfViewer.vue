@@ -1,6 +1,5 @@
 <template>
-    <div id="pdf-viewer">
-    </div>
+    <div id="pdf-viewer"></div>
 </template>
 
 <script>
