@@ -20,3 +20,7 @@ def get_all_course_assignments(course_id):
     res = [assig.to_dict() for assig in course.assignments]
     res.sort(key=lambda item: item['date'])
     return jsonify(res)
+
+@api.route('/courses/', methods=['POST'])
+def add_course():
+    auth.ensure_permission('can_create_courses')
