@@ -484,7 +484,8 @@ class Assignment(db.Model):
             'state': self.state_name,
             'open': self.is_open,
             'description': self.description,
-            'date': self.created_at.strftime('%Y-%m-%dT%H:%M'),
+            'created_at': self.created_at.isoformat(),
+            'deadline': self.deadline.isoformat(),
             'name': self.name,
             'course_name': self.course.name,
             'course_id': self.course_id,
@@ -504,7 +505,7 @@ class Assignment(db.Model):
         if state == 'open':
             self.state = _AssignmentStateEnum.open
         elif state in {'done', 'hidden'}:
-            self.state = _AssignmentStateEnum(state)
+            self.state = _AssignmentStateEnum.__members__[state]
         else:
             raise TypeError()
 

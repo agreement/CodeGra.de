@@ -3,6 +3,7 @@ import threading
 from random import shuffle
 from itertools import cycle
 
+import dateutil
 from flask import jsonify, request, send_file, after_this_request
 from flask_login import current_user, login_required
 from sqlalchemy.orm import subqueryload
@@ -75,8 +76,9 @@ def update_assignment(assignment_id):
 
     if 'state' in content:
         if content['state'] not in ['hidden', 'open', 'done']:
+            print(content)
             raise APIException(
-                'Invalid new state',
+                'The selected state is not valid',
                 'The state {} is not a valid state'.format(content['state']),
                 APICodes.INVALID_PARAM, 400)
         assig.set_state(content['state'])
@@ -90,6 +92,14 @@ def update_assignment(assignment_id):
         assig.name = content['name']
 
     # TODO also make it possible to update the close date of an assignment
+    if 'deadline' in content:
+        try:
+            assig.deadline = dateutil.parser.parse(content['deadline'])
+        except ValueError:
+            raise APIException(
+                'The given deadline is not valid!',
+                '{} cannot be parsed by dateutil'.format(content['deadline']),
+                APICodes.INVALID_PARAM, 400)
 
     db.session.commit()
 
@@ -290,7 +300,7 @@ def get_all_works_for_assignment(assignment_id):
             'user_name': work.user.name if work.user else "Unknown",
             'user_id': work.user_id,
             'edit': work.edit,
-            'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
+            'created_at': work.created_at.isoformat(),
         }
         try:
             auth.ensure_can_see_grade(work)

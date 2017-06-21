@@ -46,7 +46,7 @@
             <template slot="name" scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
-            <template slot="date" scope="item">
+            <template slot="deadline" scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="state" scope="item">
@@ -108,7 +108,7 @@ export default {
                     label: 'Assignment',
                     sortable: true,
                 },
-                date: {
+                deadline: {
                     label: 'Due date',
                     sortable: true,
                 },
