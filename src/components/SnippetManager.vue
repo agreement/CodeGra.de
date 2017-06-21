@@ -9,18 +9,21 @@
             :current-page="currentPage"
             :filter="filter"
             :response="true">
+
             <template slot="key" scope="item">
-                <b-form-fieldset :state="validSnippetKey(item.item)?'success':'danger'" :feedback="item.item.keyError" v-if="item.item.editing">
-                    <b-form-input type="text" placeholder="Key" v-model="item.item.key"></b-form-input>
+                <b-form-fieldset :state="item.item.edited<2?'':validSnippetKey(item.item)?'success':'danger'" :feedback="item.item.keyError" v-if="item.item.editing">
+                    <b-form-input type="text" placeholder="Key" v-model="item.item.key" @keydown.native.once="item.item.edited += 1"></b-form-input>
                 </b-form-fieldset>
                 <span v-else>{{item.item.key ? item.item.key : '-'}}</span>
             </template>
+
             <template slot="text" scope="item">
-                <b-form-fieldset :state="validSnippetValue(item.item)?'success':'danger'" :feedback="item.item.valueError" v-if="item.item.editing">
-                    <b-form-input type="text" placeholder="Value" v-model="item.item.value"></b-form-input>
+                <b-form-fieldset :state="item.item.edited<2?'':validSnippetValue(item.item)?'success':'danger'" :feedback="item.item.valueError" v-if="item.item.editing">
+                    <b-form-input type="text" placeholder="Value" v-model="item.item.value" @keydown.native.once="item.item.edited += 1"></b-form-input>
                 </b-form-fieldset>
                 <span v-else>{{item.item.value ? item.item.value : '-'}}</span>
             </template>
+
             <template slot="actions" scope="item">
                 <b-btn size="sm" variant="info" :disabled="item.item.pending" @click="saveSnippet(item.item)" v-if="item.item.editing">
                     <loader v-if="item.item.pending" :scale="1" ></loader>
@@ -56,9 +59,7 @@ import 'vue-awesome/icons/floppy-o';
 import 'vue-awesome/icons/ban';
 import 'vue-awesome/icons/plus';
 
-
 import Loader from './Loader';
-
 
 export default {
     name: 'snippet-manager',
@@ -89,7 +90,7 @@ export default {
 
     methods: {
         validSnippetKey(snippet) {
-            if (snippet.key.indexOf(' ') > -1 || snippet.key.indexOf('\n') > -1) {
+            if (snippet.key.match(/\s/)) {
                 snippet.keyError = 'No spaces allowed!';
                 return false;
             } else if (snippet.key.length === 0) {
@@ -115,6 +116,7 @@ export default {
             this.snippets.push({
                 key: '',
                 value: '',
+                edited: 0,
                 editing: true,
                 pending: false,
                 id: null,
@@ -200,6 +202,7 @@ export default {
                     key,
                     value: snips[key].value,
                     editing: false,
+                    edited: 2,
                     pending: false,
                     id: snips[key].id,
                 };
