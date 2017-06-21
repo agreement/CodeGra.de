@@ -2,7 +2,7 @@ import tempfile
 import zipfile
 import os
 
-from flask import jsonify, request, make_response
+from flask import jsonify, request, make_response, after_this_request, send_file
 from flask_login import current_user, login_required
 
 import psef.auth as auth
@@ -10,6 +10,9 @@ import psef.models as models
 import psef.files
 from psef import db, app
 from psef.errors import APICodes, APIException
+
+import os
+import tempfile
 
 from . import api
 
@@ -36,6 +39,9 @@ def get_submission(submission_id):
 
     auth.ensure_can_see_grade(work)
 
+    if 'type' in request.args and request.args['type'] == 'feedback':
+        return get_feedback(work)
+
     return jsonify({
         'id': work.id,
         'user_id': work.user_id,
@@ -44,6 +50,48 @@ def get_submission(submission_id):
         'comment': work.comment,
         'created_at': work.created_at,
     })
+
+
+def get_feedback(work):
+    """
+    Get the feedback of work as a plain text file.
+    """
+    comments = models.Comment.query.filter(
+        models.Comment.file.has(work=work)).order_by(
+            models.Comment.file_id.asc(), models.Comment.line.asc())
+
+    linter_comments = models.LinterComment.query.filter(
+        models.LinterComment.file.has(work=work)).order_by(
+            models.LinterComment.file_id.asc(),
+            models.LinterComment.line.asc())
+
+    filename = '{}-{}-feedback.txt'.format(work.assignment.name,
+                                           work.user.name)
+
+    fd, file = tempfile.mkstemp()
+    with open(file, 'w') as fp:
+        fp.write('Assignment: {}\n'
+                 'Grade: {}\n'
+                 'General feedback: \n{}\n\n'
+                 'Comments:\n'.format(work.assignment.name, work.grade,
+                                      work.comment))
+        for comment in comments:
+            fp.write('{}:{}:0: {}\n'.format(comment.file.get_filename(),
+                                            comment.line, comment.comment))
+        fp.write('\nLinter comments:\n')
+
+        for lcomment in linter_comments:
+            fp.write('{}:{}:0: ({} {}) {}\n'.format(
+                lcomment.file.get_filename(), lcomment.line,
+                lcomment.linter.tester.name, lcomment.linter_code, lcomment.comment))
+
+    @after_this_request
+    def remove_file(response):
+        os.close(fd)
+        os.remove(file)
+        return response
+
+    return send_file(file, attachment_filename=filename, as_attachment=True)
 
 
 def get_zip(work):
