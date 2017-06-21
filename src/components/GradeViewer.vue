@@ -1,35 +1,37 @@
 <template>
-    <div class="grade-viewer row" v-if="show">
-        <div class="col-6">
-            <b-input-group>
-                <b-input-group-button>
-                    <b-button :variant="submitted ? 'success' : 'primary'" v-on:click="putFeedback()" v-if="editable">
-                        <icon name="refresh" spin v-if="submitting"></icon>
-                        <span v-else>Submit all</span>
-                    </b-button>
-                </b-input-group-button>
+    <div class="grade-viewer" v-if="show">
+        <div class="row">
+            <div class="col-6">
+                <b-input-group>
+                    <b-input-group-button>
+                        <b-button :variant="submitted ? 'success' : 'primary'" v-on:click="putFeedback()" v-if="editable">
+                            <icon name="refresh" spin v-if="submitting"></icon>
+                            <span v-else>Submit all</span>
+                        </b-button>
+                    </b-input-group-button>
 
-                <b-form-input type="number"
-                              step="any"
-                              min="0"
-                              max="10"
-                              :disabled="!editable"
-                              placeholder="Grade"
-                              v-model:value="grade">
-                </b-form-input>
-            </b-input-group>
-        </div>
-        <div class="col-6">
-            <b-input-group>
-              <b-form-input :textarea="true"
-                            :placeholder="editable ? 'Feedback' : 'No feedback given :('"
-                            :rows="3"
-                            ref="field"
-                            v-model:value="feedback"
-                            v-on:keydown.native.tab.capture="expandSnippet"
-                            :disabled="!editable">
-              </b-form-input>
-            </b-input-group>
+                    <b-form-input type="number"
+                                step="any"
+                                min="0"
+                                max="10"
+                                :disabled="!editable"
+                                placeholder="Grade"
+                                v-model:value="grade">
+                    </b-form-input>
+                </b-input-group>
+            </div>
+            <div class="col-6">
+                <b-input-group>
+                    <b-form-input :textarea="true"
+                        :placeholder="editable ? 'Feedback' : 'No feedback given :('"
+                        :rows="3"
+                        ref="field"
+                        v-model:value="feedback"
+                        v-on:keydown.native.tab.capture="expandSnippet"
+                        :disabled="!editable">
+                    </b-form-input>
+                </b-input-group>
+            </div>
         </div>
         <feedback-exporter :id="submissionId"></feedback-exporter>
     </div>
@@ -130,14 +132,17 @@ export default {
 <style lang="less" scoped>
 input.grade {
     text-align: right;
+    padding-right: 1em;
+
     &::-webkit-inner-spin-button {
         -webkit-appearance: none;
     }
     -moz-appearance: textfield;
     appearance: textfield;
-    padding-right: 1em;
 }
-input:disabled, textarea:disabled {
+
+input:disabled,
+textarea:disabled {
     background: white;
     cursor: text;
 }

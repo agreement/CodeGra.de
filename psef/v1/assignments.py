@@ -283,6 +283,7 @@ def get_all_works_for_assignment(assignment_id):
             'user_id': work.user_id,
             'edit': work.edit,
             'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
+            'assignee': work.assignee.name if work.assignee else "-",
         }
         try:
             auth.ensure_can_see_grade(work)
