@@ -174,7 +174,8 @@ export default {
                 this.original.email = this.email;
                 this.resetParams();
                 this.success = true;
-                setTimeout(() => { this.success = false; }, 1000);
+                this.$nextTick(() =>
+                    setTimeout(() => { this.success = false; }, 1000));
             }, ({ response }) => {
                 if (response.data.code === 5) {
                     this.invalid_password_error = response.data.rest.password;
