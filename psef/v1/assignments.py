@@ -76,7 +76,6 @@ def update_assignment(assignment_id):
 
     if 'state' in content:
         if content['state'] not in ['hidden', 'open', 'done']:
-            print(content)
             raise APIException(
                 'The selected state is not valid',
                 'The state {} is not a valid state'.format(content['state']),
