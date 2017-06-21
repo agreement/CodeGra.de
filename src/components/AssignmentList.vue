@@ -3,32 +3,32 @@
         <b-form-fieldset class="table-control">
             <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"/>
             <b-button-input-group class="buttons">
-            <b-button-group>
-                <b-popover placement="top" triggers="hover" content="Hidden" v-if="canSeeHidden">
-                    <b-button class="btn-info" :class="{ 'btn-outline-info': !toggles.hidden}"
-                              @click="toggleFilter('hidden')">
-                        <icon name="eye-slash"></icon>
-                    </b-button>
-                </b-popover>
-                <b-popover placement="top" triggers="hover" content="Submitting">
-                    <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
-                              @click="toggleFilter('submitting')">
-                        <icon name="download"></icon>
-                    </b-button>
-                </b-popover>
-                <b-popover placement="top" triggers="hover" content="Grading">
-                    <b-button class="btn-warning" :class="{ 'btn-outline-warning': !toggles.grading }"
-                              @click="toggleFilter('grading')">
-                        <icon name="pencil"></icon>
-                    </b-button>
-                </b-popover>
-                <b-popover placement="top" triggers="hover" content="Done">
-                    <b-button class="btn-success" :class="{ 'btn-outline-success': !toggles.done }"
-                              @click="toggleFilter('done')">
-                        <icon name="check"></icon>
-                    </b-button>
-                </b-popover>
-            </b-button-group>
+                <b-button-group>
+                    <b-popover placement="top" triggers="hover" content="Hidden" v-if="canSeeHidden">
+                        <b-button class="btn-info" :class="{ 'btn-outline-info': !toggles.hidden}"
+                                  @click="toggleFilter('hidden')">
+                            <icon name="eye-slash"></icon>
+                        </b-button>
+                    </b-popover>
+                    <b-popover placement="top" triggers="hover" content="Submitting">
+                        <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
+                                  @click="toggleFilter('submitting')">
+                            <icon name="download"></icon>
+                        </b-button>
+                    </b-popover>
+                    <b-popover placement="top" triggers="hover" content="Grading">
+                        <b-button class="btn-warning" :class="{ 'btn-outline-warning': !toggles.grading }"
+                                  @click="toggleFilter('grading')">
+                            <icon name="pencil"></icon>
+                        </b-button>
+                    </b-popover>
+                    <b-popover placement="top" triggers="hover" content="Done">
+                        <b-button class="btn-success" :class="{ 'btn-outline-success': !toggles.done }"
+                                  @click="toggleFilter('done')">
+                            <icon name="check"></icon>
+                        </b-button>
+                    </b-popover>
+                </b-button-group>
             </b-button-input-group>
         </b-form-fieldset>
 
@@ -157,7 +157,6 @@ export default {
         },
 
         matchesWord(item, word) {
-            console.log(item);
             return item.name.indexOf(word) >= 0 ||
                 item.course_name.indexOf(word) >= 0 ||
                 item.deadline.indexOf(word) >= 0;
