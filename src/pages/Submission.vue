@@ -12,6 +12,11 @@
 
             <loader class="col-2 text-center" :scale="3" v-if="!fileTree"></loader>
             <file-tree class="col-2" :collapsed="false" :tree="fileTree" v-else></file-tree>
+            <b-button :variant="secondary" :to="{ name: 'assignment_submissions',
+                                                  params: { courseId: this.courseId,
+                                                            assignmentId: this.assignmentId }}">
+                back to submissions
+            </b-button>
         </div>
     </div>
 </template>
