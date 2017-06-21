@@ -177,7 +177,6 @@ export default {
                 this.succes = true;
                 this.resetParams();
             }).catch(({ response }) => {
-                console.log(this);
                 if (response.data.code === 5) {
                     this.invalid_password_error = response.data.rest.password;
                     this.invalid_username_error = response.data.rest.username;
