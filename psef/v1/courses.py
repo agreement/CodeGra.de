@@ -17,6 +17,4 @@ def get_all_course_assignments(course_id):
                             'The course {} was not found'.format(course_id),
                             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    res = [assig.to_dict() for assig in course.assignments]
-    res.sort(key=lambda item: item['deadline'])
-    return jsonify(res)
+    return jsonify(sorted(course.assignments, key=lambda item: item.deadline))

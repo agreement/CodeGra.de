@@ -1,12 +1,11 @@
 from flask import jsonify, request
+from sqlalchemy import func
 from flask_login import login_user, logout_user, current_user, login_required
 
 import psef.auth as auth
 import psef.models as models
 from psef import db
 from psef.errors import APICodes, APIException
-
-from sqlalchemy import func
 
 from . import api
 
@@ -94,7 +93,7 @@ def get_user_update():
         user.password = data['n_password']
 
     db.session.commit()
-    return ('', 204)
+    return '', 204
 
 
 @api.route("/login", methods=["DELETE"])

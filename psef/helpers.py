@@ -2,7 +2,6 @@
 from flask import Flask, g, render_template
 
 
-
 def get_all_subclasses(cls):
     """
     Stolen from:
