@@ -13,6 +13,7 @@ import psef.linters as linters
 from psef import db, app
 from psef.errors import APICodes, APIException
 
+from . import linters as linters_routes
 from . import api
 
 
@@ -440,4 +441,4 @@ def start_linting(assignment_id):
             test.state = models.LinterState.crashed
         db.session.commit()
     finally:
-        return linters.get_linter_state(res.id)
+        return linters_routes.get_linter_state(res.id)
