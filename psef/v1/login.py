@@ -71,7 +71,6 @@ def get_user_update():
             APICodes.MISSING_REQUIRED_PARAM, 400)
 
     user = current_user
-    print(user.password == data['o_password'])
     if user.password != data['o_password']:
         raise APIException('Incorrect password.',
                            'The supplied old password was incorrect',
