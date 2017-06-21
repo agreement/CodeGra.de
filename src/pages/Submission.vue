@@ -16,15 +16,14 @@
                     @submit="submitAllFeedback($event)"></grade-viewer>
             </div>
 
-            <loader class="col-3 text-center" :scale="3" v-if="!fileTree"></loader>
-            <file-tree class="col-3" :collapsed="false" :tree="fileTree" v-else></file-tree>
+            <file-tree-container class="col-3" :fileTree="fileTree"></file-tree-container>
         </div>
     </div>
 </template>
 
 <script>
 import { mapActions } from 'vuex';
-import { CodeViewer, FileTree, GradeViewer, Loader, PdfViewer, SubmissionNavBar } from '@/components';
+import { CodeViewer, FileTreeContainer, GradeViewer, Loader, PdfViewer, SubmissionNavBar } from '@/components';
 
 function getFirstFile(fileTree) {
     // Returns the first file in the file tree that is not a folder
@@ -174,7 +173,7 @@ export default {
 
     components: {
         CodeViewer,
-        FileTree,
+        FileTreeContainer,
         GradeViewer,
         Loader,
         PdfViewer,
