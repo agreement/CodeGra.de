@@ -17,6 +17,7 @@
 
 <script>
 import { mapGetters } from 'vuex';
+import { bCard } from 'bootstrap-vue/lib/components';
 import { UserInfo, SnippetManager } from '@/components';
 
 export default {
@@ -25,6 +26,7 @@ export default {
     components: {
         UserInfo,
         SnippetManager,
+        bCard,
     },
 
     computed: {
