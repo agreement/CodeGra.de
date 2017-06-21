@@ -2,7 +2,7 @@
     <div class="grade-viewer" v-if="show">
         <div class="row">
             <div class="col-6">
-                <b-input-group class="col-6">
+                <b-input-group>
                     <b-input-group-button>
                         <b-button :variant="submitted ? 'success' : 'primary'" v-on:click="putFeedback()" v-if="editable">
                             <icon name="refresh" spin v-if="submitting"></icon>
