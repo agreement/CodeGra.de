@@ -159,11 +159,19 @@ class User(db.Model, UserMixin):
     def has_permission(self, permission, course_id=None):
         if course_id is None:
             return self.role.has_permission(permission)
+        elif course_id == 'all':
+            return self.get_permission_in_courses(permission)
         else:
             if isinstance(course_id, Course):
                 course_id = course_id.id
             return (course_id in self.courses and
                     self.courses[course_id].has_permission(permission))
+
+    def get_permission_in_courses(self, permission):
+        return {
+            course_role.course_id: course_role.has_permission(permission)
+            for course_role in self.courses.values()
+        }
 
     def get_all_permissions(self, course_id=None):
         if isinstance(course_id, Course):
@@ -204,7 +212,6 @@ class User(db.Model, UserMixin):
             return ('use at least {} chars'.format(min_len))
         else:
             return ('')
-
 
 class Course(db.Model):
     __tablename__ = "Course"

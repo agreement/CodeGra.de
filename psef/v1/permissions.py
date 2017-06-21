@@ -10,14 +10,17 @@ from . import api
 @login_required
 def get_permissions():
     if 'course_id' in request.args:
-        try:
-            course_id = int(request.args['course_id'])
-        except ValueError:
-            raise APIException(
-                'The specified course id was invalid',
-                'The course id should be a number but '
-                '{} is not a number'.format(request.args['course_id']),
-                APICodes.INVALID_PARAM, 400)
+        if request.args['course_id'] != 'all':
+            try:
+                course_id = int(request.args['course_id'])
+            except ValueError:
+                raise APIException(
+                    'The specified course id was invalid',
+                    'The course id should be a number or "all" but '
+                    '{} is neither'.format(request.args['course_id']),
+                    APICodes.INVALID_PARAM, 400)
+        else:
+            course_id = "all"
     else:
         course_id = None
 
