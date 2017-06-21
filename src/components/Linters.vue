@@ -20,7 +20,8 @@
                 :description="linter.desc"
                 :initialId="linter.id"
                 :initialState="linter.state"
-                :key="linter.id"/>
+                :key="linter.id"
+                :assignment="assignment"/>
       </tbody>
     </table>
   </div>
@@ -37,11 +38,15 @@ import Linter from './Linter';
 export default {
     name: 'linters',
 
-    props: ['feedback'],
+    props: {
+        assignment: {
+            type: Object,
+            default: null,
+        },
+    },
 
     data() {
         return {
-            assignmentId: this.$route.params.assignmentId,
             linters: null,
             loading: true,
             show: {},
@@ -60,7 +65,7 @@ export default {
 
     methods: {
         getLinters() {
-            this.$http.get(`/api/v1/assignments/${this.assignmentId}/linters/`).then((data) => {
+            this.$http.get(`/api/v1/assignments/${this.assignment.id}/linters/`).then((data) => {
                 this.linters = data.data;
                 this.loading = false;
             });

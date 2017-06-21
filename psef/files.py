@@ -279,7 +279,7 @@ def create_csv(objects, attributes, headers=None):
     :returns: The path to the csv file
     :rtype: str
     """
-    if headers == None:
+    if headers is None:
         headers = attributes
 
     return create_csv_from_rows([headers] + [[
