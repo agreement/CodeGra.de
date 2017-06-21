@@ -1,55 +1,51 @@
 <template>
-    <b-card header="Snippets">
-    <div class="justify-content-centermy-1 row">
-      <b-form-fieldset horizontal label="" class="col-12" :label-size="1">
-        <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
-      </b-form-fieldset>
-    </div>
-    <b-table striped hover
-      :items="snippets"
-      :fields="fields"
-      :current-page="currentPage"
-      :filter="filter"
-      :response="true">
-        <template slot="key" scope="item">
-            <b-form-fieldset :state="validSnippetKey(item.item)?'success':'danger'" :feedback="item.item.keyError" v-if="item.item.editing">
-                <b-form-input type="text" placeholder="Key" v-model="item.item.key"></b-form-input>
+    <div class="snippet-manager">
+        <b-card header="Snippets">
+            <b-form-fieldset>
+                <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
             </b-form-fieldset>
-            <span v-else>{{item.item.key ? item.item.key : '-'}}</span>
-        </template>
-        <template slot="text" scope="item">
-            <b-form-fieldset :state="validSnippetValue(item.item)?'success':'danger'" :feedback="item.item.valueError" v-if="item.item.editing">
-                <b-form-input type="text" placeholder="Value" v-model="item.item.value"></b-form-input>
-            </b-form-fieldset>
-            <span v-else>{{item.item.value ? item.item.value : '-'}}</span>
-        </template>
-        <template slot="actions" scope="item">
-            <b-btn size="sm" variant="info" :disabled="item.item.pending" @click="saveSnippet(item.item)" v-if="item.item.editing">
-                <loader v-if="item.item.pending" :scale="1" ></loader>
-                <icon name="floppy-o" scale="1" v-else></icon>
-            </b-btn>
-            <b-btn size="sm" variant="warning" @click="editSnippet(item.item)" v-else>
-                <icon name="pencil" scale="1"></icon>
-            </b-btn>
-            <b-btn size="sm" variant="warning" v-if="item.item.editing" :disabled="item.item.pending" @click="cancelSnippetEdit(item.item)">
-                <icon name="ban" scale="1"></icon>
-            </b-btn>
-            <b-btn size="sm" variant="danger" :disabled="item.item.pending" @click="deleteSnippet(item.item)" v-else   >
-                <icon name="times" scale="1"></icon>
-            </b-btn>
-        </template>
-    </b-table>
-    <div class="row">
-        <div class="col">
+            <b-table striped hover
+                :items="snippets"
+                :fields="fields"
+                :current-page="currentPage"
+                :filter="filter"
+                :response="true">
+                <template slot="key" scope="item">
+                    <b-form-fieldset :state="validSnippetKey(item.item)?'success':'danger'" :feedback="item.item.keyError" v-if="item.item.editing">
+                        <b-form-input type="text" placeholder="Key" v-model="item.item.key"></b-form-input>
+                    </b-form-fieldset>
+                    <span v-else>{{item.item.key ? item.item.key : '-'}}</span>
+                </template>
+                <template slot="text" scope="item">
+                    <b-form-fieldset :state="validSnippetValue(item.item)?'success':'danger'" :feedback="item.item.valueError" v-if="item.item.editing">
+                        <b-form-input type="text" placeholder="Value" v-model="item.item.value"></b-form-input>
+                    </b-form-fieldset>
+                    <span v-else>{{item.item.value ? item.item.value : '-'}}</span>
+                </template>
+                <template slot="actions" scope="item">
+                    <b-btn size="sm" variant="info" :disabled="item.item.pending" @click="saveSnippet(item.item)" v-if="item.item.editing">
+                        <loader v-if="item.item.pending" :scale="1" ></loader>
+                        <icon name="floppy-o" scale="1" v-else></icon>
+                    </b-btn>
+                    <b-btn size="sm" variant="warning" @click="editSnippet(item.item)" v-else>
+                        <icon name="pencil" scale="1"></icon>
+                    </b-btn>
+                    <b-btn size="sm" variant="warning" v-if="item.item.editing" :disabled="item.item.pending" @click="cancelSnippetEdit(item.item)">
+                        <icon name="ban" scale="1"></icon>
+                    </b-btn>
+                    <b-btn size="sm" variant="danger" :disabled="item.item.pending" @click="deleteSnippet(item.item)" v-else   >
+                        <icon name="times" scale="1"></icon>
+                    </b-btn>
+                </template>
+            </b-table>
             <b-button-group>
                 <loader :scale="2" class="" v-if="loading"></loader>
                 <b-button size="sm" variant="success" @click="newSnippet" v-else>
                     <icon name="plus" scale="1"></icon>
                 </b-button>
             </b-button-group>
-        </div>
+        </b-card>
     </div>
-    </b-card>
 </template>
 
 <script>

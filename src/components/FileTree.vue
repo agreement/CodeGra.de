@@ -26,6 +26,7 @@ import 'vue-awesome/icons/file';
 import 'vue-awesome/icons/caret-right';
 import 'vue-awesome/icons/caret-down';
 
+
 export default {
     name: 'file-tree',
 
@@ -62,10 +63,11 @@ export default {
 };
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
 .file-tree {
     user-select: none;
     cursor: default;
+    color: #2c3e50;
 
     ol {
         list-style: none;

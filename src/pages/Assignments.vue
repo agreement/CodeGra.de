@@ -1,11 +1,9 @@
 <template>
     <div class="page assignments">
-        <div class="row justify-content-center">
-            <loader class="col-md-10 text-center" v-if="loading"></loader>
-            <div class="col-md-10" v-else>
-                <h1>Assignments</h1>
-                <assignment-list :assignments="assignments" :canSeeHidden="canSeeHidden"></assignment-list>
-            </div>
+        <loader class="text-center" v-if="loading"></loader>
+        <div v-else>
+            <h1>Assignments</h1>
+            <assignment-list :assignments="assignments" :canSeeHidden="canSeeHidden"></assignment-list>
         </div>
     </div>
 </template>

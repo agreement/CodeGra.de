@@ -1,9 +1,7 @@
 <template>
-    <div class="page manage-course container-fluid">
-        <div class="row justify-content-center">
-            <loader v-if="loading"></loader>
-            <manage-course v-else :assignments="assignments"></manage-course>
-        </div>
+    <div class="page manage-course">
+        <loader v-if="loading"></loader>
+        <manage-course v-else :assignments="assignments"></manage-course>
     </div>
 </template>
 
@@ -48,9 +46,3 @@ export default {
     },
 };
 </script>
-
-<style lang="less" scoped>
-.row {
-    width: 100%;
-}
-</style>
