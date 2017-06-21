@@ -1,10 +1,11 @@
 import Vue from 'vue';
 import Router from 'vue-router';
+import store from '@/store';
 import { Assignments, Home, Login, ManageCourse, Submission, Submissions, Submit, User } from '@/pages';
 
 Vue.use(Router);
 
-export default new Router({
+const router = new Router({
     mode: 'history',
 
     routes: [
@@ -60,3 +61,19 @@ export default new Router({
         },
     ],
 });
+
+router.beforeEach((to, from, next) => {
+    if (!store.getters['user/loggedIn'] && to.path !== '/login') {
+        next('/login');
+        return;
+    }
+
+    if (store.getters['user/loggedIn'] && to === '/login') {
+        next('/');
+        return;
+    }
+
+    next();
+});
+
+export default router;
