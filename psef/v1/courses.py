@@ -35,6 +35,5 @@ def add_course():
     new_course = models.Course(name=content['name'])
     db.session.add(new_course)
     db.session.commit()
-    db.session.refresh(new_course)
 
     return jsonify(new_course.to_dict())
