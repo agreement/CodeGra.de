@@ -16,7 +16,7 @@ export default {
 
     computed: {
         link: function link() {
-            return `/api/v1/submissions/${this.id}/feedback`;
+            return `/api/v1/submissions/${this.id}?type=feedback`;
         },
     },
 };

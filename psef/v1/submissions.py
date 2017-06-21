@@ -1,4 +1,4 @@
-from flask import jsonify, request, after_this_request
+from flask import jsonify, request, after_this_request, send_file
 from flask_login import current_user, login_required
 
 import psef.auth as auth
@@ -6,6 +6,7 @@ import psef.models as models
 from psef import db, app
 from psef.errors import APICodes, APIException
 
+import os
 import tempfile
 
 from . import api
@@ -24,6 +25,9 @@ def get_submission(submission_id):
 
     if work:
         auth.ensure_can_see_grade(work)
+
+        if 'type' in request.args and request.args['type'] == 'feedback':
+            return get_feedback(work)
 
         return jsonify({
             'id': work.id,
@@ -129,26 +133,12 @@ def get_dir_contents(submission_id):
     return (dir_contents, 200)
 
 
-@app.route("/submissions/<int:submission_id>/feedback", methods=['GET'])
-@login_required
-def get_feedback(submission_id):
+def get_feedback(work):
     """
-    Get the feedback of submission X as a plain text file.
-
-    Raises APIException:
-        - If submission X was not found
+    Get the feedback of work as a plain text file.
     """
-    work = models.Work.query.get.submission_id().first()
-
-    if not work:
-        raise APIException(
-            'Submission not found',
-            'The submission with code {} was not found'.format(submission_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
-
-    auth.ensure_can_see_grade(work)
     comments = models.Comment.query.filter(
-        models.Comment.file.has(work_id=submission_id)).order_by(
+        models.Comment.file.has(work=work)).order_by(
             models.Comment.file_id.desc(), models.Comment.line.desc())
 
     filename = '{}-{}-feedback.txt'.format(work.assignment.name,
