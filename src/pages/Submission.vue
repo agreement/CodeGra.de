@@ -1,5 +1,12 @@
 <template>
     <div class="page submission">
+        <div class="row submission-nav-bar">
+            <div class="col-12">
+                <submission-nav-bar :submission="submission"
+                                    :courseId="courseId"
+                                    :assignmentId="assignmentId"></submission-nav-bar>
+            </div>
+        </div>
         <div class="row">
             <div class="col-9 code-and-grade">
                 <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
@@ -11,18 +18,13 @@
 
             <loader class="col-3 text-center" :scale="3" v-if="!fileTree"></loader>
             <file-tree class="col-3" :collapsed="false" :tree="fileTree" v-else></file-tree>
-            <b-button :variant="secondary" :to="{ name: 'assignment_submissions',
-                                                  params: { courseId: this.courseId,
-                                                            assignmentId: this.assignmentId }}">
-                back to submissions
-            </b-button>
         </div>
     </div>
 </template>
 
 <script>
 import { mapActions } from 'vuex';
-import { CodeViewer, FileTree, GradeViewer, Loader, PdfViewer } from '@/components';
+import { CodeViewer, FileTree, GradeViewer, Loader, PdfViewer, SubmissionNavBar } from '@/components';
 
 function getFirstFile(fileTree) {
     // Returns the first file in the file tree that is not a folder
@@ -48,6 +50,7 @@ export default {
 
     data() {
         return {
+            submission: null,
             fileTree: null,
             editable: false,
             fileExtension: '',
@@ -60,8 +63,8 @@ export default {
 
     computed: {
         courseId() { return this.$route.params.courseId; },
-        assignmentId() { return this.$route.params.assignmentId; },
-        submissionId() { return this.$route.params.submissionId; },
+        assignmentId() { return parseInt(this.$route.params.assignmentId, 10); },
+        submissionId() { return parseInt(this.$route.params.submissionId, 10); },
         fileId() { return this.$route.params.fileId; },
     },
 
@@ -76,6 +79,7 @@ export default {
             this.editable = val;
         });
         this.getSubmission();
+        this.getSubmissionFiles();
         this.getFileMetadata();
 
         const elements = Array.from(document.querySelectorAll('html, body, #app, nav, footer'));
@@ -130,7 +134,7 @@ export default {
     },
 
     methods: {
-        getSubmission() {
+        getSubmissionFiles() {
             this.$http.get(`/api/v1/submissions/${this.submissionId}/files/`).then((data) => {
                 this.fileTree = data.data;
                 this.$router.replace({
@@ -140,6 +144,12 @@ export default {
                         fileId: this.fileId ? this.fileId : getFirstFile(this.fileTree).id,
                     },
                 });
+            });
+        },
+
+        getSubmission() {
+            this.$http.get(`/api/v1/submissions/${this.submissionId}`).then((data) => {
+                this.submission = data.data;
             });
         },
 
@@ -168,6 +178,7 @@ export default {
         GradeViewer,
         Loader,
         PdfViewer,
+        SubmissionNavBar,
     },
 };
 </script>
@@ -218,5 +229,10 @@ h1,
 
 .loader {
     margin-top: 1em;
+}
+
+.submission-nav-bar {
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 </style>

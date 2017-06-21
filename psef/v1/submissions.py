@@ -26,6 +26,7 @@ def get_submission(submission_id):
         return jsonify({
             'id': work.id,
             'user_id': work.user_id,
+            'user_name': work.user.name,
             'edit': work.edit,
             'grade': work.grade,
             'comment': work.comment,
