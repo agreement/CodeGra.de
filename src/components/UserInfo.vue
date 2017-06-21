@@ -72,11 +72,11 @@
                 </b-alert>
             </b-form-fieldset>
 
-            <b-button-group justify>
+            <b-button-toolbar justify>
                 <b-button variant="primary" @click="edit = true" v-if="!edit">Edit</b-button>
                 <b-button variant="primary" @click="submit()" v-if="edit">Submit</b-button>
                 <b-button variant="danger" @click="edit = false; resetParams()" v-if="edit">Cancel</b-button>
-            </b-button-group>
+            </b-button-toolbar>
         </div>
     </div>
 </template>
