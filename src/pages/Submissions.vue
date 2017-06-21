@@ -21,6 +21,8 @@ import { mapActions } from 'vuex';
 import { SubmissionList, CodeUploader, Loader, SubmissionsExporter }
     from '@/components';
 
+import * as assignmentState from '../store/assignment-states';
+
 export default {
     name: 'submission-list-page',
 
@@ -37,31 +39,28 @@ export default {
     },
 
     mounted() {
-        this.hasPermission('can_submit_own_work').then((val) => {
-            this.canUpload = val;
-        });
-        this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then((data) => {
+        const partDone = () => {
             this.loading += 1;
+        };
+
+        this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then((data) => {
+            partDone();
             this.submissions = data.data;
         });
+
         this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then((data) => {
-            this.loading += 1;
             this.assignment = data.data;
             this.assignment.id = this.assignmentId;
-            const checkDownload = () => {
-                if (this.assignment.state === 3) {
+
+            this.hasPermission(['can_submit_own_work', 'can_see_others_work', 'can_see_grade_before_open']).then(([submit, others, before]) => {
+                this.canUpload = submit && this.assignment.open;
+
+                if (others && this.assignment.state === assignmentState.DONE) {
                     this.canDownload = true;
-                } else {
-                    this.hasPermission('can_see_grade_before_open').then((res) => {
-                        this.canDownload = res;
-                    });
+                } else if (others) {
+                    this.canDownload = before;
                 }
-            };
-            checkDownload();
-            this.hasPermission('can_see_others_work').then((res) => {
-                if (res) {
-                    this.checkDownload();
-                }
+                partDone();
             });
         });
     },

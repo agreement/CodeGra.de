@@ -4,6 +4,12 @@
             <b-input-group class="col-12">
                 <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
                 <b-button-group>
+                    <b-popover placement="top" triggers="hover" content="Hidden" v-if="canSeeHidden">
+                        <b-button class="btn-info" :class="{ 'btn-outline-info': !toggles.hidden}"
+                            @click="toggleFilter('hidden')">
+                            <icon name="eye-slash"></icon>
+                        </b-button>
+                    </b-popover>
                     <b-popover placement="top" triggers="hover" content="Submitting">
                         <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
                             @click="toggleFilter('submitting')">
@@ -44,9 +50,10 @@
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="state" scope="item">
-                <icon name="download" v-if="item.item.state == 1"></icon>
-                <icon name="pencil" v-else-if="item.item.state == 2"></icon>
-                <icon name="check" v-else-if="item.item.state == 3"></icon>
+                <icon name="eye-slash" v-if="item.item.state == assignmentState.HIDDEN"></icon>
+                <icon name="download" v-if="item.item.state == assignmentState.SUBMITTING"></icon>
+                <icon name="pencil" v-else-if="item.item.state == assignmentState.GRADING"></icon>
+                <icon name="check" v-else-if="item.item.state == assignmentState.DONE"></icon>
             </template>
             <template slot="empty">
                 No results found.
@@ -63,6 +70,9 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/download';
 import 'vue-awesome/icons/pencil';
 import 'vue-awesome/icons/check';
+import 'vue-awesome/icons/eye-slash';
+
+import * as assignmentState from '../store/assignment-states';
 
 export default {
     name: 'assignment-list',
@@ -72,10 +82,15 @@ export default {
             type: Array,
             default: [],
         },
+        canSeeHidden: {
+            type: Boolean,
+            default: false,
+        },
     },
 
     data() {
         return {
+            assignmentState,
             filter: '',
             toggles: {
                 hidden: false,
@@ -111,6 +126,7 @@ export default {
         this.toggles.submitting = q.submitting == null ? true : q.submitting === 'true';
         this.toggles.grading = q.grading == null ? false : q.grading === 'true';
         this.toggles.done = q.done == null ? true : q.done === 'true';
+        this.toggles.hidden = q.hidden == null ? true : q.hidden === 'true';
         this.filter = q.q;
     },
 
@@ -132,11 +148,11 @@ export default {
 
         filterState(item) {
             switch (item.state) {
-            case 0: return this.toggles.hidden;
-            case 1: return this.toggles.submitting;
-            case 2: return this.toggles.grading;
-            case 3: return this.toggles.done;
-            default: throw TypeError('Unknown assignment state');
+            case assignmentState.SUBMITTING: return this.toggles.submitting;
+            case assignmentState.GRADING: return this.toggles.grading;
+            case assignmentState.DONE: return this.toggles.done;
+            case assignmentState.HIDDEN: return this.toggles.hidden;
+            default: throw TypeError(`Unknown assignment state "${item.state}"`);
             }
         },
 

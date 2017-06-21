@@ -105,6 +105,7 @@ export default {
 
     methods: {
         strState() {
+            // FIXME: Stop sending enums
             switch (this.state) {
             case -1: return 'New';
             case 1: return 'Running';

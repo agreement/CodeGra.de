@@ -8,6 +8,7 @@ const getters = {
     snippets: state => state.snippets,
     name: state => state.name,
     permissions: state => state.permissions,
+    canSeeHidden: state => state.canSeeHidden,
 };
 
 const actions = {
@@ -53,9 +54,17 @@ const actions = {
                 return state.permissions[`course_${perm.course_id}`];
             };
 
-            const checkPermission = () => getPermission()[perm.name] === true;
+            const getPermissionvalues = () => {
+                if (typeof perm.name === 'string') {
+                    return [getPermission()[perm.name]];
+                }
+                return perm.name.map(val => getPermission()[val]);
+            };
 
-            if (getPermission() === undefined || getPermission()[perm.name] === undefined) {
+            const checkPermission = () => getPermissionvalues().map(val => val === true);
+
+            if (getPermission() === undefined ||
+                getPermissionvalues().some(val => val === undefined)) {
                 axios.get('/api/v1/permissions/', {
                     params: perm.course_id ? { course_id: perm.course_id } : {},
                 }).then((response) => {
@@ -98,6 +107,7 @@ const mutations = {
         state.id = userdata.id;
         state.email = userdata.email;
         state.name = userdata.name;
+        state.canSeeHidden = userdata.hidden;
     },
     [types.SNIPPETS](state, snippets) {
         state.snippets = snippets;
@@ -118,6 +128,7 @@ const mutations = {
         state.name = '';
         state.snippets = null;
         state.permissions = null;
+        state.canSeeHidden = false;
     },
     [types.NEW_SNIPPET](state, { key, value }) {
         state.snippets[key] = value;
@@ -135,6 +146,7 @@ export default {
         name: '',
         snippets: null,
         permissions: null,
+        canSeeHidden: false,
     },
     getters,
     actions,
