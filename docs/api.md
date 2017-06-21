@@ -122,22 +122,22 @@ requests.get('/api/v1/assignments/')
 [
   {
     "id": 1,
+    "state": "submitting",
+    "description": "A assignment about bladiebla"
+    "date": "day-month-year hour:minute"
     "name": "Security",
     "course_name": "Besturingssystemen",
     "course_id": 1
   },
   {
     "id": 2,
+    "state": "submitting",
+    "description": "A assignment about bladiebla"
+    "date": "day-month-year hour:minute"
     "name": "Shell",
     "course_name": "Besturingssystemen",
     "course_id": 1
   },
-  {
-    "id": 3,
-    "name": "Final deadline",
-    "course_name": "Project Software Engineering",
-    "course_id": 2
-  }
 ]
 ```
 
@@ -145,6 +145,30 @@ Get all assignments that the current user can see.
 
 ###### HTTP Request
 `GET http://example.com/api/v1/assignments/`
+
+### Update an assignment
+
+```python
+import requests
+
+json = {'name': 'new name', 'state': 'open'}
+
+# As logged in user
+requests.patch('/api/v1/assignments/', json=json)
+```
+
+> The above code returns an emtpy response with status code 204
+
+Update the given assignment using the given fields
+
+###### HTTP Request
+`PATCH http://example.com/api/v1/assignments/<ID>`
+
+##### Query Parameters
+| Parameter | Description                                                          |
+| --------- | -----------                                                          |
+| name      | The new name of the assignment, should be a string.                  |
+| state     | The new state of the assignment, can be 'hidden', 'open' and 'done'. |
 
 ### Getting all users that can grade the assignment
 
@@ -239,8 +263,24 @@ Parameter | Description
 --------- | -----------
 file_id | Optional parameter that can be used to show the contents of a specific directory in the work
 
-## Submissions
+## Courses
+### Getting all assignments
+```python
+import requests
 
+# As logged in user
+requests.get('https://example.com/api/v1/courses/5/assigments/')
+```
+
+> The above command returns a list of assignments in the same format as the
+> `/api/v1/assignments/` command
+
+Get all assignments for a given course
+
+#### HTTP Request
+`GET http://example.com/api/v1/courses/<ID>/assignments/`
+
+## Submissions
 ### Get submission
 ##### HTTP Request
 `GET /api/v1/submissions/<ID>`
@@ -319,6 +359,28 @@ Parameter | Description
 --------- | -----------
 csv | Optional parameter that can be set to retrieve all submissions as a csv file
 
+
+#### Import submissions from blackboard zip file
+
+```python
+import requests
+multipart_form_data = {
+    'file': open(bbzip, 'rb'),
+}
+
+requests.post('https://example.com/api/v1/assignments/1/submissions/', files=multipart_form_data)
+```
+
+> The return code will be 204 and the body will be empty if the submissions were added
+
+
+###### HTTP Request
+`POST http://example.com/api/v1/assignments/<ID>/submissions/`
+
+###### Query Parameters
+Parameter | Description
+--------- | -----------
+file | The file that will be uploaded and imported. This file must be a zip-archive containing a Blackboard Gradebook.
 
 
 ## User

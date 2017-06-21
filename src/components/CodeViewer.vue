@@ -1,26 +1,30 @@
 <template>
-  <loader class="col-md-12 text-center" v-if="loading"></loader>
-  <ol v-else-if="!error" class="code-viewer form-control" :class="{ editable }">
-    <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines">
-      <code v-html="line" @click.capture="onFileClick"></code>
+    <loader class="text-center" v-if="loading"></loader>
+    <ol class="code-viewer form-control" v-else-if="!error" :class="{ editable: editable }">
+        <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
+            :class="{ 'linter-feedback': linterFeedback[i] }">
+
+            <linter-feedback-area :feedback="linterFeedback[i]"> </linter-feedback-area>
+            <code  v-html="line"></code>
 
 
-      <feedback-area :editing="editing[i] === true"
-                     :feedback='feedback[i]'
-                     :editable='editable'
-                     :line='i'
-                     :fileId='fileId'
-                     v-on:feedbackChange="val => { feedbackChange(i, val); }"
-                     v-on:cancel='onChildCancel'
-                     v-if="feedback[i] != null">
-      </feedback-area>
-      <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
-            v-on:click="addFeedback($event, value)"></icon>
-    </li>
-  </ol>
-  <b-alert variant="danger" show v-else>
-      <center><span>Cannot display file!</span></center>
-  </b-alert>
+            <feedback-area :editing="editing[i] === true"
+                            :feedback='feedback[i]'
+                            :editable='editable'
+                            :line='i'
+                            :fileId='fileId'
+                            v-on:feedbackChange="val => { feedbackChange(i, val); }"
+                            v-on:cancel='onChildCancel'
+                            v-if="feedback[i] != null">
+            </feedback-area>
+
+            <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
+                    v-on:click="addFeedback($event, value)"></icon>
+        </li>
+    </ol>
+    <b-alert variant="danger" show v-else>
+        <center><span>Cannot display file!</span></center>
+    </b-alert>
 </template>
 
 <script>
@@ -34,6 +38,7 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
 
 import FeedbackArea from './FeedbackArea';
+import LinterFeedbackArea from './LinterFeedbackArea';
 import Loader from './Loader';
 
 const entityRE = /[&<>]/g;
@@ -69,6 +74,7 @@ export default {
             loading: true,
             editing: {},
             feedback: {},
+            linterFeedback: {},
             clicks: {},
             error: false,
         };
@@ -103,6 +109,7 @@ export default {
     methods: {
         getCode() {
             this.$http.get(`/api/v1/code/${this.fileId}`).then(({ data }) => {
+                this.linterFeedback = data.linter_feedback;
                 this.feedback = data.feedback;
                 this.code = data.code;
                 this.codeLines = data.code.split('\n');
@@ -197,10 +204,8 @@ export default {
             }
         },
 
-        onChildCancel(line, click) {
-            if (click !== false) {
-                this.clicks[line] = true;
-            }
+        onChildCancel(line) {
+            this.clicks[line] = true;
             Vue.set(this.editing, line, false);
             Vue.set(this.feedback, line, null);
         },
@@ -233,6 +238,7 @@ export default {
         Icon,
         FeedbackArea,
         Loader,
+        LinterFeedbackArea,
     },
 };
 </script>
@@ -269,6 +275,7 @@ code {
     top: 0;
     right: .5em;
     display: none;
+    color: black;
 
     li:hover & {
         display: block;

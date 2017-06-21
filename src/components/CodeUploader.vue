@@ -3,55 +3,57 @@
         <div class="card-block">
             <h4 class="card-title">Submit files: (max: {{options.maxFiles}})</h4>
         </div>
-        <!-- <div class="panel-body"> -->
-            <dropzone class="container card-block card-inverse"
-              ref='dz'
-              id='dz-upload'
-              v-bind:url="options.url"
-              v-bind:useCustomDropzoneOptions="true"
-              v-bind:dropzoneOptions="options"
-              v-on:vdropzone-error="error"
-              v-on:vdropzone-total-upload-progress="progress"
-              v-on:vdropzone-file-added="fileAdded"
-              v-on:vdropzone-success="success"
-              v-on:vdropzone-queue-complete="queueComplete"
-              v-on:vdropzone-mounted="dropzoneMounted"
-            >
-                <ul id="queue" class="list-group dropzone-previews">
-                    <li ref='previewTemplate' class="list-group-item row file hidden-xs-up">
-                        <div class="col-9"><span class="name" data-dz-name></span></div>
-                        <div class="col-2"><span class="size" data-dz-size></span></div>
-                        <div class="col-1">
-                            <button
-                              type="button"
-                              class="btn btn-danger btn-sm cancel"
-                              data-dz-remove>
-                                <icon name="times" aria-hidden="true"></icon>
-                            </button>
-                        </div>
-                    </li>
-                </ul>
-            </dropzone>
-        <!-- </div> -->
+
+        <dropzone class="container card-block card-inverse"
+            ref='dz'
+            id='dz-upload'
+            :url="options.url"
+            :useCustomDropzoneOptions="true"
+            :dropzoneOptions="options"
+            @vdropzone-error="error"
+            @vdropzone-total-upload-progress="progress"
+            @vdropzone-file-added="fileAdded"
+            @vdropzone-success="success"
+            @vdropzone-queue-complete="queueComplete"
+            @vdropzone-mounted="dropzoneMounted">
+            <ul id="queue" class="list-group dropzone-previews">
+                <li ref='previewTemplate' class="list-group-item row file hidden-xs-up">
+                    <div class="col-9"><span class="name" data-dz-name></span></div>
+                    <div class="col-2"><span class="size" data-dz-size></span></div>
+                    <div class="col-1">
+                        <b-button
+                            type="button"
+                            class="btn btn-danger btn-sm cancel"
+                            data-dz-remove>
+                            <icon name="times" aria-hidden="true"></icon>
+                        </b-button>
+                    </div>
+                </li>
+            </ul>
+        </dropzone>
+
         <div class="card-block">
-        <button
-          class="btn btn-success upload"
-          v-on:click="upload"
-          v-bind:class="{disabled: startedUpload}">
-          <icon name="refresh" spin v-if="startedUpload"></icon>
-          <span v-else>Upload</span>
-        </button>
-        <button
-          class="btn btn-outline-danger remove"
-          v-on:click="removeAll"
-          v-bind:class="{disabled: startedUpload}"
-        >Remove All
-        </button>
+            <b-button-toolbar class="justify-content-between">
+                <b-button
+                    class="btn btn-success"
+                    @click="upload"
+                    :class="{ disabled: startedUpload }">
+                    <icon name="refresh" spin v-if="startedUpload"></icon>
+                    <span v-else>Upload</span>
+                </b-button>
+                <b-button
+                    class="btn btn-outline-danger"
+                    @click="removeAll"
+                    :class="{ disabled: startedUpload }">
+                    Remove All
+                </b-button>
+            </b-button-toolbar>
         </div>
     </div>
 </template>
 
 <script>
+    import { bButton, bButtonToolbar } from 'bootstrap-vue/lib/components';
     import Dropzone from 'vue2-dropzone';
     import Icon from 'vue-awesome/components/Icon';
     import 'vue-awesome/icons/times';
@@ -59,10 +61,14 @@
 
     export default {
         name: 'code-uploader',
+
         components: {
             Dropzone,
             Icon,
+            bButton,
+            bButtonToolbar,
         },
+
         props: {
             assignmentId: {
                 type: Number,
@@ -173,33 +179,9 @@
         },
     };
 </script>
-<style scoped>
-.btn {
-    border-radius: 0.2em;
-    border-width: 0.1em;
-    cursor: pointer;
-}
-.btn-success {
-    float:left;
-}
-.btn-outline-danger {
-    float: right;
-}
-.file div.col-xs-10 {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: pre;
-}
-.file div.col-xs-auto {
-    overflow: visible;
-    white-space: pre;
-}
+
+<style lang="less" scoped>
 .progress {
-    margin: 1em 0 1em 0;
-    background-color: #32475b;
-}
-.card-primary {
-    background-color: #2c3e50;
-    border-color: #2c3e50;
+    margin: 1em 0;
 }
 </style>

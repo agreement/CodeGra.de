@@ -30,7 +30,20 @@ def ensure_can_see_grade(work):
         if work.assignment.state != models.AssignmentStateEnum.done:
             ensure_permission('can_see_grade_before_open',
                               work.assignment.course.id)
-    return False
+        return
+    _raise_login_exception()
+
+
+def ensure_enrolled(course_id):
+    if _user_active():
+        if course_id not in current_user.courses:
+            raise PermissionException(
+                'You are not enrolled in this course',
+                'The user "{}" is not enrolled in course "{}"'.format(
+                    current_user.id,
+                    course_id), APICodes.INCORRECT_PERMISSION, 403)
+        return
+    _raise_login_exception()
 
 
 def ensure_permission(permission_name, course_id=None):
@@ -45,7 +58,8 @@ def ensure_permission(permission_name, course_id=None):
                       permission.
     :vartype course_id: None or int
     :rtype: None
-    :raises PermissionException: If the permission is not enabled for the current
+    :raises PermissionException: If the permission is not enabled for the
+                                 current
                           user.
     """
     if _user_active():

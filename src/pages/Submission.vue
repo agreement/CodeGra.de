@@ -1,15 +1,15 @@
 <template>
-    <div class="page submission container">
-        <div class="row justify-content-center code-browser">
-            <h1>{{ title }}</h1>
-            <div class="col-10 code-and-grade">
+    <div class="page submission">
+        <div class="row">
+            <div class="col-9 code-and-grade">
                 <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
                 <code-viewer class="" :editable="editable" :id="fileId"
                     :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
                 <grade-viewer :id="submissionId" :editable="editable"
                     @submit="submitAllFeedback($event)"></grade-viewer>
             </div>
-            <file-tree-container class="col-2" :fileTree="fileTree"></file-tree-container>
+
+            <file-tree-container class="col-3" :fileTree="fileTree"></file-tree-container>
         </div>
     </div>
 </template>
@@ -143,7 +143,7 @@ export default {
             }
 
             this.fileExtension = '';
-            this.$http.get(`/api/v1/file/metadata/${this.fileId}`).then((response) => {
+            this.$http.get(`/api/v1/code/${this.fileId}?type=metadata`).then((response) => {
                 this.fileExtension = response.data.extension;
             });
         },
@@ -174,14 +174,14 @@ export default {
     flex-shrink: 1;
 }
 
+.row {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
 h1 {
     flex-grow: 0;
     flex-shrink: 0;
-}
-.code-browser {
-
-    flex-grow: 1;
-    flex-shrink: 1;
 }
 
 .code-and-grade {
@@ -191,6 +191,7 @@ h1 {
 
 .pdfobject-container {
     flex-grow: 1;
+    flex-shrink: 1;
 }
 
 .code-viewer {

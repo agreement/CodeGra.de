@@ -1,3 +1,5 @@
+@color-primary: #2c3e50;
+
 html {
     box-sizing: border-box;
 }
@@ -6,8 +8,20 @@ html {
     box-sizing: inherit;
 }
 
-header .logo {
-    width: 12em;
+#app {
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
+}
+
+footer {
+    @footer-height: 60px;
+    height: @footer-height;
+    /* Vertically center the text there */
+    line-height: @footer-height;
+
+    text-align: center;
+    background: #f5f5f5;
 }
 
 .table {
@@ -22,6 +36,20 @@ header .logo {
         padding: .75rem;
         background: #eceeef;
     }
+}
+
+.btn {
+    cursor: pointer;
+
+    &-primary {
+        background: @color-primary;
+        border-color: @color-primary;
+    }
+}
+
+.card-primary.card-inverse {
+    background: @color-primary;
+    border-color: @color-primary;
 }
 
 .code-viewer {
@@ -73,4 +101,12 @@ header .logo {
     .input-group {
         padding: .5em 0;
     }
+}
+
+.linter-feedback {
+    color: red;
+    font-weight: bold;
+    -webkit-text-decoration-style: wavy;
+    -moz-text-decoration-style: wavy;
+    text-decoration-style: wavy;
 }
