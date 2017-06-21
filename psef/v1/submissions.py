@@ -1,8 +1,13 @@
-from flask import jsonify, request
+import tempfile
+import zipfile
+import os
+
+from flask import jsonify, request, make_response
 from flask_login import current_user, login_required
 
 import psef.auth as auth
 import psef.models as models
+import psef.files
 from psef import db, app
 from psef.errors import APICodes, APIException
 
@@ -20,22 +25,58 @@ def get_submission(submission_id):
     """
     work = db.session.query(models.Work).get(submission_id)
 
-    if work:
-        auth.ensure_can_see_grade(work)
-
-        return jsonify({
-            'id': work.id,
-            'user_id': work.user_id,
-            'edit': work.edit,
-            'grade': work.grade,
-            'comment': work.comment,
-            'created_at': work.created_at,
-        })
-    else:
+    if work is None:
         raise APIException(
             'Work submission not found',
             'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    if 'type' in request.args and request.args['type'] == 'zip':
+        return get_zip(work)
+
+    auth.ensure_can_see_grade(work)
+
+    return jsonify({
+        'id': work.id,
+        'user_id': work.user_id,
+        'edit': work.edit,
+        'grade': work.grade,
+        'comment': work.comment,
+        'created_at': work.created_at,
+    })
+
+
+def get_zip(work):
+    """
+    Return a zip file of a submission.
+
+    Raises APIException:
+        - If the submission is None.
+    """
+    if (work.user.id != current_user.id):
+        auth.ensure_permission('can_view_files', work.assignment.course.id)
+
+    code = models.File.query.filter(models.File.work_id == work.id,
+                                    models.File.parent_id == None).one()
+
+    with tempfile.TemporaryFile(mode='w+b') as fp:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            files = psef.files.restore_directory_structure(code, tmpdir)
+
+            zipf = zipfile.ZipFile(fp, 'w', compression=zipfile.ZIP_DEFLATED)
+            for root, dirs, files in os.walk(tmpdir):
+                for file in files:
+                    path = os.path.join(root, file)
+                    zipf.write(path,  path[len(tmpdir):])
+            zipf.close()
+        fp.seek(0)
+
+        response = make_response(fp.read())
+        response.headers['Content-Type'] = 'application/zip'
+        filename = 'CG_archive.zip'
+        response.headers[
+            'Content-Disposition'] = 'attachment; filename=' + filename
+        return response
 
 
 @api.route("/submissions/<int:submission_id>", methods=['PATCH'])
@@ -125,44 +166,3 @@ def get_dir_contents(submission_id):
     dir_contents = jsonify(file.list_contents())
 
     return (dir_contents, 200)
-
-
-@api.route("/api/v1/submissions/<int:submission_id>/zip", methods=['GET'])
-def get_zip(submission_id):
-    """
-    Return a zip file of a submission.
-
-    Raises APIException:
-        - If the submission is None.
-    """
-    work = models.Work.query.get(submission_id)
-    if work is None:
-        raise APIException(
-            'Submission not found',
-            'The submission with code {} was not found'.format(submission_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
-
-    if (work.user.id != current_user.id):
-        auth.ensure_permission('can_view_files', work.assignment.course.id)
-
-    code = models.File.query.filter(models.File.work_id == submission_id,
-                                    models.File.parent_id == None).one()
-
-    with tempfile.TemporaryFile(mode='w+b') as fp:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            files = psef.files.restore_directory_structure(code, tmpdir)
-
-            zipf = zipfile.ZipFile(fp, 'w', compression=zipfile.ZIP_DEFLATED)
-            for root, dirs, files in os.walk(tmpdir):
-                for file in files:
-                    path = os.path.join(root, file)
-                    zipf.write(path,  path[len(tmpdir):])
-            zipf.close()
-        fp.seek(0)
-
-        response = make_response(fp.read())
-        response.headers['Content-Type'] = 'application/zip'
-        filename = 'CG_archive.zip'
-        response.headers[
-            'Content-Disposition'] = 'attachment; filename=' + filename
-        return response

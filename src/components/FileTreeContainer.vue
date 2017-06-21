@@ -1,9 +1,9 @@
 <template>
     <div class="file-tree-container" >
         <b-button @click="download()" variant="primary" title="Download archive">
-            <icon name="download" class="download-icon"></icon><span class="text"> Download archive </span>
+            <icon name="download" class="download-icon"></icon><span class="text">Download archive</span>
         </b-button>
-        <loader class="col-2 text-center" :scale="3" v-if="!fileTree"></loader>
+        <loader class="text-center" :scale="3" v-if="!fileTree"></loader>
         <file-tree :collapsed="false" :tree="fileTree" v-else></file-tree>
     </div>
 </template>
@@ -32,7 +32,7 @@ export default {
 
     methods: {
         download() {
-            window.open(`/api/v1/submissions/${this.submissionId}/zip`);
+            window.open(`/api/v1/submissions/${this.submissionId}?type=zip`);
         },
     },
 
@@ -49,6 +49,9 @@ export default {
     .btn {
         margin-bottom: 15px;
         cursor: pointer;
+    }
+    .btn .text {
+        padding: 0 10px;
     }
     .download-icon {
         position: relative;
