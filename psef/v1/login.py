@@ -6,6 +6,8 @@ import psef.models as models
 from psef import db
 from psef.errors import APICodes, APIException
 
+from sqlalchemy import func
+
 from . import api
 
 
@@ -26,7 +28,8 @@ def login():
                            'Email or password was missing from the request',
                            APICodes.MISSING_REQUIRED_PARAM, 400)
 
-    user = db.session.query(models.User).filter_by(email=data['email']).first()
+    user = db.session.query(models.User).filter(
+        func.lower(models.User.email) == func.lower(data['email'])).first()
 
     # TODO: Use bcrypt password validation (as soon as we got that)
     # TODO: Return error whether user or password is wrong
