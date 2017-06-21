@@ -17,6 +17,9 @@
                     <router-link class="nav-item" tag="li" :to="{ name: 'assignments', }"  active-class="active">
                         Assignments
                     </router-link>
+                    <router-link class="nav-item" tag="li" :to="{ name: 'courses', }"  active-class="active">
+                        Courses
+                    </router-link>
                 </b-nav>
                 <b-nav is-nav-bar class="navbar-right">
                     <router-link class="nav-item" tag="li" :to="{ name: 'logout', }" @click.native.capture="logout"  active-class="active">
