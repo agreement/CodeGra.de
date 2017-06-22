@@ -1,7 +1,7 @@
 <template>
     <div class="page manage-course container-fluid">
         <div v-if="created">
-            <b-alert id="success" variant="success" show>
+            <b-alert id="success" variant="success" show dismissible>
                 <center><span>Succesfully created course!</span></center>
             </b-alert>
         </div>
@@ -54,5 +54,9 @@ export default {
 <style lang="less" scoped>
 .row {
     width: 100%;
+}
+#success {
+    width: 100%;
+    margin-bottom:5px;
 }
 </style>
