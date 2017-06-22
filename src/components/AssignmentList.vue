@@ -122,10 +122,10 @@ export default {
 
     mounted() {
         const q = this.$route.query;
+        this.toggles.hidden = q.hidden == null ? false : q.hidden === 'true';
         this.toggles.submitting = q.submitting == null ? true : q.submitting === 'true';
         this.toggles.grading = q.grading == null ? false : q.grading === 'true';
         this.toggles.done = q.done == null ? true : q.done === 'true';
-        this.toggles.hidden = q.hidden == null ? true : q.hidden === 'true';
         this.filter = q.q;
     },
 
@@ -179,11 +179,7 @@ export default {
         },
 
         submit() {
-            const query = {
-                submitting: this.toggles.submitting,
-                grading: this.toggles.grading,
-                done: this.toggles.done,
-            };
+            const query = Object.assign({}, this.toggles);
             if (this.filter) {
                 query.q = this.filter;
             }
