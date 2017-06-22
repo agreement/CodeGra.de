@@ -25,7 +25,7 @@ quit() {
     STOPPING=true
     echo "Stopping!"
     kill "$python"
-    kill "$npm"
+    kill -9 "$npm"
 }
 
 trap "quit" SIGINT SIGTERM
