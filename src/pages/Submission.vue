@@ -2,9 +2,9 @@
     <div class="page submission">
         <div class="row submission-nav-bar">
             <div class="col-12">
-                <submission-nav-bar :submission="submission"
-                                    :courseId="courseId"
-                                    :assignmentId="assignmentId"></submission-nav-bar>
+                <submission-nav-bar :submission=submission
+                                    :courseId=courseId
+                                    :assignmentId=assignmentId></submission-nav-bar>
             </div>
         </div>
         <div class="row">
