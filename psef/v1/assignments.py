@@ -77,7 +77,6 @@ def update_assignment(assignment_id):
 
     if 'state' in content:
         if content['state'] not in ['hidden', 'open', 'done']:
-            print(content)
             raise APIException(
                 'The selected state is not valid',
                 'The state {} is not a valid state'.format(content['state']),
@@ -92,7 +91,6 @@ def update_assignment(assignment_id):
                 APICodes.INVALID_PARAM, 400)
         assig.name = content['name']
 
-    # TODO also make it possible to update the close date of an assignment
     if 'deadline' in content:
         try:
             assig.deadline = dateutil.parser.parse(content['deadline'])
