@@ -1,10 +1,16 @@
 <template>
     <div class="file-tree-container">
         <b-form-fieldset>
-            <b-button @click="download()" variant="primary" title="Download archive">
-                <icon name="download" class="download-icon"></icon>
-                <span class="text">Download archive</span>
-            </b-button>
+            <div class="btn-group-vertical">
+                <b-button @click="downloadArchive()" variant="primary" title="Download archive">
+                    <icon name="download" class="download-icon"></icon>
+                    <span class="text">Download archive</span>
+                </b-button>
+                <b-button @click="downloadFeedback()" variant="primary" title="Download feedback">
+                    <icon name="download" class="download-icon"></icon>
+                    <span class="text">Download feedback</span>
+                </b-button>
+            </div>
         </b-form-fieldset>
         <loader class="text-center" :scale="3" v-if="!fileTree"></loader>
         <file-tree :collapsed="false" :tree="fileTree" v-else></file-tree>
@@ -36,8 +42,11 @@ export default {
     },
 
     methods: {
-        download() {
+        downloadArchive() {
             window.open(`/api/v1/submissions/${this.submissionId}?type=zip`);
+        },
+        downloadFeedback() {
+            window.open(`/api/v1/submissions/${this.submissionId}?type=feedback`);
         },
     },
 

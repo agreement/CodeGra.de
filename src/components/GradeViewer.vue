@@ -33,7 +33,7 @@
                 </b-input-group>
             </div>
         </div>
-        <feedback-exporter :id="submissionId"></feedback-exporter>
+
     </div>
 </template>
 
@@ -44,7 +44,7 @@ import { bButton, bInputGroup, bInputGroupButton } from 'bootstrap-vue/lib/compo
 
 import { mapActions, mapGetters } from 'vuex';
 
-import FeedbackExporter from './FeedbackExporter';
+// import FeedbackExporter from './FeedbackExporter';
 
 export default {
     name: 'grade-viewer',
@@ -124,7 +124,7 @@ export default {
         bInputGroup,
         bInputGroupButton,
         Icon,
-        FeedbackExporter,
+        // FeedbackExporter,
     },
 };
 </script>
