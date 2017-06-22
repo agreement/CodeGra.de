@@ -29,7 +29,7 @@ def add_snippet():
         snippet.value = content['value']
     db.session.commit()
 
-    return (jsonify({'id': snippet.id}), 201)
+    return jsonify(snippet), 201
 
 
 @api.route('/snippets/', methods=['GET'])
@@ -37,9 +37,9 @@ def add_snippet():
 def get_snippets():
     res = models.Snippet.get_all_snippets(current_user)
     if res:
-        return jsonify({r.key: {'value': r.value, 'id': r.id} for r in res})
+        return jsonify(res)
     else:
-        return ('', 204)
+        return '', 204
 
 
 @api.route('/snippets/<int:snippet_id>', methods=['PATCH'])
@@ -66,7 +66,7 @@ def patch_snippet(snippet_id):
     snip.value = content['value']
     db.session.commit()
 
-    return ('', 204)
+    return '', 204
 
 
 @api.route('/snippets/<int:snippet_id>', methods=['DELETE'])
@@ -86,5 +86,4 @@ def delete_snippets(snippet_id):
     else:
         db.session.delete(snip)
         db.session.commit()
-        return ('', 204)
-    pass
+        return '', 204

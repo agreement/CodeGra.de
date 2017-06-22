@@ -62,9 +62,9 @@ export default {
 
     computed: {
         courseId() { return this.$route.params.courseId; },
-        assignmentId() { return parseInt(this.$route.params.assignmentId, 10); },
-        submissionId() { return parseInt(this.$route.params.submissionId, 10); },
-        fileId() { return this.$route.params.fileId; },
+        assignmentId() { return this.$route.params.assignmentId; },
+        submissionId() { return this.$route.params.submissionId; },
+        fileId() { return Number(this.$route.params.fileId); },
     },
 
     watch: {

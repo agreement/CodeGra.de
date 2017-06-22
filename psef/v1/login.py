@@ -1,12 +1,11 @@
 from flask import jsonify, request
+from sqlalchemy import func
 from flask_login import login_user, logout_user, current_user, login_required
 
 import psef.auth as auth
 import psef.models as models
 from psef import db
 from psef.errors import APICodes, APIException
-
-from sqlalchemy import func
 
 from . import api
 
@@ -50,11 +49,7 @@ def login():
 @api.route("/login", methods=["GET"])
 @login_required
 def me():
-    return (jsonify({
-        "id": current_user.id,
-        "name": current_user.name,
-        "email": current_user.email
-    }), 200)
+    return jsonify(current_user)
 
 
 @api.route('/login', methods=['PATCH'])
@@ -71,7 +66,7 @@ def get_user_update():
             APICodes.MISSING_REQUIRED_PARAM, 400)
 
     user = current_user
-    print(user.password == data['o_password'])
+
     if user.password != data['o_password']:
         raise APIException('Incorrect password.',
                            'The supplied old password was incorrect',
@@ -98,7 +93,7 @@ def get_user_update():
         user.password = data['n_password']
 
     db.session.commit()
-    return ('', 204)
+    return '', 204
 
 
 @api.route("/login", methods=["DELETE"])
