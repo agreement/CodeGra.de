@@ -56,7 +56,7 @@ export default {
         courseId() { return this.$route.params.courseId; },
         assignmentId() { return this.$route.params.assignmentId; },
         submissionId() { return this.$route.params.submissionId; },
-        fileId() { return this.$route.params.fileId; },
+        fileId() { return Number(this.$route.params.fileId); },
     },
 
     watch: {

@@ -19,8 +19,8 @@
             :current-page="currentPage"
             :filter="filter"
             :show-empty="true">
-            <template slot="user_name" scope="item">
-                {{item.value ? item.value : '-'}}
+            <template slot="user" scope="item">
+                {{item.value.name ? item.value.name : '-'}}
             </template>
             <template slot="grade" scope="item">
                 {{item.value ? item.value : '-'}}
@@ -53,7 +53,7 @@ export default {
             filter: null,
             latest: [],
             fields: {
-                user_name: {
+                user: {
                     label: 'User',
                     sortable: true,
                 },
@@ -95,9 +95,9 @@ export default {
             const seen = {};
             const len = this.submissions.length;
             for (let i = 0; i < len; i += 1) {
-                if (seen[this.submissions[i].user_id] !== true) {
+                if (seen[this.submissions[i].user.id] !== true) {
                     this.latest.push(this.submissions[i]);
-                    seen[this.submissions[i].user_id] = true;
+                    seen[this.submissions[i].user.id] = true;
                 }
             }
         },

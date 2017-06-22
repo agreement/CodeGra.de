@@ -1,15 +1,29 @@
 <template>
-    <b-form method="post" :action="action" enctype="multipart/form-data">
-        <b-form-fieldset>
-            <b-form-file name="file" v-model="file"></b-form-file>
+    <form method="post" enctype="multipart/form-data" :action="action" v-on:submit.prevent="submit"
+    :label-size="1">
+        <b-form-fieldset :feedback="error">
+        <b-input-group>
+            <b-button :disabled="!hasFile" :variant="error ? 'danger' : (done ? 'success' : 'primary')" type="submit">
+            <icon scale=1 name="exclamation-triangle" v-if="error"></icon>
+            <loader scale=1 v-else-if="pending"></loader>
+            <icon scale=1 name="check" v-else-if="done"></icon>
+            <span v-else>Submit</span>
+            </b-button>
+            <b-form-file name="file" v-model="file" @change="change"></b-form-file>
+        </b-input-group>
         </b-form-fieldset>
-        Selected file: {{ file && file.name }}
-        <b-button variant="primary" type="submit">Submit</b-button>
-    </b-form>
+    </form>
 </template>
 
 <script>
-import { bForm, bFormFieldset, bFormFile, bButton } from 'bootstrap-vue/lib/components';
+import { bInputGroup, bFormFile, bButton, bFormFieldset } from 'bootstrap-vue/lib/components';
+
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/check';
+import 'vue-awesome/icons/exclamation-triangle';
+
+import Loader from './Loader';
+
 
 export default {
     name: 'blackboard-uploader',
@@ -30,12 +44,39 @@ export default {
     data() {
         return {
             file: null,
+            done: false,
+            pending: false,
+            error: '',
+            hasFile: false,
         };
     },
 
+    methods: {
+        change: function change() {
+            this.error = '';
+            this.hasFile = true;
+        },
+        submit: function submit(event) {
+            this.pending = true;
+            const formData = new FormData(event.target);
+            this.$http.post(this.action, formData).then(() => {
+                this.done = true;
+                this.pending = false;
+                this.$nextTick(() => setTimeout(() => {
+                    this.done = false;
+                }, 2000));
+            }, () => {
+                this.error = 'Something went wrong';
+                this.pending = false;
+            });
+        },
+    },
+
     components: {
-        bForm,
+        Icon,
+        Loader,
         bFormFieldset,
+        bInputGroup,
         bFormFile,
         bButton,
     },
