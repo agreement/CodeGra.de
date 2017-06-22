@@ -3,8 +3,8 @@
         <b-form-fieldset>
             <b-input-group>
                 <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
-                <b-form-checkbox class="input-group-addon" v-model="cb_student">student</b-form-checkbox>
-                <b-form-checkbox class="input-group-addon" v-model="cb_ta">assistant</b-form-checkbox>
+                <b-form-checkbox class="input-group-addon" v-model="checkbox_student">student</b-form-checkbox>
+                <b-form-checkbox class="input-group-addon" v-model="checkbox_assistant">assistant</b-form-checkbox>
                 <b-button-group>
                     <b-tooltip placement="bottom" content="Submitting">
                         <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
@@ -112,8 +112,8 @@ export default {
                     class: 'text-center',
                 },
             },
-            cb_student: true,
-            cb_ta: true,
+            checkbox_student: true,
+            checkbox_assistant: true,
         };
     },
 
@@ -127,9 +127,9 @@ export default {
 
     methods: {
         filterItems(item) {
-            if (!this.cb_student && !item.can_grade) {
+            if (!this.checkbox_student && !item.can_grade) {
                 return false;
-            } else if (!this.cb_ta && item.can_grade) {
+            } else if (!this.checkbox_assistant && item.can_grade) {
                 return false;
             }
 
@@ -206,7 +206,7 @@ export default {
 };
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
 .input-group {
     margin-bottom: 30px;
 }

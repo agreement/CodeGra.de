@@ -34,7 +34,6 @@ def get_student_assignments():
             courses.append(course_role.course_id)
 
     if courses:
-        course_roles = current_user.courses.values()
         return (jsonify([{
             'id':assignment.id,
             'state': assignment.state,
@@ -42,19 +41,14 @@ def get_student_assignments():
             'name': assignment.name,
             'course_name': assignment.course.name,
             'course_id': assignment.course_id,
-
-            'course_role': helper(course_roles, assignment.course_id).name,
-            'can_grade' : helper(course_roles, assignment.course_id)
-                          .has_permission(perm_can_grade),
+            'course_role': current_user.courses[assignment.course_id].name,
+            'can_grade' : current_user.has_permission(
+                          perm_can_grade, assignment.course_id),
         } for assignment in models.Assignment.query.filter(
             models.Assignment.course_id.in_(courses)).all()]), 200)
     else:
-        return (jsonify([]), 204)
+        return (jsonify([]), 200)
 
-def helper(course_roles, course_id):
-    for course_role in course_roles:
-        if course_role.course_id == course_id:
-            return(course_role)
 
 @api.route("/assignments/<int:assignment_id>", methods=['GET'])
 def get_assignment(assignment_id):
