@@ -1,3 +1,5 @@
+import functools
+
 from flask import jsonify, request
 from flask_login import current_user, login_required
 
@@ -9,25 +11,27 @@ from . import api
 @api.route('/permissions/', methods=['GET'])
 @login_required
 def get_permissions():
-    if 'course_id' in request.args:
-        if request.args['course_id'] != 'all':
-            try:
-                course_id = int(request.args['course_id'])
-            except ValueError:
-                raise APIException(
-                    'The specified course id was invalid',
-                    'The course id should be a number or "all" but '
-                    '{} is neither'.format(request.args['course_id']),
-                    APICodes.INVALID_PARAM, 400)
-        else:
-            course_id = "all"
+    course_id = request.args.get('course_id')
+    if course_id:
+        try:
+            course_id = int(course_id)
+            fun = functools.partial(
+                current_user.has_permission, course_id=course_id)
+        except ValueError:
+            raise APIException(
+                'The specified course id was invalid',
+                'The course id should be a number or "all" but '
+                '{} is neither'.format(request.args['course_id']),
+                APICodes.INVALID_PARAM, 400)
+    elif request.args.get('type') == 'all':
+        fun = current_user.get_permission_in_courses
     else:
-        course_id = None
+        fun = current_user.has_permission
 
     if 'permission' in request.args:
         perm = request.args['permission']
         try:
-            return jsonify(current_user.has_permission(perm, course_id))
+            return jsonify(fun(perm)), 200
         except KeyError:
             raise APIException('The specified permission does not exist',
                                'The permission '

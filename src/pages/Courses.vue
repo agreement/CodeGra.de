@@ -24,14 +24,18 @@ export default {
     },
 
     mounted() {
-        Promise.all([this.$http.get('/api/v1/courses/'), this.$http.get('/api/v1/permissions/', { params: { permission: 'can_manage_course', course_id: 'all' } })]).then(([coursesResponse, permsResponse]) => {
-            this.courses = coursesResponse.data;
-            this.loading = false;
-            for (let i = 0; i < this.courses.length; i += 1) {
-                const course = this.courses[i];
-                course.manageable = permsResponse.data[course.id];
-            }
-        });
+        Promise.all([
+            this.$http.get('/api/v1/courses/'), this.$http.get('/api/v1/permissions/', {
+                params: { permission: 'can_manage_course', type: 'all' },
+            })]).then(([coursesResponse, permsResponse]) => {
+                this.courses = coursesResponse.data;
+                this.loading = false;
+                for (let i = 0; i < this.courses.length; i += 1) {
+                    const course = this.courses[i];
+                    course.manageable = permsResponse.data[course.id];
+                }
+            },
+        );
     },
 
     components: {
