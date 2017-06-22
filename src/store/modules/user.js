@@ -35,8 +35,12 @@ const actions = {
     },
     refreshSnippets({ commit }) {
         return new Promise((resolve) => {
-            axios.get('/api/v1/snippets/').then((response) => {
-                commit(types.SNIPPETS, response.data);
+            axios.get('/api/v1/snippets/').then(({ data }) => {
+                const snips = {};
+                for (let i = 0, len = data.length; i < len; i += 1) {
+                    snips[data[i].key] = data[i];
+                }
+                commit(types.SNIPPETS, snips);
                 resolve();
             }).catch(() => {
                 setTimeout(() => actions.refreshSnippets({ commit }).then(resolve), 1000 * 15);
@@ -61,7 +65,13 @@ const actions = {
                 return perm.name.map(val => getPermission()[val]);
             };
 
-            const checkPermission = () => getPermissionvalues().map(val => val === true);
+            const checkPermission = () => {
+                const res = getPermissionvalues().map(val => val === true);
+                if (typeof perm.name === 'string') {
+                    return res[0];
+                }
+                return res;
+            };
 
             if (getPermission() === undefined ||
                 getPermissionvalues().some(val => val === undefined)) {

@@ -44,9 +44,9 @@ export default {
             this.loading += 1;
         };
 
-        this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then((data) => {
+        this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then(({ data }) => {
             partDone();
-            this.submissions = data.data;
+            this.submissions = data;
             for (let i = 0, len = data.length; i < len; i += 1) {
                 data[i].created_at = moment.utc(data[i].created_at, moment.ISO_8601).local().format('YYYY-MM-DD HH:mm');
             }
