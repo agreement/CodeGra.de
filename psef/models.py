@@ -147,7 +147,7 @@ class User(db.Model, UserMixin):
         collection_class=attribute_mapped_collection('course.id'),
         secondary=user_course,
         backref=db.backref('users', lazy='dynamic'))
-    email = db.Column('email', db.Unicode, unique=True)
+    email = db.Column('email', db.Unicode(collation='NOCASE'), unique=True)
     password = db.Column(
         'password',
         PasswordType(schemes=[
@@ -311,7 +311,8 @@ class File(db.Model):
     filename = db.Column('path', db.Unicode)
     is_directory = db.Column('is_directory', db.Boolean)
     parent_id = db.Column(db.Integer, db.ForeignKey('File.id'))
-    parent = db.relationship('File', remote_side=[id], backref='children')
+    parent = db.relationship(
+        'File', remote_side=[id], backref=db.backref('children'))
 
     work = db.relationship('Work', foreign_keys=work_id)
 
@@ -375,7 +376,10 @@ class AssignmentLinter(db.Model):
     id = db.Column('id', db.Unicode, nullable=False, primary_key=True)
     name = db.Column('name', db.Unicode)
     tests = db.relationship(
-        "LinterInstance", back_populates="tester", cascade='all,delete')
+        "LinterInstance",
+        back_populates="tester",
+        cascade='all,delete',
+        order_by='LinterInstance.work_id')
     assignment_id = db.Column('Assignment_id', db.Integer,
                               db.ForeignKey('Assignment.id'))
 
@@ -397,7 +401,8 @@ class AssignmentLinter(db.Model):
                 sub,
                 and_(sub.c.user_id == Work.user_id,
                      sub.c.max_date == Work.created_at)).filter(
-                         Work.assignment_id == assignment_id).all():
+                         Work.assignment_id == assignment_id).order_by(
+                             Work.id).all():
             tests.append(LinterInstance.create_test(work, self))
         self.tests = tests
         return self
@@ -427,6 +432,12 @@ class LinterInstance(db.Model):
                 LinterInstance.query.filter(cls.id == id).exists()).scalar():
             id = str(uuid.uuid4())
         return cls(id=id, work=work, tester=tester)
+
+    def to_dict(self):
+        return {
+            'name': self.work.user.name,
+            'state': LinterState(self.state).name,
+        }
 
 
 @enum.unique
@@ -484,7 +495,8 @@ class Assignment(db.Model):
             'state': self.state_name,
             'open': self.is_open,
             'description': self.description,
-            'date': self.created_at.strftime('%Y-%m-%dT%H:%M'),
+            'created_at': self.created_at.isoformat(),
+            'deadline': self.deadline.isoformat(),
             'name': self.name,
             'course_name': self.course.name,
             'course_id': self.course_id,
@@ -504,7 +516,7 @@ class Assignment(db.Model):
         if state == 'open':
             self.state = _AssignmentStateEnum.open
         elif state in {'done', 'hidden'}:
-            self.state = _AssignmentStateEnum(state)
+            self.state = _AssignmentStateEnum.__members__[state]
         else:
             raise TypeError()
 

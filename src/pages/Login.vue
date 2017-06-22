@@ -1,6 +1,8 @@
 <template>
-    <div class="page login">
-        <login></login>
+    <div class="page login row justify-content-center">
+        <div class="col-6">
+            <login></login>
+        </div>
     </div>
 </template>
 

@@ -1,10 +1,11 @@
 import Vue from 'vue';
 import Router from 'vue-router';
-import { Assignments, Home, Login, ManageCourse, Submission, Submissions, Submit, User } from '@/pages';
+import store from '@/store';
+import { Assignments, Home, Login, ManageCourse, Submission, Submissions, User } from '@/pages';
 
 Vue.use(Router);
 
-export default new Router({
+const router = new Router({
     mode: 'history',
 
     routes: [
@@ -49,14 +50,25 @@ export default new Router({
             component: Assignments,
         },
         {
-            path: '/courses/:courseId/assignments/:assignmentId/submit',
-            name: 'assignment_submit',
-            component: Submit,
-        },
-        {
             path: '/courses/:courseId',
             name: 'assignment_manage',
             component: ManageCourse,
         },
     ],
 });
+
+router.beforeEach((to, from, next) => {
+    if (!store.getters['user/loggedIn'] && to.path !== '/login') {
+        next('/login');
+        return;
+    }
+
+    if (store.getters['user/loggedIn'] && to === '/login') {
+        next('/');
+        return;
+    }
+
+    next();
+});
+
+export default router;

@@ -1,42 +1,33 @@
 <template>
-    <div class="container">
-        <div class="row justify-content-md-center">
-        	<div class="col"></div>
-            <div class="col col-lg-9 col-m-12">
-                <form>
-                    <div class="form-group">
-                        <input type="text" class="form-control" placeholder="Email" v-model="email">
-                        <div v-show="submitted && !validator.validate(email)" class="help alert-danger">
-                            Please enter a valid email
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <input type="password" class="form-control" placeholder="Password" v-model="password">
-                        <div v-show="submitted && password.length === 0" class="help alert-danger">
-                            Please enter a non empty password
-                        </div>
-                    </div>
-
-                    <b-alert :show="error !== ''" variant="danger">
-                        {{ error }}
-                    </b-alert>
-
-                    <div class="form-group">
-                        <input type="submit" class="form-control" value="Submit" @click="login">
-                    </div>
-                </form>
-            </div>
-            <div class="col"></div>
+    <div class="login">
+        <div class="form-group">
+            <input type="text" class="form-control" placeholder="Email" v-model="email">
+            <b-alert variant="danger" :show="submitted && !validator.validate(email)" class="help">
+                Please enter a valid email
+            </b-alert>
         </div>
 
+        <div class="form-group">
+            <input type="password" class="form-control" placeholder="Password" v-model="password">
+            <b-alert variant="danger" v-show="submitted && password.length === 0" class="help">
+                Please enter a non empty password
+            </b-alert>
+        </div>
+
+        <b-alert :show="error !== ''" variant="danger">
+            {{ error }}
+        </b-alert>
+
+        <div class="form-group">
+            <input type="submit" class="form-control" value="Submit" @click="login">
+        </div>
     </div>
 </template>
 
 <script>
 
 import { mapActions } from 'vuex';
-import { bPopover } from 'bootstrap-vue/lib/components';
+import { bAlert, bPopover } from 'bootstrap-vue/lib/components';
 
 const validator = require('email-validator');
 
@@ -76,6 +67,7 @@ export default {
         }),
     },
     components: {
+        bAlert,
         bPopover,
     },
 };
@@ -83,12 +75,8 @@ export default {
 
 <style lang="less">
 .help {
-    margin-top: -4px;
-    padding: 1%;
-    z-index: -1;
-}
-
-.form-control {
     position: relative;
+    margin-top: -4px;
+    z-index: -1;
 }
 </style>

@@ -7,9 +7,16 @@ import traceback
 import subprocess
 
 import requests
+import sqlalchemy
+from sqlalchemy.orm import sessionmaker
 
 import psef.files
+import psef.models as models
+from psef import app
 from psef.helpers import get_all_subclasses
+
+engine = sqlalchemy.create_engine(app.config['SQLALCHEMY_DATABASE_URI'],
+                                  **app.config['DATABASE_CONNECT_OPTIONS'])
 
 
 class Linter:
@@ -46,8 +53,9 @@ class Pylint(Linter):
             for dir_name, _, files in os.walk(tempdir):
                 for f in files:
                     if f.endswith('.py'):
-                        emit(os.path.join(dir_name, f), 1, 'ERR',
-                             'No init file was found, pylint did not run!')
+                        emit(
+                            os.path.join(dir_name, f), 1, 'ERR',
+                            'No init file was found, pylint did not run!')
             return
         for line in out.stdout.decode('utf8').split('\n'):
             args = line.split(str(sep))
@@ -93,8 +101,11 @@ class LinterRunner():
     def __init__(self, cls, cfg):
         self.linter = cls(cfg)
 
-    def run(self, codes, tokens, urlpath):
-        for code, token in zip(codes, tokens):
+    def run(self, works, tokens, urlpath):
+        session = sessionmaker(bind=engine, autoflush=False)()
+        for work, token in zip(works, tokens):
+            code = session.query(models.File).filter_by(
+                parent=None, work_id=work).first()
             try:
                 self.test(code, urlpath.format(token))
             except Exception as e:

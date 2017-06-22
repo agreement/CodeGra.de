@@ -1,40 +1,40 @@
 <template>
     <div>
-        <div class="row">
-            <b-input-group class="col-12">
-                <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
+        <b-form-fieldset class="table-control">
+            <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"/>
+            <b-button-input-group class="buttons">
                 <b-button-group>
                     <b-popover placement="top" triggers="hover" content="Hidden" v-if="canSeeHidden">
                         <b-button class="btn-info" :class="{ 'btn-outline-info': !toggles.hidden}"
-                            @click="toggleFilter('hidden')">
+                                  @click="toggleFilter('hidden')">
                             <icon name="eye-slash"></icon>
                         </b-button>
                     </b-popover>
                     <b-popover placement="top" triggers="hover" content="Submitting">
                         <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
-                            @click="toggleFilter('submitting')">
+                                  @click="toggleFilter('submitting')">
                             <icon name="download"></icon>
                         </b-button>
                     </b-popover>
                     <b-popover placement="top" triggers="hover" content="Grading">
                         <b-button class="btn-warning" :class="{ 'btn-outline-warning': !toggles.grading }"
-                            @click="toggleFilter('grading')">
+                                  @click="toggleFilter('grading')">
                             <icon name="pencil"></icon>
                         </b-button>
                     </b-popover>
                     <b-popover placement="top" triggers="hover" content="Done">
                         <b-button class="btn-success" :class="{ 'btn-outline-success': !toggles.done }"
-                            @click="toggleFilter('done')">
+                                  @click="toggleFilter('done')">
                             <icon name="check"></icon>
                         </b-button>
                     </b-popover>
                 </b-button-group>
-            </b-input-group>
-        </div>
+            </b-button-input-group>
+        </b-form-fieldset>
 
         <!-- Main table element -->
         <b-table striped hover
-                v-on:row-clicked="gotoAssignment"
+                @row-clicked="gotoAssignment"
                 :items="assignments"
                 :fields="fields"
                 :current-page="currentPage"
@@ -46,7 +46,7 @@
             <template slot="name" scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
-            <template slot="date" scope="item">
+            <template slot="deadline" scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="state" scope="item">
@@ -63,7 +63,7 @@
 </template>
 
 <script>
-import { bButton, bButtonGroup, bFormFieldset, bInputGroup, bPopover, bTable } from
+import { bButton, bButtonGroup, bFormInput, bInputGroup, bTooltip, bTable } from
     'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
@@ -108,8 +108,8 @@ export default {
                     label: 'Assignment',
                     sortable: true,
                 },
-                date: {
-                    label: 'Due date',
+                deadline: {
+                    label: 'Deadline',
                     sortable: true,
                 },
                 state: {
@@ -140,7 +140,7 @@ export default {
             const terms = {
                 name: item.name.toLowerCase(),
                 course_name: item.course_name.toLowerCase(),
-                date: item.date,
+                deadline: item.deadline,
             };
             return this.filter.toLowerCase().split(' ')
                 .every(word => this.matchesWord(terms, word));
@@ -159,7 +159,7 @@ export default {
         matchesWord(item, word) {
             return item.name.indexOf(word) >= 0 ||
                 item.course_name.indexOf(word) >= 0 ||
-                item.date.indexOf(word) >= 0;
+                item.deadline.indexOf(word) >= 0;
         },
 
         toggleFilter(filter) {
@@ -195,9 +195,9 @@ export default {
         Icon,
         bButton,
         bButtonGroup,
-        bFormFieldset,
+        bFormInput,
         bInputGroup,
-        bPopover,
+        bTooltip,
         bTable,
     },
 };
@@ -220,8 +220,33 @@ export default {
     }
 }
 
+.table-control input {
+    display: table-cell;
+    width: 100%;
+    border-bottom-right-radius: 0px;
+    border-top-right-radius: 0px;
+    height: 2.35em;
+}
+
+.table-control .buttons button {
+    height: 2.35em;
+}
+
+.table-control .buttons {
+    width: 1px;
+    display: table-cell;
+    vertical-align: middle;
+}
+
 .table,
 button {
     cursor: pointer;
+}
+</style>
+
+<style>
+div.table-control > div {
+    display: table !important;
+    width: 100%;
 }
 </style>

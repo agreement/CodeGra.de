@@ -1,8 +1,7 @@
 <template>
     <div class="page submission">
-        <div class="row justify-content-center code-browser">
-            <h1>{{ title }}</h1>
-            <div class="col-8 code-and-grade">
+        <div class="row">
+            <div class="col-9 code-and-grade">
                 <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
                 <code-viewer class="" :editable="editable" :id="fileId"
                     :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
@@ -10,15 +9,14 @@
                     @submit="submitAllFeedback($event)"></grade-viewer>
             </div>
 
-            <loader class="col-2 text-center" :scale="3" v-if="!fileTree"></loader>
-            <file-tree class="col-2" :collapsed="false" :tree="fileTree" v-else></file-tree>
+            <file-tree-container class="col-3" :fileTree="fileTree"></file-tree-container>
         </div>
     </div>
 </template>
 
 <script>
 import { mapActions } from 'vuex';
-import { CodeViewer, FileTree, GradeViewer, Loader, PdfViewer } from '@/components';
+import { CodeViewer, FileTreeContainer, GradeViewer, Loader, PdfViewer } from '@/components';
 
 function getFirstFile(fileTree) {
     // Returns the first file in the file tree that is not a folder
@@ -160,7 +158,7 @@ export default {
 
     components: {
         CodeViewer,
-        FileTree,
+        FileTreeContainer,
         GradeViewer,
         Loader,
         PdfViewer,
@@ -176,14 +174,14 @@ export default {
     flex-shrink: 1;
 }
 
+.row {
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
 h1 {
     flex-grow: 0;
     flex-shrink: 0;
-}
-.code-browser {
-
-    flex-grow: 1;
-    flex-shrink: 1;
 }
 
 .code-and-grade {
@@ -193,6 +191,7 @@ h1 {
 
 .pdfobject-container {
     flex-grow: 1;
+    flex-shrink: 1;
 }
 
 .code-viewer {

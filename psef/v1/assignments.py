@@ -3,9 +3,9 @@ import threading
 from random import shuffle
 from itertools import cycle
 
+import dateutil
 from flask import jsonify, request, send_file, after_this_request
 from flask_login import current_user, login_required
-from sqlalchemy.orm import subqueryload
 
 import psef.auth as auth
 import psef.files
@@ -14,6 +14,7 @@ import psef.linters as linters
 from psef import db, app
 from psef.errors import APICodes, APIException
 
+from . import linters as linters_routes
 from . import api
 
 
@@ -35,8 +36,6 @@ def get_student_assignments():
     if courses:
         for assignment in models.Assignment.query.filter(
                 models.Assignment.course_id.in_(courses)).all():
-            print(assignment.course_id, current_user.has_permission(
-                    'can_see_hidden_assignments', assignment.course_id))
             if ((not assignment.is_hidden) or current_user.has_permission(
                     'can_see_hidden_assignments', assignment.course_id)):
                 res.append(assignment.to_dict())
@@ -78,7 +77,7 @@ def update_assignment(assignment_id):
     if 'state' in content:
         if content['state'] not in ['hidden', 'open', 'done']:
             raise APIException(
-                'Invalid new state',
+                'The selected state is not valid',
                 'The state {} is not a valid state'.format(content['state']),
                 APICodes.INVALID_PARAM, 400)
         assig.set_state(content['state'])
@@ -91,7 +90,14 @@ def update_assignment(assignment_id):
                 APICodes.INVALID_PARAM, 400)
         assig.name = content['name']
 
-    # TODO also make it possible to update the close date of an assignment
+    if 'deadline' in content:
+        try:
+            assig.deadline = dateutil.parser.parse(content['deadline'])
+        except ValueError:
+            raise APIException(
+                'The given deadline is not valid!',
+                '{} cannot be parsed by dateutil'.format(content['deadline']),
+                APICodes.INVALID_PARAM, 400)
 
     db.session.commit()
 
@@ -292,7 +298,8 @@ def get_all_works_for_assignment(assignment_id):
             'user_name': work.user.name if work.user else "Unknown",
             'user_id': work.user_id,
             'edit': work.edit,
-            'created_at': work.created_at.strftime("%d-%m-%Y %H:%M"),
+            'created_at': work.created_at.isoformat(),
+            'assignee': work.assignee.name if work.assignee else "-",
         }
         try:
             auth.ensure_can_see_grade(work)
@@ -396,14 +403,14 @@ def get_linters(assignment_id):
                     models.LinterInstance.state == models.LinterState.crashed)
                 .exists()).scalar()
             if running:
-                state = models.LinterState.running
+                state = models.LinterState.running.name
             elif crashed:
-                state = models.LinterState.crashed
+                state = models.LinterState.crashed.name
             else:
-                state = models.LinterState.done
+                state = models.LinterState.done.name
             opts['id'] = linter.id
         else:
-            state = -1
+            state = 'new'
         opts['state'] = state
         res.append({'name': name, **opts})
     res.sort(key=lambda item: item['name'])
@@ -436,24 +443,22 @@ def start_linting(assignment_id):
     db.session.add(res)
     db.session.commit()
 
-    codes = []
-    tokens = []
     try:
-        for test in res.tests:
-            tokens.append(test.id)
-            codes.append(
-                models.File.query.options(subqueryload('children')).filter_by(
-                    parent=None, work_id=test.work_id).first())
-            runner = linters.LinterRunner(
-                linters.get_linter_by_name(content['name']), content['cfg'])
-            thread = threading.Thread(
-                target=runner.run,
-                args=(codes, tokens, '{}api/v1/linter_comments/{}'.format(
-                    request.url_root, '{}')))
+        runner = linters.LinterRunner(
+            linters.get_linter_by_name(content['name']), content['cfg'])
+
+        tests = res.tests
+
+        thread = threading.Thread(
+            target=runner.run,
+            args=([t.work_id for t in res.tests], [t.id for t in res.tests],
+                  ('{}api/v1/linter' + '_comments/{}').format(
+                      request.url_root, '{}')))
+
         thread.start()
     except:
         for test in res.tests:
             test.state = models.LinterState.crashed
         db.session.commit()
     finally:
-        return linters.get_linter_state(res.id)
+        return linters_routes.get_linter_state(res.id)
