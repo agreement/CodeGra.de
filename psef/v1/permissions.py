@@ -20,8 +20,8 @@ def get_permissions():
         except ValueError:
             raise APIException(
                 'The specified course id was invalid',
-                'The course id should be a number or "all" but '
-                '{} is neither'.format(request.args['course_id']),
+                'The course id should be a number or but '
+                '{} is not a number'.format(request.args['course_id']),
                 APICodes.INVALID_PARAM, 400)
     elif request.args.get('type') == 'all':
         fun = current_user.get_permission_in_courses
