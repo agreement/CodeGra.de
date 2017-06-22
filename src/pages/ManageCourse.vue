@@ -1,5 +1,10 @@
 <template>
     <div class="page manage-course container-fluid">
+        <div v-if="created">
+            <b-alert id="success" variant="success" show>
+                <center><span>Succesfully created course!</span></center>
+            </b-alert>
+        </div>
         <div class="row justify-content-center">
             <loader v-if="loading"></loader>
             <manage-course v-else :assignments="assignments"></manage-course>
@@ -17,6 +22,7 @@ export default {
         return {
             assignments: [],
             loading: true,
+            created: false,
         };
     },
 
@@ -25,6 +31,7 @@ export default {
     },
 
     mounted() {
+        this.created = this.$route.query.created;
         this.getAssignments();
     },
 

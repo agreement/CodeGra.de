@@ -2,11 +2,6 @@
     <div id="newCourse">
         <div class="justify-content-md-center">
             <loader class="text-center" v-if="loading"></loader>
-            <div v-if="done && error == ''">
-                <b-alert variant="success" show>
-                    <center><span>Succesfully created course!</span></center>
-                </b-alert>
-            </div>
 
             <div v-else v-on:keyup.enter="submit()">
                 <div class="form-group">
@@ -60,7 +55,7 @@ export default {
             this.$http.post('/api/v1/courses/', { name: this.name }).then(({ data }) => {
                 this.loading = false;
                 this.assignments = data;
-                window.location.href = `/courses/${data.id}`;
+                window.location.href = `/courses/${data.id}?created=true`;
             }).catch(
                 () => {
                     this.error = 'An error occurred adding the course, try again please!';
