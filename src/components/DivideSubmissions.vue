@@ -79,9 +79,3 @@ export default {
     },
 };
 </script>
-
-<style lang="less">
-.custom-checkbox {
-    align-items: center;
-}
-</style>

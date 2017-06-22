@@ -2,7 +2,6 @@ from functools import wraps
 
 from flask_login import current_user
 
-import psef.models as models
 from psef import login_manager
 from psef.errors import APICodes, APIException
 
@@ -27,7 +26,8 @@ def ensure_can_see_grade(work):
     if _user_active():
         if work.user.id != current_user.id:
             ensure_permission('can_see_others_work', work.assignment.course.id)
-        if work.assignment.state != models.AssignmentStateEnum.done:
+
+        if not work.assignment.is_done:
             ensure_permission('can_see_grade_before_open',
                               work.assignment.course.id)
         return

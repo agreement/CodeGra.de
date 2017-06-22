@@ -85,23 +85,4 @@ def get_linter_state(linter_id):
     perm = db.session.query(models.AssignmentLinter).get(linter_id)
     auth.ensure_permission('can_use_linter', perm.assignment.course_id)
 
-    done = 0
-    crashed = 0
-    working = 0
-
-    tester = models.AssignmentLinter.query.get(linter_id)
-    for test in tester.tests:
-        if test.state == models.LinterState.running:
-            working += 1
-        elif test.state == models.LinterState.crashed:
-            crashed += 1
-        else:
-            done += 1
-
-    progress = done / len(tester.tests) * 100 if len(tester.tests) != 0 else 0
-    return jsonify({
-        'done': done,
-        'working': working,
-        'crashed': crashed,
-        'id': linter_id,
-    })
+    return jsonify(models.AssignmentLinter.query.get(linter_id))

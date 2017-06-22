@@ -67,7 +67,6 @@ export default {
 .file-tree {
     user-select: none;
     cursor: default;
-    color: #2c3e50;
 
     ol {
         list-style: none;
@@ -75,10 +74,6 @@ export default {
         padding: 0;
         padding-left: 1.5em;
         overflow: hidden;
-    }
-
-    .active-file {
-        font-weight: bold;
     }
 }
 </style>
