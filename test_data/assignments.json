@@ -2,49 +2,58 @@
     {
         "name": "Final deadline",
         "description": "The final deadline",
-        "state": "submitting",
+        "state": "open",
+        "deadline": 2,
         "course": "Project Software Engineering"
     },
     {
         "name": "Security assignment",
         "description": "Do stupid stuff with sec",
         "state": "hidden",
+        "deadline": 15,
         "course": "Besturingssystemen"
     },
     {
         "name": "Shell",
         "description": "Create your own shell",
-        "state": "submitting",
+        "state": "done",
+        "deadline": -2,
         "course": "Besturingssystemen"
     },
     {
         "name": "Haskell",
         "description": "Sorry Haskell isn't lisp",
-        "state": "submitting",
+        "state": "open",
+        "deadline": -1,
         "course": "Programmeertalen"
     },
     {
         "name": "Shell",
         "description": "Sorry Shell isn't lisp",
         "course": "Programmeertalen",
+        "deadline": -15,
         "state": "done"
     },
     {
         "name": "Python",
         "description": "Sorry Python isn't lisp",
-        "state": "grading",
+        "state": "open",
+        "deadline": 4,
+        "deadline": 15,
         "course": "Programmeertalen"
     },
     {
         "name": "Erlang",
         "description": "Sorry Erlang isn't lisp",
-        "state": "submitting",
+        "state": "open",
+        "deadline": 15,
         "course": "Programmeertalen"
     },
     {
         "name": "Go",
         "description": "Lol no generics",
-        "state": "submitting",
+        "state": "open",
+        "deadline": 15,
         "course": "Programmeertalen"
     }
 ]
