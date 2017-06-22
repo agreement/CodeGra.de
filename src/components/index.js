@@ -23,12 +23,8 @@ import SubmissionsExporter from './SubmissionsExporter';
 import SnippetManager from './SnippetManager';
 import PdfViewer from './PdfViewer';
 import BlackboardUploader from './BlackboardUploader';
-<<<<<<< src/components/index.js
 import NewCourse from './NewCourse';
-=======
 import FeedbackExporter from './FeedbackExporter';
-
->>>>>>> src/components/index.js
 
 export {
     Linters,
