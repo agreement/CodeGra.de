@@ -1,7 +1,6 @@
 import Vue from 'vue';
 import Router from 'vue-router';
 import { Assignments, Home, Login, ManageCourse, Submission, Submissions, Submit, User } from '@/pages';
-import { NewCourse } from '@/components';
 
 Vue.use(Router);
 
@@ -58,11 +57,6 @@ export default new Router({
             path: '/courses/:courseId',
             name: 'assignment_manage',
             component: ManageCourse,
-        },
-        {
-            path: '/add-course',
-            name: 'new-course',
-            component: NewCourse,
         },
     ],
 });

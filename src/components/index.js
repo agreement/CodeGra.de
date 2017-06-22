@@ -22,7 +22,6 @@ import SubmissionsExporter from './SubmissionsExporter';
 import SnippetManager from './SnippetManager';
 import PdfViewer from './PdfViewer';
 import BlackboardUploader from './BlackboardUploader';
-import NewCourse from './NewCourse';
 
 export {
     Linters,
@@ -49,5 +48,4 @@ export {
     SubmissionsExporter,
     SnippetManager,
     PdfViewer,
-    NewCourse,
 };
