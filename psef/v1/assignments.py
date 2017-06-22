@@ -38,7 +38,8 @@ def get_student_assignments():
                 models.Assignment.course_id.in_(courses)).all():
             if ((not assignment.is_hidden) or current_user.has_permission(
                     'can_see_hidden_assignments', assignment.course_id)):
-                res.append(assignment.to_dict())
+                res.append(assignment)
+
     return jsonify(res)
 
 
@@ -58,7 +59,7 @@ def get_assignment(assignment_id):
             'The assignment with id {} was not found'.format(assignment_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
     else:
-        return jsonify(assignment.to_dict())
+        return jsonify(assignment)
 
 
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
@@ -161,7 +162,7 @@ def upload_work(assignment_id):
 
     db.session.commit()
 
-    return (jsonify({'id': work.id}), 201)
+    return jsonify(work), 201
 
 
 @api.route('/assignments/<int:assignment_id>/divide', methods=['PATCH'])
@@ -291,27 +292,7 @@ def get_all_works_for_assignment(assignment_id):
         return send_file(
             file, attachment_filename=request.args['csv'], as_attachment=True)
 
-    out = []
-    for work in res:
-        item = {
-            'id': work.id,
-            'user_name': work.user.name if work.user else "Unknown",
-            'user_id': work.user_id,
-            'edit': work.edit,
-            'created_at': work.created_at.isoformat(),
-            'assignee': work.assignee.name if work.assignee else "",
-        }
-        try:
-            auth.ensure_can_see_grade(work)
-            item['grade'] = work.grade
-            item['comment'] = work.comment
-        except auth.PermissionException:
-            item['grade'] = '-'
-            item['comment'] = '-'
-        finally:
-            out.append(item)
-
-    return jsonify(out)
+    return jsonify(res)
 
 
 @api.route("/assignments/<int:assignment_id>/submissions/", methods=['POST'])
@@ -369,7 +350,7 @@ def post_submissions(assignment_id):
 
     db.session.commit()
 
-    return ('', 204)
+    return '', 204
 
 
 @api.route('/assignments/<int:assignment_id>/linters/', methods=['GET'])
@@ -413,8 +394,8 @@ def get_linters(assignment_id):
             state = 'new'
         opts['state'] = state
         res.append({'name': name, **opts})
-    res.sort(key=lambda item: item['name'])
-    return jsonify(res)
+
+    return jsonify(sorted(res, key=lambda item: item['name']))
 
 
 @api.route('/assignments/<int:assignment_id>/linter', methods=['POST'])
@@ -446,8 +427,6 @@ def start_linting(assignment_id):
     try:
         runner = linters.LinterRunner(
             linters.get_linter_by_name(content['name']), content['cfg'])
-
-        tests = res.tests
 
         thread = threading.Thread(
             target=runner.run,

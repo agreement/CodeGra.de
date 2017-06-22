@@ -79,7 +79,11 @@ export default {
         };
     },
     mounted() {
-        this.$nextTick(() => this.$refs.field.focus());
+        this.$nextTick(() => {
+            if (!this.done || this.editing) {
+                this.$refs.field.focus();
+            }
+        });
     },
     methods: {
         changeFeedback() {

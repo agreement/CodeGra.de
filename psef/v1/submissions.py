@@ -1,18 +1,15 @@
-import tempfile
-import zipfile
 import os
+import zipfile
+import tempfile
 
-from flask import jsonify, request, make_response, after_this_request, send_file
+from flask import jsonify, request, send_file, make_response, after_this_request
 from flask_login import current_user, login_required
 
 import psef.auth as auth
-import psef.models as models
 import psef.files
-from psef import db, app
+import psef.models as models
+from psef import db
 from psef.errors import APICodes, APIException
-
-import os
-import tempfile
 
 from . import api
 
@@ -34,22 +31,15 @@ def get_submission(submission_id):
             'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    if 'type' in request.args and request.args['type'] == 'zip':
+    if request.args.get('type') == 'zip':
         return get_zip(work)
 
     auth.ensure_can_see_grade(work)
 
-    if 'type' in request.args and request.args['type'] == 'feedback':
+    if request.args.get('type') == 'feedback':
         return get_feedback(work)
 
-    return jsonify({
-        'id': work.id,
-        'user_id': work.user_id,
-        'edit': work.edit,
-        'grade': work.grade,
-        'comment': work.comment,
-        'created_at': work.created_at,
-    })
+    return jsonify(work)
 
 
 def get_feedback(work):
@@ -82,8 +72,8 @@ def get_feedback(work):
 
         for lcomment in linter_comments:
             fp.write('{}:{}:0: ({} {}) {}\n'.format(
-                lcomment.file.get_filename(), lcomment.line,
-                lcomment.linter.tester.name, lcomment.linter_code, lcomment.comment))
+                lcomment.file.get_filename(), lcomment.line, lcomment.linter.
+                tester.name, lcomment.linter_code, lcomment.comment))
 
     @after_this_request
     def remove_file(response):
@@ -115,7 +105,7 @@ def get_zip(work):
             for root, dirs, files in os.walk(tmpdir):
                 for file in files:
                     path = os.path.join(root, file)
-                    zipf.write(path,  path[len(tmpdir):])
+                    zipf.write(path, path[len(tmpdir):])
             zipf.close()
         fp.seek(0)
 
@@ -165,7 +155,7 @@ def patch_submission(submission_id):
     work.grade = content['grade']
     work.comment = content['feedback']
     db.session.commit()
-    return ('', 204)
+    return '', 204
 
 
 @api.route("/submissions/<int:submission_id>/files/", methods=['GET'])
@@ -213,4 +203,4 @@ def get_dir_contents(submission_id):
 
     dir_contents = jsonify(file.list_contents())
 
-    return (dir_contents, 200)
+    return dir_contents, 200

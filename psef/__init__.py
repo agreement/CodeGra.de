@@ -32,9 +32,9 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 import psef.auth
+import psef.json
 import psef.models
 import psef.errors
-import psef.auth
 import psef.files
 
 # Register blueprint(s)

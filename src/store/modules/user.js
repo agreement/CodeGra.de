@@ -35,8 +35,12 @@ const actions = {
     },
     refreshSnippets({ commit }) {
         return new Promise((resolve) => {
-            axios.get('/api/v1/snippets/').then((response) => {
-                commit(types.SNIPPETS, response.data);
+            axios.get('/api/v1/snippets/').then(({ data }) => {
+                const snips = {};
+                for (let i = 0, len = data.length; i < len; i += 1) {
+                    snips[data[i].key] = data[i];
+                }
+                commit(types.SNIPPETS, snips);
                 resolve();
             }).catch(() => {
                 setTimeout(() => actions.refreshSnippets({ commit }).then(resolve), 1000 * 15);
@@ -54,9 +58,23 @@ const actions = {
                 return state.permissions[`course_${perm.course_id}`];
             };
 
-            const checkPermission = () => getPermission()[perm.name] === true;
+            const getPermissionvalues = () => {
+                if (typeof perm.name === 'string') {
+                    return [getPermission()[perm.name]];
+                }
+                return perm.name.map(val => getPermission()[val]);
+            };
 
-            if (getPermission() === undefined || getPermission()[perm.name] === undefined) {
+            const checkPermission = () => {
+                const res = getPermissionvalues().map(val => val === true);
+                if (typeof perm.name === 'string') {
+                    return res[0];
+                }
+                return res;
+            };
+
+            if (getPermission() === undefined ||
+                getPermissionvalues().some(val => val === undefined)) {
                 axios.get('/api/v1/permissions/', {
                     params: perm.course_id ? { course_id: perm.course_id } : {},
                 }).then((response) => {

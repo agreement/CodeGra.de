@@ -23,8 +23,8 @@
             :current-page="currentPage"
             :filter="filterItems"
             :show-empty="true">
-            <template slot="user_name" scope="item">
-                {{item.value ? item.value : '-'}}
+            <template slot="user" scope="item">
+                {{item.value.name ? item.value.name : '-'}}
             </template>
             <template slot="grade" scope="item">
                 {{item.value ? item.value : '-'}}
@@ -61,7 +61,7 @@ export default {
             filter: this.$route.query.q || '',
             latest: this.getLatest(this.submissions),
             fields: {
-                user_name: {
+                user: {
                     label: 'User',
                     sortable: true,
                 },
