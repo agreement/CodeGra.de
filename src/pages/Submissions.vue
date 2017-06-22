@@ -50,7 +50,6 @@ export default {
             for (let i = 0, len = data.length; i < len; i += 1) {
                 data[i].created_at = moment.utc(data[i].created_at, moment.ISO_8601).local().format('YYYY-MM-DD HH:mm');
             }
-            this.submissions = data;
         });
 
         this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then((data) => {
