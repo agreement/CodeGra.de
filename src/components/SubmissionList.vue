@@ -9,8 +9,9 @@
                     Latest only
                 </b-form-checkbox>
 
-                <b-form-checkbox class="input-group-addon" v-model="mineOnly" @change="submit">
-                    My submissions only
+                <b-form-checkbox class="input-group-addon" v-model="mineOnly" @change="submit"
+                    v-if="assigneeFilter">
+                    Assigned to me
                 </b-form-checkbox>
             </b-input-group>
         </b-form-fieldset>
@@ -39,7 +40,7 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { mapActions, mapGetters } from 'vuex';
 import { bInputGroupButton, bFormCheckbox } from 'bootstrap-vue/lib/components';
 
 export default {
@@ -77,10 +78,15 @@ export default {
                     sortable: true,
                 },
             },
+            assigneeFilter: false,
         };
     },
 
     computed: {
+        courseId() {
+            return this.$route.params.courseId;
+        },
+
         ...mapGetters('user', {
             userId: 'id',
             userName: 'name',
@@ -91,6 +97,12 @@ export default {
         submissions(submissions) {
             this.latest = this.getLatest(submissions);
         },
+    },
+
+    mounted() {
+        this.hasPermission('can_submit_own_work').then((perm) => {
+            this.assigneeFilter = !perm && this.submissions.some(s => s.assignee);
+        });
     },
 
     methods: {
@@ -125,7 +137,7 @@ export default {
         filterItems(item) {
             if ((this.latestOnly && !this.latest.includes(item)) ||
                 // TODO: change to user id
-                (this.mineOnly && item.assignee !== this.userName)) {
+                (this.assigneeFilter && this.mineOnly && item.assignee !== this.userName)) {
                 return false;
             } else if (!this.filter) {
                 return true;
@@ -141,6 +153,14 @@ export default {
                 Object.keys(terms).some(key =>
                     terms[key].indexOf(word) >= 0));
         },
+
+        hasPermission(perm) {
+            return this.u_hasPermission({ name: perm, course_id: this.courseId });
+        },
+
+        ...mapActions({
+            u_hasPermission: 'user/hasPermission',
+        }),
     },
 
     components: {

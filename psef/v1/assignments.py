@@ -299,7 +299,7 @@ def get_all_works_for_assignment(assignment_id):
             'user_id': work.user_id,
             'edit': work.edit,
             'created_at': work.created_at.isoformat(),
-            'assignee': work.assignee.name if work.assignee else "-",
+            'assignee': work.assignee.name if work.assignee else "",
         }
         try:
             auth.ensure_can_see_grade(work)

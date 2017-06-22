@@ -36,6 +36,7 @@ export default {
             canUpload: false,
             assignment: null,
             canDownload: false,
+            showAssignedFilter: false,
         };
     },
 
@@ -83,9 +84,11 @@ export default {
         hasPermission(perm) {
             return this.u_hasPermission({ name: perm, course_id: this.courseId });
         },
+
         partDone() {
             this.loading += 1;
         },
+
         gotoSubmission(submission) {
             this.$router.push({
                 name: 'submission',
