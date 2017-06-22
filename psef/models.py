@@ -169,8 +169,25 @@ class User(db.Model, UserMixin):
                     self.courses[course_id].has_permission(permission))
 
     def get_permission_in_courses(self, permission):
+        if not isinstance(permission, Permission):
+            permission = Permission.query.filter_by(name=permission).first()
+        assert permission.course_permission
+
+        course_roles = db.session.query(user_course.c.course_id).join(
+            User, User.id == user_course.c.user_id).filter(
+                User.id == self.id).subquery('course_roles')
+
+        crp = db.session.query(course_permissions.c.course_role_id).join(
+            Permission,
+            course_permissions.c.permission_id == Permission.id).filter(
+                Permission.id == permission.id).subquery('crp')
+
+        res = db.session.query(course_roles.c.course_id).join(
+            crp, course_roles.c.course_id == crp.c.course_role_id).all()
+
         return {
-            course_role.course_id: course_role.has_permission(permission)
+            course_role.course_id:
+            (course_role.id, ) in res != permission.default_value
             for course_role in self.courses.values()
         }
 
@@ -191,7 +208,6 @@ class User(db.Model, UserMixin):
         link = db.session.query(res.exists()).scalar()
 
         return (not link) if permission.default_value else link
-
 
     def get_all_permissions(self, course_id=None):
         if isinstance(course_id, Course):
@@ -232,6 +248,7 @@ class User(db.Model, UserMixin):
             return ('use at least {} chars'.format(min_len))
         else:
             return ('')
+
 
 class Course(db.Model):
     __tablename__ = "Course"
