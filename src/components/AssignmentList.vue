@@ -2,7 +2,7 @@
     <div>
         <b-form-fieldset class="table-control">
             <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"/>
-            <b-button-input-group class="buttons">
+            <b-input-group-button class="buttons">
                 <b-button-group>
                     <b-popover placement="top" triggers="hover" content="Hidden" v-if="canSeeHidden">
                         <b-button class="btn-info" :class="{ 'btn-outline-info': !toggles.hidden}"
@@ -29,10 +29,9 @@
                         </b-button>
                     </b-popover>
                 </b-button-group>
-            </b-button-input-group>
+            </b-input-group-button>
         </b-form-fieldset>
 
-        <!-- Main table element -->
         <b-table striped hover
                 @row-clicked="gotoAssignment"
                 :items="assignments"
@@ -142,8 +141,9 @@ export default {
                 course_name: item.course_name.toLowerCase(),
                 deadline: item.deadline,
             };
-            return this.filter.toLowerCase().split(' ')
-                .every(word => this.matchesWord(terms, word));
+            return this.filter.toLowerCase().split(' ').every(word =>
+                Object.keys(terms).some(key =>
+                    terms[key].indexOf(word) >= 0));
         },
 
         filterState(item) {
@@ -204,10 +204,6 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.input-group {
-    margin-bottom: 30px;
-}
-
 .btn-group {
     button {
         border-top-left-radius: 0;

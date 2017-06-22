@@ -54,16 +54,11 @@ export default {
 </script>
 
 <style lang="less">
-div.linter-feedback div {
+.linter-feedback div {
     margin-left: -4em;
     min-width: 7em;
     min-height: 1.5em;
     top: 0;
     position: absolute;
-}
-
-table.linter-feedbackt td:first-child {
-    padding-right: 1em;
-    font-weight: bold;
 }
 </style>

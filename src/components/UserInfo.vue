@@ -190,9 +190,3 @@ export default {
     },
 };
 </script>
-
-<style lang="less" scoped>
-.form-group .alert {
-    margin-bottom: 0;
-}
-</style>
