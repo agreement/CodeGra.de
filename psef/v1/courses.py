@@ -23,7 +23,6 @@ def get_all_course_assignments(course_id):
     return jsonify(res)
 
 @api.route('/courses/', methods=['POST'])
-# @auth.permission_required('can_create_courses')
 def add_course():
     content = request.get_json()
 
