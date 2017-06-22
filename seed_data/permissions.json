@@ -54,9 +54,4 @@
         "default_value": false,
         "course_permission": true
     },
-    {
-        "name": "can_create_courses",
-        "default_value": false,
-        "course_permission": false
-    }
 ]

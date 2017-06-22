@@ -60,14 +60,13 @@ export default {
             this.$http.post('/api/v1/courses/', { name: this.name }).then(({ data }) => {
                 this.loading = false;
                 this.assignments = data;
-                window.location.href = `/courses/${data.id}`;
+                window.location.href = `/courses/${data.id}?created=true`;
             }).catch(
                 () => {
                     this.error = 'An error occurred adding the course, try again please!';
                     this.loading = false;
                 },
             );
-            this.loading = false;
         },
     },
 };
