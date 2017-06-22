@@ -4,6 +4,7 @@
             <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
         </b-form-fieldset>
         <b-table striped hover
+                 class="snippets-table"
             :items="snippets"
             :fields="fields"
             :current-page="currentPage"
@@ -25,25 +26,25 @@
             </template>
 
             <template slot="actions" scope="item">
-                <b-btn size="sm" variant="info" :disabled="item.item.pending" @click="saveSnippet(item.item)" v-if="item.item.editing">
+                <b-btn size="sm" variant="success" :disabled="item.item.pending" @click="saveSnippet(item.item)" v-if="item.item.editing">
                     <loader v-if="item.item.pending" :scale="1" ></loader>
                     <icon name="floppy-o" scale="1" v-else></icon>
                 </b-btn>
-                <b-btn size="sm" variant="warning" @click="editSnippet(item.item)" v-else>
+                <b-btn size="sm" variant="primary" @click="editSnippet(item.item)" v-else>
                     <icon name="pencil" scale="1"></icon>
                 </b-btn>
-                <b-btn size="sm" variant="warning" v-if="item.item.editing" :disabled="item.item.pending" @click="cancelSnippetEdit(item.item)">
+                <b-btn size="sm" variant="danger" v-if="item.item.editing" :disabled="item.item.pending" @click="cancelSnippetEdit(item.item)">
                     <icon name="ban" scale="1"></icon>
                 </b-btn>
-                <b-btn size="sm" variant="danger" :disabled="item.item.pending" @click="deleteSnippet(item.item)" v-else   >
+                <b-btn size="sm" variant="danger" :disabled="item.item.pending" @click="deleteSnippet(item.item)" v-else>
                     <icon name="times" scale="1"></icon>
                 </b-btn>
             </template>
         </b-table>
         <b-button-group>
             <loader :scale="2" class="" v-if="loading"></loader>
-            <b-button size="sm" variant="success" @click="newSnippet" v-else>
-                <icon name="plus" scale="1"></icon>
+            <b-button variant="primary" @click="newSnippet" v-else>
+                <span>Add</span>
             </b-button>
         </b-button-group>
     </div>
@@ -57,7 +58,6 @@ import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/pencil';
 import 'vue-awesome/icons/floppy-o';
 import 'vue-awesome/icons/ban';
-import 'vue-awesome/icons/plus';
 
 import Loader from './Loader';
 
@@ -145,7 +145,7 @@ export default {
                 snippet.editing = false;
                 return;
             }
-            snippet.pending = true;
+            this.$set(snippet, 'pending', true);
             if (snippet.id === null) {
                 this.$http.put('/api/v1/snippet', {
                     key: snippet.key,
@@ -218,3 +218,12 @@ export default {
     },
 };
 </script>
+
+<style lang="less">
+table.snippets-table tr th:first-child {
+    width: 25%;
+}
+table.snippets-table tr th:nth-child(2) {
+    width: 60%;
+}
+</style>
