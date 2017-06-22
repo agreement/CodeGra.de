@@ -1,6 +1,7 @@
 # -*- py-isort-options: '("-sg *"); -*-
 # Import flask and template operators
-from flask import Flask, render_template
+from flask import Flask, render_template, g
+import datetime
 from flask_login import LoginManager
 # Import SQLAlchemy
 from flask_sqlalchemy import SQLAlchemy
@@ -22,20 +23,23 @@ def not_found(error):
     return render_template('404.html'), 404
 
 
+@app.before_request
+def set_request_start_time():
+    g.request_start_time = datetime.datetime.utcnow()
+
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-# Register blueprint(s)
-# app.register_blueprint(auth_module)
-# app.register_blueprint(xyz_module)
-# ..
-
 import psef.auth
-import psef.views
+import psef.json
 import psef.models
 import psef.errors
-import psef.auth
 import psef.files
+
+# Register blueprint(s)
+from .v1 import api as api_v1_blueprint
+app.register_blueprint(api_v1_blueprint, url_prefix='/api/v1')
 
 
 def create_app(config=None):

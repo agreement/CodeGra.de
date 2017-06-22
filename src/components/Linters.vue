@@ -20,7 +20,8 @@
                 :description="linter.desc"
                 :initialId="linter.id"
                 :initialState="linter.state"
-                :key="linter.id"/>
+                :key="linter.id"
+                :assignment="assignment"/>
       </tbody>
     </table>
   </div>
@@ -37,11 +38,15 @@ import Linter from './Linter';
 export default {
     name: 'linters',
 
-    props: ['feedback'],
+    props: {
+        assignment: {
+            type: Object,
+            default: null,
+        },
+    },
 
     data() {
         return {
-            assignmentId: this.$route.params.assignmentId,
             linters: null,
             loading: true,
             show: {},
@@ -60,7 +65,7 @@ export default {
 
     methods: {
         getLinters() {
-            this.$http.get(`/api/v1/assignments/${this.assignmentId}/linters/`).then((data) => {
+            this.$http.get(`/api/v1/assignments/${this.assignment.id}/linters/`).then((data) => {
                 this.linters = data.data;
                 this.loading = false;
             });
@@ -68,35 +73,3 @@ export default {
     },
 };
 </script>
-
-<style lang="less" scoped>
-.margin {
-    margin-bottom: 15px;
-}
-
-.large-btn {
-    margin-top: 1em;
-    padding: 15px 5em;
-}
-.right-float {
-    float: right;
-}
-
-.center-table {
-    text-align: center;
-}
-.center-table th {
-    text-align: center;
-}
-
-.table-striped tbody tr:nth-of-type(even) table.trans tr {
-    background-color: rgba(0, 0, 0, 0.05);
-}
-.table-striped tbody tr:nth-of-type(odd) table.trans tr {
-    background-color: #fff;
-}
-
-button {
-    cursor: pointer;
-}
-</style>

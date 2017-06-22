@@ -26,6 +26,7 @@ import 'vue-awesome/icons/file';
 import 'vue-awesome/icons/caret-right';
 import 'vue-awesome/icons/caret-down';
 
+
 export default {
     name: 'file-tree',
 
@@ -86,10 +87,6 @@ export default {
         padding: 0;
         padding-left: 1.5em;
         overflow: hidden;
-    }
-
-    .active-file {
-        font-weight: bold;
     }
 }
 </style>

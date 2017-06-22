@@ -1,39 +1,48 @@
 <template>
-  <div>
-    <div class="justify-content-centermy-1 row">
+    <div class="submission-list">
+        <b-form-fieldset>
+            <b-input-group>
+                <b-form-input v-model="filter" placeholder="Type to Search" @keyup.enter="submit"></b-form-input>
 
-      <b-form-fieldset horizontal label="" class="col-10" :label-size="1">
-        <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
-      </b-form-fieldset>
+                <b-form-checkbox class="input-group-addon" v-model="latestOnly" @change="submit"
+                    v-if="latest.length !== submissions.length">
+                    Latest only
+                </b-form-checkbox>
 
-      <b-form-checkbox v-model="latestOnly" class="col-2 text-right"
-          v-if="latest.length !== submissions.length" checked="latestOnly" v-on:change="submit">
-        Latest only
-      </b-form-checkbox>
+                <b-form-checkbox class="input-group-addon" v-model="mineOnly" @change="submit"
+                    v-if="assigneeFilter">
+                    Assigned to me
+                </b-form-checkbox>
+            </b-input-group>
+        </b-form-fieldset>
+
+        <b-table striped hover
+            v-on:row-clicked='gotoSubmission'
+            :items="latestOnly ? latest : submissions"
+            :fields="fields"
+            :current-page="currentPage"
+            :filter="filterItems"
+            :show-empty="true">
+            <template slot="user" scope="item">
+                {{item.value.name ? item.value.name : '-'}}
+            </template>
+            <template slot="grade" scope="item">
+                {{item.value ? item.value : '-'}}
+            </template>
+            <template slot="created_at" scope="item">
+                {{item.value ? item.value : '-'}}
+            </template>
+            <template slot="assignee" scope="item">
+                {{item.value ? item.value : '-'}}
+            </template>
+        </b-table>
     </div>
-
-    <!-- Main table element -->
-    <b-table striped hover
-             v-on:row-clicked='gotoSubmission'
-             :items="latestOnly ? latest : submissions"
-             :fields="fields"
-             :current-page="currentPage"
-             :filter="filter"
-             :show-empty="true">
-      <template slot="user_name" scope="item">
-        {{item.value ? item.value : '-'}}
-      </template>
-      <template slot="grade" scope="item">
-        {{item.value ? item.value : '-'}}
-      </template>
-      <template slot="created_at" scope="item">
-        {{item.value ? item.value : '-'}}
-      </template>
-    </b-table>
-  </div>
 </template>
 
 <script>
+import { mapActions, mapGetters } from 'vuex';
+import { bInputGroupButton, bFormCheckbox } from 'bootstrap-vue/lib/components';
+
 export default {
     name: 'submission-list',
 
@@ -46,12 +55,13 @@ export default {
 
     data() {
         return {
-            latestOnly: true,
+            latestOnly: this.$route.query.latest !== 'false',
+            mineOnly: this.$route.query.mine !== 'false',
             currentPage: 1,
-            filter: null,
-            latest: [],
+            filter: this.$route.query.q || '',
+            latest: this.getLatest(this.submissions),
             fields: {
-                user_name: {
+                user: {
                     label: 'User',
                     sortable: true,
                 },
@@ -63,37 +73,46 @@ export default {
                     label: 'Created at',
                     sortable: true,
                 },
+                assignee: {
+                    label: 'Assigned to',
+                    sortable: true,
+                },
             },
+            assigneeFilter: false,
         };
     },
 
-    mounted() {
-        if (this.$route.query.latest === null) {
-            this.latestOnly = true;
-        } else {
-            this.latestOnly = this.$route.query.latest === 'true';
-        }
-        this.filter = this.$route.query.q;
-        this.updateSubmissions(null);
+    computed: {
+        courseId() {
+            return this.$route.params.courseId;
+        },
+
+        ...mapGetters('user', {
+            userId: 'id',
+            userName: 'name',
+        }),
     },
 
     watch: {
-        submissions() {
-            this.updateSubmissions();
+        submissions(submissions) {
+            this.latest = this.getLatest(submissions);
         },
     },
 
+    mounted() {
+        this.hasPermission('can_submit_own_work').then((perm) => {
+            this.assigneeFilter = !perm && this.submissions.some(s => s.assignee);
+        });
+    },
+
     methods: {
-        updateSubmissions() {
-            this.latest = [];
-            const seen = {};
-            const len = this.submissions.length;
-            for (let i = 0; i < len; i += 1) {
-                if (seen[this.submissions[i].user_id] !== true) {
-                    this.latest.push(this.submissions[i]);
-                    seen[this.submissions[i].user_id] = true;
-                }
-            }
+        getLatest(submissions) {
+            const seen = [];
+            return submissions.filter((item) => {
+                const ret = !seen[item.user_id];
+                seen[item.user_id] = true;
+                return ret;
+            });
         },
 
         gotoSubmission(submission) {
@@ -105,22 +124,48 @@ export default {
         },
 
         submit() {
-            const query = { latest: this.latestOnly };
+            const query = {
+                latest: this.latestOnly,
+                mine: this.mineOnly,
+            };
             if (this.filter) {
                 query.q = this.filter;
             }
             this.$router.replace({ query });
         },
+
+        filterItems(item) {
+            if ((this.latestOnly && !this.latest.includes(item)) ||
+                // TODO: change to user id
+                (this.assigneeFilter && this.mineOnly && item.assignee !== this.userName)) {
+                return false;
+            } else if (!this.filter) {
+                return true;
+            }
+
+            const terms = {
+                user_name: item.user_name.toLowerCase(),
+                grade: (item.grade || 0).toString(),
+                created_at: item.created_at,
+                assignee: item.assignee.toLowerCase(),
+            };
+            return this.filter.toLowerCase().split(' ').every(word =>
+                Object.keys(terms).some(key =>
+                    terms[key].indexOf(word) >= 0));
+        },
+
+        hasPermission(perm) {
+            return this.u_hasPermission({ name: perm, course_id: this.courseId });
+        },
+
+        ...mapActions({
+            u_hasPermission: 'user/hasPermission',
+        }),
+    },
+
+    components: {
+        bInputGroupButton,
+        bFormCheckbox,
     },
 };
 </script>
-
-<style lang="less" scoped>
-.table {
-    cursor: pointer;
-}
-
-.custom-checkbox {
-    font-size: 0.95em;
-}
-</style>

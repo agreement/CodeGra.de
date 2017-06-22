@@ -1,42 +1,32 @@
 <template>
-    <div class="container">
-        <div class="row justify-content-md-center">
-        	<div class="col"></div>
-            <div class="col col-lg-9 col-m-12">
-                <form>
-                    <div class="form-group">
-                        <input type="text" class="form-control" placeholder="Email" v-model="email">
-                        <div v-show="submitted && !validator.validate(email)" class="help alert-danger">
-                            Please enter a valid email
-                        </div>
-                    </div>
+    <div class="login" @keyup.enter="login">
+        <b-form-fieldset>
+            <b-form-input type="text" placeholder="Email" v-model="email"></b-form-input>
+            <b-alert variant="danger" :show="submitted && !validator.validate(email)">
+                Please enter a valid email
+            </b-alert>
+        </b-form-fieldset>
 
-                    <div class="form-group">
-                        <input type="password" class="form-control" placeholder="Password" v-model="password">
-                        <div v-show="submitted && password.length === 0" class="help alert-danger">
-                            Please enter a non empty password
-                        </div>
-                    </div>
+        <b-form-fieldset>
+            <b-form-input type="password" placeholder="Password" v-model="password"></b-form-input>
+            <b-alert variant="danger" :show="submitted && password.length === 0">
+                Please enter a non empty password
+            </b-alert>
+        </b-form-fieldset>
 
-                    <b-alert :show="error !== ''" variant="danger">
-                        {{ error }}
-                    </b-alert>
+        <b-alert :show="error.length" variant="danger">
+            {{ error }}
+        </b-alert>
 
-                    <div class="form-group">
-                        <input type="submit" class="form-control" value="Submit" @click="login">
-                    </div>
-                </form>
-            </div>
-            <div class="col"></div>
-        </div>
-
+        <b-form-fieldset>
+            <b-form-input type="submit" @click.native="login"></b-form-input>
+        </b-form-fieldset>
     </div>
 </template>
 
 <script>
-
 import { mapActions } from 'vuex';
-import { bPopover } from 'bootstrap-vue/lib/components';
+import { bAlert, bFormFieldset, bFormInput, bPopover } from 'bootstrap-vue/lib/components';
 
 const validator = require('email-validator');
 
@@ -51,6 +41,7 @@ export default {
             submitted: false,
         };
     },
+
     methods: {
         login(event) {
             event.preventDefault();
@@ -75,20 +66,12 @@ export default {
             tryLogin: 'user/login',
         }),
     },
+
     components: {
+        bAlert,
+        bFormFieldset,
+        bFormInput,
         bPopover,
     },
 };
 </script>
-
-<style lang="less">
-.help {
-    margin-top: -4px;
-    padding: 1%;
-    z-index: -1;
-}
-
-.form-control {
-    position: relative;
-}
-</style>

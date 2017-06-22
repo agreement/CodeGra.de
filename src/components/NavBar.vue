@@ -1,7 +1,5 @@
 <template>
-
-    <b-navbar toggleable type="inverse" sticky="true" class="navbar">
-
+    <b-navbar toggleable type="inverse" sticky="true">
         <b-nav-toggle target="nav_collapse"></b-nav-toggle>
 
         <b-link class="navbar-brand" to="#">
@@ -11,31 +9,38 @@
         </b-link>
 
         <b-collapse is-nav id="nav_collapse">
-
-            <div v-if="loggedIn" class="loggedin-nav">
-                <b-nav is-nav-bar class="navbar-left">
-                    <router-link class="nav-item" tag="li" :to="{ name: 'me', params: { userId: this.userid, }, }" active-class="active">
-                        {{username}}
-                    </router-link>
-                    <router-link class="nav-item" tag="li" :to="{ name: 'assignments', }"  active-class="active">
-                        Assignments
-                    </router-link>
+            <div v-if="loggedIn" class="nav-container justify-content-md-between">
+                <b-nav is-nav-bar>
+                    <b-nav-item>
+                        <router-link :to="{ name: 'me', params: { userId: this.userid, }, }" active-class="active">
+                            {{username}}
+                        </router-link>
+                    </b-nav-item>
+                    <b-nav-item>
+                        <router-link :to="{ name: 'assignments', }"  active-class="active">
+                            Assignments
+                        </router-link>
+                    </b-nav-item>
                 </b-nav>
-                <b-nav is-nav-bar class="navbar-right">
-                    <router-link class="nav-item" tag="li" :to="{ name: 'logout', }" @click.native.capture="logout"  active-class="active">
-                        Logout
-                    </router-link>
+                <b-nav is-nav-bar>
+                    <b-nav-item>
+                        <router-link :to="{ name: 'logout', }" @click.native.capture="logoutAndRedirect"  active-class="active">
+                            Logout
+                        </router-link>
+                    </b-nav-item>
                 </b-nav>
             </div>
-            <b-nav is-nav-bar class="navbar-right" v-else>
-                <router-link class="nav-item" tag="li" :to="{ name: 'login', }"  active-class="active">
-                    Login
-                </router-link>
-            </b-nav>
-
+            <div v-else class="nav-container justify-content-md-end">
+                <b-nav is-nav-bar>
+                    <b-nav-item>
+                        <router-link :to="{ name: 'login', }"  active-class="active">
+                            Login
+                        </router-link>
+                    </b-nav-item>
+                </b-nav>
+            </div>
         </b-collapse>
     </b-navbar>
-
 </template>
 
 <script scoped>
@@ -69,47 +74,34 @@ export default {
 </script>
 
 <style lang="scss">
+.navbar-collapse .nav-container {
+    display: flex;
+    flex-grow: 1;
+}
 
 .navbar {
-    background-color: #2c3e50;
     margin-bottom: 2em;
+
 }
 
-.loggedin-nav {
-    width: 100%;
-}
-
-@media (min-width: 768px) {
-    .navbar-left {
-        float: left;
-    }
-
-    .navbar-right {
-        float: right;
-    }
-}
-
-.navbar-collapse li {
-    text-align: right;
-    color: #FFF;
-}
-
-.active {
-    border-bottom: 3px solid white;
-}
-
-.nav-item {
+.nav-item a {
+    display: block;
     padding: 0.5em;
-}
+    margin: -.5em -.25em;
+    text-decoration: none;
+    text-align: right;
+    color: white;
 
-.nav-item:hover {
-    cursor: pointer;
-    color: #cbcbcb;
+    &:hover {
+        color: #cbcbcb;
+    }
+
+    &.active {
+        border-bottom: 3px solid white;
+    }
 }
 
 .logo {
     width: 10em;
 }
-
 </style>
-

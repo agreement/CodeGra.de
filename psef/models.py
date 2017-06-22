@@ -7,7 +7,9 @@ from flask_login import UserMixin
 from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
+import psef.auth as auth
 from psef import db, login_manager
+from psef.helpers import get_request_start_time
 from sqlalchemy_utils import PasswordType
 
 permissions = db.Table('roles-permissions',
@@ -146,7 +148,7 @@ class User(db.Model, UserMixin):
         collection_class=attribute_mapped_collection('course.id'),
         secondary=user_course,
         backref=db.backref('users', lazy='dynamic'))
-    email = db.Column('email', db.Unicode, unique=True)
+    email = db.Column('email', db.Unicode(collation='NOCASE'), unique=True)
     password = db.Column(
         'password',
         PasswordType(schemes=[
@@ -157,6 +159,8 @@ class User(db.Model, UserMixin):
     role = db.relationship('Role', foreign_keys=role_id)
 
     def has_permission(self, permission, course_id=None):
+        if not self.active:
+            return False
         if course_id is None:
             return self.role.has_permission(permission)
         else:
@@ -164,6 +168,36 @@ class User(db.Model, UserMixin):
                 course_id = course_id.id
             return (course_id in self.courses and
                     self.courses[course_id].has_permission(permission))
+
+    @property
+    def can_see_hidden(self):
+        return self.has_course_permission_once('can_see_hidden_assignments')
+
+    def __to_json__(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+            "hidden": self.can_see_hidden,
+        }
+
+    def has_course_permission_once(self, permission):
+        if not isinstance(permission, Permission):
+            permission = Permission.query.filter_by(name=permission).first()
+        assert permission.course_permission
+
+        course_roles = db.session.query(user_course.c.course_id).join(
+            User, User.id == user_course.c.user_id).filter(
+                User.id == self.id).subquery('course_roles')
+        crp = db.session.query(course_permissions.c.course_role_id).join(
+            Permission,
+            course_permissions.c.permission_id == Permission.id).filter(
+                Permission.id == permission.id).subquery('crp')
+        res = db.session.query(course_roles.c.course_id).join(
+            crp, course_roles.c.course_id == crp.c.course_role_id)
+        link = db.session.query(res.exists()).scalar()
+
+        return (not link) if permission.default_value else link
 
     def get_all_permissions(self, course_id=None):
         if isinstance(course_id, Course):
@@ -193,23 +227,26 @@ class User(db.Model, UserMixin):
     def validate_username(username):
         min_len = 3
         if len(username) < min_len:
-            return('use at least {} chars'.format(min_len))
+            return ('use at least {} chars'.format(min_len))
         else:
-            return('')
+            return ('')
 
     @staticmethod
     def validate_password(password):
         min_len = 3
         if len(password) < min_len:
-            return('use at least {} chars'.format(min_len))
+            return ('use at least {} chars'.format(min_len))
         else:
-            return('')
+            return ('')
 
 
 class Course(db.Model):
     __tablename__ = "Course"
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode)
+
+    assignments = db.relationship(
+        "Assignment", back_populates="course", cascade='all,delete')
 
 
 class Work(db.Model):
@@ -229,6 +266,27 @@ class Work(db.Model):
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', single_parent=True, foreign_keys=user_id)
     assignee = db.relationship('User', foreign_keys=assigned_to)
+
+    @property
+    def is_graded(self):
+        raise NotImplementedError()
+
+    def __to_json__(self):
+        item = {
+            'id': self.id,
+            'user': self.user,
+            'edit': self.edit,
+            'created_at': self.created_at.isoformat(),
+            'assignee': self.assignee.name if self.assignee else "",
+        }
+        try:
+            auth.ensure_can_see_grade(self)
+            item['grade'] = self.grade
+            item['comment'] = self.comment
+        except auth.PermissionException:
+            item['grade'] = '-'
+            item['comment'] = '-'
+        return item
 
     def add_file_tree(self, session, tree):
         """Add the given tree to the given db.
@@ -283,7 +341,8 @@ class File(db.Model):
     filename = db.Column('path', db.Unicode)
     is_directory = db.Column('is_directory', db.Boolean)
     parent_id = db.Column(db.Integer, db.ForeignKey('File.id'))
-    parent = db.relationship('File', remote_side=[id], backref='children')
+    parent = db.relationship(
+        'File', remote_side=[id], backref=db.backref('children'))
 
     work = db.relationship('Work', foreign_keys=work_id)
 
@@ -298,14 +357,20 @@ class File(db.Model):
             return self.name
 
     def list_contents(self):
-        if self.is_directory:
+        if not self.is_directory:
+            return {"name": self.get_filename(), "id": self.id}
+        else:
             return {
                 "name": self.get_filename(),
                 "id": self.id,
                 "entries": [child.list_contents() for child in self.children]
             }
-        else:
-            return {"name": self.get_filename(), "id": self.id}
+
+    def __to_json__(self):
+        return {
+            'name': self.name,
+            'extension': self.extension,
+        }
 
 
 class LinterComment(db.Model):
@@ -322,6 +387,14 @@ class LinterComment(db.Model):
     linter = db.relationship("LinterInstance", back_populates="comments")
     file = db.relationship('File', foreign_keys=file_id)
 
+    def __to_json__(self):
+        return {
+            'code': self.linter_code,
+            'line': self.line,
+            'msg': self.comment,
+            'id': self.id,
+        }
+
 
 class Comment(db.Model):
     __tablename__ = "Comment"
@@ -333,6 +406,12 @@ class Comment(db.Model):
 
     file = db.relationship('File', foreign_keys=file_id)
     user = db.relationship('User', foreign_keys=user_id)
+
+    def __to_json__(self):
+        return {
+            'line': self.line,
+            'msg': self.comment,
+        }
 
 
 @enum.unique
@@ -347,11 +426,35 @@ class AssignmentLinter(db.Model):
     id = db.Column('id', db.Unicode, nullable=False, primary_key=True)
     name = db.Column('name', db.Unicode)
     tests = db.relationship(
-        "LinterInstance", back_populates="tester", cascade='all,delete')
+        "LinterInstance",
+        back_populates="tester",
+        cascade='all,delete',
+        order_by='LinterInstance.work_id')
     assignment_id = db.Column('Assignment_id', db.Integer,
                               db.ForeignKey('Assignment.id'))
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
+
+    def __to_json__(self):
+        working = 0
+        crashed = 0
+        done = 0
+
+        for test in self.tests:
+            if test.state == LinterState.running:
+                working += 1
+            elif test.state == LinterState.crashed:
+                crashed += 1
+            else:
+                done += 1
+
+        return {
+            'done': done,
+            'working': working,
+            'crashed': crashed,
+            'id': self.id,
+            'name': self.name,
+        }
 
     @classmethod
     def create_tester(cls, assignment_id, name):
@@ -369,7 +472,8 @@ class AssignmentLinter(db.Model):
                 sub,
                 and_(sub.c.user_id == Work.user_id,
                      sub.c.max_date == Work.created_at)).filter(
-                         Work.assignment_id == assignment_id).all():
+                         Work.assignment_id == assignment_id).order_by(
+                             Work.id).all():
             tests.append(LinterInstance.create_test(work, self))
         self.tests = tests
         return self
@@ -400,13 +504,18 @@ class LinterInstance(db.Model):
             id = str(uuid.uuid4())
         return cls(id=id, work=work, tester=tester)
 
+    def to_dict(self):
+        return {
+            'name': self.work.user.name,
+            'state': LinterState(self.state).name,
+        }
+
 
 @enum.unique
-class AssignmentStateEnum(enum.IntEnum):
+class _AssignmentStateEnum(enum.IntEnum):
     hidden = 0
-    submitting = 1
-    grading = 2
-    done = 3
+    open = 1
+    done = 2
 
 
 class Assignment(db.Model):
@@ -415,14 +524,72 @@ class Assignment(db.Model):
     name = db.Column('name', db.Unicode)
     state = db.Column(
         'state',
-        db.Enum(AssignmentStateEnum),
-        default=AssignmentStateEnum.hidden,
+        db.Enum(_AssignmentStateEnum),
+        default=_AssignmentStateEnum.hidden,
         nullable=False)
     description = db.Column('description', db.Unicode, default='')
     course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    deadline = db.Column('deadline', db.DateTime)
 
-    course = db.relationship('Course', foreign_keys=course_id)
+    course = db.relationship(
+        'Course', foreign_keys=course_id, back_populates='assignments')
+
+    @property
+    def is_open(self):
+        if (self.state == _AssignmentStateEnum.open and
+                self.deadline >= get_request_start_time()):
+            return True
+        return False
+
+    @property
+    def is_hidden(self):
+        return self.state == _AssignmentStateEnum.hidden
+
+    @property
+    def is_closed(self):
+        return self.state == _AssignmentStateEnum.closed
+
+    @property
+    def is_done(self):
+        return self.state == _AssignmentStateEnum.done
+
+    @property
+    def state_name(self):
+        if self.state == _AssignmentStateEnum.open:
+            return 'submitting' if self.is_open else 'grading'
+        return _AssignmentStateEnum(self.state).name
+
+    def __to_json__(self):
+        return {
+            'id': self.id,
+            'state': self.state_name,
+            'open': self.is_open,
+            'description': self.description,
+            'created_at': self.created_at.isoformat(),
+            'deadline': self.deadline.isoformat(),
+            'name': self.name,
+            'course_name': self.course.name,
+            'course_id': self.course_id,
+        }
+
+    def set_state(self, state):
+        """Update the current state.
+
+        You can update the state to hidden, done or open. A assignment can not
+        be updated to 'submitting' or 'grading' as this is an assignment with
+        state of 'open' and, respectively, a deadline before or after the
+        current time.
+
+        :param str state: The new state, can be 'hidden', 'done' or 'open'
+        :rtype: None
+        """
+        if state == 'open':
+            self.state = _AssignmentStateEnum.open
+        elif state in {'done', 'hidden'}:
+            self.state = _AssignmentStateEnum.__members__[state]
+        else:
+            raise TypeError()
 
     def get_all_latest_submissions(self):
         sub = db.session.query(
@@ -449,5 +616,5 @@ class Snippet(db.Model):
     def get_all_snippets(cls, user):
         return cls.query.filter_by(user_id=user.id).all()
 
-    def to_dict(self):
+    def __to_json__(self):
         return {'key': self.key, 'value': self.value, 'id': self.id}
