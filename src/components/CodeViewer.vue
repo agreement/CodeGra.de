@@ -1,29 +1,30 @@
 <template>
-    <loader class="col-md-12 text-center" v-if="loading"></loader>
-    <ol class="code-viewer form-control" v-else-if="!error" :class="{ editable: editable }">
-        <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
-            :class="{ 'linter-feedback': linterFeedback[i] }">
-        <linter-feedback-area :feedback="linterFeedback[i]">
-        </linter-feedback-area>
-        <code class="nobold" v-html="line"></code>
-
-
-        <feedback-area :editing="editing[i] === true"
-                        :feedback='feedback[i]'
-                        :editable='editable'
-                        :line='i'
-                        :fileId='fileId'
-                        v-on:feedbackChange="val => { feedbackChange(i, val); }"
-                        v-on:cancel='onChildCancel'
-                        v-if="feedback[i] != null">
-        </feedback-area>
-        <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
-                v-on:click="addFeedback($event, value)"></icon>
-        </li>
-    </ol>
-    <b-alert variant="danger" show v-else>
+    <b-alert variant="danger" show v-if="error">
         <center><span>Cannot display file!</span></center>
     </b-alert>
+    <loader class="text-center" v-else-if="loading"></loader>
+    <ol class="code-viewer form-control" v-else :class="{ editable: editable }">
+        <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
+            :class="{ 'linter-feedback': linterFeedback[i] }">
+
+            <linter-feedback-area :feedback="linterFeedback[i]"> </linter-feedback-area>
+            <code  v-html="line"></code>
+
+
+            <feedback-area :editing="editing[i] === true"
+                            :feedback='feedback[i].msg'
+                            :editable='editable'
+                            :line='i'
+                            :fileId='fileId'
+                            v-on:feedbackChange="val => { feedbackChange(i, val); }"
+                            v-on:cancel='onChildCancel'
+                            v-if="feedback[i] != null">
+            </feedback-area>
+
+            <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
+                    v-on:click="addFeedback($event, value)"></icon>
+        </li>
+    </ol>
 </template>
 
 <script>
@@ -107,19 +108,41 @@ export default {
 
     methods: {
         getCode() {
-            this.$http.get(`/api/v1/code/${this.fileId}`).then(({ data }) => {
-                this.linterFeedback = data.linter_feedback;
-                this.feedback = data.feedback;
-                this.code = data.code;
-                this.codeLines = data.code.split('\n');
-                this.highlightCode(data.lang);
-                this.linkFiles();
-                this.loading = false;
-                this.error = false;
-            }).catch(() => {
-                this.error = true;
-                this.loading = false;
-            });
+            this.error = false;
+
+            let done = 0;
+            const addDone = () => {
+                if (this.error) {
+                    return;
+                }
+                done += 1;
+                if (done === 2) {
+                    this.linkFiles();
+                    this.loading = false;
+                    this.error = false;
+                }
+            };
+
+            // Split in two promises so that highlighting can begin before we
+            // have feedback as this is not needed anyway.
+            Promise.all([
+                this.$http.get(`/api/v1/code/${this.fileId}`),
+                this.$http.get(`/api/v1/code/${this.fileId}?type=metadata`),
+            ]).then(([file, metadata]) => {
+                this.code = file.data;
+                this.codeLines = this.code.split('\n');
+                this.highlightCode(metadata.data.extension);
+                addDone();
+            }).catch(() => { this.error = true; });
+
+            Promise.all([
+                this.$http.get(`/api/v1/code/${this.fileId}?type=feedback`),
+                this.$http.get(`/api/v1/code/${this.fileId}?type=linter-feedback`),
+            ]).then(([feedback, linterFeedback]) => {
+                this.linterFeedback = linterFeedback.data;
+                this.feedback = feedback.data;
+                addDone();
+            }).catch(() => { this.error = true; });
         },
 
         // Highlight this.codeLines.
@@ -283,21 +306,5 @@ code {
 
 .loader {
     margin-top: 5em;
-}
-
-.linter-feedback {
-    color: red;
-    font-weight: bold;
-    -webkit-text-decoration-style: wavy;
-    -moz-text-decoration-style: wavy;
-    text-decoration-style: wavy;
-}
-
-.nobold {
-    font-weight: normal;
-}
-
-div.codeviewer {
-    margin-bottom: 30px;
 }
 </style>

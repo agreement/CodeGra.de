@@ -81,22 +81,8 @@ def delete_linter_output(linter_id):
 
 @api.route('/linters/<linter_id>', methods=['GET'])
 def get_linter_state(linter_id):
-    res = []
-    any_working = False
-    crashed = False
     # check for user rights
     perm = db.session.query(models.AssignmentLinter).get(linter_id)
     auth.ensure_permission('can_use_linter', perm.assignment.course_id)
-    for test in models.AssignmentLinter.query.get(linter_id).tests:
-        if test.state == models.LinterState.running:
-            any_working = True
-        elif test.state == models.LinterState.crashed:
-            crashed = True
-        res.append((test.work.user.name, test.state))
-    res.sort(key=lambda el: el[0])
-    return jsonify({
-        'children': res,
-        'done': not any_working,
-        'crashed': not any_working and crashed,
-        'id': linter_id,
-    })
+
+    return jsonify(models.AssignmentLinter.query.get(linter_id))

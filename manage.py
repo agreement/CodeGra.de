@@ -2,13 +2,14 @@
 
 import os
 import json
+import datetime
 
 from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
-from sqlalchemy_utils import PasswordType
 
 import psef.models as m
 from psef import db, app
+from sqlalchemy_utils import PasswordType
 
 
 def render_item(type_, col, autogen_context):
@@ -83,7 +84,8 @@ def test_data():
                     m.CourseRole(
                         name=c['name'],
                         _permissions=perms,
-                        course=m.Course.query.filter_by(name=c['course']).first()))
+                        course=m.Course.query.filter_by(name=c['course'])
+                        .first()))
     with open('./test_data/assignments.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
@@ -92,13 +94,17 @@ def test_data():
                 db.session.add(
                     m.Assignment(
                         name=c['name'],
+                        deadline=datetime.datetime.utcnow() +
+                        datetime.timedelta(days=c['deadline']),
                         state=c['state'],
                         description=c['description'],
-                        course=m.Course.query.filter_by(name=c['course']).first()))
+                        course=m.Course.query.filter_by(name=c[
+                            'course']).first()))
             else:
                 assig.description = c['description']
                 assig.state = c['state']
-                assig.course = m.Course.query.filter_by(name=c['course']).first()
+                assig.course = m.Course.query.filter_by(
+                    name=c['course']).first()
     with open('./test_data/users.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
@@ -149,11 +155,10 @@ def test_data():
         cs = json.load(c)
         for c in cs:
             user = m.User.query.filter_by(name=c['user']).first()
-            snip = m.Snippet.query.filter_by(key=c['key'],
-                                              user=user).first()
+            snip = m.Snippet.query.filter_by(key=c['key'], user=user).first()
             if snip is None:
-                db.session.add(m.Snippet(key=c['key'], value=c['value'],
-                                         user=user))
+                db.session.add(
+                    m.Snippet(key=c['key'], value=c['value'], user=user))
             else:
                 snip.value = c['value']
     db.session.commit()

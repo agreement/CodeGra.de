@@ -1,36 +1,38 @@
 <template>
-  <div>
-    <div class="justify-content-centermy-1 row">
+    <div class="submission-list">
+        <div class="row">
+            <b-form-fieldset class="col-10">
+                <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
+            </b-form-fieldset>
 
-      <b-form-fieldset horizontal label="" class="col-10" :label-size="1">
-        <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
-      </b-form-fieldset>
+            <b-form-checkbox v-model="latestOnly" class="col-2 text-right"
+                v-if="latest.length !== submissions.length" checked="latestOnly" v-on:change="submit">
+                Latest only
+            </b-form-checkbox>
+        </div>
 
-      <b-form-checkbox v-model="latestOnly" class="col-2 text-right"
-          v-if="latest.length !== submissions.length" checked="latestOnly" v-on:change="submit">
-        Latest only
-      </b-form-checkbox>
+        <!-- Main table element -->
+        <b-table striped hover
+            v-on:row-clicked='gotoSubmission'
+            :items="latestOnly ? latest : submissions"
+            :fields="fields"
+            :current-page="currentPage"
+            :filter="filter"
+            :show-empty="true">
+            <template slot="user" scope="item">
+                {{item.value.name ? item.value.name : '-'}}
+            </template>
+            <template slot="grade" scope="item">
+                {{item.value ? item.value : '-'}}
+            </template>
+            <template slot="created_at" scope="item">
+                {{item.value ? item.value : '-'}}
+            </template>
+            <template slot="assignee" scope="item">
+                {{item.value ? item.value : '-'}}
+            </template>
+        </b-table>
     </div>
-
-    <!-- Main table element -->
-    <b-table striped hover
-             v-on:row-clicked='gotoSubmission'
-             :items="latestOnly ? latest : submissions"
-             :fields="fields"
-             :current-page="currentPage"
-             :filter="filter"
-             :show-empty="true">
-      <template slot="user_name" scope="item">
-        {{item.value ? item.value : '-'}}
-      </template>
-      <template slot="grade" scope="item">
-        {{item.value ? item.value : '-'}}
-      </template>
-      <template slot="created_at" scope="item">
-        {{item.value ? item.value : '-'}}
-      </template>
-    </b-table>
-  </div>
 </template>
 
 <script>
@@ -51,7 +53,7 @@ export default {
             filter: null,
             latest: [],
             fields: {
-                user_name: {
+                user: {
                     label: 'User',
                     sortable: true,
                 },
@@ -61,6 +63,10 @@ export default {
                 },
                 created_at: {
                     label: 'Created at',
+                    sortable: true,
+                },
+                assignee: {
+                    label: 'Assigned to',
                     sortable: true,
                 },
             },
@@ -89,9 +95,9 @@ export default {
             const seen = {};
             const len = this.submissions.length;
             for (let i = 0; i < len; i += 1) {
-                if (seen[this.submissions[i].user_id] !== true) {
+                if (seen[this.submissions[i].user.id] !== true) {
                     this.latest.push(this.submissions[i]);
-                    seen[this.submissions[i].user_id] = true;
+                    seen[this.submissions[i].user.id] = true;
                 }
             }
         },

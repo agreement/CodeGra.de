@@ -4,14 +4,14 @@
         <b-form-fieldset label="Divide submissions" v-else>
             <div class="form-control">
                 <div v-for="grader in graders">
-                <b-form-checkbox v-model="grader.divided">
-                    {{ grader.name }}
-                </b-form-checkbox>
+                    <b-form-checkbox v-model="grader.divided">
+                        {{ grader.name }}
+                    </b-form-checkbox>
                 </div>
-                <span v-if="graders.length == 0"> No possible graders found for this assignment!</span>
-                <b-button v-else variant="primary" v-on:click="divideAssignments()">
+                <b-button variant="primary" v-on:click="divideAssignments()" v-if="graders.length">
                     Divide Submissions
                 </b-button>
+                <span v-else> No possible graders found for this assignment!</span>
             </div>
         </b-form-fieldset>
     </div>

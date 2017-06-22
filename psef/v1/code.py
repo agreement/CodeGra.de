@@ -1,5 +1,5 @@
 from flask import jsonify, request, make_response
-from flask_login import current_user
+from flask_login import current_user, login_required
 
 import psef.auth as auth
 import psef.files
@@ -38,7 +38,7 @@ def put_comment(id, line):
 
     db.session.commit()
 
-    return ('', 204)
+    return '', 204
 
 
 @api.route("/code/<int:id>/comments/<int:line>", methods=['DELETE'])
@@ -62,13 +62,40 @@ def remove_comment(id, line):
         raise APIException('Feedback comment not found',
                            'The comment on line {} was not found'.format(line),
                            APICodes.OBJECT_ID_NOT_FOUND, 404)
-    return ('', 204)
+    return '', 204
 
 
-def get_binary_file(file_id):
+@api.route("/code/<int:file_id>", methods=['GET'])
+@login_required
+def get_code(file_id):
     file = db.session.query(models.File).filter(
         models.File.id == file_id).first()
 
+    if file is None:
+        raise APIException('File not found',
+                           'The file with id {} was not found'.format(file_id),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    if file.work.user.id != current_user.id:
+        auth.ensure_permission('can_view_files',
+                               file.work.assignment.course.id)
+
+    if request.args.get('type') == 'metadata':
+        return jsonify(file)
+    elif request.args.get('type') == 'binary':
+        return get_binary_file(file)
+    elif request.args.get('type') == 'feedback':
+        return get_feedback(file, linter=False)
+    elif request.args.get('type') == 'linter-feedback':
+        return get_feedback(file, linter=True)
+    else:
+        contents = psef.files.get_file_contents(file)
+        res = make_response(contents)
+        res.headers['Content-Type'] = 'text/plan'
+        return res
+
+
+def get_binary_file(file):
     file_data = psef.files.get_binary_contents(file)
     response = make_response(file_data)
     response.headers['Content-Type'] = 'application/pdf'
@@ -77,56 +104,28 @@ def get_binary_file(file_id):
     return response
 
 
-def get_file_metadata(file_id):
-    file = db.session.query(models.File).filter(
-        models.File.id == file_id).first()
-
-    return jsonify({"name": file.name, "extension": file.extension})
-
-
-@api.route("/code/<int:file_id>", methods=['GET'])
-def get_code(file_id):
-    if 'type' in request.args and request.args['type'] == 'metadata':
-        return get_file_metadata(file_id)
-    if 'type' in request.args and request.args['type'] == 'binary':
-        return get_binary_file(file_id)
-    else:
-        return get_plain_text_code(file_id)
-
-
-def get_plain_text_code(file_id):
-    code = db.session.query(models.File).get(file_id)
-    line_feedback = {}
-    linter_feedback = {}
-
-    if code is None:
-        raise APIException('File not found',
-                           'The file with id {} was not found'.format(file_id),
-                           APICodes.OBJECT_ID_NOT_FOUND, 404)
-
-    if (code.work.user.id != current_user.id):
-        auth.ensure_permission('can_view_files',
-                               code.work.assignment.course.id)
-
+def get_feedback(file, linter=False):
     try:
-        auth.ensure_can_see_grade(code.work)
-        for comment in db.session.query(models.Comment).filter_by(
-                file_id=file_id).all():
-            line_feedback[str(comment.line)] = comment.comment
-        for comment in db.session.query(models.LinterComment).filter_by(
-                file_id=file_id).all():
-            if str(comment.line) not in linter_feedback:
-                linter_feedback[str(comment.line)] = {}
-            linter_feedback[str(comment.line)][comment.linter.tester.name] = {
-                'code': comment.linter_code,
-                'msg': comment.comment
-            }
-    except auth.PermissionException:
-        line_feedback = {}
-        linter_feedback = {}
+        auth.ensure_can_see_grade(file.work)
+        if linter:
+            comments = db.session.query(models.LinterComment).filter_by(
+                file_id=file.id).all()
 
-    return jsonify(
-        lang=code.extension,
-        code=psef.files.get_file_contents(code),
-        feedback=line_feedback,
-        linter_feedback=linter_feedback)
+            res = {}
+            for comment in comments:
+                line = str(comment.line)
+                if line not in res:
+                    res[line] = {}
+                res[line][comment.linter.tester.name] = comment
+            return jsonify(res)
+        else:
+            comments = db.session.query(models.Comment).filter_by(
+                file_id=file.id).all()
+
+            res = {}
+            for comment in comments:
+                res[str(comment.line)] = comment
+            return jsonify(res)
+
+    except auth.PermissionException:
+        return jsonify({})

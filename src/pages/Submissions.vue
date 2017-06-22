@@ -8,11 +8,11 @@
         <submissions-exporter :assignment="assignment" v-if="canDownload"></submissions-exporter>
       </div>
 
-      <div class="col-md-5" v-if="canUpload">
-        <h1>Submit work for assignment {{ assignmentId }}</h1>
-        <code-uploader :assignmentId="assignmentId"></code-uploader>
+        <div class="col-md-6" v-if="canUpload">
+            <h1>Submit work for assignment {{ assignmentId }}</h1>
+            <code-uploader :assignmentId="assignmentId"></code-uploader>
+        </div>
       </div>
-    </div>
   </div>
 </template>
 
@@ -20,6 +20,9 @@
 import { mapActions } from 'vuex';
 import { SubmissionList, CodeUploader, Loader, SubmissionsExporter }
     from '@/components';
+import moment from 'moment';
+
+import * as assignmentState from '../store/assignment-states';
 
 export default {
     name: 'submission-list-page',
@@ -37,31 +40,31 @@ export default {
     },
 
     mounted() {
-        this.hasPermission('can_submit_own_work').then((val) => {
-            this.canUpload = val;
-        });
-        this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then((data) => {
+        const partDone = () => {
             this.loading += 1;
-            this.submissions = data.data;
+        };
+
+        this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then(({ data }) => {
+            partDone();
+            this.submissions = data;
+            for (let i = 0, len = data.length; i < len; i += 1) {
+                data[i].created_at = moment.utc(data[i].created_at, moment.ISO_8601).local().format('YYYY-MM-DD HH:mm');
+            }
         });
+
         this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then((data) => {
-            this.loading += 1;
             this.assignment = data.data;
             this.assignment.id = this.assignmentId;
-            const checkDownload = () => {
-                if (this.assignment.state === 3) {
+
+            this.hasPermission(['can_submit_own_work', 'can_see_others_work', 'can_see_grade_before_open']).then(([submit, others, before]) => {
+                this.canUpload = submit && this.assignment.open;
+
+                if (others && this.assignment.state === assignmentState.DONE) {
                     this.canDownload = true;
-                } else {
-                    this.hasPermission('can_see_grade_before_open').then((res) => {
-                        this.canDownload = res;
-                    });
+                } else if (others) {
+                    this.canDownload = before;
                 }
-            };
-            checkDownload();
-            this.hasPermission('can_see_others_work').then((res) => {
-                if (res) {
-                    this.checkDownload();
-                }
+                partDone();
             });
         });
     },

@@ -6,6 +6,7 @@ import Linter from './Linter';
 import ManageAssignment from './ManageAssignment';
 import ManageCourse from './ManageCourse';
 import FileTree from './FileTree';
+import FileTreeContainer from './FileTreeContainer';
 import FooterBar from './FooterBar';
 import GradeViewer from './GradeViewer';
 import HeaderBar from './HeaderBar';
@@ -22,7 +23,12 @@ import SubmissionsExporter from './SubmissionsExporter';
 import SnippetManager from './SnippetManager';
 import PdfViewer from './PdfViewer';
 import BlackboardUploader from './BlackboardUploader';
+<<<<<<< src/components/index.js
 import NewCourse from './NewCourse';
+=======
+import FeedbackExporter from './FeedbackExporter';
+
+>>>>>>> src/components/index.js
 
 export {
     Linters,
@@ -34,6 +40,7 @@ export {
     ManageCourse,
     FeedbackArea,
     FileTree,
+    FileTreeContainer,
     FooterBar,
     GradeViewer,
     HeaderBar,
@@ -50,4 +57,5 @@ export {
     SnippetManager,
     PdfViewer,
     NewCourse,
+    FeedbackExporter,
 };
