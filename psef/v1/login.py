@@ -50,8 +50,11 @@ def login():
 @api.route("/login", methods=["GET"])
 @login_required
 def me():
+    hidden = current_user.has_course_permission_once(
+        'can_see_hidden_assignments')
     return (jsonify({
         "id": current_user.id,
+        'hidden': hidden,
         "name": current_user.name,
         "email": current_user.email
     }), 200)
@@ -71,7 +74,7 @@ def get_user_update():
             APICodes.MISSING_REQUIRED_PARAM, 400)
 
     user = current_user
-    print(user.password == data['o_password'])
+
     if user.password != data['o_password']:
         raise APIException('Incorrect password.',
                            'The supplied old password was incorrect',

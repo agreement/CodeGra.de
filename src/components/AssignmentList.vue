@@ -1,29 +1,35 @@
 <template>
-    <div class="assignment-list">
-        <b-form-fieldset>
-            <b-input-group>
-                <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
+    <div>
+        <b-form-fieldset class="table-control">
+            <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"/>
+            <b-input-group-button class="buttons">
                 <b-button-group>
-                    <b-tooltip placement="bottom" content="Submitting">
+                    <b-popover placement="top" triggers="hover" content="Hidden" v-if="canSeeHidden">
+                        <b-button class="btn-info" :class="{ 'btn-outline-info': !toggles.hidden}"
+                                  @click="toggleFilter('hidden')">
+                            <icon name="eye-slash"></icon>
+                        </b-button>
+                    </b-popover>
+                    <b-popover placement="top" triggers="hover" content="Submitting">
                         <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
-                            @click="toggleFilter('submitting')">
+                                  @click="toggleFilter('submitting')">
                             <icon name="download"></icon>
                         </b-button>
-                    </b-tooltip>
-                    <b-tooltip placement="bottom" content="Grading">
+                    </b-popover>
+                    <b-popover placement="top" triggers="hover" content="Grading">
                         <b-button class="btn-warning" :class="{ 'btn-outline-warning': !toggles.grading }"
-                            @click="toggleFilter('grading')">
+                                  @click="toggleFilter('grading')">
                             <icon name="pencil"></icon>
                         </b-button>
-                    </b-tooltip>
-                    <b-tooltip placement="bottom" content="Done">
+                    </b-popover>
+                    <b-popover placement="top" triggers="hover" content="Done">
                         <b-button class="btn-success" :class="{ 'btn-outline-success': !toggles.done }"
-                            @click="toggleFilter('done')">
+                                  @click="toggleFilter('done')">
                             <icon name="check"></icon>
                         </b-button>
-                    </b-tooltip>
+                    </b-popover>
                 </b-button-group>
-            </b-input-group>
+            </b-input-group-button>
         </b-form-fieldset>
 
         <b-table striped hover
@@ -39,13 +45,14 @@
             <template slot="name" scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
-            <template slot="date" scope="item">
+            <template slot="deadline" scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="state" scope="item">
-                <icon name="download" v-if="item.item.state == 1"></icon>
-                <icon name="pencil" v-else-if="item.item.state == 2"></icon>
-                <icon name="check" v-else-if="item.item.state == 3"></icon>
+                <icon name="eye-slash" v-if="item.item.state == assignmentState.HIDDEN"></icon>
+                <icon name="download" v-if="item.item.state == assignmentState.SUBMITTING"></icon>
+                <icon name="pencil" v-else-if="item.item.state == assignmentState.GRADING"></icon>
+                <icon name="check" v-else-if="item.item.state == assignmentState.DONE"></icon>
             </template>
             <template slot="empty">
                 No results found.
@@ -62,6 +69,9 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/download';
 import 'vue-awesome/icons/pencil';
 import 'vue-awesome/icons/check';
+import 'vue-awesome/icons/eye-slash';
+
+import * as assignmentState from '../store/assignment-states';
 
 export default {
     name: 'assignment-list',
@@ -71,10 +81,15 @@ export default {
             type: Array,
             default: [],
         },
+        canSeeHidden: {
+            type: Boolean,
+            default: false,
+        },
     },
 
     data() {
         return {
+            assignmentState,
             filter: '',
             toggles: {
                 hidden: false,
@@ -92,8 +107,8 @@ export default {
                     label: 'Assignment',
                     sortable: true,
                 },
-                date: {
-                    label: 'Due date',
+                deadline: {
+                    label: 'Deadline',
                     sortable: true,
                 },
                 state: {
@@ -110,6 +125,7 @@ export default {
         this.toggles.submitting = q.submitting == null ? true : q.submitting === 'true';
         this.toggles.grading = q.grading == null ? false : q.grading === 'true';
         this.toggles.done = q.done == null ? true : q.done === 'true';
+        this.toggles.hidden = q.hidden == null ? true : q.hidden === 'true';
         this.filter = q.q;
     },
 
@@ -123,7 +139,7 @@ export default {
             const terms = {
                 name: item.name.toLowerCase(),
                 course_name: item.course_name.toLowerCase(),
-                date: item.date,
+                deadline: item.deadline,
             };
             return this.filter.toLowerCase().split(' ').every(word =>
                 Object.keys(terms).some(key =>
@@ -132,12 +148,18 @@ export default {
 
         filterState(item) {
             switch (item.state) {
-            case 0: return this.toggles.hidden;
-            case 1: return this.toggles.submitting;
-            case 2: return this.toggles.grading;
-            case 3: return this.toggles.done;
-            default: throw TypeError('Unknown assignment state');
+            case assignmentState.SUBMITTING: return this.toggles.submitting;
+            case assignmentState.GRADING: return this.toggles.grading;
+            case assignmentState.DONE: return this.toggles.done;
+            case assignmentState.HIDDEN: return this.toggles.hidden;
+            default: throw TypeError(`Unknown assignment state "${item.state}"`);
             }
+        },
+
+        matchesWord(item, word) {
+            return item.name.indexOf(word) >= 0 ||
+                item.course_name.indexOf(word) >= 0 ||
+                item.deadline.indexOf(word) >= 0;
         },
 
         toggleFilter(filter) {
@@ -192,5 +214,35 @@ export default {
         border-top-right-radius: 0;
         border-bottom-right-radius: 0;
     }
+}
+
+.table-control input {
+    display: table-cell;
+    width: 100%;
+    border-bottom-right-radius: 0px;
+    border-top-right-radius: 0px;
+    height: 2.35em;
+}
+
+.table-control .buttons button {
+    height: 2.35em;
+}
+
+.table-control .buttons {
+    width: 1px;
+    display: table-cell;
+    vertical-align: middle;
+}
+
+.table,
+button {
+    cursor: pointer;
+}
+</style>
+
+<style>
+div.table-control > div {
+    display: table !important;
+    width: 100%;
 }
 </style>
