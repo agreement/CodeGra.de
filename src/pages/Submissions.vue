@@ -36,6 +36,7 @@ export default {
             canUpload: false,
             assignment: null,
             canDownload: false,
+            showAssignedFilter: false,
         };
     },
 
@@ -73,12 +74,14 @@ export default {
         hasPermission(perm) {
             return this.u_hasPermission({ name: perm, course_id: this.courseId });
         },
+
         gotoSubmission(submission) {
             this.$router.push({
                 name: 'submission',
                 params: { submissionId: submission.id },
             });
         },
+
         ...mapActions({
             u_hasPermission: 'user/hasPermission',
         }),
@@ -93,7 +96,7 @@ export default {
 };
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
 .loader {
     padding-top: 3.5em;
 }

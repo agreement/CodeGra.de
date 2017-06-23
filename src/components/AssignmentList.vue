@@ -1,38 +1,43 @@
 <template>
     <div>
         <b-form-fieldset class="table-control">
-            <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"/>
-            <b-button-input-group class="buttons">
-                <b-button-group>
+            <b-input-group>
+                <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"/>
+                <b-input-group-button class="buttons">
                     <b-popover placement="top" triggers="hover" content="Hidden" v-if="canSeeHidden">
                         <b-button class="btn-info" :class="{ 'btn-outline-info': !toggles.hidden}"
-                                  @click="toggleFilter('hidden')">
+                                    @click="toggleFilter('hidden')">
                             <icon name="eye-slash"></icon>
                         </b-button>
                     </b-popover>
+                </b-input-group-button>
+                <b-input-group-button class="buttons">
                     <b-popover placement="top" triggers="hover" content="Submitting">
                         <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
-                                  @click="toggleFilter('submitting')">
+                                    @click="toggleFilter('submitting')">
                             <icon name="download"></icon>
                         </b-button>
                     </b-popover>
+                </b-input-group-button>
+                <b-input-group-button class="buttons">
                     <b-popover placement="top" triggers="hover" content="Grading">
                         <b-button class="btn-warning" :class="{ 'btn-outline-warning': !toggles.grading }"
-                                  @click="toggleFilter('grading')">
+                                    @click="toggleFilter('grading')">
                             <icon name="pencil"></icon>
                         </b-button>
                     </b-popover>
+                </b-input-group-button>
+                <b-input-group-button class="buttons">
                     <b-popover placement="top" triggers="hover" content="Done">
                         <b-button class="btn-success" :class="{ 'btn-outline-success': !toggles.done }"
-                                  @click="toggleFilter('done')">
+                                    @click="toggleFilter('done')">
                             <icon name="check"></icon>
                         </b-button>
                     </b-popover>
-                </b-button-group>
-            </b-button-input-group>
+                </b-input-group-button>
+            </b-input-group>
         </b-form-fieldset>
 
-        <!-- Main table element -->
         <b-table striped hover
                 @row-clicked="gotoAssignment"
                 :items="assignments"
@@ -123,10 +128,10 @@ export default {
 
     mounted() {
         const q = this.$route.query;
+        this.toggles.hidden = q.hidden == null ? false : q.hidden === 'true';
         this.toggles.submitting = q.submitting == null ? true : q.submitting === 'true';
         this.toggles.grading = q.grading == null ? false : q.grading === 'true';
         this.toggles.done = q.done == null ? true : q.done === 'true';
-        this.toggles.hidden = q.hidden == null ? true : q.hidden === 'true';
         this.filter = q.q;
     },
 
@@ -142,8 +147,9 @@ export default {
                 course_name: item.course_name.toLowerCase(),
                 deadline: item.deadline,
             };
-            return this.filter.toLowerCase().split(' ')
-                .every(word => this.matchesWord(terms, word));
+            return this.filter.toLowerCase().split(' ').every(word =>
+                Object.keys(terms).some(key =>
+                    terms[key].indexOf(word) >= 0));
         },
 
         filterState(item) {
@@ -179,11 +185,7 @@ export default {
         },
 
         submit() {
-            const query = {
-                submitting: this.toggles.submitting,
-                grading: this.toggles.grading,
-                done: this.toggles.done,
-            };
+            const query = Object.assign({}, this.toggles);
             if (this.filter) {
                 query.q = this.filter;
             }
@@ -202,51 +204,3 @@ export default {
     },
 };
 </script>
-
-<style lang="less" scoped>
-.input-group {
-    margin-bottom: 30px;
-}
-
-.btn-group {
-    button {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-    }
-
-    & > :not(:last-child) button {
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-    }
-}
-
-.table-control input {
-    display: table-cell;
-    width: 100%;
-    border-bottom-right-radius: 0px;
-    border-top-right-radius: 0px;
-    height: 2.35em;
-}
-
-.table-control .buttons button {
-    height: 2.35em;
-}
-
-.table-control .buttons {
-    width: 1px;
-    display: table-cell;
-    vertical-align: middle;
-}
-
-.table,
-button {
-    cursor: pointer;
-}
-</style>
-
-<style>
-div.table-control > div {
-    display: table !important;
-    width: 100%;
-}
-</style>

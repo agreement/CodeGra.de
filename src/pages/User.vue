@@ -1,14 +1,23 @@
 <template>
     <div class="page user">
         <div class="row">
-            <user-info class="col-6"></user-info>
-            <snippet-manager class="col-6"></snippet-manager>
+            <div class="col-6">
+                <b-card header="User info">
+                    <user-info></user-info>
+                </b-card>
+            </div>
+            <div class="col-6">
+                <b-card header="Snippets">
+                    <snippet-manager></snippet-manager>
+                </b-card>
+            </div>
         </div>
     </div>
 </template>
 
 <script>
 import { mapGetters } from 'vuex';
+import { bCard } from 'bootstrap-vue/lib/components';
 import { UserInfo, SnippetManager } from '@/components';
 
 export default {
@@ -17,6 +26,7 @@ export default {
     components: {
         UserInfo,
         SnippetManager,
+        bCard,
     },
 
     computed: {

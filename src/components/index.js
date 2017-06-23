@@ -25,6 +25,7 @@ import PdfViewer from './PdfViewer';
 import BlackboardUploader from './BlackboardUploader';
 import FeedbackExporter from './FeedbackExporter';
 import SubmissionNavBar from './SubmissionNavBar';
+import CourseList from './CourseList';
 
 export {
     Linters,
@@ -54,4 +55,5 @@ export {
     PdfViewer,
     FeedbackExporter,
     SubmissionNavBar,
+    CourseList,
 };
