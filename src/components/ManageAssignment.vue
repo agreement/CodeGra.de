@@ -28,17 +28,38 @@
                 </b-popover>
             </b-button-group>
         </div>
-        <b-collapse class="row" :id="`assignment-${assignment.id}`">
-            <div class="col-12">Upload blackboard zip</div>
-            <blackboard-uploader class="col-12" :assignment="assignment"></blackboard-uploader>
-            <divide-submissions class="col-6" :assignment="assignment"></divide-submissions>
-            <linters class="col-6" :assignment="assignment"></linters>
+        <b-collapse :id="`assignment-${assignment.id}`">
+            <b-form-fieldset>
+                <b-input-group left="Name">
+                    <b-form-input type="text" v-model="assignment.name" @keyup.native.enter="updateName"></b-form-input>
+                    <b-input-group-button>
+                        <submit-button :update="updateName" ref="updateName"></submit-button>
+                    </b-input-group-button>
+                </b-input-group>
+            </b-form-fieldset>
+            <b-form-fieldset>
+                <b-input-group left="Deadline">
+                    <b-form-input type="datetime-local" v-model="assignment.deadline" @keyup.native.enter="updateDeadline"></b-form-input>
+                    <b-input-group-button>
+                        <submit-button :update="updateDeadline" ref="updateDeadline"></submit-button>
+                    </b-input-group-button>
+                </b-input-group>
+            </b-form-fieldset>
+
+            <div class="row">
+                <divide-submissions class="col-6" :assignment="assignment"></divide-submissions>
+                <linters class="col-6" :assignment="assignment"></linters>
+            </div>
+
+            <b-form-fieldset label="Upload blackboard zip">
+                <blackboard-uploader :assignment="assignment"></blackboard-uploader>
+            </b-form-fieldset>
         </b-collapse>
     </div>
 </template>
 
 <script>
-import { bButton, bButtonGroup, bCollapse, bPopover } from 'bootstrap-vue/lib/components';
+import { bButton, bButtonGroup, bCollapse, bFormFieldset, bFormInput, bInputGroup, bPopover } from 'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/eye-slash';
@@ -49,6 +70,7 @@ import DivideSubmissions from './DivideSubmissions';
 import BlackboardUploader from './BlackboardUploader';
 import Linters from './Linters';
 import Loader from './Loader';
+import SubmitButton from './SubmitButton';
 
 import * as assignmentState from '../store/assignment-states';
 
@@ -69,6 +91,12 @@ export default {
         };
     },
 
+    computed: {
+        assignmentUrl() {
+            return `/api/v1/assignments/${this.assignment.id}`;
+        },
+    },
+
     methods: {
         toggleRow() {
             this.$root.$emit('collapse::toggle', `assignment-${this.assignment.id}`);
@@ -80,11 +108,31 @@ export default {
 
             this.pendingState = button.getAttribute('value');
 
-            this.$http.patch(`/api/v1/assignments/${this.assignment.id}`, {
+            this.$http.patch(this.assignmentUrl, {
                 state: this.assignment.state,
             }).then(() => {
                 this.assignment.state = this.pendingState;
                 this.pendingState = '';
+            }, () => {
+                // handle error
+            });
+        },
+
+        updateName() {
+            this.$refs.updateName.submit(this.$http.patch(this.assignmentUrl, {
+                name: this.assignment.name,
+            })).then(() => {
+                // success
+            }, () => {
+                // handle error
+            });
+        },
+
+        updateDeadline() {
+            this.$refs.updateDeadline.submit(this.$http.patch(this.assignmentUrl, {
+                deadline: this.assignment.deadline,
+            })).then(() => {
+                // success
             }, () => {
                 // handle error
             });
@@ -96,9 +144,13 @@ export default {
         DivideSubmissions,
         Linters,
         Loader,
+        SubmitButton,
         bButton,
         bButtonGroup,
         bCollapse,
+        bFormFieldset,
+        bFormInput,
+        bInputGroup,
         bPopover,
         Icon,
     },
@@ -113,30 +165,30 @@ export default {
 .header {
     display: flex;
     flex-direction: row;
-}
 
-.assignment-title {
-    flex-grow: 1;
-    cursor: pointer;
+    .assignment-title {
+        flex-grow: 1;
+        cursor: pointer;
 
-    /* Make the entire header clickable. */
-    @hpad: 1.25rem;
-    @vpad: .75rem;
-    padding: @vpad 0 @vpad @hpad;
-    margin: -@vpad 0 -@vpad -@hpad;;
-}
+        /* Make the entire header clickable. */
+        @hpad: 1.25rem;
+        @vpad: .75rem;
+        padding: @vpad 0 @vpad @hpad;
+        margin: -@vpad 0 -@vpad -@hpad;;
+    }
 
-button {
-    width: 1.75em;
-    height: 1.75em;
-    margin-left: .375em;
-    border-radius: 50%;
-    border: 0;
-    padding-left: .375rem;
+    button {
+        width: 1.75em;
+        height: 1.75em;
+        margin-left: .375em;
+        border-radius: 50%;
+        border: 0;
+        padding-left: .375rem;
 
-    svg {
-        width: 1em;
-        height: 1em;
+        svg {
+            width: 1em;
+            height: 1em;
+        }
     }
 }
 
