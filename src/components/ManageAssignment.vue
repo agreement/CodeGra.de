@@ -32,7 +32,7 @@
 </template>
 
 <script>
-import { bCollapse, bPopover } from 'bootstrap-vue/lib/components';
+import { bButton, bButtonGroup, bCollapse, bPopover } from 'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/eye-slash';
@@ -88,6 +88,8 @@ export default {
         BlackboardUploader,
         DivideSubmissions,
         Linters,
+        bButton,
+        bButtonGroup,
         bCollapse,
         bPopover,
         Icon,
