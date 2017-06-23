@@ -103,17 +103,17 @@ export default {
 .header {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
 }
 
 .assignment-title {
     flex-grow: 1;
-    margin-bottom: 0;
     cursor: pointer;
 
-    .icon {
-        float: right;
-    }
+    /* Make the entire header clickable. */
+    @hpad: 1.25rem;
+    @vpad: .75rem;
+    padding: @vpad 0 @vpad @hpad;
+    margin: -@vpad 0 -@vpad -@hpad;;
 }
 
 button {
