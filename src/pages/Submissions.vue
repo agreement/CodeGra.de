@@ -4,10 +4,8 @@
       <loader :class="`col-md-${canUpload ? 5 : 10} text-center`" v-if="loading < 2"></loader>
       <div :class="`col-md-${canUpload ? 5 : 10}`" v-else>
         <h1>Submissions</h1>
-        <submission-list :submissions="submissions"></submission-list>
-        <submissions-exporter :assignment="assignment" v-if="canDownload"></submissions-exporter>
+        <submission-list :assignment="assignment" :submissions="submissions" :canDownload="canDownload"></submission-list>
       </div>
-
         <div class="col-md-6" v-if="canUpload">
             <h1>Submit work for assignment {{ assignmentId }}</h1>
             <code-uploader :assignmentId="assignmentId"></code-uploader>
@@ -18,7 +16,7 @@
 
 <script>
 import { mapActions } from 'vuex';
-import { SubmissionList, CodeUploader, Loader, SubmissionsExporter }
+import { SubmissionList, CodeUploader, Loader }
     from '@/components';
 import moment from 'moment';
 
@@ -91,7 +89,6 @@ export default {
         SubmissionList,
         CodeUploader,
         Loader,
-        SubmissionsExporter,
     },
 };
 </script>
