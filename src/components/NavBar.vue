@@ -21,6 +21,11 @@
                             Assignments
                         </router-link>
                     </b-nav-item>
+                    <b-nav-item>
+                        <router-link :to="{ name: 'courses', }"  active-class="active">
+                            Courses
+                        </router-link>
+                    </b-nav-item>
                 </b-nav>
                 <b-nav is-nav-bar>
                     <b-nav-item>
