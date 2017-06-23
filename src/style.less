@@ -106,6 +106,20 @@ textarea:disabled {
     z-index: -1;
 }
 
+.custom-file {
+    padding: 0;
+    overflow: hidden;
+
+    input {
+        cursor: pointer;
+    }
+
+    & &-control {
+        cursor: pointer;
+        border: 0;
+    }
+}
+
 .code-viewer {
     @linenr-bg: #f8f8f8;
     @line-bg: white;
