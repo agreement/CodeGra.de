@@ -8,21 +8,21 @@
                 <b-popover placement="top" triggers="hover" content="Hidden">
                     <b-button size="sm" value="hidden"
                         :variant="assignment.state === assignmentState.HIDDEN ? 'danger' : 'outline-danger'">
-                        <loader scale="1" v-if="submitting && assignment.state === assignmentState.HIDDEN"></loader>
+                        <loader :scale="1" v-if="pendingState === assignmentState.HIDDEN"></loader>
                         <icon name="eye-slash" v-else></icon>
                     </b-button>
                 </b-popover>
                 <b-popover placement="top" triggers="hover" content="Open">
                     <b-button size="sm" value="open"
                         :variant="[assignmentState.SUBMITTING, assignmentState.GRADING, 'open'].indexOf(assignment.state) > -1 ? 'warning' : 'outline-warning'">
-                        <loader scale="1" v-if="submitting && [assignmentState.SUBMITTING, assignmentState.GRADING, 'open'].indexOf(assignment.state) > -1"></loader>
+                        <loader :scale="1" v-if="[assignmentState.SUBMITTING, assignmentState.GRADING, 'open'].indexOf(pendingState) > -1"></loader>
                         <icon name="clock-o" v-else></icon>
                     </b-button>
                 </b-popover>
                 <b-popover placement="top" triggers="hover" content="Done">
                     <b-button size="sm" value="done"
                         :variant="assignment.state === assignmentState.DONE ? 'success' : 'outline-success'">
-                        <loader scale="1" v-if="submitting && assignment.state === assignmentState.DONE"></loader>
+                        <loader :scale="1" v-if="pendingState === assignmentState.DONE"></loader>
                         <icon name="check" v-else></icon>
                     </b-button>
                 </b-popover>
@@ -65,7 +65,7 @@ export default {
     data() {
         return {
             assignmentState,
-            submitting: false,
+            pendingState: '',
         };
     },
 
@@ -78,15 +78,15 @@ export default {
             const button = target.closest('button');
             if (!button) return;
 
-            const oldState = this.assignment.state;
-            this.assignment.state = button.getAttribute('value');
-            this.submitting = true;
+            this.pendingState = button.getAttribute('value');
+
             this.$http.patch(`/api/v1/assignments/${this.assignment.id}`, {
                 state: this.assignment.state,
-            }).catch(() => {
-                this.assignment.state = oldState;
             }).then(() => {
-                this.submitting = false;
+                this.assignment.state = this.pendingState;
+                this.pendingState = '';
+            }, () => {
+                // handle error
             });
         },
     },
@@ -138,5 +138,9 @@ button {
         width: 1em;
         height: 1em;
     }
+}
+
+[id^="assignment-"] {
+    margin-top: 1em;
 }
 </style>
