@@ -136,7 +136,6 @@ input.form-control {
 
 .btn-group {
     button {
-        cursor: pointer;
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
     }
