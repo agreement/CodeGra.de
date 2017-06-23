@@ -1,11 +1,9 @@
 <template>
     <div class="page courses">
-        <div class="row justify-content-center">
-            <loader class="col-md-10 text-center" v-if="loading"></loader>
-            <div class="col-md-10" v-else>
-                <h1>Courses</h1>
-                <course-list :courses="courses"></course-list>
-            </div>
+        <loader class="text-center" v-if="loading"></loader>
+        <div class="" v-else>
+            <h1>Courses</h1>
+            <course-list :courses="courses"></course-list>
         </div>
     </div>
 </template>
