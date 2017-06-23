@@ -8,7 +8,7 @@
         <b-form-fieldset label="Deadline & state">
             <b-input-group>
                 <b-input-group-button>
-                    <b-popover placement="top" :content="error" show v-if="error">
+                    <b-popover placement="top" triggers="hover" :content="error" show v-if="error">
                         <b-button variant="danger">
                             <icon name="times"/>
                         </b-button>
@@ -20,22 +20,22 @@
                 </b-input-group-button>
                 <b-form-input type="datetime-local" v-model="deadline"></b-form-input>
                 <b-input-group-button @click.native="updateState">
-                    <b-popover placement="top" content="Hidden">
-                        <b-button :variant="state == assignmentState.HIDDEN ? 'danger' : 'outline-danger'" value="hidden">
+                    <b-popover placement="top" triggers="hover" content="Hidden">
+                        <b-button :variant="state === assignmentState.HIDDEN ? 'danger' : 'outline-danger'" :value="assignmentState.HIDDEN">
                             <icon name="eye-slash"></icon>
                         </b-button>
                     </b-popover>
                 </b-input-group-button>
                 <b-input-group-button @click.native="updateState">
-                    <b-popover placement="top" content="Open">
-                        <b-button :variant="state == 'open' ? 'warning' : 'outline-warning'" value="open">
+                    <b-popover placement="top" triggers="hover" content="Open">
+                        <b-button :variant="state === 'open' ? 'warning' : 'outline-warning'" value="open">
                             <icon name="clock-o"></icon>
                         </b-button>
                     </b-popover>
                 </b-input-group-button>
                 <b-input-group-button @click.native="updateState">
-                    <b-popover placement="top" content="Done">
-                        <b-button :variant="state == assignmentState.DONE ? 'success' : 'outline-success'" value="done">
+                    <b-popover placement="top" triggers="hover" content="Done">
+                        <b-button :variant="state === assignmentState.DONE ? 'success' : 'outline-success'" :value="assignmentState.DONE">
                             <icon name="check"></icon>
                         </b-button>
                     </b-popover>
@@ -81,9 +81,10 @@ export default {
 
     watch: {
         name() {
-            this.$emit('updateName', this.name);
+            this.$emit('nameUpdated', this.name);
         },
     },
+
     methods: {
         convertState(state) {
             switch (state) {
@@ -93,6 +94,7 @@ export default {
             default: return state;
             }
         },
+
         submitAssignment() {
             this.sending = true;
             const d = new Date(this.deadline);
@@ -119,7 +121,7 @@ export default {
             const button = event.target.closest('button');
             if (button != null) {
                 this.state = button.getAttribute('value');
-                this.$emit('updateState', this.state);
+                this.$emit('stateUpdated', this.state);
             }
         },
     },

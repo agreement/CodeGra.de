@@ -4,12 +4,12 @@
             {{ assignment.name }}
             <span class="icon text-muted">
                 <icon name="eye-slash" v-if="assignment.state == assignmentState.HIDDEN"></icon>
-                <icon name="clock-o" v-if="assignment.state === assignmentState.SUBMITTING || assignment.state === assignmentState.GRADING"></icon>
-                <icon name="check" v-if="assignment.state_name == assignmentState.DONE"></icon>
+                <icon name="clock-o" v-if="assignment.state === assignmentState.SUBMITTING || assignment.state === assignmentState.GRADING || assignment.state === 'open'"></icon>
+                <icon name="check" v-if="assignment.state == assignmentState.DONE"></icon>
             </span>
         </h5>
         <b-collapse class="row" :id="`assignment-${assignment.id}`">
-            <assignment-state class="col-6" :assignment="assignment" @updateName="updateName" @updateState="updateState"></assignment-state>
+            <assignment-state class="col-6" :assignment="assignment" @nameUpdated="updateName" @stateUpdated="updateState"></assignment-state>
             <divide-submissions class="col-6" :assignment="assignment"></divide-submissions>
             <div class="col-6">Linters</div>
             <div class="col-6">Upload blackboard zip</div>
@@ -60,7 +60,7 @@ export default {
         },
 
         updateState(state) {
-            this.assignment.state_name = state;
+            this.assignment.state = state;
         },
     },
 
