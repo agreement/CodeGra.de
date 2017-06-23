@@ -8,6 +8,7 @@
 
         <!-- Main table element -->
         <b-table striped hover
+                @row-clicked="gotoCourse"
                 :items="courses"
                 :fields="fields"
                 :current-page="currentPage"
@@ -121,4 +122,7 @@ export default {
 </script>
 
 <style lang="less" scoped>
+    .btn {
+        margin-right: 10px;
+    }
 </style>
