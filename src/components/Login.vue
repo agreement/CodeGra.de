@@ -9,7 +9,7 @@
 
         <b-form-fieldset>
             <b-form-input type="password" placeholder="Password" v-model="password"></b-form-input>
-            <b-alert variant="danger" :show="submitted && password.length === 0">
+            <b-alert variant="danger" :show="submitted && password && password.length === 0">
                 Please enter a non empty password
             </b-alert>
         </b-form-fieldset>
