@@ -2,15 +2,17 @@
     <form method="post" enctype="multipart/form-data" :action="action" v-on:submit.prevent="submit"
     :label-size="1">
         <b-form-fieldset :feedback="error">
-        <b-input-group>
-            <b-button :disabled="!hasFile" :variant="error ? 'danger' : (done ? 'success' : 'primary')" type="submit">
-            <icon scale=1 name="exclamation-triangle" v-if="error"></icon>
-            <loader scale=1 v-else-if="pending"></loader>
-            <icon scale=1 name="check" v-else-if="done"></icon>
-            <span v-else>Submit</span>
-            </b-button>
-            <b-form-file name="file" v-model="file" @change="change"></b-form-file>
-        </b-input-group>
+            <b-input-group>
+                <b-input-group-button>
+                    <b-button :disabled="!hasFile" :variant="error ? 'danger' : (done ? 'success' : 'primary')" type="submit">
+                        <icon scale=1 name="exclamation-triangle" v-if="error"></icon>
+                        <loader scale=1 v-else-if="pending"></loader>
+                        <icon scale=1 name="check" v-else-if="done"></icon>
+                        <span v-else>Submit</span>
+                    </b-button>
+                </b-input-group-button>
+                <b-form-file name="file" v-model="file" @change="change"></b-form-file>
+            </b-input-group>
         </b-form-fieldset>
     </form>
 </template>
@@ -23,7 +25,6 @@ import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/exclamation-triangle';
 
 import Loader from './Loader';
-
 
 export default {
     name: 'blackboard-uploader',
