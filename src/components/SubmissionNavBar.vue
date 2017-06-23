@@ -4,16 +4,7 @@
             <h4>Grading: {{ this.submission.user.name }}</h4>
             <div class="input-group">
                 <span class="input-group-btn">
-                    <b-button v-if="next" :to="{
-                            name: 'submission',
-                            params: {
-                                assignmentId: this.assignmentId,
-                                submissionId: prev,
-                            },
-                        }" class="arrow-btn">
-                        <icon name="arrow-left"></icon>
-                    </b-button>
-                    <b-button v-else class="arrow-btn disabled">
+                    <b-button :disabled="!prev" @click="selected = prev" class="arrow-btn">
                         <icon name="arrow-left"></icon>
                     </b-button>
                 </span>
@@ -21,16 +12,7 @@
                                :options="options"
                                calss="mb-3"></b-form-select>
                 <span class="input-group-btn">
-                    <b-button v-if="next" :to="{
-                            name: 'submission',
-                            params: {
-                                assignmentId: this.assignmentId,
-                                submissionId: next,
-                            },
-                        }" class="arrow-btn">
-                        <icon name="arrow-right"></icon>
-                    </b-button>
-                    <b-button v-else class="arrow-btn disabled">
+                    <b-button :disabled="!next" @click="selected = next" class="arrow-btn">
                         <icon name="arrow-right"></icon>
                     </b-button>
                 </span>
@@ -61,6 +43,7 @@ export default {
 
     mounted() {
         this.options = this.filterLatestSubmissions(this.submissions);
+        this.findNextPrev();
     },
 
     methods: {
@@ -68,25 +51,16 @@ export default {
             // filter submissions on latest only
             // and if assignee is set only
             // the submissions assigned to this user
-            const latestSubmissions = [];
+            const latestSubs = [];
             const seen = {};
             const len = submissions.length;
-            let curSubPassed = false;
             for (let i = 0; i < len; i += 1) {
                 const sub = submissions[i];
                 if (seen[sub.user.id] !== true) {
                     if (this.submission.assignee === '' ||
                         sub.assignee.id === this.userid) {
-                        // find next and prev
-                        if (curSubPassed) {
-                            this.next = sub.id;
-                        } else if (this.submission.id === sub.id) {
-                            curSubPassed = true;
-                        }
-                        this.prev = sub.id;
-
                         const grade = sub.grade ? sub.grade : '-';
-                        latestSubmissions.push({
+                        latestSubs.push({
                             text: `name: ${sub.user.name}, grade: ${grade}`,
                             value: sub.id,
                         });
@@ -94,7 +68,24 @@ export default {
                     }
                 }
             }
-            return latestSubmissions;
+
+            return latestSubs;
+        },
+
+        findNextPrev() {
+            // find next and prev submissions
+            this.next = null;
+            this.prev = null;
+            const index = this.options.findIndex(x => x.value === this.submission.id);
+            console.log(this.options);
+            console.log(this.submission.id);
+            console.log(index);
+            if (index >= 1) {
+                this.prev = this.options[index - 1].value;
+            }
+            if (index < this.options.length - 1) {
+                this.next = this.options[index + 1].value;
+            }
         },
     },
 
@@ -108,6 +99,10 @@ export default {
                 },
             });
             this.$emit('subChange');
+        },
+
+        submission() {
+            this.findNextPrev();
         },
     },
 
