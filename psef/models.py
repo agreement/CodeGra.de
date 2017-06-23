@@ -271,8 +271,9 @@ class Course(db.Model):
     assignments = db.relationship(
         "Assignment", back_populates="course", cascade='all,delete')
 
-    def to_dict(self):
+    def __to_json__(self):
         return {'id': self.id, 'name': self.name}
+
 
 
 class Work(db.Model):

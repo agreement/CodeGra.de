@@ -35,7 +35,7 @@ def add_course():
     db.session.add(new_course)
     db.session.commit()
 
-    return jsonify(new_course.to_dict())
+    return jsonify(new_course)
 
 @api.route('/courses/', methods=['GET'])
 @login_required
