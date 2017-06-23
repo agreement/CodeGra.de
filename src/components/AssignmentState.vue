@@ -8,11 +8,11 @@
         <b-form-fieldset label="Deadline & state">
             <b-input-group>
                 <b-input-group-button>
-                    <b-tooltip :content="error" show v-if="error">
+                    <b-popover placement="top" :content="error" show v-if="error">
                         <b-button variant="danger">
                             <icon name="times"/>
                         </b-button>
-                    </b-tooltip>
+                    </b-popover>
                     <b-button :variant="success ? 'success' : 'primary'" @click="submitAssignment" v-else>
                         <icon name="refresh" spin v-if="sending"></icon>
                         <span v-else>Submit</span>
@@ -20,17 +20,25 @@
                 </b-input-group-button>
                 <b-form-input type="datetime-local" v-model="deadline"></b-form-input>
                 <b-input-group-button @click.native="updateState">
-                    <b-button-group>
-                        <b-tooltip placement="bottom" content="Hidden">
-                            <b-button :variant="state == assignmentState.HIDDEN ? 'danger' : 'outline-danger'" value="hidden"><icon name="eye-slash"></icon></b-button>
-                        </b-tooltip>
-                        <b-tooltip placement="bottom" content="Open">
-                            <b-button :variant="state == 'open' ? 'warning' : 'outline-warning'" value="open"><icon name="clock-o"></icon></b-button>
-                        </b-tooltip>
-                        <b-tooltip placement="bottom" content="Done">
-                            <b-button :variant="state == assignmentState.DONE ? 'success' : 'outline-success'" value="done"><icon name="check"></icon></b-button>
-                        </b-tooltip>
-                    </b-button-group>
+                    <b-popover placement="top" content="Hidden">
+                        <b-button :variant="state == assignmentState.HIDDEN ? 'danger' : 'outline-danger'" value="hidden">
+                            <icon name="eye-slash"></icon>
+                        </b-button>
+                    </b-popover>
+                </b-input-group-button>
+                <b-input-group-button @click.native="updateState">
+                    <b-popover placement="top" content="Open">
+                        <b-button :variant="state == 'open' ? 'warning' : 'outline-warning'" value="open">
+                            <icon name="clock-o"></icon>
+                        </b-button>
+                    </b-popover>
+                </b-input-group-button>
+                <b-input-group-button @click.native="updateState">
+                    <b-popover placement="top" content="Done">
+                        <b-button :variant="state == assignmentState.DONE ? 'success' : 'outline-success'" value="done">
+                            <icon name="check"></icon>
+                        </b-button>
+                    </b-popover>
                 </b-input-group-button>
             </b-input-group>
         </b-form-fieldset>
@@ -38,7 +46,7 @@
 </template>
 
 <script>
-import { bButton, bButtonGroup, bFormFieldset, bFormInput, bInputGroup, bPopover, bTooltip } from
+import { bButton, bButtonGroup, bFormFieldset, bFormInput, bInputGroup, bPopover } from
     'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
@@ -123,7 +131,6 @@ export default {
         bFormInput,
         bInputGroup,
         bPopover,
-        bTooltip,
         Icon,
     },
 };
