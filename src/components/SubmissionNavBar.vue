@@ -1,6 +1,6 @@
 <template>
     <nav class="row">
-        <div class="col-12">
+        <div class="col-9">
             <h4>Grading: {{ this.submission.user.name }}</h4>
             <div class="input-group">
                 <span class="input-group-btn">
@@ -10,7 +10,8 @@
                 </span>
                 <b-form-select v-model="selected"
                                :options="options"
-                               calss="mb-3"></b-form-select>
+                               calss="mb-3"
+                               size="lg"></b-form-select>
                 <span class="input-group-btn">
                     <b-button :disabled="!next" @click="selected = next" class="arrow-btn">
                         <icon name="arrow-right"></icon>
