@@ -276,8 +276,8 @@ ol {
 
 li {
     position: relative;
-    padding-left: 1em;
-    padding-right: 1em;
+    padding-left: .75em;
+    padding-right: .75em;
 
     .editable & {
         cursor: pointer;

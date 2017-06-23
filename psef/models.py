@@ -169,6 +169,29 @@ class User(db.Model, UserMixin):
             return (course_id in self.courses and
                     self.courses[course_id].has_permission(permission))
 
+    def get_permission_in_courses(self, permission):
+        if not isinstance(permission, Permission):
+            permission = Permission.query.filter_by(name=permission).first()
+        assert permission.course_permission
+
+        course_roles = db.session.query(user_course.c.course_id).join(
+            User, User.id == user_course.c.user_id).filter(
+                User.id == self.id).subquery('course_roles')
+
+        crp = db.session.query(course_permissions.c.course_role_id).join(
+            Permission,
+            course_permissions.c.permission_id == Permission.id).filter(
+                Permission.id == permission.id).subquery('crp')
+
+        res = db.session.query(course_roles.c.course_id).join(
+            crp, course_roles.c.course_id == crp.c.course_role_id).all()
+
+        return {
+            course_role.course_id:
+            (course_role.id, ) in res != permission.default_value
+            for course_role in self.courses.values()
+        }
+
     @property
     def can_see_hidden(self):
         return self.has_course_permission_once('can_see_hidden_assignments')
@@ -280,7 +303,7 @@ class Work(db.Model):
             'user': self.user,
             'edit': self.edit,
             'created_at': self.created_at.isoformat(),
-            'assignee': self.assignee.name if self.assignee else "-",
+            'assignee': self.assignee.name if self.assignee else "",
         }
         try:
             auth.ensure_can_see_grade(self)

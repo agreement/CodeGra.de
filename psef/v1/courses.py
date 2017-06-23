@@ -1,4 +1,5 @@
 from flask import jsonify, request
+from flask_login import login_required, current_user
 
 import psef.auth as auth
 import psef.models as models
@@ -35,3 +36,15 @@ def add_course():
     db.session.commit()
 
     return jsonify(new_course.to_dict())
+
+@api.route('/courses/', methods=['GET'])
+@login_required
+def get_courses():
+    """
+    Return all courses of the current user.
+    """
+    return jsonify([{
+        'name': c.course.name,
+        'id': c.course.id,
+        'role': c.name
+    } for c in current_user.courses.values()])

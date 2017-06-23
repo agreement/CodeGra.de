@@ -9,7 +9,7 @@
         </div>
         <ol v-show="!isCollapsed">
             <li v-for="f in tree.entries">
-                <file-tree v-bind:tree="f" v-if="f.entries"></file-tree>
+                <file-tree v-bind:tree="f" v-bind:collapsed="!FileInTree($route.params.fileId, f)" v-if="f.entries"></file-tree>
                 <router-link :class="{ 'active-file': $route.params.fileId == f.id }" :to="{ name: 'submission_file', params: { courseId: courseId, assignmentId: assignmentId, submissionId: submissionId, fileId: f.id, }, }" replace v-else>
                     <icon name="file"></icon> {{ f.name }}
                 </router-link>
@@ -55,6 +55,18 @@ export default {
             event.stopPropagation();
             this.isCollapsed = !this.isCollapsed;
         },
+        FileInTree(fileid, tree) {
+            for (let i = 0; i < tree.entries.length; i += 1) {
+                if (tree.entries[i].entries) {
+                    if (this.FileInTree(fileid, tree.entries[i])) {
+                        return true;
+                    }
+                } else if (Number(tree.entries[i].id) === Number(fileid)) {
+                    return true;
+                }
+            }
+            return false;
+        },
     },
 
     components: {
@@ -75,10 +87,6 @@ export default {
         padding: 0;
         padding-left: 1.5em;
         overflow: hidden;
-    }
-
-    .active-file {
-        font-weight: bold;
     }
 }
 </style>
