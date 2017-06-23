@@ -3,6 +3,7 @@
         <div class="row submission-nav-bar">
             <div class="col-12">
                 <submission-nav-bar v-if="submissions && submission"
+                                    v-on:subChange="reloadSubmission"
                                     :submission="submission"
                                     :submissions="submissions"
                                     :courseId="courseId"
@@ -70,13 +71,8 @@ export default {
         fileId() { return Number(this.$route.params.fileId); },
     },
 
-    watch: {
-        fileId() {
-            this.getFileMetadata();
-        },
-    },
-
     mounted() {
+        console.log('asdfsad');
         this.hasPermission({ name: 'can_grade_work', course_id: this.courseId }).then((val) => {
             this.editable = val;
         });
@@ -176,6 +172,13 @@ export default {
         submitAllFeedback(event) {
             this.$refs.codeViewer.submitAllFeedback(event);
         },
+
+        reloadSubmission() {
+            this.getSubmission();
+            this.getSubmissionFiles();
+            this.getFileMetadata();
+        },
+
         ...mapActions({
             hasPermission: 'user/hasPermission',
         }),

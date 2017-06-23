@@ -1,11 +1,19 @@
 <template>
     <nav class="row">
         <div class="col-12">
-            {{ this.submission }}
             <h4>Grading: {{ this.submission.user.name }}</h4>
             <div class="input-group">
                 <span class="input-group-btn">
-                    <b-button class="arrow-btn">
+                    <b-button v-if="next" :to="{
+                            name: 'submission',
+                            params: {
+                                assignmentId: this.assignmentId,
+                                submissionId: prev,
+                            },
+                        }" class="arrow-btn">
+                        <icon name="arrow-left"></icon>
+                    </b-button>
+                    <b-button v-else class="arrow-btn disabled">
                         <icon name="arrow-left"></icon>
                     </b-button>
                 </span>
@@ -13,7 +21,16 @@
                                :options="options"
                                calss="mb-3"></b-form-select>
                 <span class="input-group-btn">
-                    <b-button class="arrow-btn">
+                    <b-button v-if="next" :to="{
+                            name: 'submission',
+                            params: {
+                                assignmentId: this.assignmentId,
+                                submissionId: next,
+                            },
+                        }" class="arrow-btn">
+                        <icon name="arrow-right"></icon>
+                    </b-button>
+                    <b-button v-else class="arrow-btn disabled">
                         <icon name="arrow-right"></icon>
                     </b-button>
                 </span>
@@ -35,8 +52,10 @@ export default {
 
     data() {
         return {
-            selected: this.submission.user.id,
-            options: [],
+            selected: this.submission.id,
+            options: {},
+            next: null,
+            prev: null,
         };
     },
 
@@ -52,32 +71,43 @@ export default {
             const latestSubmissions = [];
             const seen = {};
             const len = submissions.length;
-            if (this.submission.assignee === '-') {
-                for (let i = 0; i < len; i += 1) {
-                    if (seen[submissions[i].user.id] !== true) {
-                        const sub = submissions[i];
+            let curSubPassed = false;
+            for (let i = 0; i < len; i += 1) {
+                const sub = submissions[i];
+                if (seen[sub.user.id] !== true) {
+                    if (this.submission.assignee === '' ||
+                        sub.assignee.id === this.userid) {
+                        // find next and prev
+                        if (curSubPassed) {
+                            this.next = sub.id;
+                        } else if (this.submission.id === sub.id) {
+                            curSubPassed = true;
+                        }
+                        this.prev = sub.id;
+
                         const grade = sub.grade ? sub.grade : '-';
                         latestSubmissions.push({
                             text: `name: ${sub.user.name}, grade: ${grade}`,
-                            value: sub.user.id,
-                        });
-                        seen[sub.user.id] = true;
-                    }
-                }
-            } else {
-                for (let i = 0; i < len; i += 1) {
-                    const sub = submissions[i];
-                    if (seen[sub.user.id] !== true && sub.assignee.id === this.userid) {
-                        const grade = sub.grade ? sub.grade : '-';
-                        latestSubmissions.push({
-                            text: `name: ${sub.user.name}, grade: ${grade}`,
-                            value: sub.user.id,
+                            value: sub.id,
                         });
                         seen[sub.user.id] = true;
                     }
                 }
             }
             return latestSubmissions;
+        },
+    },
+
+    watch: {
+        selected(val) {
+            this.$router.push({
+                name: 'submission',
+                params: {
+                    assignmentId: this.assignmentId,
+                    submissionId: val,
+                },
+            });
+            this.$emit('subChange');
         },
     },
 
