@@ -2,9 +2,11 @@
     <div class="page submission">
         <div class="row submission-nav-bar">
             <div class="col-12">
-                <submission-nav-bar :submission=submission
-                                    :courseId=courseId
-                                    :assignmentId=assignmentId></submission-nav-bar>
+                <submission-nav-bar v-if="submissions && submission"
+                                    :submission="submission"
+                                    :submissions="submissions"
+                                    :courseId="courseId"
+                                    :assignmentId="assignmentId"></submission-nav-bar>
             </div>
         </div>
         <div class="row">
@@ -57,13 +59,14 @@ export default {
             grade: 0,
             showGrade: false,
             feedback: '',
+            submissions: null,
         };
     },
 
     computed: {
-        courseId() { return this.$route.params.courseId; },
-        assignmentId() { return this.$route.params.assignmentId; },
-        submissionId() { return this.$route.params.submissionId; },
+        courseId() { return Number(this.$route.params.courseId); },
+        assignmentId() { return Number(this.$route.params.assignmentId); },
+        submissionId() { return Number(this.$route.params.submissionId); },
         fileId() { return Number(this.$route.params.fileId); },
     },
 
@@ -80,6 +83,7 @@ export default {
         this.getSubmission();
         this.getSubmissionFiles();
         this.getFileMetadata();
+        this.getAllSubmissions();
 
         const elements = Array.from(document.querySelectorAll('html, body, #app, nav, footer'));
         const [html, body, app, nav, footer] = elements;
@@ -160,6 +164,12 @@ export default {
             this.fileExtension = '';
             this.$http.get(`/api/v1/code/${this.fileId}?type=metadata`).then((response) => {
                 this.fileExtension = response.data.extension;
+            });
+        },
+
+        getAllSubmissions() {
+            this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then(({ data }) => {
+                this.submissions = data;
             });
         },
 

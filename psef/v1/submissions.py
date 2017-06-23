@@ -39,15 +39,6 @@ def get_submission(submission_id):
     if request.args.get('type') == 'feedback':
         return get_feedback(work)
 
-#     return jsonify({
-#         'id': work.id,
-#         'user_id': work.user_id,
-#         'user_name': work.user.name,
-#         'edit': work.edit,
-#         'grade': work.grade,
-#         'comment': work.comment,
-#         'created_at': work.created_at,
-#     })
     return jsonify(work)
 
 
