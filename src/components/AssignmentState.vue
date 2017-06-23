@@ -22,13 +22,19 @@
                 <b-input-group-button @click.native="updateState">
                     <b-button-group>
                         <b-tooltip placement="bottom" content="Hidden">
-                            <b-button :variant="state == assignmentState.HIDDEN ? 'danger' : 'outline-danger'" value="hidden"><icon name="eye-slash"></icon></b-button>
+                            <b-button :variant="assignment.state == assignmentState.HIDDEN ? 'danger' : 'outline-danger'" value="hidden">
+                                <icon name="eye-slash"></icon>
+                            </b-button>
                         </b-tooltip>
                         <b-tooltip placement="bottom" content="Open">
-                            <b-button :variant="state == 'open' ? 'warning' : 'outline-warning'" value="open"><icon name="clock-o"></icon></b-button>
+                            <b-button :variant="assignment.state == assignmentState.SUBMITTING || assignment.state == assignmentState.GRADING ? 'warning' : 'outline-warning'" value="open">
+                                <icon name="clock-o"></icon>
+                            </b-button>
                         </b-tooltip>
                         <b-tooltip placement="bottom" content="Done">
-                            <b-button :variant="state == assignmentState.DONE ? 'success' : 'outline-success'" value="done"><icon name="check"></icon></b-button>
+                            <b-button :variant="assignment.state == assignmentState.DONE ? 'success' : 'outline-success'" value="done">
+                                <icon name="check"></icon>
+                            </b-button>
                         </b-tooltip>
                     </b-button-group>
                 </b-input-group-button>
