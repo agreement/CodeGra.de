@@ -6,18 +6,24 @@
             </h5>
             <b-button-group @click.native="updateState">
                 <b-popover placement="top" triggers="hover" content="Hidden">
-                    <b-button :variant="assignment.state === assignmentState.HIDDEN ? 'danger' : 'outline-danger'" size="sm" value="hidden">
-                        <icon name="eye-slash"></icon>
+                    <b-button size="sm" value="hidden"
+                        :variant="assignment.state === assignmentState.HIDDEN ? 'danger' : 'outline-danger'">
+                        <loader scale="1" v-if="submitting && assignment.state === assignmentState.HIDDEN"></loader>
+                        <icon name="eye-slash" v-else></icon>
                     </b-button>
                 </b-popover>
                 <b-popover placement="top" triggers="hover" content="Open">
-                    <b-button :variant="assignment.state === assignmentState.SUBMITTING || assignment.state === assignmentState.GRADING || assignment.state === 'open' ? 'warning' : 'outline-warning'" size="sm" value="open">
-                        <icon name="clock-o"></icon>
+                    <b-button size="sm" value="open"
+                        :variant="[assignmentState.SUBMITTING, assignmentState.GRADING, 'open'].indexOf(assignment.state) > -1 ? 'warning' : 'outline-warning'">
+                        <loader scale="1" v-if="submitting && [assignmentState.SUBMITTING, assignmentState.GRADING, 'open'].indexOf(assignment.state) > -1"></loader>
+                        <icon name="clock-o" v-else></icon>
                     </b-button>
                 </b-popover>
                 <b-popover placement="top" triggers="hover" content="Done">
-                    <b-button :variant="assignment.state === assignmentState.DONE ? 'success' : 'outline-success'" size="sm" value="done">
-                        <icon name="check"></icon>
+                    <b-button size="sm" value="done"
+                        :variant="assignment.state === assignmentState.DONE ? 'success' : 'outline-success'">
+                        <loader scale="1" v-if="submitting && assignment.state === assignmentState.DONE"></loader>
+                        <icon name="check" v-else></icon>
                     </b-button>
                 </b-popover>
             </b-button-group>
@@ -42,6 +48,7 @@ import 'vue-awesome/icons/check';
 import DivideSubmissions from './DivideSubmissions';
 import BlackboardUploader from './BlackboardUploader';
 import Linters from './Linters';
+import Loader from './Loader';
 
 import * as assignmentState from '../store/assignment-states';
 
@@ -71,15 +78,15 @@ export default {
             const button = target.closest('button');
             if (!button) return;
 
-            const newState = button.getAttribute('value');
-
+            const oldState = this.assignment.state;
+            this.assignment.state = button.getAttribute('value');
+            this.submitting = true;
             this.$http.patch(`/api/v1/assignments/${this.assignment.id}`, {
-                state: newState,
+                state: this.assignment.state,
+            }).catch(() => {
+                this.assignment.state = oldState;
             }).then(() => {
-                this.assignment.state = newState;
-            }, (err) => {
-                // show error
-                console.dir(err);
+                this.submitting = false;
             });
         },
     },
@@ -88,6 +95,7 @@ export default {
         BlackboardUploader,
         DivideSubmissions,
         Linters,
+        Loader,
         bButton,
         bButtonGroup,
         bCollapse,
