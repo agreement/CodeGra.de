@@ -1,27 +1,24 @@
 <template>
     <div id="newCourse">
-        <div class="justify-content-md-center">
-            <loader class="text-center" v-if="loading"></loader>
+        <loader class="text-center" v-if="loading"></loader>
 
-            <div v-else v-on:keyup.enter="submit()">
-                <div class="form-group">
-                    <b-input-group left="Course Name">
-                        <b-form-input  type="text" v-model="name"></b-form-input>
-                    </b-input-group>
-                    <div v-show="done && error.length !== 0" class="help alert-danger">
-                        {{ error }}
-                    </div>
-                </div>
+        <div v-else v-on:keyup.enter="submit()">
+            <b-form-fieldset>
+                <b-input-group left="Course Name">
+                    <b-form-input  type="text" v-model="name"></b-form-input>
+                </b-input-group>
+                <b-alert variant="danger" :show="true" v-if="error.length != 0">
+                    {{ error }}
+                </b-alert>
+            </b-form-fieldset>
 
-                <div class="btn-group btn-group-justified pull-right">
-                    <div class="btn-group">
-                        <button type="cancel" class="btn btn-primary" @click="reset()">Cancel</button>
-                    </div>
-                    <div class="btn-group">
-                        <button type="submit" class="btn btn-primary" @click="submit()">Submit</button>
-                    </div>
-                </div>
-            </div>
+            <b-button-toolbar justify>
+                <b-button variant="danger" @click="reset()">Cancel</b-button>
+                <b-button :variant="error.length != 0 ? 'danger' : done ? 'success' : 'primary'" @click="submit()">
+                    <icon name="refresh" spin v-if="submitted"></icon>
+                    <span v-else>Submit</span>
+                </b-button>
+            </b-button-toolbar>
         </div>
     </div>
 </template>
@@ -50,8 +47,11 @@ export default {
             this.error = '';
         },
         submit() {
+            if (this.name === '') {
+                this.error = 'Please select a course name';
+                return;
+            }
             this.loading = true;
-            this.done = true;
             this.$http.post('/api/v1/courses/', { name: this.name }).then(({ data }) => {
                 this.loading = false;
                 this.assignments = data;
@@ -60,6 +60,7 @@ export default {
                 () => {
                     this.error = 'An error occurred adding the course, try again please!';
                     this.loading = false;
+                    this.done = false;
                 },
             );
             this.loading = false;
