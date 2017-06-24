@@ -1,5 +1,6 @@
 import os
 import enum
+import json
 import uuid
 import datetime
 
@@ -48,7 +49,7 @@ class LTIProvider(db.Model):
 
 class AssignmentResult(db.Model):
     __tablename__ = 'AssignmentResult'
-    souredid = db.Column('sourdid', db.Unicode)
+    sourcedid = db.Column('sourdid', db.Unicode)
     user_id = db.Column('User_id', db.Integer,
                         db.ForeignKey('User.id', ondelete='CASCADE'))
     assignment_id = db.Column('Assignment_id', db.Integer,
@@ -76,7 +77,7 @@ class CourseRole(db.Model):
         collection_class=attribute_mapped_collection('name'),
         secondary=course_permissions)
 
-    course = db.relationship('Course', foreign_keys=course_id)
+    course = db.relationship('Course', foreign_keys=course_id, backref="roles")
 
     def has_permission(self, permission):
         if isinstance(permission, Permission):
@@ -115,6 +116,22 @@ class CourseRole(db.Model):
             else:
                 result[perm.name] = perm.default_value
         return result
+
+    @staticmethod
+    def get_default_course_roles():
+        res = {}
+        for name, c in app.config['DEFAULT_COURSE_ROLES'].items():
+            perms = Permission.query.filter_by(
+                course_permission=True).all()
+            r_perms = {}
+            perms_set = set(c['permissions'])
+            for perm in perms:
+                if (perm.default_value and perm.name not in perms_set or
+                        not perm.default_value and perm.name in perms_set):
+                    r_perms[perm.name] = perm
+
+            res[name] = r_perms
+        return res
 
 
 class Role(db.Model):
@@ -272,6 +289,13 @@ class Course(db.Model):
     assignments = db.relationship(
         "Assignment", back_populates="course", cascade='all,delete')
 
+    def __init__(self, name=None, lti_course_id=None, lti_provider=None):
+        self.name = name
+        self.lti_course_id = lti_course_id
+        self.lti_provider = lti_provider
+        for name, perms in CourseRole.get_default_course_roles().items():
+            CourseRole(name=name, course=self, _permissions=perms)
+
 
 class Work(db.Model):
     __tablename__ = "Work"
@@ -300,8 +324,8 @@ class Work(db.Model):
         return self._grade
 
     @grade.setter
-    def set_grade(self, new_grade):
-        from psef.LTI import LTI
+    def grade(self, new_grade):
+        from psef.lti import LTI
         self._grade = new_grade
         if self.assignment.course.lti_provider:
             lti_provider = self.assignment.course.lti_provider
@@ -458,7 +482,7 @@ class AssignmentLinter(db.Model):
                      sub.c.max_date == Work.created_at)).filter(
                          Work.assignment_id == assignment_id).order_by(
                              Work.id).all():
-            tests.append(LinterInstance.create_test(work, self))
+            tests.append(LinterInstance(work, self))
         self.tests = tests
         return self
 
@@ -480,13 +504,15 @@ class LinterInstance(db.Model):
     comments = db.relationship(
         "LinterComment", back_populates="linter", cascade='all,delete')
 
-    @classmethod
-    def create_test(cls, work, tester):
+    def __init__(self, work, tester):
         id = str(uuid.uuid4())
         while db.session.query(
-                LinterInstance.query.filter(cls.id == id).exists()).scalar():
+                LinterInstance.query.filter(LinterState.id == id)
+                .exists()).scalar():
             id = str(uuid.uuid4())
-        return cls(id=id, work=work, tester=tester)
+        self.id = id
+        self.work = work
+        self.tester = tester
 
     def to_dict(self):
         return {

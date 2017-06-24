@@ -1,67 +1,54 @@
-[
-    {
-        "name": "can_add_users",
-        "default_value": false,
-        "course_permission": false
-    },
-    {
-        "name": "can_submit_own_work",
-        "default_value": true,
-        "course_permission": true
-    },
-    {
-        "name": "can_grade_work",
-        "default_value": false,
-        "course_permission": true
-    },
-    {
-        "name": "can_see_grade_before_open",
-        "default_value": false,
-        "course_permission": true
-    },
-    {
-        "name": "can_view_files",
-        "default_value": false,
-        "course_permission": true
-    },
-    {
-        "name": "can_see_others_work",
-        "default_value": false,
-        "course_permission": true
-    },
-    {
-        "name": "can_see_assignments",
-        "default_value": true,
-        "course_permission": true
-    },
-    {
-        "name": "can_see_hidden_assignments",
-        "default_value": false,
-        "course_permission": true
-    },
-    {
-        "name": "can_use_snippets",
-        "default_value": true,
-        "course_permission": false
-    },
-    {
-        "name": "can_edit_own_info",
-        "default_value": true,
-        "course_permission": false
-    },
-    {
-        "name": "can_use_linter",
-        "default_value": false,
-        "course_permission": true
-    },
-    {
-        "name": "can_manage_course",
-        "default_value": false,
-        "course_permission": true
-    },
-    {
-        "name": "can_upload_after_deadline",
-        "default_value": false,
-        "course_permission": true
-    }
-]
+{
+  "can_add_users": {
+    "default_value": false,
+    "course_permission": false
+  },
+  "can_submit_own_work": {
+    "default_value": true,
+    "course_permission": true
+  },
+  "can_grade_work": {
+    "default_value": false,
+    "course_permission": true
+  },
+  "can_see_grade_before_open": {
+    "default_value": false,
+    "course_permission": true
+  },
+  "can_view_files": {
+    "default_value": false,
+    "course_permission": true
+  },
+  "can_see_others_work": {
+    "default_value": false,
+    "course_permission": true
+  },
+  "can_see_assignments": {
+    "default_value": true,
+    "course_permission": true
+  },
+  "can_see_hidden_assignments": {
+    "default_value": false,
+    "course_permission": true
+  },
+  "can_use_snippets": {
+    "default_value": true,
+    "course_permission": false
+  },
+  "can_edit_own_info": {
+    "default_value": true,
+    "course_permission": false
+  },
+  "can_use_linter": {
+    "default_value": false,
+    "course_permission": true
+  },
+  "can_manage_course": {
+    "default_value": false,
+    "course_permission": true
+  },
+  "can_upload_after_deadline": {
+    "default_value": false,
+    "course_permission": true
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "student": {
+    "permissions": [
+      "can_user_snippets",
+      "can_edit_own_information"
+    ]
+  },
+  "staff": {
+    "permissions": [
+      "can_user_snippets",
+      "can_edit_own_information"
+    ]
+  },
+  "admin": {
+    "permissions": [
+      "can_user_snippets",
+      "can_edit_own_information",
+      "can_add_users"
+    ]
+  }
+}
