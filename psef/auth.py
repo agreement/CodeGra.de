@@ -1,9 +1,11 @@
 from functools import wraps
 
+import flask
+import oauth2
 from flask_login import current_user
 
 import psef.models as models
-from psef import login_manager
+from psef import app, login_manager
 from psef.errors import APICodes, APIException
 
 
@@ -91,3 +93,102 @@ def permission_required(permission_name, course_id=None):
 
 
 permission_required.__doc__ = ensure_permission.__doc__
+
+# The code below is copied for a large part from here:
+# https://github.com/tophatmonocle/ims_lti_py
+
+
+class _RequestValidatorMixin(object):
+    '''
+    A 'mixin' for OAuth request validation.
+    '''
+
+    def __init__(self):
+        super(_RequestValidatorMixin, self).__init__()
+
+        self.oauth_server = oauth2.Server()
+        signature_method = oauth2.SignatureMethod_HMAC_SHA1()
+        self.oauth_server.add_signature_method(signature_method)
+        self.oauth_consumer = oauth2.Consumer(self.consumer_key,
+                                              self.consumer_secret)
+
+    def is_valid_request(self,
+                         request,
+                         parameters={},
+                         fake_method=None,
+                         handle_error=True):
+        '''
+        Validates an OAuth request using the python-oauth2 library:
+            https://github.com/simplegeo/python-oauth2
+        '''
+
+        def handle(e):
+            if handle_error:
+                return False
+            else:
+                raise e
+
+        try:
+            # Set the parameters to be what we were passed earlier
+            # if we didn't get any passed to us now
+            if not parameters and hasattr(self, 'params'):
+                parameters = self.params
+
+            method, url, headers, parameters = self.parse_request(
+                request, parameters, fake_method)
+
+            oauth_request = oauth2.Request.from_request(
+                method, url, headers=headers, parameters=parameters)
+
+            oauth2.Token
+            self.oauth_server.verify_request(oauth_request,
+                                             self.oauth_consumer, {})
+
+        except oauth2.Error as e:
+            return handle(e)
+        except ValueError as e:
+            return handle(e)
+        # Signature was valid
+        return True
+
+    def parse_request(self, request, parameters):
+        '''
+        This must be implemented for the framework you're using
+        Returns a tuple: (method, url, headers, parameters)
+        method is the HTTP method: (GET, POST)
+        url is the full absolute URL of the request
+        headers is a dictionary of any headers sent in the request
+        parameters are the parameters sent from the LMS
+        '''
+        raise NotImplemented
+
+    def valid_request(self, request):
+        '''
+        Check whether the OAuth-signed request is valid and throw error if not.
+        '''
+        self.is_valid_request(request, parameters={}, handle_error=False)
+
+
+class _FlaskOAuthValidator(_RequestValidatorMixin):
+    def __init__(self, key, secret):
+        self.consumer_key = key
+        self.consumer_secret = secret
+        super(_FlaskOAuthValidator, self).__init__()
+
+    def parse_request(self, req, parameters=None, fake_method=None):
+        '''
+        Parse Flask request
+        '''
+        return (req.method, req.url, dict(req.headers), req.form.copy())
+
+
+def ensure_valid_oauth(key,
+                       secret,
+                       request,
+                       parser_cls=_FlaskOAuthValidator):
+    validator = parser_cls(key, secret)
+    if not validator.is_valid_request(request):
+        raise PermissionException(
+            'No valid oauth request could be found.',
+            'The given request is not a valid oauth request.',
+            APICodes.INVALID_OAUTH_REQUEST, 400)

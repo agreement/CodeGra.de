@@ -4,12 +4,12 @@ import uuid
 import datetime
 
 from flask_login import UserMixin
+from sqlalchemy_utils import PasswordType
 from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
-from psef import db, login_manager
+from psef import db, app, login_manager
 from psef.helpers import get_request_start_time
-from sqlalchemy_utils import PasswordType
 
 permissions = db.Table('roles-permissions',
                        db.Column('permission_id', db.Integer,
@@ -34,6 +34,28 @@ user_course = db.Table('users-courses',
                                      'Course_Role.id', ondelete='CASCADE')),
                        db.Column('user_id', db.Integer,
                                  db.ForeignKey('User.id', ondelete='CASCADE')))
+
+
+class LTIProvider(db.Model):
+    __tablename__ = 'LTIProvider'
+    id = db.Column('id', db.Integer, primary_key=True)
+    key = db.Column('key', db.Unicode)
+
+    @property
+    def secret(self):
+        return app.config['LTI_CONSUMER_KEY_SECRETS'][self.key]
+
+
+class AssignmentResult(db.Model):
+    __tablename__ = 'AssignmentResult'
+    souredid = db.Column('sourdid', db.Unicode)
+    user_id = db.Column('User_id', db.Integer,
+                        db.ForeignKey('User.id', ondelete='CASCADE'))
+    assignment_id = db.Column('Assignment_id', db.Integer,
+                              db.ForeignKey(
+                                  'Assignment.id', ondelete='CASCADE'))
+
+    __table_args__ = (db.PrimaryKeyConstraint(assignment_id, user_id), )
 
 
 class Permission(db.Model):
@@ -139,6 +161,10 @@ class Role(db.Model):
 class User(db.Model, UserMixin):
     __tablename__ = "User"
     id = db.Column('id', db.Integer, primary_key=True)
+
+    # All stuff for LTI
+    lti_user_id = db.Column(db.Unicode, unique=True)
+
     name = db.Column('name', db.Unicode)
     active = db.Column('active', db.Boolean, default=True)
     role_id = db.Column('Role_id', db.Integer, db.ForeignKey('Role.id'))
@@ -153,7 +179,12 @@ class User(db.Model, UserMixin):
         PasswordType(schemes=[
             'pbkdf2_sha512',
         ], deprecated=[]),
-        nullable=False)
+        nullable=True)
+
+    assignment_results = db.relationship(
+        'AssignmentResult',
+        collection_class=attribute_mapped_collection('assignment_id'),
+        backref=db.backref('user', lazy='select'))
 
     role = db.relationship('Role', foreign_keys=role_id)
 
@@ -232,6 +263,12 @@ class Course(db.Model):
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode)
 
+    # All stuff for LTI
+    lti_course_id = db.Column(db.Unicode, unique=True)
+
+    lti_provider_id = db.Column(db.Integer, db.ForeignKey('LTIProvider.id'))
+    lti_provider = db.relationship("LTIProvider")
+
     assignments = db.relationship(
         "Assignment", back_populates="course", cascade='all,delete')
 
@@ -244,7 +281,7 @@ class Work(db.Model):
     user_id = db.Column('User_id', db.Integer,
                         db.ForeignKey('User.id', ondelete='CASCADE'))
     edit = db.Column('edit', db.Integer)
-    grade = db.Column('grade', db.Float, default=None)
+    _grade = db.Column('grade', db.Float, default=None)
     comment = db.Column('comment', db.Unicode, default=None)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     assigned_to = db.Column('assigned_to', db.Integer,
@@ -257,6 +294,24 @@ class Work(db.Model):
     @property
     def is_graded(self):
         raise NotImplementedError()
+
+    @property
+    def grade(self):
+        return self._grade
+
+    @grade.setter
+    def set_grade(self, new_grade):
+        from psef.LTI import LTI
+        self._grade = new_grade
+        if self.assignment.course.lti_provider:
+            lti_provider = self.assignment.course.lti_provider
+            LTI.passback_grade(
+                lti_provider.key,
+                lti_provider.secret,
+                self.grade / 10,
+                self.assignment.lti_outcome_service_url,
+                self.user.assignment_results[self.assignment_id].sourcedid,
+                text=self.comment)
 
     def add_file_tree(self, session, tree):
         """Add the given tree to the given db.
@@ -460,6 +515,15 @@ class Assignment(db.Model):
     course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     deadline = db.Column('deadline', db.DateTime)
+
+    # All stuff for LTI
+    lti_assignment_id = db.Column(db.Unicode, unique=True)
+    lti_outcome_service_url = db.Column(db.Unicode)
+
+    assignment_results = db.relationship(
+        'AssignmentResult',
+        collection_class=attribute_mapped_collection('user_id'),
+        backref=db.backref('assignment', lazy='select'))
 
     course = db.relationship(
         'Course', foreign_keys=course_id, back_populates='assignments')

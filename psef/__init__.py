@@ -3,7 +3,9 @@
 from flask import Flask, render_template, g
 import datetime
 from flask_login import LoginManager
-# Import SQLAlchemy
+import logging
+
+from logging.handlers import RotatingFileHandler
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -36,6 +38,7 @@ import psef.models
 import psef.errors
 import psef.auth
 import psef.files
+import psef.lti
 
 # Register blueprint(s)
 from .v1 import api as api_v1_blueprint
