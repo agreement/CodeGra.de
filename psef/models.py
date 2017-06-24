@@ -641,3 +641,20 @@ class Snippet(db.Model):
 
     def __to_json__(self):
         return {'key': self.key, 'value': self.value, 'id': self.id}
+
+class Rubric(db.Model):
+    __tablename__= 'Rubric'
+    id = db.Column('id', db.Integer, primary_key=True)
+    assignment_id = db.Column('Assignment_id', db.Integer, db.ForeignKey('Assignment.id'))
+
+    assignment = db.relationship('Assignment', foreign_keys=assignment_id)
+
+class RubricItem(db.Model):
+    __tablename__= 'RubricItem'
+    id = db.Column('id', db.Integer, primary_key=True)
+    rubric_id = db.Column('Rubric_id', db.Integer, db.ForeignKey('Rubric.id'))
+    row = db.Column('row', db.Integer)
+    col = db.Column('col', db.Integer)
+    description = db.Column('description', db.Unicode, default='')
+
+    rubric = db.relationship('Rubric', foreign_keys=rubric_id)
