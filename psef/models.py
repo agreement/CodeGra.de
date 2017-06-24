@@ -369,9 +369,8 @@ class File(db.Model):
 
     work = db.relationship('Work', foreign_keys=work_id)
 
-    __table_args__ = (
-        db.CheckConstraint(or_(is_directory == false(), extension == null())),
-    )
+    __table_args__ = (db.CheckConstraint(
+        or_(is_directory == false(), extension == null())), )
 
     def get_filename(self):
         if self.extension is not None and self.extension != "":
@@ -642,15 +641,18 @@ class Snippet(db.Model):
     def __to_json__(self):
         return {'key': self.key, 'value': self.value, 'id': self.id}
 
+
 class Rubric(db.Model):
-    __tablename__= 'Rubric'
+    __tablename__ = 'Rubric'
     id = db.Column('id', db.Integer, primary_key=True)
-    assignment_id = db.Column('Assignment_id', db.Integer, db.ForeignKey('Assignment.id'))
+    assignment_id = db.Column('Assignment_id', db.Integer,
+                              db.ForeignKey('Assignment.id'))
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
 
+
 class RubricItem(db.Model):
-    __tablename__= 'RubricItem'
+    __tablename__ = 'RubricItem'
     id = db.Column('id', db.Integer, primary_key=True)
     rubric_id = db.Column('Rubric_id', db.Integer, db.ForeignKey('Rubric.id'))
     row = db.Column('row', db.Integer)
