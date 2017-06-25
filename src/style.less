@@ -50,18 +50,12 @@ footer {
         }
     }
 
-    &-sm {
-        .fa-icon {
-            position: relative;
-            top: 1px;
-        }
+    &-sm .fa-icon {
+        transform: translateY(1px);
     }
 
-    &:not(&-sm) {
-        .fa-icon {
-            position: relative;
-            top: 2px;
-        }
+    &:not(&-sm) .fa-icon {
+        transform: translateY(2px);
     }
 }
 
