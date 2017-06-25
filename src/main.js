@@ -18,7 +18,6 @@ import store from './store';
 
 Vue.use(BootstrapVue);
 Vue.use(Toasted);
-
 Vue.config.productionTip = false;
 
 // Execute additional setup code

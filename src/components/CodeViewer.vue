@@ -1,28 +1,23 @@
 <template>
     <b-alert variant="danger" show v-if="error">
-        <center><span>Cannot display file!</span></center>
+        <center>
+            <span>Cannot display file!</span>
+        </center>
     </b-alert>
     <loader class="text-center" v-else-if="loading"></loader>
-    <ol class="code-viewer form-control" v-else :class="{ editable: editable }">
+    <ol class="code-viewer form-control" v-else :class="{ editable: editable }" ref="viewer">
         <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
             :class="{ 'linter-feedback': linterFeedback[i] }">
 
             <linter-feedback-area :feedback="linterFeedback[i]"> </linter-feedback-area>
-            <code  v-html="line"></code>
+            <code v-html="line"></code>
 
-
-            <feedback-area :editing="editing[i] === true"
-                            :feedback='feedback[i].msg'
-                            :editable='editable'
-                            :line='i'
-                            :fileId='fileId'
-                            v-on:feedbackChange="val => { feedbackChange(i, val); }"
-                            v-on:cancel='onChildCancel'
-                            v-if="feedback[i] != null">
+            <feedback-area :editing="editing[i] === true" :feedback='feedback[i].msg' :editable='editable'
+                :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }"
+                v-on:cancel='onChildCancel' v-if="feedback[i] != null">
             </feedback-area>
 
-            <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
-                    v-on:click="addFeedback($event, value)"></icon>
+            <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null" v-on:click="addFeedback($event, value)"></icon>
         </li>
     </ol>
 </template>
@@ -77,6 +72,8 @@ export default {
             linterFeedback: {},
             clicks: {},
             error: false,
+            oldFileId: 0,
+            scrollPos: {},
         };
     },
 
@@ -93,7 +90,17 @@ export default {
 
     watch: {
         id(to) {
+            if (!this.loading && !this.error) {
+                // Save old scroll position
+                const viewer = this.$refs.viewer;
+
+                this.scrollPos[this.oldFileId] = {
+                    scrollLeft: viewer.scrollLeft,
+                    scrollTop: viewer.scrollTop,
+                };
+            }
             this.fileId = to;
+            this.oldFileId = this.fileId;
         },
 
         fileId() {
@@ -120,6 +127,15 @@ export default {
                     this.linkFiles();
                     this.loading = false;
                     this.error = false;
+                    this.$nextTick(() => {
+                        const viewer = this.$refs.viewer;
+
+                        const scrollTo = this.scrollPos[this.fileId];
+                        if (scrollTo) {
+                            viewer.scrollLeft = scrollTo.scrollLeft;
+                            viewer.scrollTop = scrollTo.scrollTop;
+                        }
+                    });
                 }
             };
 
@@ -248,7 +264,7 @@ export default {
             }
         },
         // eslint-disable-next-line
-        submitAllFeedback(event) {},
+        submitAllFeedback(event) { },
     },
 
     components: {
