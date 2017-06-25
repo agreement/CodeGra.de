@@ -1,16 +1,16 @@
 <template>
     <div class="file-tree-container">
         <b-form-fieldset>
-            <div class="btn-group-vertical">
+            <b-button-group>
                 <b-button @click="downloadArchive()" variant="primary" title="Download archive">
                     <icon name="download" class="download-icon"></icon>
-                    <span class="text">Download archive</span>
+                    <span class="text">Archive</span>
                 </b-button>
                 <b-button @click="downloadFeedback()" variant="primary" title="Download feedback">
                     <icon name="download" class="download-icon"></icon>
-                    <span class="text">Download feedback</span>
+                    <span class="text">Feedback</span>
                 </b-button>
-            </div>
+            </b-button-group>
         </b-form-fieldset>
         <loader class="text-center" :scale="3" v-if="!fileTree"></loader>
         <file-tree :collapsed="false" :tree="fileTree" v-else></file-tree>
