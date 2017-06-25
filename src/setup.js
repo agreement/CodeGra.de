@@ -6,20 +6,6 @@ axios.interceptors.response.use(response => response, (error) => {
     if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
-
-        if (error.status === 500) {
-            if (!toastVisible) {
-                toastVisible = true;
-                Vue.toasted.error('Internal server error encountered', {
-                    position: 'bottom-center',
-                    duration: 3000,
-                    onComplete: () => {
-                        toastVisible = false;
-                    },
-                });
-            }
-        }
-
         return Promise.reject(error);
     }
 

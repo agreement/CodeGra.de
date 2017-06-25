@@ -57,7 +57,7 @@ export default {
             this.tryLogin({ email: this.email, password: this.password }).then(() => {
                 this.$router.replace({ name: 'home' });
             }).catch((reason) => {
-                if (reason && reason.message) {
+                if (reason) {
                     this.error = reason.message;
                 }
             });
