@@ -39,6 +39,30 @@ footer {
             border-color: fade(@color-primary, 60);
         }
     }
+
+    .fa-icon {
+        &:not(:first-child) {
+            margin-left: .66em;
+        }
+
+        &:not(:last-child) {
+            margin-right: .66em;
+        }
+    }
+
+    &-sm {
+        .fa-icon {
+            position: relative;
+            top: 1px;
+        }
+    }
+
+    &:not(&-sm) {
+        .fa-icon {
+            position: relative;
+            top: 2px;
+        }
+    }
 }
 
 .custom-control-input {

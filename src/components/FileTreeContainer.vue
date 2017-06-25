@@ -2,7 +2,7 @@
     <div class="file-tree-container">
         <b-form-fieldset>
             <b-button @click="download()" variant="primary" title="Download archive">
-                <icon name="download" class="download-icon"></icon>
+                <icon name="download"></icon>
                 <span class="text">Download archive</span>
             </b-button>
         </b-form-fieldset>
@@ -50,14 +50,3 @@ export default {
     },
 };
 </script>
-
-<style lang="less" scoped>
-.file-tree-container {
-    .download-icon {
-        position: relative;
-        top: 2px;
-        margin-right: .66em;
-    }
-}
-
-</style>
