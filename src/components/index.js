@@ -23,7 +23,7 @@ import SnippetManager from './SnippetManager';
 import PdfViewer from './PdfViewer';
 import BlackboardUploader from './BlackboardUploader';
 import FeedbackExporter from './FeedbackExporter';
-
+import CourseList from './CourseList';
 
 export {
     Linters,
@@ -51,4 +51,5 @@ export {
     SnippetManager,
     PdfViewer,
     FeedbackExporter,
+    CourseList,
 };

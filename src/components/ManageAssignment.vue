@@ -109,7 +109,7 @@ export default {
             this.pendingState = button.getAttribute('value');
 
             this.$http.patch(this.assignmentUrl, {
-                state: this.assignment.state,
+                state: this.pendingState,
             }).then(() => {
                 this.assignment.state = this.pendingState;
                 this.pendingState = '';

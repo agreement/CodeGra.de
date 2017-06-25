@@ -264,6 +264,32 @@ Parameter | Description
 file_id | Optional parameter that can be used to show the contents of a specific directory in the work
 
 ## Courses
+
+### Getting all courses
+```python
+import requests
+
+# As logged in user
+requests.get('https://example.com/api/v1/courses/')
+```
+
+> The above command will return a JSON structured like below
+```json
+[
+  {
+    name: 'Lineaire Algebra',
+    id: '3',
+    role: 'student',
+  },
+  ...
+]
+```
+
+This API returns a list with all enrolled courses of the user.
+
+##### HTTP Request
+`GET http://example.com/api/v1/courses/`
+
 ### Getting all assignments
 ```python
 import requests
