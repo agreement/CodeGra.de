@@ -9,18 +9,14 @@
             </router-link></i>
             by {{ submission.user.name }}
         </h2>
-        <div class="row submission-nav-bar">
-            <div class="col-12">
+        <div class="row">
+            <div class="col-9 code-and-grade">
                 <submission-nav-bar v-if="submissions && submission"
                                     v-on:subChange="reloadSubmission"
                                     :submission="submission"
                                     :submissions="submissions"
                                     :courseId="courseId"
                                     :assignmentId="assignmentId"></submission-nav-bar>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-9 code-and-grade">
                 <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
                 <code-viewer class="" :editable="editable"
                     :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
