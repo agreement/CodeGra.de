@@ -15,8 +15,6 @@
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/download';
 
-import { bFormFieldset, bButton } from 'bootstrap-vue/lib/components';
-
 import FileTree from './FileTree';
 import Loader from './Loader';
 
@@ -45,8 +43,6 @@ export default {
         FileTree,
         Icon,
         Loader,
-        bFormFieldset,
-        bButton,
     },
 };
 </script>

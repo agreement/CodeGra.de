@@ -331,6 +331,9 @@ class Course(db.Model):
         for name, perms in CourseRole.get_default_course_roles().items():
             CourseRole(name=name, course=self, _permissions=perms)
 
+    def __to_json__(self):
+        return {'id': self.id, 'name': self.name}
+
 
 class Work(db.Model):
     __tablename__ = "Work"
@@ -496,7 +499,6 @@ class LinterComment(db.Model):
             'code': self.linter_code,
             'line': self.line,
             'msg': self.comment,
-            'id': self.id,
         }
 
 

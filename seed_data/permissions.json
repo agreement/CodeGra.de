@@ -50,5 +50,9 @@
   "can_upload_after_deadline": {
     "default_value": false,
     "course_permission": true
+  },
+  "can_create_courses" {
+    "default_value": false,
+    "course_permission": false
   }
 }

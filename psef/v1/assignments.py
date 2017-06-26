@@ -89,6 +89,11 @@ def update_assignment(assignment_id):
                 'The name of an assignment should be a a string',
                 '{} is not a string'.format(content['name']),
                 APICodes.INVALID_PARAM, 400)
+        if len(content['name']) < 3:
+            raise APIException(
+                'The name of an assignment should be longer than 3',
+                'len({}) < 3'.format(content['name']),
+                APICodes.INVALID_PARAM, 400)
         assig.name = content['name']
 
     if 'deadline' in content:
@@ -393,9 +398,9 @@ def get_linters(assignment_id):
         else:
             state = 'new'
         opts['state'] = state
+        opts['name'] = name
+        res.append(opts)
 
-    opts['name'] = name
-    res.append(opts)
     return jsonify(sorted(res, key=lambda item: item['name']))
 
 

@@ -54,7 +54,6 @@
 </template>
 
 <script>
-import { bProgress } from 'bootstrap-vue/lib/components';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/times';
@@ -93,7 +92,6 @@ export default {
     components: {
         Loader,
         Icon,
-        bProgress,
     },
 
     methods: {

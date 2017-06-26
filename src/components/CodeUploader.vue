@@ -53,7 +53,6 @@
 </template>
 
 <script>
-    import { bButton, bButtonToolbar } from 'bootstrap-vue/lib/components';
     import Dropzone from 'vue2-dropzone';
     import Icon from 'vue-awesome/components/Icon';
     import 'vue-awesome/icons/times';
@@ -65,8 +64,6 @@
         components: {
             Dropzone,
             Icon,
-            bButton,
-            bButtonToolbar,
         },
 
         props: {
