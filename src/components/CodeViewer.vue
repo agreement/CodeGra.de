@@ -3,11 +3,13 @@
         <center><span>Cannot display file!</span></center>
     </b-alert>
     <loader class="text-center" v-else-if="loading"></loader>
-    <ol class="code-viewer form-control" v-else :class="{ editable: editable }">
+    <ol class="code-viewer form-control" v-else :class="{ editable: editable }"
+        @click="onClick">
         <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
             :class="{ 'linter-feedback-outer': linterFeedback[i] }">
 
-            <linter-feedback-area :feedback="linterFeedback[i]"> </linter-feedback-area>
+            <linter-feedback-area :feedback="linterFeedback[i]"></linter-feedback-area>
+
             <code  v-html="line"></code>
 
 
@@ -205,8 +207,8 @@ export default {
             );
         },
 
-        onFileClick(event) {
-            // Check if the click was actually on a link to a file.
+        onClick(event) {
+            // Check if the click was on a link to a file.
             const fileId = event.target.getAttribute('data-file-id');
             if (fileId) {
                 event.stopImmediatePropagation();
