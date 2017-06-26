@@ -3,7 +3,12 @@
         <loader style="text-align: center; margin-top: 30px;"/>
     </div>
     <div class="page submission" v-else>
-        <h2><i><router-link :to="{ name: 'assignment_submissions', }">"{{ this.assignment.name }}"</router-link></i> by {{ this.submission.user.name }}</h2>
+        <h2>
+            <i><router-link :to="{ name: 'assignment_submissions', }">"
+                    {{ assignment.name }}"
+            </router-link></i>
+            by {{ submission.user.name }}
+        </h2>
         <div class="row submission-nav-bar">
             <div class="col-12">
                 <submission-nav-bar v-if="submissions && submission"
@@ -175,8 +180,13 @@ export default {
         },
 
         getSubmission() {
-            return this.$http.get(`/api/v1/submissions/${this.submissionId}`).then((data) => {
-                this.submission = data.data;
+            return new Promise((resolve) => {
+                this.$http.get(`/api/v1/submissions/${this.submissionId}`).then((data) => {
+                    this.submission = data.data;
+                    resolve();
+                }).catch(() => {
+                    resolve();
+                });
             });
         },
 
