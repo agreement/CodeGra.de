@@ -1,15 +1,14 @@
 <template>
     <div class="page submission">
-        <div class="row">
-            <div class="col-9 code-and-grade">
-                <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
+        <div class="row justify-content-center">
+            <div class="col-lg-9 code-and-grade">
+                <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"/>
                 <code-viewer class="" :editable="editable" :id="fileId"
-                    :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
+                    :tree="fileTree" v-else-if="fileId" ref="codeViewer"/>
                 <grade-viewer :id="submissionId" :editable="editable"
                     @submit="submitAllFeedback($event)"></grade-viewer>
             </div>
-
-            <file-tree-container class="col-3" :fileTree="fileTree"></file-tree-container>
+            <file-tree-container class="col-lg-3" :fileTree="fileTree"></file-tree-container>
         </div>
     </div>
 </template>
@@ -212,5 +211,13 @@ h1,
 
 .loader {
     margin-top: 1em;
+}
+</style>
+
+<style>
+@media (max-width: 992px) {
+    #app, html {
+        height: inherit !important;
+    }
 }
 </style>
