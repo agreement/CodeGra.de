@@ -1,4 +1,8 @@
 @color-primary: #2c3e50;
+@linum-bg: #f8f8f8;
+@line-bg: white;
+@line-spacing: .5em;
+@code-linum-width: 4rem;
 
 html {
     box-sizing: border-box;
@@ -124,11 +128,8 @@ textarea:disabled {
 }
 
 .code-viewer {
-    @linenr-bg: #f8f8f8;
-    @line-bg: white;
-    @line-spacing: .5em;
-
-    background: @linenr-bg;
+    background: @linum-bg;
+    padding-left: @code-linum-width;
 
     li {
         background: @line-bg;
@@ -174,12 +175,20 @@ textarea:disabled {
     }
 }
 
-.linter-feedback {
+.linter-feedback-outer {
     color: red;
     font-weight: bold;
     -webkit-text-decoration-style: wavy;
     -moz-text-decoration-style: wavy;
     text-decoration-style: wavy;
+}
+
+.linter-feedback-inner .linter-toggle {
+    min-width: @code-linum-width;
+    height: 100%;
+    top: 0;
+    right: 100%;
+    position: absolute;
 }
 
 .file-tree {
