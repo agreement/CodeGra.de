@@ -9,7 +9,6 @@ import FileTree from './FileTree';
 import FileTreeContainer from './FileTreeContainer';
 import FooterBar from './FooterBar';
 import GradeViewer from './GradeViewer';
-import HeaderBar from './HeaderBar';
 import Loader from './Loader';
 import Login from './Login';
 import NavBar from './NavBar';
@@ -39,7 +38,6 @@ export {
     FileTreeContainer,
     FooterBar,
     GradeViewer,
-    HeaderBar,
     Loader,
     Login,
     NavBar,
