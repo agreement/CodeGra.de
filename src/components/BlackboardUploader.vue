@@ -16,8 +16,6 @@
 </template>
 
 <script>
-import { bInputGroup, bFormFile, bButton, bFormFieldset } from 'bootstrap-vue/lib/components';
-
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/exclamation-triangle';
@@ -75,10 +73,6 @@ export default {
     components: {
         Icon,
         Loader,
-        bFormFieldset,
-        bInputGroup,
-        bFormFile,
-        bButton,
     },
 };
 </script>

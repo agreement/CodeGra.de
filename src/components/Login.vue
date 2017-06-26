@@ -26,7 +26,6 @@
 
 <script>
 import { mapActions } from 'vuex';
-import { bAlert, bFormFieldset, bFormInput, bPopover } from 'bootstrap-vue/lib/components';
 
 const validator = require('email-validator');
 
@@ -65,13 +64,6 @@ export default {
         ...mapActions({
             tryLogin: 'user/login',
         }),
-    },
-
-    components: {
-        bAlert,
-        bFormFieldset,
-        bFormInput,
-        bPopover,
     },
 };
 </script>

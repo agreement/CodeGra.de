@@ -20,8 +20,6 @@
 </template>
 
 <script>
-import { bCollapse } from 'bootstrap-vue/lib/components';
-
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/eye-slash';
 import 'vue-awesome/icons/clock-o';
@@ -69,7 +67,6 @@ export default {
         BlackboardUploader,
         DivideSubmissions,
         Linters,
-        bCollapse,
         Icon,
     },
 };

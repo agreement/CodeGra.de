@@ -3,14 +3,8 @@
 </template>
 
 <script>
-import { bButton } from 'bootstrap-vue/lib/components';
-
 export default {
     name: 'feedback-exporter',
-
-    components: {
-        bButton,
-    },
 
     props: ['id'],
 
