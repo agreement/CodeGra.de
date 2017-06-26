@@ -16,7 +16,6 @@
             </b-input-group>
         </b-form-fieldset>
         <submissions-exporter v-if="canDownload && submissions.length"
-          :submissions="submissions"
           :table="getTable"
           :filename="exportFilename">
             Export feedback
@@ -48,7 +47,6 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
-import { bInputGroupButton, bFormCheckbox } from 'bootstrap-vue/lib/components';
 import SubmissionsExporter from './SubmissionsExporter';
 
 export default {
@@ -184,8 +182,6 @@ export default {
     },
 
     components: {
-        bInputGroupButton,
-        bFormCheckbox,
         SubmissionsExporter,
     },
 };

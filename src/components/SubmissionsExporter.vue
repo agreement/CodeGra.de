@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="exporter">
         <b-button-group>
             <b-button variant="primary" @click="createCSV">
                 <span>Export as CSV</span>
@@ -128,3 +128,9 @@ export default {
 };
 
 </script>
+
+<style scoped>
+.exporter {
+    margin-bottom: 1rem;
+}
+</style>

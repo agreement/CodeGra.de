@@ -68,9 +68,6 @@
 </template>
 
 <script>
-import { bButton, bButtonGroup, bFormInput, bInputGroup, bTooltip, bTable } from
-    'bootstrap-vue/lib/components';
-
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/download';
 import 'vue-awesome/icons/pencil';
@@ -195,12 +192,6 @@ export default {
 
     components: {
         Icon,
-        bButton,
-        bButtonGroup,
-        bFormInput,
-        bInputGroup,
-        bTooltip,
-        bTable,
     },
 };
 </script>

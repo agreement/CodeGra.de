@@ -15,7 +15,6 @@ import Login from './Login';
 import NavBar from './NavBar';
 import UserInfo from './UserInfo';
 import AssignmentList from './AssignmentList';
-import AssignmentState from './AssignmentState';
 import CodeUploader from './CodeUploader';
 import SubmissionList from './SubmissionList';
 import DivideSubmissions from './DivideSubmissions';
@@ -23,7 +22,7 @@ import SubmissionsExporter from './SubmissionsExporter';
 import SnippetManager from './SnippetManager';
 import PdfViewer from './PdfViewer';
 import BlackboardUploader from './BlackboardUploader';
-import FeedbackExporter from './FeedbackExporter';
+import NewCourse from './NewCourse';
 import CourseList from './CourseList';
 
 export {
@@ -45,13 +44,12 @@ export {
     NavBar,
     UserInfo,
     AssignmentList,
-    AssignmentState,
     CodeUploader,
     SubmissionList,
     DivideSubmissions,
     SubmissionsExporter,
     SnippetManager,
     PdfViewer,
-    FeedbackExporter,
+    NewCourse,
     CourseList,
 };
