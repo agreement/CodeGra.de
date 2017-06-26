@@ -4,8 +4,8 @@
     </div>
     <div class="page submission" v-else>
         <h2>
-            <i><router-link :to="{ name: 'assignment_submissions', }">"
-                    {{ assignment.name }}"
+            <i><router-link :to="{ name: 'assignment_submissions', }">
+                    "{{ assignment.name }}"
             </router-link></i>
             by {{ submission.user.name }}
         </h2>
@@ -26,6 +26,7 @@
                     :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
                 <grade-viewer :id="submissionId"
                               :editable="editable"
+                              v-if="editable || assignment.state === assignmentState.DONE"
                               v-on:gradeChange="gradeChange"
                               @submit="submitAllFeedback($event)"></grade-viewer>
             </div>
@@ -38,6 +39,8 @@
 <script>
 import { mapActions } from 'vuex';
 import { CodeViewer, FileTreeContainer, GradeViewer, Loader, PdfViewer, SubmissionNavBar } from '@/components';
+
+import * as assignmentState from '../store/assignment-states';
 
 function getFirstFile(fileTree) {
     // Returns the first file in the file tree that is not a folder
@@ -73,6 +76,7 @@ export default {
             feedback: '',
             submissions: null,
             loading: true,
+            assignmentState,
         };
     },
 

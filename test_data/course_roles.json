@@ -6,7 +6,7 @@
     },
     {
         "name": "TA",
-        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files", "can_see_grade_before_open", "can_manage_course", "can_use_linter", "can_see_hidden_assignments"],
+        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files", "can_see_grade_before_open", "can_manage_course", "can_use_linter", "can_see_hidden_assignments", "can_see_assignee"],
         "course": "Project Software Engineering"
     },
     {
@@ -16,7 +16,7 @@
     },
     {
         "name": "TA",
-        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files", "can_see_grade_before_open", "can_manage_course", "can_use_linter", "can_see_hidden_assignments"],
+        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files", "can_see_grade_before_open", "can_manage_course", "can_use_linter", "can_see_hidden_assignments", "can_see_assignee"],
         "course": "Besturingssystemen"
     },
     {
@@ -31,7 +31,7 @@
     },
     {
         "name": "TA",
-        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files", "can_see_grade_before_open", "can_manage_course", "can_use_linter", "can_see_hidden_assignments"],
+      "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files", "can_see_grade_before_open", "can_manage_course", "can_use_linter", "can_see_hidden_assignments", "can_see_assignee"],
         "course": "Programmeertalen"
     },
 
@@ -47,7 +47,7 @@
     },
     {
         "name": "TA",
-        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files", "can_see_grade_before_open", "can_manage_course", "can_use_linter", "can_see_hidden_assignments"],
+        "permissions": ["can_submit_own_work", "can_grade_work", "can_see_others_work", "can_view_files", "can_see_grade_before_open", "can_manage_course", "can_use_linter", "can_see_hidden_assignments", "can_see_assignee"],
         "course": "Inleiding Programmeren"
     }
 ]

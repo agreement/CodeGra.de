@@ -4,13 +4,13 @@ import uuid
 import datetime
 
 from flask_login import UserMixin
+from sqlalchemy_utils import PasswordType
 from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 import psef.auth as auth
 from psef import db, login_manager
 from psef.helpers import get_request_start_time
-from sqlalchemy_utils import PasswordType
 
 permissions = db.Table('roles-permissions',
                        db.Column('permission_id', db.Integer,
@@ -300,15 +300,21 @@ class Work(db.Model):
             'user': self.user,
             'edit': self.edit,
             'created_at': self.created_at.isoformat(),
-            'assignee': self.assignee,
         }
+
+        try:
+            auth.ensure_permission('can_see_assignee', self.assignment.course_id)
+            item['assignee'] = self.assignee
+        except auth.PermissionException:
+            item['assignee'] = False
+
         try:
             auth.ensure_can_see_grade(self)
             item['grade'] = self.grade
             item['comment'] = self.comment
         except auth.PermissionException:
-            item['grade'] = '-'
-            item['comment'] = '-'
+            item['grade'] = False
+            item['comment'] = False
         return item
 
     def add_file_tree(self, session, tree):

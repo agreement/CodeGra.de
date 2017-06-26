@@ -63,5 +63,10 @@
         "name": "can_upload_after_deadline",
         "default_value": false,
         "course_permission": true
+    },
+    {
+      "name": "can_see_assignee",
+      "default_value": false,
+      "course_permission": true
     }
 ]

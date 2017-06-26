@@ -71,8 +71,14 @@ export default {
                 if (seen[sub.user.id] !== true) {
                     const grade = sub.grade ? `- ${sub.grade} -` : '';
                     const assignee = sub.assignee ? sub.assignee.name : 'nobody';
+                    let assigneeText;
+                    if (sub.assignee === false) { // no permission
+                        assigneeText = '';
+                    } else {
+                        assigneeText = `Assigned to ${assignee}`;
+                    }
                     latestSubs.push({
-                        text: `${sub.user.name} ${grade} Assigned to ${assignee}`,
+                        text: `${sub.user.name} ${grade} ${assigneeText}`,
                         value: sub.id,
                         assignee: sub.assignee,
                     });
