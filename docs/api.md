@@ -306,6 +306,48 @@ Get all assignments for a given course
 #### HTTP Request
 `GET http://example.com/api/v1/courses/<ID>/assignments/`
 
+## Files
+### Post a file
+```python
+import requests
+
+bytes = b'0123456'
+
+# As logged in user
+requests.post('https://example.com/api/v1/files/', data=bytes)
+```
+
+> This command will return a single file name and return code 201
+```JSON
+'5673da1f-7fe9-4137-8c6b-9ad3171861bf'
+```
+
+This API can be used to temporarily store some data on the server.
+
+#### HTTP Request
+`POST http://example.com/api/v1/files/`
+
+### Get a file
+```python
+import requests
+
+params = {
+  'name' = 'example.txt'
+}
+
+# As logged in user
+requests.get('https://example.com/api/v1/files/5673da1f-7fe9-4137-8c6b-9ad3171861bf, params=params)
+```
+
+> The above command will return the file "5673da1f-7fe9-4137-8c6b-9ad3171861bf"
+
+#### HTTP Request
+`GET http://example.com/api/v1/files/<NAME>`
+
+###### Query Parameters
+Parameter | Description
+--------- | -----------
+name | The file in the response will have the value of this parameter as name.
 
 ## Feedback
 ### Submission
