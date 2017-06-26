@@ -650,24 +650,16 @@ class Snippet(db.Model):
         return {'key': self.key, 'value': self.value, 'id': self.id}
 
 
-class Rubric(db.Model):
-    __tablename__ = 'Rubric'
-    id = db.Column('id', db.Integer, primary_key=True)
-    assignment_id = db.Column('Assignment_id', db.Integer,
-                              db.ForeignKey('Assignment.id'))
-
-    assignment = db.relationship('Assignment', foreign_keys=assignment_id)
-
-
 class RubricRow(db.Model):
     __tablename__ = 'RubricRow'
     id = db.Column('id', db.Integer, primary_key=True)
-    rubric_id = db.Column('Rubric_id', db.Integer, db.ForeignKey('Rubric.id'))
+    assignment_id = db.Column('Assignment_id', db.Integer,
+                              db.ForeignKey('Assignment.id'))
     header = db.Column('header', db.Unicode)
     description = db.Column('description', db.Unicode, default='')
     points = db.Column('points', db.Float)
 
-    rubric = db.relationship('Rubric', foreign_keys=rubric_id)
+    assignment = db.relationship('Assignment', foreign_keys=assignment_id)
 
 
 class RubricItem(db.Model):
