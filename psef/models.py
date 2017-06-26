@@ -125,8 +125,8 @@ class CourseRole(db.Model):
             r_perms = {}
             perms_set = set(c['permissions'])
             for perm in perms:
-                if (perm.default_value and perm.name not in perms_set or
-                        not perm.default_value and perm.name in perms_set):
+                if ((perm.default_value and perm.name not in perms_set) or
+                        (not perm.default_value and perm.name in perms_set)):
                     r_perms[perm.name] = perm
 
             res[name] = r_perms
