@@ -36,6 +36,14 @@ user_course = db.Table('users-courses',
                        db.Column('user_id', db.Integer,
                                  db.ForeignKey('User.id', ondelete='CASCADE')))
 
+user_rubricitem = db.Table('user_rubricitem',
+                           db.Column('user_id', db.Integer,
+                                     db.ForeignKey(
+                                         'User.id', ondelete='CASCADE')),
+                           db.Column('rubricitem_id', db.Integer,
+                                     db.ForeignKey(
+                                         'RubricItem.id', ondelete='CASCADE')))
+
 
 class Permission(db.Model):
     __tablename__ = 'Permission'
@@ -651,12 +659,24 @@ class Rubric(db.Model):
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
 
 
+class RubricRow(db.Model):
+    __tablename__ = 'RubricRow'
+    id = db.Column('id', db.Integer, primary_key=True)
+    rubric_id = db.Column('Rubric_id', db.Integer, db.ForeignKey('Rubric.id'))
+    header = db.Column('header', db.Unicode)
+    description = db.Column('description', db.Unicode, default='')
+    points = db.Column('points', db.Float)
+
+    rubric = db.relationship('Rubric', foreign_keys=rubric_id)
+
+
 class RubricItem(db.Model):
     __tablename__ = 'RubricItem'
     id = db.Column('id', db.Integer, primary_key=True)
-    rubric_id = db.Column('Rubric_id', db.Integer, db.ForeignKey('Rubric.id'))
+    rubricrow_id = db.Column('Rubricrow_id', db.Integer,
+                             db.ForeignKey('RubricRow.id'))
     row = db.Column('row', db.Integer)
     col = db.Column('col', db.Integer)
     description = db.Column('description', db.Unicode, default='')
 
-    rubric = db.relationship('Rubric', foreign_keys=rubric_id)
+    rubricrow = db.relationship('RubricRow', foreign_keys=rubricrow_id)
