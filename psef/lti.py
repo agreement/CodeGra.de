@@ -94,6 +94,7 @@ class LTI:
             db.session.add(course)
 
         course.lti_provider = self.lti_provider
+        db.session.commit()
         return course
 
     def get_assignment(self):
@@ -250,7 +251,7 @@ def launch_lti():
     lti.set_user_role(user)
     lti.set_user_course_role(user, course)
     db.session.commit()
-    return flask.redirect('{}/courses/{}/assignments/{}/submissions'.format(
+    return flask.redirect('{}/courses/{}/assignments/{}/submissions?lti=true'.format(
         app.config['EXTERNAL_URL'], course.id, assig.id))
 
 

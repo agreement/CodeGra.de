@@ -1,5 +1,8 @@
 <template>
-    <b-navbar toggleable type="inverse" sticky="true" class="navbar">
+    <div class="lti-navbar navbar" v-if="lti">
+        <img class="logo" src="/static/img/codegrade-inv.svg">
+    </div>
+    <b-navbar toggleable type="inverse" sticky="true" class="navbar" v-else>
         <b-nav-toggle target="nav_collapse"></b-nav-toggle>
 
         <b-link class="navbar-brand" to="#">
@@ -41,6 +44,16 @@ import { mapGetters, mapActions } from 'vuex';
 export default {
     name: 'nav-bar',
 
+    data() {
+        return {
+            lti: this.$route.query.lti || window.inLTI,
+        };
+    },
+
+    mounted() {
+        window.inLTI = this.lti;
+    },
+
     computed: {
         ...mapGetters('user', {
             loggedIn: 'loggedIn',
@@ -65,8 +78,7 @@ export default {
 };
 </script>
 
-<style lang="scss">
-
+<style lang="less" scoped>
 .navbar {
     background-color: #2c3e50;
     margin-bottom: 2em;
@@ -74,6 +86,17 @@ export default {
 
 .loggedin-nav, .loggedout-nav {
     width: 100%;
+}
+
+.lti-navbar {
+    background-color: transparent;
+    .logo {
+        margin: 0 auto;
+    }
+    padding-top: 15px;
+    padding-bottom: 15px;
+    border-bottom: #eceeef solid 1px;
+    margin-bottom: 1em;
 }
 
 @media (min-width: 768px) {

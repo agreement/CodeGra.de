@@ -59,16 +59,16 @@ const router = new Router({
 
 router.beforeEach((to, from, next) => {
     if (!store.getters['user/loggedIn'] && to.path !== '/login') {
-        next('/login');
-        return;
-    }
-
-    if (store.getters['user/loggedIn'] && to === '/login') {
+        store.dispatch('user/verifyLogin').then(() => {
+            next();
+        }).catch(() => {
+            next('/login');
+        });
+    } else if (store.getters['user/loggedIn'] && to === '/login') {
         next('/');
-        return;
+    } else {
+        next();
     }
-
-    next();
 });
 
 export default router;
