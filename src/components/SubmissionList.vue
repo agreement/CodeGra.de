@@ -24,7 +24,7 @@
         <b-table striped hover
             ref="table"
             v-on:row-clicked='gotoSubmission'
-            :items="latestOnly ? latest : submissions"
+            :items="submissions"
             :fields="fields"
             :current-page="currentPage"
             :filter="filterItems"
@@ -121,12 +121,13 @@ export default {
 
     methods: {
         getLatest(submissions) {
-            const seen = [];
-            return submissions.filter((item) => {
-                const ret = !seen[item.user.id];
-                seen[item.user.id] = true;
-                return ret;
+            const latest = {};
+            submissions.forEach((item) => {
+                if (!latest[item.user.id]) {
+                    latest[item.user.id] = item.id;
+                }
             });
+            return latest;
         },
 
         getTable() {
@@ -153,7 +154,7 @@ export default {
         },
 
         filterItems(item) {
-            if ((this.latestOnly && !this.latest.includes(item)) ||
+            if ((this.latestOnly && this.latest[item.user.id] !== item.id) ||
                 // TODO: change to user id
                 (this.assigneeFilter && this.mineOnly && item.assignee !== this.userName)) {
                 return false;
