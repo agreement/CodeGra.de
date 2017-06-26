@@ -7,8 +7,6 @@
 </template>
 
 <script>
-import { bListGroup, bListGroupItem } from 'bootstrap-vue/lib/components';
-
 import ManageAssignment from './ManageAssignment';
 
 export default {
@@ -23,8 +21,6 @@ export default {
 
     components: {
         ManageAssignment,
-        bListGroup,
-        bListGroupItem,
     },
 };
 </script>

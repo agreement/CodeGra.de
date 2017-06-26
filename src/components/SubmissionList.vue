@@ -41,7 +41,6 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
-import { bInputGroupButton, bFormCheckbox } from 'bootstrap-vue/lib/components';
 
 export default {
     name: 'submission-list',
@@ -109,8 +108,8 @@ export default {
         getLatest(submissions) {
             const seen = [];
             return submissions.filter((item) => {
-                const ret = !seen[item.user_id];
-                seen[item.user_id] = true;
+                const ret = !seen[item.user.id];
+                seen[item.user.id] = true;
                 return ret;
             });
         },
@@ -144,7 +143,7 @@ export default {
             }
 
             const terms = {
-                user_name: item.user_name.toLowerCase(),
+                user_name: item.user.name.toLowerCase(),
                 grade: (item.grade || 0).toString(),
                 created_at: item.created_at,
                 assignee: item.assignee.toLowerCase(),
@@ -161,11 +160,6 @@ export default {
         ...mapActions({
             u_hasPermission: 'user/hasPermission',
         }),
-    },
-
-    components: {
-        bInputGroupButton,
-        bFormCheckbox,
     },
 };
 </script>
