@@ -33,7 +33,7 @@
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="assignee" scope="item">
-                {{item.value ? item.value : '-'}}
+                {{item.value ? item.value.name : '-'}}
             </template>
         </b-table>
     </div>
@@ -101,7 +101,7 @@ export default {
 
     mounted() {
         this.hasPermission('can_submit_own_work').then((perm) => {
-            this.assigneeFilter = !perm && this.submissions.some(s => s.assignee.name);
+            this.assigneeFilter = !perm && this.submissions.some(s => s.assignee);
         });
     },
 
@@ -134,10 +134,14 @@ export default {
             this.$router.replace({ query });
         },
 
+        isEmptyObject(obj) {
+            return Object.keys(obj).length === 0 && obj.constructor === Object;
+        },
+
         filterItems(item) {
             if ((this.latestOnly && !this.latest.includes(item)) ||
-                // TODO: change to user id
-                (this.assigneeFilter && this.mineOnly && item.assignee.id !== this.userId)) {
+                (this.assigneeFilter && this.mineOnly &&
+                 (item.assignee == null || item.assignee.id !== this.userId))) {
                 return false;
             } else if (!this.filter) {
                 return true;

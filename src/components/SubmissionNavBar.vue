@@ -43,40 +43,44 @@ export default {
     },
 
     mounted() {
-        this.options = this.filterLatestSubmissions(this.submissions);
+        const options = this.filterLatestSubmissions(this.submissions);
+        this.options = this.filterMineOnly(options);
         this.findNextPrev();
     },
 
     methods: {
-        isEmptyObject(obj) {
-            return Object.keys(obj).length === 0 && obj.constructor === Object;
-        },
-
         filterLatestSubmissions(submissions) {
             // filter submissions on latest only
-            // and if assignee is set only
-            // the submissions assigned to this user
             const latestSubs = [];
             const seen = {};
             const len = submissions.length;
             for (let i = 0; i < len; i += 1) {
                 const sub = submissions[i];
                 if (seen[sub.user.id] !== true) {
-                    console.log(sub.assignee);
-                    console.log(`this.userid ${this.userid}`);
-                    if (this.isEmptyObject(this.submission.assignee) ||
-                        sub.assignee.id === this.userid) {
-                        const grade = sub.grade ? sub.grade : '-';
-                        latestSubs.push({
-                            text: `${sub.user.name} - ${grade}`,
-                            value: sub.id,
-                        });
-                        seen[sub.user.id] = true;
-                    }
+                    const grade = sub.grade ? sub.grade : '';
+                    const assignee = sub.assignee ? sub.assignee.name : '-';
+                    latestSubs.push({
+                        text: `${sub.user.name} - ${grade} - assigned to ${assignee}`,
+                        value: sub.id,
+                        assignee: sub.assignee,
+                    });
+                    seen[sub.user.id] = true;
                 }
             }
 
             return latestSubs;
+        },
+
+        filterMineOnly(options) {
+            // and filter submissions on mine only
+            let mineOnlyOptions;
+            if (this.submission.assignee !== null &&
+                this.submission.assignee.id === this.userid) {
+                mineOnlyOptions = options.filter(sub => sub.assignee !== null &&
+                                         sub.assignee.id === this.userid);
+                return mineOnlyOptions;
+            }
+            return options;
         },
 
         findNextPrev() {
@@ -103,6 +107,7 @@ export default {
                 },
             });
             this.$emit('subChange');
+            this.options = this.filterMineOnly(this.options);
         },
 
         submission() {
