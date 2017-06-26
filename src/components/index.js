@@ -15,7 +15,6 @@ import Login from './Login';
 import NavBar from './NavBar';
 import UserInfo from './UserInfo';
 import AssignmentList from './AssignmentList';
-import AssignmentState from './AssignmentState';
 import CodeUploader from './CodeUploader';
 import SubmissionList from './SubmissionList';
 import DivideSubmissions from './DivideSubmissions';
@@ -46,7 +45,6 @@ export {
     NavBar,
     UserInfo,
     AssignmentList,
-    AssignmentState,
     CodeUploader,
     SubmissionList,
     DivideSubmissions,
