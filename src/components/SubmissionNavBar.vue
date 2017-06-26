@@ -186,5 +186,6 @@ select {
     text-align-last: center; text-align: center;
     -ms-text-align-last: center;
     -moz-text-align-last: center; text-align-last: center;
+    cursor: pointer;
 }
 </style>
