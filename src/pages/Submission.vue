@@ -172,6 +172,7 @@ export default {
     flex-direction: column;
     flex-grow: 1;
     flex-shrink: 1;
+    margin-bottom: 2em;
 }
 
 .row {
@@ -205,8 +206,7 @@ h1 {
 
 h1,
 .code-viewer,
-.pdfobject-container,
-.grade-viewer {
+.pdfobject-container {
     margin-bottom: 30px;
 }
 
