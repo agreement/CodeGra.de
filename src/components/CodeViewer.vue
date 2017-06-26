@@ -5,7 +5,7 @@
     <loader class="text-center" v-else-if="loading"></loader>
     <ol class="code-viewer form-control" v-else :class="{ editable: editable }">
         <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
-            :class="{ 'linter-feedback': linterFeedback[i] }">
+            :class="{ 'linter-feedback-outer': linterFeedback[i] }">
 
             <linter-feedback-area :feedback="linterFeedback[i]"> </linter-feedback-area>
             <code  v-html="line"></code>

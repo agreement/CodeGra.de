@@ -415,7 +415,6 @@ class LinterComment(db.Model):
             'code': self.linter_code,
             'line': self.line,
             'msg': self.comment,
-            'id': self.id,
         }
 
 
