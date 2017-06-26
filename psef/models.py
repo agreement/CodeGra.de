@@ -374,9 +374,10 @@ class Work(db.Model):
                 self.assignment.lti_outcome_service_url,
                 self.user.assignment_results[self.assignment_id].sourcedid,
                 url=('{}/'
-                     'courses/{}/assignments/{}/submissions/{}').format(
-                         app.config['EXTERNAL_URL'], self.assignment.course_id,
-                         self.assignment_id, self.id))
+                     'courses/{}/assignments/{}/submissions/{}?lti=true'
+                     ).format(app.config['EXTERNAL_URL'],
+                              self.assignment.course_id, self.assignment_id,
+                              self.id))
 
     def __to_json__(self):
         item = {
