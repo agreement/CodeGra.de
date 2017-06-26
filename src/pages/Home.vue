@@ -1,16 +1,15 @@
 <template>
     <div class="page home">
-        <b-jumbotron fluid="True" header="Code Grade" lead="The best code grader & feedback tool on the web" >
+        <b-jumbotron fluid="True" header="Code grading made intuitive" lead="The best code grader & feedback tool on the web" >
             <b-btn variant="primary" size="lg" class="btn-outline-secondary" href="#">Sign up</b-btn>
         </b-jumbotron>
         <div class="container">
-            <h3>THE COMPANY</h3>
-            <p><em>Grading!</em></p>
-            <p>We have created a fictional band website. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+            <h3>Made with ❤️ & 🍺</h3>
+            <p>Getting feedback as computer science students was frustating and non-intuitive. All online feedback systems where designed for the less technically focused majors. We decided to fill the gap with our revolutionary new grading tool. This project started as a school assignment for the course "Project Software Engineering" (year 2016-2017). With our tool one can grade code line-by-line. The tool is compatible with the LTI protocol, which makes it possible to easily integrate it in learning environments such as Canvas or Blackboard.</p>
             <br>
             <div class="row text-center">
                 <div class="col-sm-4">
-                    <p class="text-center"><strong>Flexibility</strong></p><br>
+                    <p class="text-center"><strong>Line per line feedback</strong></p><br>
                     <a href="#demo" data-toggle="collapse">
                     <img src="/static/img/screenshot.png" class="rounded-circle" alt="Random Name" width="255" height="255">
                     </a>
@@ -21,7 +20,7 @@
                     </div>
                 </div>
                 <div class="col-sm-4">
-                    <p class="text-center"><strong>Synergy</strong></p><br>
+                    <p class="text-center"><strong>File browser</strong></p><br>
                     <a href="#demo2" data-toggle="collapse">
                     <img src="/static/img/screenshot.png" class="rounded-circle" alt="Random Name" width="255" height="255">
                     </a>
@@ -32,7 +31,7 @@
                     </div>
                 </div>
                 <div class="col-sm-4">
-                    <p class="text-center"><strong>Responsive</strong></p><br>
+                    <p class="text-center"><strong>Easy course management</strong></p><br>
                     <a href="#demo3" data-toggle="collapse">
                     <img src="/static/img/screenshot.png" class="rounded-circle" alt="Random Name" width="255" height="255">
                     </a>
@@ -77,14 +76,20 @@ export default {
         rgba(0, 0, 0, 0.6)
     ),
     /* bottom, image */
-    url('/static/img/screenshot.png') no-repeat center center;
+    url('/static/img/screenshot4.png') no-repeat center center;
     color: white;
 }
 
 .jumbotron h1 {
-    font-size: 100px;
+    font-size: 50px;
     text-transform: uppercase;
     font-weight: 700;
     font-family: Montserrat,"Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+
+.rounded-circle {
+    border-width: 1px;
+    border-style: solid;
+    border-color: @color-primary;
 }
 </style>
