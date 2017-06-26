@@ -9,24 +9,28 @@
             </b-button>
         </b-button-group>
         <b-collapse id="settings">
-        <!-- TODO: fix html format -->
-            Select Columns:<br>
-            <b-button-group>
-                <b-button v-for="col in cols" :key="col.name"
-                  :variant="col.enabled ?  'success' : 'danger'"
-                  @click="toggleColumn(col)">
+            <b-form-fieldset
+              label="Columns:"
+              description="Checked columns will be included in the exported file.">
+                <b-form-checkbox
+                  v-for="(col, key) in columns"
+                  :key="key"
+                  v-model="col.enabled">
                     {{ col.name }}
-                </b-button>
-            </b-button-group><br>
-            Export setting:
-            <b-form-radio v-model="exportSetting" :options="['All', 'Current']">
-            </b-form-radio>
+                </b-form-checkbox>
+            </b-form-fieldset>
+            <b-form-fieldset
+              label="Rows:"
+              description="When <i>All</i> is selected all submissions of this assignment will be exported.<br>The <i>Current</i> option only exports the submissions that are shown by the current filter that is applied on the list.">
+                <b-form-radio v-model="exportSetting" :options="['All', 'Current']">
+                </b-form-radio>
+            </b-form-fieldset>
         </b-collapse>
     </div>
 </template>
 
 <script>
-import { bButton, bButtonGroup, bCollapse, bFormRadio, bFormFieldset } from 'bootstrap-vue/lib/components';
+import { bButton, bButtonGroup, bCollapse, bFormCheckbox, bFormRadio, bFormFieldset } from 'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/cog';
@@ -40,6 +44,7 @@ export default {
         bButton,
         bButtonGroup,
         bCollapse,
+        bFormCheckbox,
         bFormRadio,
         bFormFieldset,
         Papa,
@@ -58,10 +63,26 @@ export default {
             type: Array,
             default: function defaultColumns() {
                 return [
-                    { name: 'User', getter: submission => submission.user.name },
-                    { name: 'Grade', getter: submission => submission.grade },
-                    { name: 'Created at', getter: submission => submission.created_at },
-                    { name: 'Assigned to', getter: submission => submission.assignee },
+                    {
+                        name: 'User',
+                        enabled: [true],
+                        getter: submission => submission.user.name,
+                    },
+                    {
+                        name: 'Grade',
+                        enabled: [true],
+                        getter: submission => submission.grade,
+                    },
+                    {
+                        name: 'Created at',
+                        enabled: [true],
+                        getter: submission => submission.created_at,
+                    },
+                    {
+                        name: 'Assigned to',
+                        enabled: [true],
+                        getter: submission => submission.assignee,
+                    },
                 ];
             },
         },
@@ -72,44 +93,28 @@ export default {
             // eslint-disable-next-line no-underscore-dangle
             return this.exportSetting === 'All' ? this.table().items : this.table()._items;
         },
-    },
 
-    mounted() {
-        this.updateColumns();
+        enabledColumns() {
+            return this.columns.filter(col => col.enabled[0]);
+        },
     },
 
     data() {
         return {
-            cols: null,
             exportSetting: 'Current',
         };
     },
 
 
     methods: {
-        updateColumns() {
-            const keys = Object.keys(this.columns);
-            for (let i = 0; i < keys.length; i += 1) {
-                const col = this.columns[i];
-                if (!('enabled' in col)) {
-                    col.enabled = true;
-                }
-            }
-            this.cols = this.columns;
-        },
-
-        toggleColumn(column) {
-            this.$set(column, 'enabled', !column.enabled);
-        },
-
         createCSV: function createCSV() {
             const data = [];
-            const columns = Object.keys(this.columns);
+            const idx = Object.keys(this.enabledColumns);
             for (let i = 0; i < this.items.length; i += 1) {
                 const item = this.items[i];
                 const row = {};
-                for (let j = 0; j < columns.length; j += 1) {
-                    const col = this.columns[j];
+                for (let j = 0; j < idx.length; j += 1) {
+                    const col = this.enabledColumns[idx[j]];
                     row[col.name] = col.getter(item);
                 }
                 data.push(row);
