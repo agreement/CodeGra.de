@@ -31,9 +31,6 @@
 import { getLanguage, highlight } from 'highlightjs';
 import Vue from 'vue';
 
-import { bAlert, bButton, bFormInput, bInputGroup, bInputGroupButton }
-    from 'bootstrap-vue/lib/components';
-
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
 
@@ -252,11 +249,6 @@ export default {
     },
 
     components: {
-        bButton,
-        bFormInput,
-        bInputGroup,
-        bInputGroupButton,
-        bAlert,
         Icon,
         FeedbackArea,
         Loader,
