@@ -372,7 +372,9 @@ def get_linters(assignment_id):
         else:
             state = 'new'
         opts['state'] = state
-        res.append({'name': name, **opts})
+        dic = opts
+        dic['name'] = name
+        res.append(dic)
 
     return jsonify(sorted(res, key=lambda item: item['name']))
 

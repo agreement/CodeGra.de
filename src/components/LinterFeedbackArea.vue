@@ -1,14 +1,12 @@
 <template>
-    <div :class="{ 'linter-feedback': feedback != null }">
+    <div :class="{ 'linter-feedback-inner': feedback != null }">
         <b-popover placement="top" triggers="hover" :content="getFeedback()" v-if="feedback != null">
-            <div v-on:click="toggleShow"></div>
+            <div class="linter-toggle" v-on:click="toggleShow"></div>
         </b-popover>
     </div>
 </template>
 
 <script>
-import { bPopover } from 'bootstrap-vue/lib/components';
-
 const entityRE = /[&<>]/g;
 const entityMap = {
     '&': '&amp;',
@@ -28,21 +26,17 @@ export default {
         };
     },
 
-    components: {
-        bPopover,
-    },
-
     methods: {
         getFeedback() {
             const body = Object.keys(this.feedback).map((key) => {
                 const val = this.feedback[key];
-                let res = `<tr><td>${e(key)}</td><td>`;
+                let res = `<tr><td><b>${e(key)}</b></td><td>`;
                 if (val.code) {
                     res = `${res}[${e(val.code)}] `;
                 }
                 return `${res}${e(val.msg)}</td></tr>`;
             }).join('');
-            return `<table class="linter-feedbackt">${body}</table>`;
+            return `<table class="linter-feedback">${body}</table>`;
         },
         toggleShow(ev) {
             ev.preventDefault();
@@ -54,11 +48,9 @@ export default {
 </script>
 
 <style lang="less">
-.linter-feedback div {
-    margin-left: -4em;
-    min-width: 7em;
-    min-height: 1.5em;
-    top: 0;
-    position: absolute;
+
+.popover-content-wrapper table.linter-feedback tr td:nth-child(2) {
+    padding-left: 15px;
 }
+
 </style>
