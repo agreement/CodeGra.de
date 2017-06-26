@@ -1,6 +1,9 @@
 <template>
-    <div class="page submission">
-        <h2>Grading: {{ this.submission.user.name }}</h2>
+    <div v-if="loading">
+        <loader style="text-align: center; margin-top: 30px;"/>
+    </div>
+    <div class="page submission" v-else>
+        <h2><i>"{{ this.assignment.name }}"</i> by {{ this.submission.user.name }}</h2>
         <div class="row submission-nav-bar">
             <div class="col-12">
                 <submission-nav-bar v-if="submissions && submission"
@@ -64,6 +67,7 @@ export default {
             showGrade: false,
             feedback: '',
             submissions: null,
+            loading: true,
         };
     },
 
@@ -79,10 +83,15 @@ export default {
         this.hasPermission({ name: 'can_grade_work', course_id: this.courseId }).then((val) => {
             this.editable = val;
         });
-        this.getSubmission();
-        this.getSubmissionFiles();
-        this.getFileMetadata();
-        this.getAllSubmissions();
+        Promise.all([
+            this.getSubmission(),
+            this.getSubmissionFiles(),
+            this.getFileMetadata(),
+            this.getAllSubmissions(),
+            this.getAssignment(),
+        ]).then(() => {
+            this.loading = false;
+        });
 
         const elements = Array.from(document.querySelectorAll('html, body, #app, nav, footer'));
         const [html, body, app, nav, footer] = elements;
@@ -137,7 +146,7 @@ export default {
 
     methods: {
         getSubmissionFiles() {
-            this.$http.get(`/api/v1/submissions/${this.submissionId}/files/`).then((data) => {
+            return this.$http.get(`/api/v1/submissions/${this.submissionId}/files/`).then((data) => {
                 this.fileTree = data.data;
                 this.$router.replace({
                     name: 'submission_file',
@@ -163,24 +172,30 @@ export default {
         },
 
         getSubmission() {
-            this.$http.get(`/api/v1/submissions/${this.submissionId}`).then((data) => {
+            return this.$http.get(`/api/v1/submissions/${this.submissionId}`).then((data) => {
                 this.submission = data.data;
+            });
+        },
+
+        getAssignment() {
+            return this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then(({ data }) => {
+                this.assignment = data;
             });
         },
 
         getFileMetadata() {
             if (this.fileId === undefined) {
-                return;
+                return null;
             }
 
             this.fileExtension = '';
-            this.$http.get(`/api/v1/code/${this.fileId}?type=metadata`).then((response) => {
+            return this.$http.get(`/api/v1/code/${this.fileId}?type=metadata`).then((response) => {
                 this.fileExtension = response.data.extension;
             });
         },
 
         getAllSubmissions() {
-            this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then(({ data }) => {
+            return this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then(({ data }) => {
                 this.submissions = data;
             });
         },
