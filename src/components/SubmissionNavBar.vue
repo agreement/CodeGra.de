@@ -9,22 +9,18 @@
                 </b-popover>
             </b-input-group-button>
             <b-input-group-button class="buttons">
-                <b-popover placement="top" triggers="hover" content="Previous submission">
-                    <b-button :disabled="!prev" @click="selected = prev" class="angle-btn">
-                        <icon name="angle-left"></icon>
-                    </b-button>
-                </b-popover>
+                <b-button :disabled="!prev" @click="selected = prev" class="angle-btn">
+                    <icon name="angle-left"></icon>
+                </b-button>
             </b-input-group-button>
             <b-form-select v-model="selected"
                            :options="options"
                            style="height: 2em; text-align: center;"
                            size="lg"></b-form-select>
             <b-input-group-button class="buttons">
-                <b-popover placement="top" triggers="hover" content="Next submission">
-                    <b-button :disabled="!next" @click="selected = next" class="angle-btn">
-                        <icon name="angle-right"></icon>
-                    </b-button>
-                </b-popover>
+                <b-button :disabled="!next" @click="selected = next" class="angle-btn">
+                    <icon name="angle-right"></icon>
+                </b-button>
             </b-input-group-button>
         </b-input-group>
     </b-form-fieldset>
