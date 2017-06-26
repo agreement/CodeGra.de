@@ -3,7 +3,7 @@
         <loader style="text-align: center; margin-top: 30px;"/>
     </div>
     <div class="page submission" v-else>
-        <h2><i>"{{ this.assignment.name }}"</i> by {{ this.submission.user.name }}</h2>
+        <h2><i><router-link :to="{ name: 'assignment_submissions', }">"{{ this.assignment.name }}"</router-link></i> by {{ this.submission.user.name }}</h2>
         <div class="row submission-nav-bar">
             <div class="col-12">
                 <submission-nav-bar v-if="submissions && submission"
@@ -226,10 +226,14 @@ export default {
 };
 </script>
 
-<style scoped>
+<style lang="less" scoped>
 h2 {
     text-align: center;
     margin-bottom: 15px;
+    a {
+        cursor: pointer;
+        color: black;
+    }
 }
 
 .page.submission {
