@@ -1,5 +1,5 @@
 <template>
-    <div class="grade-viewer" v-if="show">
+    <div class="grade-viewer">
         <div class="row">
             <div class="col-6">
                 <b-input-group>
@@ -16,7 +16,7 @@
                                 max="10"
                                 :disabled="!editable"
                                 placeholder="Grade"
-                                v-model:value="grade">
+                                v-model="submission.grade">
                     </b-form-input>
                 </b-input-group>
             </div>
@@ -26,14 +26,14 @@
                         :placeholder="editable ? 'Feedback' : 'No feedback given :('"
                         :rows="3"
                         ref="field"
-                        v-model:value="feedback"
+                        v-model="submission.feedback"
                         v-on:keydown.native.tab.capture="expandSnippet"
                         :disabled="!editable">
                     </b-form-input>
                 </b-input-group>
             </div>
         </div>
-        <feedback-exporter :id="submissionId"></feedback-exporter>
+        <feedback-exporter :id="submission.id"></feedback-exporter>
     </div>
 </template>
 
@@ -49,32 +49,25 @@ import FeedbackExporter from './FeedbackExporter';
 export default {
     name: 'grade-viewer',
 
-    props: ['editable', 'id'],
+    props: {
+        editable: {
+            type: Boolean,
+            default: false,
+        },
+        submission: {
+            type: Object,
+            default: {},
+        },
+    },
 
     data() {
         return {
-            submissionId: this.id,
-            grade: 0,
-            feedback: '',
             submitting: false,
             submitted: false,
-            show: false,
         };
     },
 
-    mounted() {
-        this.getFeedback();
-    },
-
     methods: {
-        getFeedback() {
-            this.$http.get(`/api/v1/submissions/${this.submissionId}`).then((data) => {
-                this.grade = data.data.grade;
-                this.feedback = data.data.comment;
-                this.show = true;
-            });
-        },
-
         expandSnippet(event) {
             const field = this.$refs.field;
             const end = field.$el.selectionEnd;
@@ -94,7 +87,7 @@ export default {
 
         putFeedback() {
             this.submitting = true;
-            this.$http.patch(`/api/v1/submissions/${this.submissionId}`,
+            this.$http.patch(`/api/v1/submissions/${this.submission.id}`,
                 {
                     grade: this.grade,
                     feedback: this.feedback,
