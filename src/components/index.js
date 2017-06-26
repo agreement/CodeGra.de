@@ -23,7 +23,6 @@ import SnippetManager from './SnippetManager';
 import PdfViewer from './PdfViewer';
 import BlackboardUploader from './BlackboardUploader';
 import NewCourse from './NewCourse';
-import FeedbackExporter from './FeedbackExporter';
 import CourseList from './CourseList';
 
 export {
@@ -52,6 +51,5 @@ export {
     SnippetManager,
     PdfViewer,
     NewCourse,
-    FeedbackExporter,
     CourseList,
 };
