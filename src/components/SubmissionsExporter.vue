@@ -9,6 +9,10 @@
             </b-button>
         </b-button-group>
         <b-collapse id="settings">
+            <b-form-fieldset label="Filename:">
+                <b-form-input v-model="userFilename" type="text"
+                  :placeholder="filename"></b-form-input>
+            </b-form-fieldset>
             <b-form-fieldset
                 label="Columns:"
                 description="Checked columns will be included in the exported file.">
@@ -24,7 +28,7 @@
                 description="When <i>All</i> is selected all submissions of this
                              assignment will be exported.<br>The <i>Current</i> option only
                              exports the submissions that are shown by the current filter that
-                             is applied on the list.">
+                             is applied to the list.">
                 <b-form-radio v-model="exportSetting" :options="['All', 'Current']">
                 </b-form-radio>
             </b-form-fieldset>
@@ -33,8 +37,6 @@
 </template>
 
 <script>
-import { bButton, bButtonGroup, bCollapse, bFormCheckbox, bFormRadio, bFormFieldset } from 'bootstrap-vue/lib/components';
-
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/cog';
 
@@ -44,12 +46,6 @@ export default {
     name: 'submissions-exporter',
 
     components: {
-        bButton,
-        bButtonGroup,
-        bCollapse,
-        bFormCheckbox,
-        bFormRadio,
-        bFormFieldset,
         Papa,
         Icon,
     },
@@ -100,11 +96,16 @@ export default {
         enabledColumns() {
             return this.columns.filter(col => col.enabled[0]);
         },
+
+        currentFilename() {
+            return encodeURIComponent((this.userFilename) ? this.userFilename : this.filename);
+        },
     },
 
     data() {
         return {
             exportSetting: 'Current',
+            userFilename: null,
         };
     },
 
@@ -127,7 +128,7 @@ export default {
                 data,
             });
             this.$http.post('/api/v1/files/', csv).then((response) => {
-                window.open(`/api/v1/files/${response.data}?name=${this.filename}`);
+                window.open(`/api/v1/files/${response.data}?name=${this.currentFilename}`);
             });
         },
     },
