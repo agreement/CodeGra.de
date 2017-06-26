@@ -4,8 +4,7 @@ import flask
 import oauth2
 from flask_login import current_user
 
-import psef.models as models
-from psef import app, login_manager
+from psef import login_manager
 from psef.errors import APICodes, APIException
 
 

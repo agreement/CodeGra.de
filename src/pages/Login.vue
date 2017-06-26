@@ -17,9 +17,9 @@ export default {
         return {};
     },
 
-    mounted() {
+    beforeCreate() {
         if (this.loggedIn) {
-            this.$router.replace({ name: 'home' });
+            this.$router.replace({ name: 'assignments' });
         }
     },
 

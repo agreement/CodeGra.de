@@ -8,6 +8,11 @@ html {
     box-sizing: inherit;
 }
 
+.navbar {
+    background: @color-primary;
+    margin-bottom: 2em;
+}
+
 #app {
     display: flex;
     min-height: 100vh;
@@ -15,27 +20,11 @@ html {
 }
 
 footer {
-    @footer-height: 60px;
-    height: @footer-height;
-    /* Vertically center the text there */
-    line-height: @footer-height;
-
-    text-align: center;
     background: #f5f5f5;
 }
 
-.table {
-    position: relative;
-
-    /* Nothing-found label */
-    div.text-center {
-        text-align: center;
-        position: absolute;
-        left: 0;
-        right: 0;
-        padding: .75rem;
-        background: #eceeef;
-    }
+.page {
+    margin-bottom: 4em;
 }
 
 .btn {
@@ -44,12 +33,95 @@ footer {
     &-primary {
         background: @color-primary;
         border-color: @color-primary;
+
+        &:hover {
+            background: saturate(lighten(@color-primary, 7.5%), 10%);
+            border-color: saturate(lighten(@color-primary, 7.5%), 10%);
+        }
+
+        &[disabled] {
+            background: fade(@color-primary, 80);
+            border-color: fade(@color-primary, 60);
+        }
     }
+}
+
+.custom-control-input {
+    &:active ~ .custom-control-indicator {
+        background-color: fade(@color-primary, 60);
+    }
+
+    &:focus ~ .custom-control-indicator {
+        box-shadow: 0 0 0 1px white,
+                    0 0 0 3px @color-primary;
+    }
+
+    &:checked ~ .custom-control-indicator {
+        background-color: @color-primary;
+    }
+}
+
+input[type="datetime-local"] {
+    padding: 0 .75rem;
+    &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+    }
+}
+
+input[type="number"] {
+    text-align: right;
+    padding-right: 1em;
+
+    &::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+    }
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+input:disabled,
+textarea:disabled {
+    background: white;
 }
 
 .card-primary.card-inverse {
     background: @color-primary;
     border-color: @color-primary;
+}
+
+.table-hover tbody tr {
+    cursor: pointer;
+}
+
+.input-group .custom-checkbox {
+    margin-right: 0;
+    padding: .5rem .75rem;
+    padding-left: 2.25rem;
+    font-size: 0.95em;
+
+    .custom-control-indicator {
+        top: .625rem;
+        left: .75rem;
+    }
+}
+
+.input-group .input-group-btn {
+    &:not(:first-child) button {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+
+    &:not(:last-child) button {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+}
+
+.form-group .alert {
+    position: relative;
+    margin-top: -4px;
+    margin-bottom: 0;
+    z-index: -1;
 }
 
 .code-viewer {
@@ -109,4 +181,14 @@ footer {
     -webkit-text-decoration-style: wavy;
     -moz-text-decoration-style: wavy;
     text-decoration-style: wavy;
+}
+
+.file-tree {
+    a {
+        color: #2c3e50;
+    }
+
+    .active-file {
+        font-weight: bold;
+    }
 }

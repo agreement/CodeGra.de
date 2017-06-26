@@ -1,12 +1,12 @@
 <template>
   <div class="page submission-list">
-      <div class="row">
-        <loader :class="`col-md-${canUpload ? 6 : 12} text-center`" v-if="loading < 3"></loader>
-        <div :class="`col-md-${canUpload ? 6 : 12}`" v-else>
-            <h1>Submissions</h1>
-            <submission-list :submissions="submissions"></submission-list>
-            <submissions-exporter :assignment="assignment" v-if="canDownload"></submissions-exporter>
-        </div>
+    <div class="row justify-content-center">
+      <loader :class="`col-md-${canUpload ? 5 : 10} text-center`" v-if="loading < 2"></loader>
+      <div :class="`col-md-${canUpload ? 5 : 10}`" v-else>
+        <h1>Submissions</h1>
+        <submission-list :submissions="submissions"></submission-list>
+        <submissions-exporter :assignment="assignment" v-if="canDownload"></submissions-exporter>
+      </div>
 
         <div class="col-md-6" v-if="canUpload">
             <h1>Submit work for assignment {{ assignmentId }}</h1>
@@ -36,45 +36,36 @@ export default {
             canUpload: false,
             assignment: null,
             canDownload: false,
+            showAssignedFilter: false,
         };
     },
 
     mounted() {
+        const partDone = () => {
+            this.loading += 1;
+        };
+
         this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then(({ data }) => {
-            this.partDone();
+            partDone();
+            this.submissions = data;
             for (let i = 0, len = data.length; i < len; i += 1) {
                 data[i].created_at = moment.utc(data[i].created_at, moment.ISO_8601).local().format('YYYY-MM-DD HH:mm');
             }
-            this.submissions = data;
         });
 
         this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then((data) => {
             this.assignment = data.data;
             this.assignment.id = this.assignmentId;
 
-            this.hasPermission('can_submit_own_work').then((val) => {
-                this.canUpload = val && this.assignment.open;
-                this.partDone();
-            });
+            this.hasPermission(['can_submit_own_work', 'can_see_others_work', 'can_see_grade_before_open']).then(([submit, others, before]) => {
+                this.canUpload = submit && this.assignment.open;
 
-            const checkDownload = () => {
-                if (this.assignment.state === assignmentState.DONE) {
+                if (others && this.assignment.state === assignmentState.DONE) {
                     this.canDownload = true;
-                    this.partDone();
-                } else {
-                    this.hasPermission('can_see_grade_before_open').then((res) => {
-                        this.canDownload = res;
-                        this.partDone();
-                    });
+                } else if (others) {
+                    this.canDownload = before;
                 }
-            };
-
-            this.hasPermission('can_see_others_work').then((res) => {
-                if (res) {
-                    checkDownload();
-                } else {
-                    this.partDone();
-                }
+                partDone();
             });
         });
     },
@@ -83,15 +74,14 @@ export default {
         hasPermission(perm) {
             return this.u_hasPermission({ name: perm, course_id: this.courseId });
         },
-        partDone() {
-            this.loading += 1;
-        },
+
         gotoSubmission(submission) {
             this.$router.push({
                 name: 'submission',
                 params: { submissionId: submission.id },
             });
         },
+
         ...mapActions({
             u_hasPermission: 'user/hasPermission',
         }),
@@ -106,7 +96,7 @@ export default {
 };
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
 .loader {
     padding-top: 3.5em;
 }

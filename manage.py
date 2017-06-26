@@ -48,9 +48,6 @@ def seed():
             for perm in perms:
                 if ((perm.default_value and perm.name not in perms_set) or
                         (not perm.default_value and perm.name in perms_set)):
-                    print(perm.name)
-                    print((perm.default_value and perm.name not in perms_set))
-                    print((not perm.default_value and perm.name in perms_set))
                     r_perms[perm.name] = perm
 
             r = m.Role.query.filter_by(name=name).first()

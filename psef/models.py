@@ -9,6 +9,7 @@ from sqlalchemy_utils import PasswordType
 from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
+import psef.auth as auth
 from psef import db, app, login_manager
 from psef.helpers import get_request_start_time
 
@@ -126,7 +127,7 @@ class CourseRole(db.Model):
             perms_set = set(c['permissions'])
             for perm in perms:
                 if ((perm.default_value and perm.name not in perms_set) or
-                        (not perm.default_value and perm.name in perms_set)):
+                    (not perm.default_value and perm.name in perms_set)):
                     r_perms[perm.name] = perm
 
             res[name] = r_perms
@@ -214,6 +215,41 @@ class User(db.Model, UserMixin):
                 course_id = course_id.id
             return (course_id in self.courses and
                     self.courses[course_id].has_permission(permission))
+
+    def get_permission_in_courses(self, permission):
+        if not isinstance(permission, Permission):
+            permission = Permission.query.filter_by(name=permission).first()
+        assert permission.course_permission
+
+        course_roles = db.session.query(user_course.c.course_id).join(
+            User, User.id == user_course.c.user_id).filter(
+                User.id == self.id).subquery('course_roles')
+
+        crp = db.session.query(course_permissions.c.course_role_id).join(
+            Permission,
+            course_permissions.c.permission_id == Permission.id).filter(
+                Permission.id == permission.id).subquery('crp')
+
+        res = db.session.query(course_roles.c.course_id).join(
+            crp, course_roles.c.course_id == crp.c.course_role_id).all()
+
+        return {
+            course_role.course_id:
+            (course_role.id, ) in res != permission.default_value
+            for course_role in self.courses.values()
+        }
+
+    @property
+    def can_see_hidden(self):
+        return self.has_course_permission_once('can_see_hidden_assignments')
+
+    def __to_json__(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+            "hidden": self.can_see_hidden,
+        }
 
     def has_course_permission_once(self, permission):
         if not isinstance(permission, Permission):
@@ -339,6 +375,23 @@ class Work(db.Model):
                          app.config['EXTERNAL_URL'], self.assignment.course_id,
                          self.assignment_id, self.id))
 
+    def __to_json__(self):
+        item = {
+            'id': self.id,
+            'user': self.user,
+            'edit': self.edit,
+            'created_at': self.created_at.isoformat(),
+            'assignee': self.assignee.name if self.assignee else "",
+        }
+        try:
+            auth.ensure_can_see_grade(self)
+            item['grade'] = self.grade
+            item['comment'] = self.comment
+        except auth.PermissionException:
+            item['grade'] = '-'
+            item['comment'] = '-'
+        return item
+
     def add_file_tree(self, session, tree):
         """Add the given tree to the given db.
 
@@ -417,6 +470,12 @@ class File(db.Model):
                 "entries": [child.list_contents() for child in self.children]
             }
 
+    def __to_json__(self):
+        return {
+            'name': self.name,
+            'extension': self.extension,
+        }
+
 
 class LinterComment(db.Model):
     __tablename__ = "LinterComment"
@@ -432,6 +491,14 @@ class LinterComment(db.Model):
     linter = db.relationship("LinterInstance", back_populates="comments")
     file = db.relationship('File', foreign_keys=file_id)
 
+    def __to_json__(self):
+        return {
+            'code': self.linter_code,
+            'line': self.line,
+            'msg': self.comment,
+            'id': self.id,
+        }
+
 
 class Comment(db.Model):
     __tablename__ = "Comment"
@@ -443,6 +510,12 @@ class Comment(db.Model):
 
     file = db.relationship('File', foreign_keys=file_id)
     user = db.relationship('User', foreign_keys=user_id)
+
+    def __to_json__(self):
+        return {
+            'line': self.line,
+            'msg': self.comment,
+        }
 
 
 @enum.unique
@@ -465,6 +538,27 @@ class AssignmentLinter(db.Model):
                               db.ForeignKey('Assignment.id'))
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
+
+    def __to_json__(self):
+        working = 0
+        crashed = 0
+        done = 0
+
+        for test in self.tests:
+            if test.state == LinterState.running:
+                working += 1
+            elif test.state == LinterState.crashed:
+                crashed += 1
+            else:
+                done += 1
+
+        return {
+            'done': done,
+            'working': working,
+            'crashed': crashed,
+            'id': self.id,
+            'name': self.name,
+        }
 
     @classmethod
     def create_tester(cls, assignment_id, name):
@@ -581,7 +675,7 @@ class Assignment(db.Model):
             return 'submitting' if self.is_open else 'grading'
         return _AssignmentStateEnum(self.state).name
 
-    def to_dict(self):
+    def __to_json__(self):
         return {
             'id': self.id,
             'state': self.state_name,
@@ -637,5 +731,5 @@ class Snippet(db.Model):
     def get_all_snippets(cls, user):
         return cls.query.filter_by(user_id=user.id).all()
 
-    def to_dict(self):
+    def __to_json__(self):
         return {'key': self.key, 'value': self.value, 'id': self.id}

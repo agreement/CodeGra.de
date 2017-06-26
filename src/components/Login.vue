@@ -1,33 +1,32 @@
 <template>
-    <div class="login">
-        <div class="form-group">
-            <input type="text" class="form-control" placeholder="Email" v-model="email">
-            <b-alert variant="danger" :show="submitted && !validator.validate(email)" class="help">
+    <div class="login" @keyup.enter="login">
+        <b-form-fieldset>
+            <b-form-input type="text" placeholder="Email" v-model="email"></b-form-input>
+            <b-alert variant="danger" :show="submitted && !validator.validate(email)">
                 Please enter a valid email
             </b-alert>
-        </div>
+        </b-form-fieldset>
 
-        <div class="form-group">
-            <input type="password" class="form-control" placeholder="Password" v-model="password">
-            <b-alert variant="danger" v-show="submitted && password.length === 0" class="help">
+        <b-form-fieldset>
+            <b-form-input type="password" placeholder="Password" v-model="password"></b-form-input>
+            <b-alert variant="danger" :show="submitted && password && password.length === 0">
                 Please enter a non empty password
             </b-alert>
-        </div>
+        </b-form-fieldset>
 
-        <b-alert :show="error !== ''" variant="danger">
+        <b-alert :show="error.length" variant="danger">
             {{ error }}
         </b-alert>
 
-        <div class="form-group">
-            <input type="submit" class="form-control" value="Submit" @click="login">
-        </div>
+        <b-form-fieldset>
+            <b-form-input type="submit" @click.native="login"></b-form-input>
+        </b-form-fieldset>
     </div>
 </template>
 
 <script>
-
 import { mapActions } from 'vuex';
-import { bAlert, bPopover } from 'bootstrap-vue/lib/components';
+import { bAlert, bFormFieldset, bFormInput, bPopover } from 'bootstrap-vue/lib/components';
 
 const validator = require('email-validator');
 
@@ -42,6 +41,7 @@ export default {
             submitted: false,
         };
     },
+
     methods: {
         login(event) {
             event.preventDefault();
@@ -55,7 +55,7 @@ export default {
             }
 
             this.tryLogin({ email: this.email, password: this.password }).then(() => {
-                this.$router.replace({ name: 'home' });
+                this.$router.replace({ name: 'assignments' });
             }).catch((reason) => {
                 if (reason) {
                     this.error = reason.message;
@@ -66,17 +66,12 @@ export default {
             tryLogin: 'user/login',
         }),
     },
+
     components: {
         bAlert,
+        bFormFieldset,
+        bFormInput,
         bPopover,
     },
 };
 </script>
-
-<style lang="less">
-.help {
-    position: relative;
-    margin-top: -4px;
-    z-index: -1;
-}
-</style>

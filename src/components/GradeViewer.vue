@@ -3,8 +3,8 @@
         <div class="row">
             <div class="col-6">
                 <b-input-group>
-                    <b-input-group-button>
-                        <b-button :variant="submitted ? 'success' : 'primary'" v-on:click="putFeedback()" v-if="editable">
+                    <b-input-group-button v-if="editable">
+                        <b-button :variant="submitted ? 'success' : 'primary'" v-on:click="putFeedback()">
                             <icon name="refresh" spin v-if="submitting"></icon>
                             <span v-else>Submit all</span>
                         </b-button>
@@ -128,22 +128,3 @@ export default {
     },
 };
 </script>
-
-<style lang="less" scoped>
-input.grade {
-    text-align: right;
-    padding-right: 1em;
-
-    &::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-    }
-    -moz-appearance: textfield;
-    appearance: textfield;
-}
-
-input:disabled,
-textarea:disabled {
-    background: white;
-    cursor: text;
-}
-</style>

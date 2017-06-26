@@ -3,7 +3,6 @@
 
 import datetime
 import traceback
-from pprint import pprint
 from collections import defaultdict
 
 import flask
@@ -123,6 +122,9 @@ class LTI:
                 db.session.add(assig_res)
 
         assignment.lti_outcome_service_url = self.outcome_service_url
+        assignment.state = self.assignment_state
+
+        db.session.commit()
 
         return assignment
 
@@ -220,20 +222,13 @@ class CanvasLTI(LTI):
             return dateutil.parser.parse(
                 self.launch_params['custom_canvas_assignment_due_at'])
         except:
-            return None
+            return datetime.datetime.utcnow() + datetime.timedelta(days=365)
 
     @property
     def assignment_state(self):
-        try:
-            now = datetime.datetime.utcnow()
-            unlock = self.launch_params['custom_canvas_assignment_unlocked_at']
-            if self.assignment_deadline < now:
-                return models._AssignmentStateEnum.done
-            elif now < dateutil.parser.parse(unlock):
-                return models._AssignmentStateEnum.hidden
-            else:
-                return models._AssignmentStateEnum.open
-        except:
+        if self.launch_params['custom_canvas_assignment_published'] == 'true':
+            return models._AssignmentStateEnum.open
+        else:
             return models._AssignmentStateEnum.hidden
 
     @property
@@ -251,8 +246,9 @@ def launch_lti():
     lti.set_user_role(user)
     lti.set_user_course_role(user, course)
     db.session.commit()
-    return flask.redirect('{}/courses/{}/assignments/{}/submissions?lti=true'.format(
-        app.config['EXTERNAL_URL'], course.id, assig.id))
+    return flask.redirect(
+        '{}/courses/{}/assignments/{}/submissions?lti=true'.format(
+            app.config['EXTERNAL_URL'], course.id, assig.id))
 
 
 # This part is largely copied from https://github.com/tophatmonocle/ims_lti_py

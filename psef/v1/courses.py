@@ -1,4 +1,5 @@
 from flask import jsonify
+from flask_login import login_required, current_user
 
 import psef.auth as auth
 import psef.models as models
@@ -17,6 +18,17 @@ def get_all_course_assignments(course_id):
                             'The course {} was not found'.format(course_id),
                             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    res = [assig.to_dict() for assig in course.assignments]
-    res.sort(key=lambda item: item['deadline'])
-    return jsonify(res)
+    return jsonify(sorted(course.assignments, key=lambda item: item.deadline))
+
+
+@api.route('/courses/', methods=['GET'])
+@login_required
+def get_courses():
+    """
+    Return all courses of the current user.
+    """
+    return jsonify([{
+        'name': c.course.name,
+        'id': c.course.id,
+        'role': c.name
+    } for c in current_user.courses.values()])

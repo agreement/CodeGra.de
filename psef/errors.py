@@ -44,7 +44,7 @@ class APIException(Exception):
         self.message = message
         self.rest = rest
 
-    def to_dict(self):
+    def __to_json__(self):
         "Convert this APIException instance to a dictionary."
         ret = self.rest
         ret['message'] = self.message
@@ -57,6 +57,6 @@ class APIException(Exception):
 def handle_api_error(error):
     """Handle the an API exception by converting the error to a JSON object.
     """
-    response = jsonify(error.to_dict())
+    response = jsonify(error)
     response.status_code = error.status_code
     return response

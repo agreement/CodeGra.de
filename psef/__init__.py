@@ -42,9 +42,9 @@ with open(
     LTI_ROLE_LOOKUPS = json.load(f)
 
 import psef.auth
+import psef.json
 import psef.models
 import psef.errors
-import psef.auth
 import psef.files
 import psef.lti
 
