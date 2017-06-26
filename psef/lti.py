@@ -88,7 +88,6 @@ class LTI:
     def get_course(self):
         course = models.Course.query.filter_by(
             lti_course_id=self.course_id).first()
-        print(self.course_id)
         if course is None:
             course = models.Course(
                 name=self.course_name, lti_course_id=self.course_id)
@@ -127,7 +126,6 @@ class LTI:
         return assignment
 
     def set_user_role(self, user):
-        print(user.name, user.role)
         if user.role is None:
             for role in self.roles:
                 if role not in LTI_ROLE_LOOKUPS:
@@ -252,9 +250,8 @@ def launch_lti():
     lti.set_user_role(user)
     lti.set_user_course_role(user, course)
     db.session.commit()
-    return flask.redirect(
-        'http://localhost:8080/courses/{}/assignments/{}/submissions'.format(
-            course.id, assig.id))
+    return flask.redirect('{}/courses/{}/assignments/{}/submissions'.format(
+        app.config['EXTERNAL_URL'], course.id, assig.id))
 
 
 # This part is largely copied from https://github.com/tophatmonocle/ims_lti_py
@@ -392,11 +389,9 @@ class OutcomeRequest():
             normalize = http._normalize_headers
 
             def my_normalize(self, headers):
-                print("My Normalize", headers)
                 ret = normalize(self, headers)
                 if 'authorization' in ret:
                     ret['Authorization'] = ret.pop('authorization')
-                print("My Normalize", ret)
                 return ret
 
             http._normalize_headers = my_normalize

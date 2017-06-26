@@ -121,8 +121,7 @@ class CourseRole(db.Model):
     def get_default_course_roles():
         res = {}
         for name, c in app.config['DEFAULT_COURSE_ROLES'].items():
-            perms = Permission.query.filter_by(
-                course_permission=True).all()
+            perms = Permission.query.filter_by(course_permission=True).all()
             r_perms = {}
             perms_set = set(c['permissions'])
             for perm in perms:
@@ -335,7 +334,10 @@ class Work(db.Model):
                 self.grade / 10,
                 self.assignment.lti_outcome_service_url,
                 self.user.assignment_results[self.assignment_id].sourcedid,
-                text=self.comment)
+                url=('{}/'
+                     'courses/{}/assignments/{}/submissions/{}').format(
+                         app.config['EXTERNAL_URL'], self.assignment.course_id,
+                         self.assignment_id, self.id))
 
     def add_file_tree(self, session, tree):
         """Add the given tree to the given db.
