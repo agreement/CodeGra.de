@@ -290,7 +290,8 @@ h1 {
     overflow: auto;
 }
 
-.grade-viewer {
+.grade-viewer,
+.submission-nav-bar {
     flex-grow: 0;
     flex-shrink: 0;
 }

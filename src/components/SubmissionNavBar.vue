@@ -1,5 +1,5 @@
 <template>
-    <b-form-fieldset class="table-control">
+    <b-form-fieldset class="submission-nav-bar">
         <b-input-group>
             <b-input-group-button class="buttons">
                 <b-popover placement="top" triggers="hover" content="Back to all submissions">
@@ -178,10 +178,6 @@ export default {
 <style lang="less" scoped>
 .buttons div, button {
     height: 100%;
-}
-
-.row {
-    padding-bottom: 1em;
 }
 
 select {
