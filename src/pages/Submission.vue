@@ -79,7 +79,6 @@ export default {
     },
 
     mounted() {
-        console.log('asdfsad');
         this.hasPermission({ name: 'can_grade_work', course_id: this.courseId }).then((val) => {
             this.editable = val;
         });
