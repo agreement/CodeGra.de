@@ -239,6 +239,12 @@ export default {
 };
 </script>
 
+<style lang="less">
+.page {
+    margin-bottom: 0;
+}
+</style>
+
 <style lang="less" scoped>
 h2 {
     text-align: center;
