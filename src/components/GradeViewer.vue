@@ -33,18 +33,13 @@
                 </b-input-group>
             </div>
         </div>
-        <feedback-exporter :id="submission.id"></feedback-exporter>
     </div>
 </template>
 
 <script>
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/refresh';
-import { bButton, bInputGroup, bInputGroupButton } from 'bootstrap-vue/lib/components';
-
 import { mapActions, mapGetters } from 'vuex';
-
-import FeedbackExporter from './FeedbackExporter';
 
 export default {
     name: 'grade-viewer',
@@ -122,11 +117,7 @@ export default {
     },
 
     components: {
-        bButton,
-        bInputGroup,
-        bInputGroupButton,
         Icon,
-        FeedbackExporter,
     },
 };
 </script>

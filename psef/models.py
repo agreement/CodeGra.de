@@ -271,6 +271,10 @@ class Course(db.Model):
     assignments = db.relationship(
         "Assignment", back_populates="course", cascade='all,delete')
 
+    def __to_json__(self):
+        return {'id': self.id, 'name': self.name}
+
+
 
 class Work(db.Model):
     __tablename__ = "Work"
@@ -421,7 +425,6 @@ class LinterComment(db.Model):
             'code': self.linter_code,
             'line': self.line,
             'msg': self.comment,
-            'id': self.id,
         }
 
 
