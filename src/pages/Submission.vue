@@ -1,5 +1,6 @@
 <template>
     <div class="page submission">
+        <h2>Grading: {{ this.submission.user.name }}</h2>
         <div class="row submission-nav-bar">
             <div class="col-12">
                 <submission-nav-bar v-if="submissions && submission"
@@ -15,8 +16,10 @@
                 <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
                 <code-viewer class="" :editable="editable" :id="fileId"
                     :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
-                <grade-viewer :id="submissionId" :editable="editable"
-                    @submit="submitAllFeedback($event)"></grade-viewer>
+                <grade-viewer :id="submissionId"
+                              :editable="editable"
+                              v-on:gradeChange="gradeChange"
+                              @submit="submitAllFeedback($event)"></grade-viewer>
             </div>
 
             <file-tree-container class="col-3" :fileTree="fileTree"></file-tree-container>
@@ -146,6 +149,19 @@ export default {
             });
         },
 
+        gradeChange(grade) {
+            this.$set(this.submission, 'grade', Number(grade));
+            let i = 0;
+            for (const len = this.submissions.length; i < len; i += 1) {
+                if (this.submissions[i].id === this.submission.id) {
+                    break;
+                }
+            }
+            const sub = this.submissions[i];
+            this.$set(sub, 'grade', Number(grade));
+            this.$set(this.submissions, i, sub);
+        },
+
         getSubmission() {
             this.$http.get(`/api/v1/submissions/${this.submissionId}`).then((data) => {
                 this.submission = data.data;
@@ -196,6 +212,11 @@ export default {
 </script>
 
 <style scoped>
+h2 {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
 .page.submission {
     display: flex;
     flex-direction: column;

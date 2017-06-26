@@ -109,6 +109,7 @@ export default {
                 this.$nextTick(() => setTimeout(() => {
                     this.submitted = false;
                 }, 1000));
+                this.$emit('gradeChange', this.grade);
             });
         },
         ...mapActions({

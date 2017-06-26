@@ -1,31 +1,40 @@
 <template>
-    <nav class="row">
-        <div class="col-9">
-            <h4>Grading: {{ this.submission.user.name }}</h4>
-            <div class="input-group">
-                <span class="input-group-btn">
-                    <b-button :disabled="!prev" @click="selected = prev" class="arrow-btn">
-                        <icon name="arrow-left"></icon>
+    <b-form-fieldset class="table-control">
+        <b-input-group>
+            <b-input-group-button class="buttons">
+                <b-popover placement="top" triggers="hover" content="Back to all submissions">
+                    <b-button class="angle-btn" @click="backToSubmissions">
+                        <icon name="angle-double-left"></icon>
                     </b-button>
-                </span>
-                <b-form-select v-model="selected"
-                               :options="options"
-                               calss="mb-3"
-                               size="lg"></b-form-select>
-                <span class="input-group-btn">
-                    <b-button :disabled="!next" @click="selected = next" class="arrow-btn">
-                        <icon name="arrow-right"></icon>
+                </b-popover>
+            </b-input-group-button>
+            <b-input-group-button class="buttons">
+                <b-popover placement="top" triggers="hover" content="Previous submission">
+                    <b-button :disabled="!prev" @click="selected = prev" class="angle-btn">
+                        <icon name="angle-left"></icon>
                     </b-button>
-                </span>
-            </div>
-        </div>
-    </nav>
+                </b-popover>
+            </b-input-group-button>
+            <b-form-select v-model="selected"
+                           :options="options"
+                           style="height: 2em; text-align: center;"
+                           size="lg"></b-form-select>
+            <b-input-group-button class="buttons">
+                <b-popover placement="top" triggers="hover" content="Next submission">
+                    <b-button :disabled="!next" @click="selected = next" class="angle-btn">
+                        <icon name="angle-right"></icon>
+                    </b-button>
+                </b-popover>
+            </b-input-group-button>
+        </b-input-group>
+    </b-form-fieldset>
 </template>
 
 <script>
 import Icon from 'vue-awesome/components/Icon';
-import 'vue-awesome/icons/arrow-left';
-import 'vue-awesome/icons/arrow-right';
+import 'vue-awesome/icons/angle-left';
+import 'vue-awesome/icons/angle-right';
+import 'vue-awesome/icons/angle-double-left';
 import 'vue-awesome/icons/list';
 
 import { mapGetters } from 'vuex';
@@ -43,24 +52,27 @@ export default {
     },
 
     mounted() {
-        const options = this.filterLatestSubmissions(this.submissions);
-        this.options = this.filterMineOnly(options);
+        this.options = this.filterAll();
         this.findNextPrev();
     },
 
     methods: {
+        filterAll() {
+            const options = this.filterLatestSubmissions(this.submissions);
+            return this.filterMineOnly(options);
+        },
+
         filterLatestSubmissions(submissions) {
             // filter submissions on latest only
             const latestSubs = [];
             const seen = {};
-            const len = submissions.length;
-            for (let i = 0; i < len; i += 1) {
+            for (let i = 0, len = submissions.length; i < len; i += 1) {
                 const sub = submissions[i];
                 if (seen[sub.user.id] !== true) {
-                    const grade = sub.grade ? sub.grade : '';
-                    const assignee = sub.assignee ? sub.assignee.name : '-';
+                    const grade = sub.grade ? `- ${sub.grade} -` : '';
+                    const assignee = sub.assignee ? sub.assignee.name : 'nobody';
                     latestSubs.push({
-                        text: `${sub.user.name} - ${grade} - assigned to ${assignee}`,
+                        text: `${sub.user.name} ${grade} Assigned to ${assignee}`,
                         value: sub.id,
                         assignee: sub.assignee,
                     });
@@ -95,6 +107,12 @@ export default {
                 this.next = this.options[index + 1].value;
             }
         },
+
+        backToSubmissions() {
+            this.$router.push({
+                name: 'assignment_submissions',
+            });
+        },
     },
 
     watch: {
@@ -108,6 +126,10 @@ export default {
             });
             this.$emit('subChange');
             this.options = this.filterMineOnly(this.options);
+        },
+
+        submissions() {
+            this.options = this.filterAll();
         },
 
         submission() {
@@ -152,9 +174,17 @@ export default {
 </script>
 
 <style lang="less" scoped>
+.buttons div, button {
+    height: 100%;
+}
 
 .row {
     padding-bottom: 1em;
 }
 
+select {
+    text-align-last: center; text-align: center;
+    -ms-text-align-last: center;
+    -moz-text-align-last: center; text-align-last: center;
+}
 </style>
