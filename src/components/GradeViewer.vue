@@ -40,8 +40,6 @@
 <script>
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/refresh';
-import { bButton, bInputGroup, bInputGroupButton } from 'bootstrap-vue/lib/components';
-
 import { mapActions, mapGetters } from 'vuex';
 
 import FeedbackExporter from './FeedbackExporter';
@@ -120,9 +118,6 @@ export default {
     },
 
     components: {
-        bButton,
-        bInputGroup,
-        bInputGroupButton,
         Icon,
         FeedbackExporter,
     },

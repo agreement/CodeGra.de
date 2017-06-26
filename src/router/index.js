@@ -2,6 +2,7 @@ import Vue from 'vue';
 import Router from 'vue-router';
 import store from '@/store';
 import { Assignments, Courses, Home, Login, ManageCourse, Submission, Submissions, User } from '@/pages';
+import { NewCourse } from '@/components';
 
 Vue.use(Router);
 
@@ -59,17 +60,22 @@ const router = new Router({
             name: 'assignment_manage',
             component: ManageCourse,
         },
+        {
+            path: '/add-course',
+            name: 'new-course',
+            component: NewCourse,
+        },
     ],
 });
 
 router.beforeEach((to, from, next) => {
-    if (!store.getters['user/loggedIn'] && to.path !== '/login') {
-        next('/login');
+    if (!store.getters['user/loggedIn'] && to.name !== 'login' && to.name !== 'home') {
+        next({ name: 'login' });
         return;
     }
 
-    if (store.getters['user/loggedIn'] && to === '/login') {
-        next('/');
+    if (store.getters['user/loggedIn'] && to.name === 'login') {
+        next({ name: 'home' });
         return;
     }
 

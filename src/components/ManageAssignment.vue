@@ -59,8 +59,6 @@
 </template>
 
 <script>
-import { bButton, bButtonGroup, bCollapse, bFormFieldset, bFormInput, bInputGroup, bPopover } from 'bootstrap-vue/lib/components';
-
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/eye-slash';
 import 'vue-awesome/icons/clock-o';
@@ -145,13 +143,6 @@ export default {
         Linters,
         Loader,
         SubmitButton,
-        bButton,
-        bButtonGroup,
-        bCollapse,
-        bFormFieldset,
-        bFormInput,
-        bInputGroup,
-        bPopover,
         Icon,
     },
 };
