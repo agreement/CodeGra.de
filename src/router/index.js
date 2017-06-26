@@ -63,13 +63,13 @@ const router = new Router({
 });
 
 router.beforeEach((to, from, next) => {
-    if (!store.getters['user/loggedIn'] && to.path !== '/login') {
-        next('/login');
+    if (!store.getters['user/loggedIn'] && to.name !== 'login' && to.name !== 'home') {
+        next({ name: 'login' });
         return;
     }
 
-    if (store.getters['user/loggedIn'] && to === '/login') {
-        next('/');
+    if (store.getters['user/loggedIn'] && to.name === 'login') {
+        next({ name: 'home' });
         return;
     }
 
