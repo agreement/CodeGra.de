@@ -24,7 +24,7 @@
                 <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
                 <code-viewer class="" :editable="editable"
                     :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
-                <grade-viewer :id="submissionId"
+                <grade-viewer :submission="submission"
                               :editable="editable"
                               v-if="editable || assignment.state === assignmentState.DONE"
                               v-on:gradeChange="gradeChange"
@@ -66,7 +66,7 @@ export default {
 
     data() {
         return {
-            submission: null,
+            submission: {},
             fileTree: null,
             editable: false,
             fileExtension: '',
@@ -94,7 +94,10 @@ export default {
     },
 
     mounted() {
-        this.hasPermission({ name: 'can_grade_work', course_id: this.courseId }).then((val) => {
+        this.hasPermission({
+            name: 'can_grade_work',
+            course_id: this.courseId,
+        }).then((val) => {
             this.editable = val;
         });
         Promise.all([
@@ -185,10 +188,11 @@ export default {
 
         getSubmission() {
             return new Promise((resolve) => {
-                this.$http.get(`/api/v1/submissions/${this.submissionId}`).then((data) => {
-                    this.submission = data.data;
+                this.$http.get(`/api/v1/submissions/${this.submissionId}`).then(({ data }) => {
+                    this.submission = data;
                     resolve();
                 }).catch(() => {
+                    this.submission = {};
                     resolve();
                 });
             });
