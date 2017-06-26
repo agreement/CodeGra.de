@@ -10,18 +10,21 @@
         </b-button-group>
         <b-collapse id="settings">
             <b-form-fieldset
-              label="Columns:"
-              description="Checked columns will be included in the exported file.">
+                label="Columns:"
+                description="Checked columns will be included in the exported file.">
                 <b-form-checkbox
-                  v-for="(col, key) in columns"
-                  :key="key"
-                  v-model="col.enabled">
+                    v-for="(col, key) in columns"
+                    :key="key"
+                    v-model="col.enabled">
                     {{ col.name }}
                 </b-form-checkbox>
             </b-form-fieldset>
             <b-form-fieldset
-              label="Rows:"
-              description="When <i>All</i> is selected all submissions of this assignment will be exported.<br>The <i>Current</i> option only exports the submissions that are shown by the current filter that is applied on the list.">
+                label="Rows:"
+                description="When <i>All</i> is selected all submissions of this
+                             assignment will be exported.<br>The <i>Current</i> option only
+                             exports the submissions that are shown by the current filter that
+                             is applied on the list.">
                 <b-form-radio v-model="exportSetting" :options="['All', 'Current']">
                 </b-form-radio>
             </b-form-fieldset>
@@ -119,7 +122,10 @@ export default {
                 }
                 data.push(row);
             }
-            const csv = Papa.unparse(data);
+            const csv = Papa.unparse({
+                fields: this.enabledColumns.map(obj => obj.name),
+                data,
+            });
             this.$http.post('/api/v1/files/', csv).then((response) => {
                 window.open(`/api/v1/files/${response.data}?name=${this.filename}`);
             });
