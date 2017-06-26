@@ -606,7 +606,7 @@ class LinterInstance(db.Model):
     def __init__(self, work, tester):
         id = str(uuid.uuid4())
         while db.session.query(
-                LinterInstance.query.filter(LinterState.id == id)
+                LinterInstance.query.filter(LinterInstance.id == id)
                 .exists()).scalar():
             id = str(uuid.uuid4())
         self.id = id
