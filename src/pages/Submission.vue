@@ -17,7 +17,7 @@
         <div class="row">
             <div class="col-9 code-and-grade">
                 <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
-                <code-viewer class="" :editable="editable" :id="fileId"
+                <code-viewer class="" :editable="editable"
                     :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
                 <grade-viewer :id="submissionId"
                               :editable="editable"
@@ -78,15 +78,19 @@ export default {
         fileId() { return Number(this.$route.params.fileId); },
     },
 
+    watch: {
+        fileId() {
+            this.getFileMetadata();
+        },
+    },
+
     mounted() {
-        console.log('asdfsad');
         this.hasPermission({ name: 'can_grade_work', course_id: this.courseId }).then((val) => {
             this.editable = val;
         });
         Promise.all([
             this.getSubmission(),
             this.getSubmissionFiles(),
-            this.getFileMetadata(),
             this.getAllSubmissions(),
             this.getAssignment(),
         ]).then(() => {
@@ -151,7 +155,6 @@ export default {
                 this.$router.replace({
                     name: 'submission_file',
                     params: {
-                        submissionId: this.submissionId,
                         fileId: this.fileId ? this.fileId : getFirstFile(this.fileTree).id,
                     },
                 });
