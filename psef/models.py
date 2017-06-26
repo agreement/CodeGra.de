@@ -300,7 +300,7 @@ class Work(db.Model):
             'user': self.user,
             'edit': self.edit,
             'created_at': self.created_at.isoformat(),
-            'assignee': self.assignee.name if self.assignee else "",
+            'assignee': self.assignee,
         }
         try:
             auth.ensure_can_see_grade(self)

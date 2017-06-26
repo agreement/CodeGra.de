@@ -101,7 +101,7 @@ export default {
 
     mounted() {
         this.hasPermission('can_submit_own_work').then((perm) => {
-            this.assigneeFilter = !perm && this.submissions.some(s => s.assignee);
+            this.assigneeFilter = !perm && this.submissions.some(s => s.assignee.name);
         });
     },
 
@@ -137,7 +137,7 @@ export default {
         filterItems(item) {
             if ((this.latestOnly && !this.latest.includes(item)) ||
                 // TODO: change to user id
-                (this.assigneeFilter && this.mineOnly && item.assignee !== this.userName)) {
+                (this.assigneeFilter && this.mineOnly && item.assignee.id !== this.userId)) {
                 return false;
             } else if (!this.filter) {
                 return true;
@@ -147,7 +147,7 @@ export default {
                 user_name: item.user.name.toLowerCase(),
                 grade: (item.grade || 0).toString(),
                 created_at: item.created_at,
-                assignee: item.assignee.toLowerCase(),
+                assignee: item.assignee.name.toLowerCase(),
             };
             return this.filter.toLowerCase().split(' ').every(word =>
                 Object.keys(terms).some(key =>

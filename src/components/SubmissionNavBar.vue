@@ -48,6 +48,10 @@ export default {
     },
 
     methods: {
+        isEmptyObject(obj) {
+            return Object.keys(obj).length === 0 && obj.constructor === Object;
+        },
+
         filterLatestSubmissions(submissions) {
             // filter submissions on latest only
             // and if assignee is set only
@@ -58,11 +62,13 @@ export default {
             for (let i = 0; i < len; i += 1) {
                 const sub = submissions[i];
                 if (seen[sub.user.id] !== true) {
-                    if (this.submission.assignee === '' ||
+                    console.log(sub.assignee);
+                    console.log(`this.userid ${this.userid}`);
+                    if (this.isEmptyObject(this.submission.assignee) ||
                         sub.assignee.id === this.userid) {
                         const grade = sub.grade ? sub.grade : '-';
                         latestSubs.push({
-                            text: `name: ${sub.user.name}, grade: ${grade}`,
+                            text: `${sub.user.name} - ${grade}`,
                             value: sub.id,
                         });
                         seen[sub.user.id] = true;
@@ -78,9 +84,6 @@ export default {
             this.next = null;
             this.prev = null;
             const index = this.options.findIndex(x => x.value === this.submission.id);
-            console.log(this.options);
-            console.log(this.submission.id);
-            console.log(index);
             if (index >= 1) {
                 this.prev = this.options[index - 1].value;
             }
