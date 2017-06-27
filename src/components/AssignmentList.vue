@@ -55,10 +55,22 @@
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="state" scope="item">
-                <icon name="eye-slash" v-if="item.item.state == assignmentState.HIDDEN"></icon>
-                <icon name="clock-o" v-if="item.item.state == assignmentState.SUBMITTING"></icon>
-                <icon name="pencil" v-else-if="item.item.state == assignmentState.GRADING"></icon>
-                <icon name="check" v-else-if="item.item.state == assignmentState.DONE"></icon>
+                <b-popover placement="top" triggers="hover" content="Hidden"
+                    v-if="item.item.state == assignmentState.HIDDEN">
+                    <icon name="eye-slash"></icon>
+                </b-popover>
+                <b-popover placement="top" triggers="hover" content="Submitting"
+                    v-if="item.item.state == assignmentState.SUBMITTING">
+                    <icon name="download"></icon>
+                </b-popover>
+                <b-popover placement="top" triggers="hover" content="Grading"
+                    v-else-if="item.item.state == assignmentState.GRADING">
+                    <icon name="pencil"></icon>
+                </b-popover>
+                <b-popover placement="top" triggers="hover" content="Done"
+                    v-else-if="item.item.state == assignmentState.DONE">
+                    <icon name="check"></icon>
+                </b-popover>
             </template>
             <template slot="empty">
                 No results found.
