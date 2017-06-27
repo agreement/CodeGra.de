@@ -21,9 +21,9 @@
                         :key="`rubric-${i}`">
                         <b-card
                             no-block>
-                            <div class="card-header">
-                                {{ rubric.header }} - {{ rubric.description }}
-                                <span class="rubric-index">{{ i + 1 }} / {{ rubrics.length }}</span>
+                            <div class="card-header rubric-header">
+                                <span class="title"><b>{{ rubric.header }}</b> - {{ rubric.description }}</span>
+                                <span class="index">{{ i + 1 }} / {{ rubrics.length }}</span>
                             </div>
                             <b-card-group>
                                 <b-card
@@ -162,8 +162,18 @@ export default {
     padding-right: .75rem;
 }
 
-.rubric-index {
-    float: right;
+.rubric-header {
+    display: flex;
+    flex-direction: row;
+
+    .title {
+        flex: 1 1 0;
+    }
+
+    .index {
+        flex: 0 0 auto;
+        margin-left: 1em;
+    }
 }
 
 .rubric-item {
