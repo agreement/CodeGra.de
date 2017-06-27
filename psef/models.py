@@ -364,7 +364,7 @@ class Work(db.Model):
 
     def get_selected_rubric_items(self):
         return db.session.query(RubricItem.id).join(
-            RubricItem,
+            user_rubricitem,
             RubricItem.id == user_rubricitem.c.rubricitem_id).filter_by(
                 user_id=self.user_id).all()
 
@@ -648,7 +648,7 @@ class Assignment(db.Model):
             full_rubric.append({
                 'header': rubric_row.header,
                 'description': rubric_row.description,
-                items: rubric_items
+                'items': rubric_items
             })
 
         return full_rubric
@@ -681,6 +681,13 @@ class RubricRow(db.Model):
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
 
+    def __to_json__(self):
+        return {
+            'id': self.id,
+            'assignment_id': self.assignment_id,
+            'header': self.header,
+            'description': self.description
+        }
 
 class RubricItem(db.Model):
     __tablename__ = 'RubricItem'
@@ -692,3 +699,12 @@ class RubricItem(db.Model):
     points = db.Column('points', db.Float)
 
     rubricrow = db.relationship('RubricRow', foreign_keys=rubricrow_id)
+
+    def __to_json__(self):
+        return {
+            'id': self.id,
+            'col': self.col,
+            'description': self.description,
+            'points': self.points,
+            'rubricrow_id': self.rubricrow_id
+        }
