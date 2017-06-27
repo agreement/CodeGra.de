@@ -80,6 +80,12 @@ class CourseRole(db.Model):
 
     course = db.relationship('Course', foreign_keys=course_id, backref="roles")
 
+    def __to_json__(self):
+        return {
+            'name': self.name,
+            'course': self.course,
+        }
+
     def has_permission(self, permission):
         if isinstance(permission, Permission):
             permission_name = permission.name
