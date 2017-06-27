@@ -190,10 +190,6 @@ export default {
         &:hover {
             background: rgba(0, 0, 0, 0.075);
         }
-
-        &.selected {
-            font-weight: bold;
-        }
     }
 
     &.selected {
