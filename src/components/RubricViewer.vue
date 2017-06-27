@@ -51,14 +51,6 @@ export default {
     name: 'rubric-viewer',
 
     props: {
-        assignment: {
-            type: Object,
-            default: {},
-        },
-        submission: {
-            type: Object,
-            default: {},
-        },
         rubrics: {
             type: Array,
             default: [],

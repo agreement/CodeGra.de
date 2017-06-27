@@ -7,8 +7,6 @@
             <rubric-viewer
                 v-model="rubricResult"
                 :editable="editable"
-                :assignment="assignment"
-                :submission="submission"
                 :rubrics="rubrics">
             </rubric-viewer>
         </b-collapse>
