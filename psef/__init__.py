@@ -7,10 +7,6 @@ from flask_login import LoginManager
 import os
 import logging
 
-import gevent.monkey
-
-gevent.monkey.patch_all()
-
 from logging.handlers import RotatingFileHandler
 from flask_sqlalchemy import SQLAlchemy
 

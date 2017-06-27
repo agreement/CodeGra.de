@@ -3,8 +3,8 @@ import enum
 import json
 import uuid
 import datetime
+from concurrent import futures
 
-import gevent
 from flask_login import UserMixin
 from sqlalchemy_utils import PasswordType
 from sqlalchemy.sql.expression import or_, and_, func, null, false
@@ -666,9 +666,9 @@ class Assignment(db.Model):
         'Course', foreign_keys=course_id, back_populates='assignments')
 
     def _submit_grades(self):
-        subs = self.get_all_latest_submissions()
-        gevent.wait(
-            [gevent.spawn(lambda s: s.passback_grade(), sub) for sub in subs])
+        with futures.ThreadPoolExecutor() as pool:
+            for sub in self.get_all_latest_submissions():
+                pool.submit(sub.passback_grade)
 
     @property
     def is_open(self):
@@ -706,6 +706,7 @@ class Assignment(db.Model):
             'name': self.name,
             'course_name': self.course.name,
             'course_id': self.course_id,
+            'is_lti': self.lti_outcome_service_url is not None,
         }
 
     def set_state(self, state):
