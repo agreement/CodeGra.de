@@ -33,7 +33,7 @@
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="assignee" scope="item">
-                {{item.value ? item.value : '-'}}
+                {{item.value ? item.value.name : '-'}}
             </template>
         </b-table>
     </div>
@@ -133,10 +133,14 @@ export default {
             this.$router.replace({ query });
         },
 
+        isEmptyObject(obj) {
+            return Object.keys(obj).length === 0 && obj.constructor === Object;
+        },
+
         filterItems(item) {
             if ((this.latestOnly && !this.latest.includes(item)) ||
-                // TODO: change to user id
-                (this.assigneeFilter && this.mineOnly && item.assignee !== this.userName)) {
+                (this.assigneeFilter && this.mineOnly &&
+                 (item.assignee == null || item.assignee.id !== this.userId))) {
                 return false;
             } else if (!this.filter) {
                 return true;
@@ -146,7 +150,7 @@ export default {
                 user_name: item.user.name.toLowerCase(),
                 grade: (item.grade || 0).toString(),
                 created_at: item.created_at,
-                assignee: item.assignee.toLowerCase(),
+                assignee: item.assignee.name.toLowerCase(),
             };
             return this.filter.toLowerCase().split(' ').every(word =>
                 Object.keys(terms).some(key =>
