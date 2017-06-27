@@ -59,6 +59,30 @@ def get_rubric(submission_id):
         'selected': work.get_selected_rubric_items()
     })
 
+@api.route("/submissions/<int:submission_id>/rubricitems/<int:rubricitem_id>", methods=['PATCH'])
+def select_rubric_item(submission_id, rubricitem_id):
+    """
+    Select given rubric item of submission X.
+    """
+    work = models.Work.query.get(submission_id)
+    if work is None:
+        raise APIException(
+            'Work submission not found',
+            'The submission with code {} was not found'.format(submission_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    rubric_item = models.RubricItem.query.get(rubricitem_id)
+    if rubric_item is None:
+        raise APIException(
+            'Rubric item not found',
+            'The rubric item with id {} was not found'.format(rubricitem_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_grade_work', work.assignment.course.id)
+    same_row_item = work.get_selected_rubric_items(rubric_item.rubricrow_id)
+    if same_row_item is not None:
+        #remove this selection
+
 
 def get_feedback(work):
     """

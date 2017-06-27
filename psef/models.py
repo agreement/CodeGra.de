@@ -362,11 +362,18 @@ class Work(db.Model):
                         is_directory=False,
                         parent=new_top))
 
-    def get_selected_rubric_items(self):
-        return db.session.query(RubricItem.id).join(
-            user_rubricitem,
-            RubricItem.id == user_rubricitem.c.rubricitem_id).filter_by(
-                user_id=self.user_id).all()
+    def get_selected_rubric_items(self, row_id=None):
+        if row_id == None:
+            return db.session.query(RubricItem.id).join(
+                user_rubricitem,
+                RubricItem.id == user_rubricitem.c.rubricitem_id).filter_by(
+                    user_id=self.user_id).all()
+        else:
+            return db.session.query(RubricItem.id).join(
+                user_rubricitem,
+                RubricItem.id == user_rubricitem.c.rubricitem_id).filter(
+                    user_rubricitem.c.user_id == self.user_id,
+                    RubricItem.rubricrow_id == row_id).all()
 
 
 class File(db.Model):
