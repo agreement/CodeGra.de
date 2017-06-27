@@ -2,8 +2,12 @@
 # Import flask and template operators
 from flask import Flask, render_template, g
 import datetime
+import json
 from flask_login import LoginManager
-# Import SQLAlchemy
+import os
+import logging
+
+from logging.handlers import RotatingFileHandler
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -31,11 +35,18 @@ def set_request_start_time():
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+with open(
+        os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), '..', 'seed_data',
+            'lti_lookups.json'), 'r') as f:
+    LTI_ROLE_LOOKUPS = json.load(f)
+
 import psef.auth
 import psef.json
 import psef.models
 import psef.errors
 import psef.files
+import psef.lti
 
 # Register blueprint(s)
 from .v1 import api as api_v1_blueprint
