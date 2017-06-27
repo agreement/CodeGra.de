@@ -15,7 +15,7 @@
                     <b-popover placement="top" triggers="hover" content="Submitting">
                         <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
                                     @click="toggleFilter('submitting')">
-                            <icon name="download"></icon>
+                            <icon name="clock-o"></icon>
                         </b-button>
                     </b-popover>
                 </b-input-group-button>
@@ -56,7 +56,7 @@
             </template>
             <template slot="state" scope="item">
                 <icon name="eye-slash" v-if="item.item.state == assignmentState.HIDDEN"></icon>
-                <icon name="download" v-if="item.item.state == assignmentState.SUBMITTING"></icon>
+                <icon name="clock-o" v-if="item.item.state == assignmentState.SUBMITTING"></icon>
                 <icon name="pencil" v-else-if="item.item.state == assignmentState.GRADING"></icon>
                 <icon name="check" v-else-if="item.item.state == assignmentState.DONE"></icon>
             </template>
@@ -69,10 +69,10 @@
 
 <script>
 import Icon from 'vue-awesome/components/Icon';
-import 'vue-awesome/icons/download';
+import 'vue-awesome/icons/eye-slash';
+import 'vue-awesome/icons/clock-o';
 import 'vue-awesome/icons/pencil';
 import 'vue-awesome/icons/check';
-import 'vue-awesome/icons/eye-slash';
 
 import * as assignmentState from '../store/assignment-states';
 

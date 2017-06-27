@@ -1,5 +1,5 @@
 <template>
-    <div class="grade-viewer" v-if="show">
+    <div class="grade-viewer">
         <div class="row">
             <div class="col-6">
                 <b-input-group>
@@ -16,7 +16,7 @@
                                 max="10"
                                 :disabled="!editable"
                                 placeholder="Grade"
-                                v-model:value="grade">
+                                v-model="grade">
                     </b-form-input>
                 </b-input-group>
             </div>
@@ -26,14 +26,13 @@
                         :placeholder="editable ? 'Feedback' : 'No feedback given :('"
                         :rows="3"
                         ref="field"
-                        v-model:value="feedback"
+                        v-model="feedback"
                         v-on:keydown.native.tab.capture="expandSnippet"
                         :disabled="!editable">
                     </b-form-input>
                 </b-input-group>
             </div>
         </div>
-
     </div>
 </template>
 
@@ -45,32 +44,33 @@ import { mapActions, mapGetters } from 'vuex';
 export default {
     name: 'grade-viewer',
 
-    props: ['editable', 'id'],
+    props: {
+        editable: {
+            type: Boolean,
+            default: false,
+        },
+        submission: {
+            type: Object,
+            default: {},
+        },
+    },
 
     data() {
         return {
-            submissionId: this.id,
-            grade: 0,
-            feedback: '',
+            submission: null,
             submitting: false,
             submitted: false,
-            show: false,
+            feedback: '',
+            grade: '',
         };
     },
 
     mounted() {
-        this.getFeedback();
+        this.grade = this.submission.grade ? this.submission.grade : '';
+        this.feedback = this.submission.grade ? this.submission.grade : '';
     },
 
     methods: {
-        getFeedback() {
-            this.$http.get(`/api/v1/submissions/${this.submissionId}`).then((data) => {
-                this.grade = data.data.grade;
-                this.feedback = data.data.comment;
-                this.show = true;
-            });
-        },
-
         expandSnippet(event) {
             const field = this.$refs.field;
             const end = field.$el.selectionEnd;
@@ -90,7 +90,7 @@ export default {
 
         putFeedback() {
             this.submitting = true;
-            this.$http.patch(`/api/v1/submissions/${this.submissionId}`,
+            this.$http.patch(`/api/v1/submissions/${this.submission.id}`,
                 {
                     grade: this.grade,
                     feedback: this.feedback,
@@ -105,6 +105,7 @@ export default {
                 this.$nextTick(() => setTimeout(() => {
                     this.submitted = false;
                 }, 1000));
+                this.$emit('gradeChange', this.grade);
             });
         },
         ...mapActions({

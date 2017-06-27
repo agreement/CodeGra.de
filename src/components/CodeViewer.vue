@@ -56,10 +56,6 @@ export default {
             type: Boolean,
             default: false,
         },
-        id: {
-            type: Number,
-            default: 0,
-        },
         tree: {
             type: Object,
             default: {},
@@ -91,10 +87,6 @@ export default {
     },
 
     watch: {
-        id(to) {
-            this.fileId = to;
-        },
-
         fileId() {
             this.loading = true;
             this.getCode();
@@ -280,6 +272,7 @@ li {
 
 code {
     white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .feedback {
