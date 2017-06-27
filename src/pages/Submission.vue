@@ -3,10 +3,6 @@
         <loader style="text-align: center; margin-top: 30px;"/>
     </div>
     <div class="page submission" v-else>
-        <h2>
-            <i><router-link :to="{ name: 'assignment_submissions', }">"{{ assignment.name }}"</router-link></i>
-            by {{ submission.user.name }}
-        </h2>
         <div class="row justify-content-center">
             <div class="col-lg-9 code-and-grade">
                 <submission-nav-bar v-if="submissions && submission"
@@ -247,21 +243,12 @@ export default {
 </style>
 
 <style lang="less" scoped>
-h2 {
-    text-align: center;
-    margin-bottom: 15px;
-    a {
-        cursor: pointer;
-        color: black;
-    }
-}
-
 .page.submission {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
     flex-shrink: 1;
-    margin-bottom: 2em;
+    margin-bottom: 1em;
 }
 
 .row {
@@ -297,7 +284,7 @@ h1 {
 h1,
 .code-viewer,
 .pdfobject-container {
-    margin-bottom: 30px;
+    margin-bottom: 1em;
 }
 
 .loader {
