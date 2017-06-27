@@ -15,10 +15,16 @@
                 </b-form-checkbox>
             </b-input-group>
         </b-form-fieldset>
+        <submissions-exporter v-if="canDownload && submissions.length"
+          :table="getTable"
+          :filename="exportFilename">
+            Export feedback
+        </submissions-exporter>
 
         <b-table striped hover
+            ref="table"
             v-on:row-clicked='gotoSubmission'
-            :items="latestOnly ? latest : submissions"
+            :items="submissions"
             :fields="fields"
             :current-page="currentPage"
             :filter="filterItems"
@@ -41,14 +47,23 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
+import SubmissionsExporter from './SubmissionsExporter';
 
 export default {
     name: 'submission-list',
 
     props: {
+        assignment: {
+            type: Object,
+            default: null,
+        },
         submissions: {
             type: Array,
             default: [],
+        },
+        canDownload: {
+            type: Boolean,
+            default: false,
         },
     },
 
@@ -82,14 +97,14 @@ export default {
     },
 
     computed: {
-        courseId() {
-            return this.$route.params.courseId;
-        },
-
         ...mapGetters('user', {
             userId: 'id',
             userName: 'name',
         }),
+
+        exportFilename() {
+            return this.assignment ? `${this.assignment.course_name}-${this.assignment.name}.csv` : null;
+        },
     },
 
     watch: {
@@ -106,12 +121,17 @@ export default {
 
     methods: {
         getLatest(submissions) {
-            const seen = [];
-            return submissions.filter((item) => {
-                const ret = !seen[item.user.id];
-                seen[item.user.id] = true;
-                return ret;
+            const latest = {};
+            submissions.forEach((item) => {
+                if (!latest[item.user.id]) {
+                    latest[item.user.id] = item.id;
+                }
             });
+            return latest;
+        },
+
+        getTable() {
+            return this.$refs ? this.$refs.table : null;
         },
 
         gotoSubmission(submission) {
@@ -138,7 +158,7 @@ export default {
         },
 
         filterItems(item) {
-            if ((this.latestOnly && !this.latest.includes(item)) ||
+            if ((this.latestOnly && this.latest[item.user.id] !== item.id) ||
                 (this.assigneeFilter && this.mineOnly &&
                  (item.assignee == null || item.assignee.id !== this.userId))) {
                 return false;
@@ -158,12 +178,16 @@ export default {
         },
 
         hasPermission(perm) {
-            return this.u_hasPermission({ name: perm, course_id: this.courseId });
+            return this.u_hasPermission({ name: perm, course_id: this.assignment.course_id });
         },
 
         ...mapActions({
             u_hasPermission: 'user/hasPermission',
         }),
+    },
+
+    components: {
+        SubmissionsExporter,
     },
 };
 </script>

@@ -276,27 +276,6 @@ def get_all_works_for_assignment(assignment_id):
 
     res = obj.order_by(models.Work.created_at.desc()).all()
 
-    if 'csv' in request.args:
-        if not assignment.is_done:
-            auth.ensure_permission('can_see_grade_before_open',
-                                   assignment.course.id)
-        headers = [
-            'id', 'user_name', 'user_id', 'grade', 'comment', 'created_at'
-        ]
-        file = psef.files.create_csv_from_rows([headers] + [[
-            work.id, work.user.name
-            if work.user else "Unknown", work.user_id, work.grade,
-            work.comment, work.created_at.strftime("%d-%m-%Y %H:%M")
-        ] for work in res])
-
-        @after_this_request
-        def remove_file(response):
-            os.remove(file)
-            return response
-
-        return send_file(
-            file, attachment_filename=request.args['csv'], as_attachment=True)
-
     return jsonify(res)
 
 
