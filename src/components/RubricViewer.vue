@@ -1,68 +1,156 @@
 <template>
-    <div class="rubric-viewer">
-        <b-card-group
-            v-for="(row, i) in rows" :key="`row-${i}`">
-            <b-card
-                v-for="(col, j) in row" :key="`row-${i}-col-${j}`"
-                @click.native="select(i, j)"
-                :class="{ selected: selected[i] == j }">
-                {{ col }}
-            </b-card>
-        </b-card-group>
-    </div>
+    <b-form-fieldset
+        class="rubric-viewer">
+        <b-input-group>
+            <b-input-group-button>
+                <b-button
+                    @click="goToPrev"
+                    :disabled="current <= 0">
+                    <icon name="angle-left"></icon>
+                </b-button>
+            </b-input-group-button>
+            <div
+                class="form-control outer-container">
+                <div
+                    class="inner-container"
+                    ref="rubricContainer">
+                    <b-card-group
+                        class="rubric"
+                        v-for="(rubric, i) in rubrics"
+                        :key="`rubric-${i}`">
+                        <b-card
+                            class="rubric-item"
+                            v-for="item in rubric.items"
+                            :key="`rubric-${i}-${item.id}`"
+                            @click.native="select(i, item)"
+                            :class="{ selected: isSelected(i, item) }">
+                            <span>
+                                <b>{{ item.points }}</b> - {{ item.description }}
+                            </span>
+                        </b-card>
+                    </b-card-group>
+                </div>
+            </div>
+            <b-input-group-button>
+                <b-button
+                    @click="goToNext"
+                    :disabled="current >= rubrics.length - 1">
+                    <icon name="angle-right"></icon>
+                </b-button>
+            </b-input-group-button>
+        </b-input-group>
+    </b-form-fieldset>
 </template>
 
 <script>
-import { bCard, bCardGroup } from 'bootstrap-vue/lib/components';
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/angle-left';
+import 'vue-awesome/icons/angle-right';
 
 export default {
     name: 'rubric-viewer',
 
     props: {
-        rows: {
+        assignment: {
+            type: Object,
+            default: {},
+        },
+        submission: {
+            type: Object,
+            default: {},
+        },
+        rubrics: {
             type: Array,
-            default() {
-                return [
-                    [
-                        'stupid',
-                        'meh',
-                        'alright',
-                        'good',
-                        'excellent',
-                    ],
-                    [
-                        'stupid',
-                        'meh',
-                        'alright',
-                        'good',
-                        'excellent',
-                    ],
-                ];
-            },
+            default: [],
+        },
+        value: {
+            type: Number,
+            default: 0,
         },
     },
 
     data() {
         return {
-            selected: this.rows.map(() => -1),
+            selected: this.rubrics.map(() => null),
+            current: 0,
         };
     },
 
+    watch: {
+        rubrics() {
+            this.adjustRubricElements();
+        },
+
+        current(curr) {
+            this.$refs.rubricContainer.style.transform =
+                `translateX(-${100 * (curr / this.rubrics.length)}%)`;
+        },
+    },
+
+    mounted() {
+        this.adjustRubricElements();
+    },
+
     methods: {
-        select(row, col) {
-            this.$set(this.selected, row, col);
+        select(row, item) {
+            this.$set(this.selected, row, item);
+            this.$emit('input', 10 * (this.totalPoints() / this.maxPoints()));
+        },
+
+        totalPoints() {
+            return this.selected.filter(x => x).reduce(
+                (sum, item) => sum + item.points, 0);
+        },
+
+        maxPoints() {
+            return this.rubrics.reduce((sum, rubric) =>
+                sum + rubric.items[rubric.items.length - 1].points, 0);
+        },
+
+        isSelected(row, item) {
+            return this.selected[row] === item;
+        },
+
+        goToPrev() {
+            this.current = Math.max(this.current - 1, 0);
+        },
+
+        goToNext() {
+            this.current = Math.min(this.current + 1, this.rubrics.length - 1);
+        },
+
+        adjustRubricElements() {
+            this.$refs.rubricContainer.style.width = `${this.rubrics.length * 100}%`;
         },
     },
 
     components: {
-        bCard,
-        bCardGroup,
+        Icon,
     },
 };
 </script>
 
 <style lang="less" scoped>
-.card {
+.outer-container {
+    overflow: hidden;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.inner-container {
+    display: flex;
+    flex-direction: row;
+    transition: transform 500ms;
+}
+
+.rubric {
+    flex: 1 1 0;
+
+    padding-left: .75rem;
+    padding-right: .75rem;
+}
+
+.rubric-item {
     cursor: pointer;
 
     &:hover {

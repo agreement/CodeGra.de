@@ -1,28 +1,55 @@
 <template>
     <div class="grade-viewer">
+        <b-collapse
+            id="rubric-collapse"
+            v-if="rubrics"
+            :show="true">
+            <rubric-viewer
+                v-model="grade"
+                :editable="editable"
+                :assignment="assignment"
+                :submission="submission"
+                :rubrics="rubrics">
+            </rubric-viewer>
+        </b-collapse>
         <div class="row">
             <div class="col-6">
                 <b-input-group>
                     <b-input-group-button v-if="editable">
-                        <b-button :variant="submitted ? 'success' : 'primary'" v-on:click="putFeedback()">
+                        <b-button
+                            :variant="submitted ? 'success' : 'primary'"
+                            @click="putFeedback">
                             <icon name="refresh" spin v-if="submitting"></icon>
                             <span v-else>Submit all</span>
                         </b-button>
                     </b-input-group-button>
-
-                    <b-form-input type="number"
-                                step="any"
-                                min="0"
-                                max="10"
-                                :disabled="!editable"
-                                placeholder="Grade"
-                                v-model="grade">
+                    <b-form-input
+                        type="number"
+                        step="any"
+                        min="0"
+                        max="10"
+                        :disabled="!editable"
+                        placeholder="Grade"
+                        v-model="grade">
                     </b-form-input>
+                    <b-input-group-button v-if="rubrics">
+                        <b-popover
+                            placement="top"
+                            triggers="hover"
+                            content="Rubric">
+                            <b-button
+                                variant="secondary"
+                                v-b-toggle.rubric-collapse>
+                                <icon name="bars"></icon>
+                            </b-button>
+                        </b-popover>
+                    </b-input-group-button>
                 </b-input-group>
             </div>
             <div class="col-6">
                 <b-input-group>
-                    <b-form-input :textarea="true"
+                    <b-form-input
+                        :textarea="true"
                         :placeholder="editable ? 'Feedback' : 'No feedback given :('"
                         :rows="3"
                         ref="field"
@@ -38,8 +65,10 @@
 
 <script>
 import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/bars';
 import 'vue-awesome/icons/refresh';
 import { mapActions, mapGetters } from 'vuex';
+import RubricViewer from './RubricViewer';
 
 export default {
     name: 'grade-viewer',
@@ -49,6 +78,10 @@ export default {
             type: Boolean,
             default: false,
         },
+        assignment: {
+            type: Object,
+            default: {},
+        },
         submission: {
             type: Object,
             default: {},
@@ -57,17 +90,105 @@ export default {
 
     data() {
         return {
-            submission: null,
             submitting: false,
             submitted: false,
-            feedback: '',
-            grade: '',
+            feedback: this.submission.feedaback || 0,
+            grade: this.submission.grade || '',
+            rubrics: null,
         };
     },
 
     mounted() {
-        this.grade = this.submission.grade ? this.submission.grade : '';
-        this.feedback = this.submission.grade ? this.submission.grade : '';
+        // this.$http.get(
+        //     `/api/v1/assignments/${this.submission.assignment.id}/rubrics/`,
+        // ).then(({ data }) => {
+        //     console.dir(data);
+        // }, (err) => {
+        //     console.dir(err);
+        // });
+        this.rubrics = [
+            {
+                id: 0,
+                header: 'Header 1',
+                description: 'Description for header 1',
+                items: [
+                    {
+                        id: 0,
+                        description: 'Description 1',
+                        points: 0,
+                    },
+                    {
+                        id: 1,
+                        description: 'Description 1',
+                        points: 1,
+                    },
+                    {
+                        id: 2,
+                        description: 'Description 1',
+                        points: 2,
+                    },
+                    {
+                        id: 3,
+                        description: 'Description 1',
+                        points: 3,
+                    },
+                ],
+            },
+            {
+                id: 1,
+                header: 'Header 2',
+                description: 'Description for header 2',
+                items: [
+                    {
+                        id: 0,
+                        description: 'Description 1',
+                        points: 0,
+                    },
+                    {
+                        id: 1,
+                        description: 'Description 1',
+                        points: 1,
+                    },
+                    {
+                        id: 2,
+                        description: 'Description 1',
+                        points: 2,
+                    },
+                    {
+                        id: 3,
+                        description: 'Description 1',
+                        points: 3,
+                    },
+                ],
+            },
+            {
+                id: 1,
+                header: 'Header 2',
+                description: 'Description for header 2',
+                items: [
+                    {
+                        id: 0,
+                        description: 'Description 1',
+                        points: 0,
+                    },
+                    {
+                        id: 1,
+                        description: 'Description 1',
+                        points: 1,
+                    },
+                    {
+                        id: 2,
+                        description: 'Description 1',
+                        points: 2,
+                    },
+                    {
+                        id: 3,
+                        description: 'Description 1',
+                        points: 3,
+                    },
+                ],
+            },
+        ];
     },
 
     methods: {
@@ -118,6 +239,7 @@ export default {
 
     components: {
         Icon,
+        RubricViewer,
     },
 };
 </script>
