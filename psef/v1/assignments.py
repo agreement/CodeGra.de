@@ -1,3 +1,9 @@
+"""
+This module defines all API routes with the main directory "assignments". Thus
+the APIs in this module are mostly used to manipulate
+:class: psef.models.Assignment objects and their relations.
+"""
+
 import os
 import threading
 from random import shuffle
@@ -24,11 +30,11 @@ def get_student_assignments():
     """
     Get all the assignments that the current user can see.
 
-    Raises APIException:
-    - If there is no logged in user
-
-    :returns: A response containing the JSON serialized assignments.
+    :returns: A response containing the JSON serialized assignments
     :rtype: Response
+
+    :raises PermissionException: if there is no logged in user
+        (NOT_LOGGED_IN)
     """
     perm = models.Permission.query.filter_by(
         name='can_see_assignments').first()
@@ -54,14 +60,17 @@ def get_assignment(assignment_id):
     """
     Return student assignment X if the user permission is valid.
 
-    Raises APIException:
-        - If no assignment with given ID exists
-        - If the user is not allowed to view this assignment
-
     :param assignment_id: The id of the assignment
     :type assignment_id: int
     :returns: A response containing the JSON serialized assignment.
     :rtype: Response
+
+    :raises APIException: if no assignment with given ID exists
+        (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: If the user is not allowed to view this
+        assignment (INCORRECT_PERMISSION)
+
     """
     assignment = models.Assignment.query.get(assignment_id)
     auth.ensure_permission('can_see_assignments', assignment.course_id)
@@ -82,15 +91,17 @@ def update_assignment(assignment_id):
     """
     Update assignment X with new values.
 
-    Raises APIException:
-        - If no assignment with given ID exists
-        - If the user is not allowed to edit this is assignment
-        - If an invalid value is submitted
-
     :param assignment_id: The id of the assignment
     :type assignment_id: int
     :returns: An empty response with return code 204
     :rtype: (str, int)
+
+    :raises APIException: if no assignment with given ID exists
+        (OBJECT_ID_NOT_FOUND)
+    :raises APIException: if an invalid value is submitted (INVALID_PARAM)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user is not allowed to edit this is
+        assignment (INCORRECT_PERMISSION)
     """
     assig = models.Assignment.query.get(assignment_id)
     if assig is None:
@@ -141,16 +152,24 @@ def update_assignment(assignment_id):
 @api.route("/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id):
     """
-    Saves the work on the server if the request is valid.
-
-    For a request to be valid there needs to be:
-        - at least one file starting with key 'file' in the request files
-        - all files must be named
+    Upload one or more files as submission to the assignment
 
     :param assignment_id: The id of the assignment
     :type assignment_id: int
     :returns: A the JSON serialized submission and return code 201.
     :rtype: (Response, int)
+
+    :raises APIException: if the request is bigger than the maximum upload size
+        (REQUEST_TOO_LARGE)
+    :raises APIException: if there was no file in the request
+        (MISSING_REQUIRED_PARAM)
+    :raises APIException: if some file was under the wrong key or some filename
+        is empty (INVALID_PARAM)
+    :raises APIException: if no assignment with given ID exists
+        (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user is not allowed to upload for this
+        assignment (INCORRECT_PERMISSION)
     """
 
     files = []
@@ -208,17 +227,20 @@ def divide_assignments(assignment_id):
     """
     Assigns the graders to all the latest submissions of the given assignment.
 
-    Raises APIException:
-        - If no assignment with given ID exists
-        - If the assignment has no submissions
-        - If there was no grader in the request
-        - If some grader id is invalid
-        - If some grader does not have the permission to grade the assignment
-
     :param assignment_id: The id of the assignment
     :type assignment_id: int
     :returns: An empty response with return code 204
     :rtype: (str, int)
+
+    :raises APIException: if no assignment with given ID exists or the
+        assignment has no submissions (OBJECT_ID_NOT_FOUND)
+    :raises APIException: if there was no grader in the request
+        (MISSING_REQUIRED_PARAM)
+    :raises APIException: if some grader id is invalid or some grader does not
+        have the permission to grade the assignment (INVALID_PARAM)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user is not allowed to divide
+        submissions for this assignment (INCORRECT_PERMISSION)
     """
     assignment = models.Assignment.query.get(assignment_id)
     auth.ensure_permission('can_manage_course', assignment.course.id)
@@ -271,13 +293,17 @@ def get_all_graders(assignment_id):
     """
     Gets a list of all users who can grade the given assignment
 
-    Raises APIException:
-        - If no assignment with given ID exists
 
     :param assignment_id: The id of the assignment
     :type assignment_id: int
     :returns: A response containing the JSON serialized graders.
     :rtype: Response
+
+    :raises APIException: if no assignment with given ID exists
+        (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user is not allowed to view graders of
+        this assignment (INCORRECT_PERMISSION)
     """
     assignment = models.Assignment.query.get(assignment_id)
     auth.ensure_permission('can_manage_course', assignment.course.id)
@@ -352,6 +378,16 @@ def post_submissions(assignment_id):
     :type assignment_id: int
     :returns: An empty response with return code 204
     :rtype: (str, int)
+
+    :raises APIException: if no assignment with given ID exists
+        (OBJECT_ID_NOT_FOUND)
+    :raises APIException: if there was no file in the request
+        (MISSING_REQUIRED_PARAM)
+    :raises APIException: if the file parameter name is incorrect
+        (INVALID_PARAM)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user is not allowed to manage the
+        course attached to the assignment (INCORRECT_PERMISSION)
     """
     assignment = models.Assignment.query.get(assignment_id)
 
@@ -416,6 +452,12 @@ def get_linters(assignment_id):
     :type assignment_id: int
     :returns: A response containing the JSON serialized linters
     :rtype: Response
+
+    :raises APIException: if no assignment with given ID exists
+        (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not user linters in this
+        course (INCORRECT_PERMISSION)
     """
     assignment = models.Assignment.query.get(assignment_id)
 
@@ -465,14 +507,18 @@ def start_linting(assignment_id):
     Starts running a specific linter on all the latest submissions of the given
     assignment.
 
-    Raises APIException:
-        - If a required parameter is missing
-        - If a linter of the same name is already running on the assignment
-
     :param assignment_id: The id of the assignment
     :type assignment_id: int
     :returns: A response containing the serialized linter that is started
     :rtype: Response
+
+    :raises APIException: if a required parameter is missing
+        (MISSING_REQUIRED_PARAM)
+    :raises APIException: if a linter of the same name is already running on
+        the assignment (INVALID_STATE)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not user linters in this
+        course (INCORRECT_PERMISSION)
     """
     content = request.get_json()
 
