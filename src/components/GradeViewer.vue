@@ -92,7 +92,8 @@ export default {
             submitted: false,
             feedback: this.submission.feedaback || '',
             grade: this.submission.grade || 0,
-            rubrics: [
+            rubricSelected: this.submission.rubric || [2, 5, 8],
+            rubrics: this.assignment.rubrics || [
                 {
                     id: 0,
                     header: 'Header 1',
@@ -175,7 +176,6 @@ export default {
                     ],
                 },
             ],
-            rubricSelected: [2, 5, 8],
         };
     },
 
@@ -185,16 +185,6 @@ export default {
             const max = this.$refs.rubricViewer.maxPoints();
             this.grade = 10 * (total / max);
         },
-    },
-
-    mounted() {
-        // this.$http.get(
-        //     `/api/v1/assignments/${this.submission.assignment.id}/rubrics/`,
-        // ).then(({ data }) => {
-        //     console.dir(data);
-        // }, (err) => {
-        //     console.dir(err);
-        // });
     },
 
     methods: {
