@@ -5,7 +5,7 @@
             v-if="rubrics"
             :show="true">
             <rubric-viewer
-                v-model="grade"
+                v-model="rubricResult"
                 :editable="editable"
                 :assignment="assignment"
                 :submission="submission"
@@ -28,7 +28,7 @@
                         step="any"
                         min="0"
                         max="10"
-                        :disabled="!editable"
+                        :disabled="!!rubrics || !editable"
                         placeholder="Grade"
                         v-model="grade">
                     </b-form-input>
@@ -92,10 +92,17 @@ export default {
         return {
             submitting: false,
             submitted: false,
-            feedback: this.submission.feedaback || 0,
-            grade: this.submission.grade || '',
+            feedback: this.submission.feedaback || '',
+            grade: this.submission.grade || 0,
             rubrics: null,
+            rubricResult: {},
         };
+    },
+
+    watch: {
+        rubricResult({ total, max }) {
+            this.grade = 10 * (total / max);
+        },
     },
 
     mounted() {
@@ -215,6 +222,7 @@ export default {
                 {
                     grade: this.grade,
                     feedback: this.feedback,
+                    rubric: this.rubricResult.selected,
                 },
                 {
                     headers: { 'Content-Type': 'application/json' },

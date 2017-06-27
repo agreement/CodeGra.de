@@ -64,8 +64,8 @@ export default {
             default: [],
         },
         value: {
-            type: Number,
-            default: 0,
+            type: Object,
+            default: {},
         },
     },
 
@@ -94,7 +94,11 @@ export default {
     methods: {
         select(row, item) {
             this.$set(this.selected, row, item);
-            this.$emit('input', 10 * (this.totalPoints() / this.maxPoints()));
+            this.$emit('input', {
+                total: this.totalPoints(),
+                max: this.maxPoints(),
+                selected: this.selected.map(sel => (sel ? sel.id : -1)),
+            });
         },
 
         totalPoints() {
