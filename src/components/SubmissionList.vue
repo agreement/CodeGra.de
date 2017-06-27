@@ -170,7 +170,7 @@ export default {
                 user_name: item.user.name.toLowerCase(),
                 grade: (item.grade || 0).toString(),
                 created_at: item.created_at,
-                assignee: item.assignee.name.toLowerCase(),
+                assignee: item.assignee ? item.assignee.name.toLowerCase() : '-',
             };
             return this.filter.toLowerCase().split(' ').every(word =>
                 Object.keys(terms).some(key =>
