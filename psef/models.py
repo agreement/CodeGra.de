@@ -84,6 +84,7 @@ class CourseRole(db.Model):
         return {
             'name': self.name,
             'course': self.course,
+            'id': self.id,
         }
 
     def has_permission(self, permission):
@@ -193,7 +194,7 @@ class User(db.Model, UserMixin):
     role_id = db.Column('Role_id', db.Integer, db.ForeignKey('Role.id'))
     courses = db.relationship(
         'CourseRole',
-        collection_class=attribute_mapped_collection('course.id'),
+        collection_class=attribute_mapped_collection('course_id'),
         secondary=user_course,
         backref=db.backref('users', lazy='dynamic'))
     email = db.Column('email', db.Unicode(collation='NOCASE'), unique=True)
