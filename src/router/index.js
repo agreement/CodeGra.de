@@ -1,7 +1,8 @@
 import Vue from 'vue';
 import Router from 'vue-router';
 import store from '@/store';
-import { Assignments, Home, Login, ManageCourse, Submission, Submissions, User } from '@/pages';
+import { Assignments, Courses, Home, Login, ManageCourse, Submission, Submissions, User } from '@/pages';
+import { NewCourse } from '@/components';
 
 Vue.use(Router);
 
@@ -50,25 +51,37 @@ const router = new Router({
             component: Assignments,
         },
         {
+            path: '/courses/',
+            name: 'courses',
+            component: Courses,
+        },
+        {
             path: '/courses/:courseId',
             name: 'assignment_manage',
             component: ManageCourse,
+        },
+        {
+            path: '/add-course',
+            name: 'new-course',
+            component: NewCourse,
         },
     ],
 });
 
 router.beforeEach((to, from, next) => {
-    if (!store.getters['user/loggedIn'] && to.path !== '/login') {
-        next('/login');
-        return;
+    if (!store.getters['user/loggedIn'] &&
+        to.path !== '/login' &&
+        to.name !== 'home') {
+        store.dispatch('user/verifyLogin').then(() => {
+            next();
+        }).catch(() => {
+            next('/login');
+        });
+    } else if (store.getters['user/loggedIn'] && to === '/login') {
+        next({ name: 'home' });
+    } else {
+        next();
     }
-
-    if (store.getters['user/loggedIn'] && to === '/login') {
-        next('/');
-        return;
-    }
-
-    next();
 });
 
 export default router;

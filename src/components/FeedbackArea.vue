@@ -5,14 +5,18 @@
         </div>
     </b-card>
     <div v-else>
-        <b-collapse class="collapsep flex-container" ref="snippetDialog" :id="`collapse${line}`">
-            <b-form-input class="input" v-model="snippetKey" v-on:keydown.native.ctrl.enter="addSnippet"></b-form-input>
-            <b-popover :placement="'top'" :show="error !== '' && $parent.show" :content="error">
-                <b-btn :variant="snippetDone ? 'success' : 'primary'" style="margin-left: 0.2em;" @click="addSnippet">
-                    <icon name="refresh" scale="1" spin v-if="pending"></icon>
-                    <icon name="check" aria-hidden="true" v-else></icon>
-                </b-btn>
-            </b-popover>
+        <b-collapse class="collapsep" ref="snippetDialog" :id="`collapse${line}`">
+            <b-input-group>
+                <b-form-input class="input" v-model="snippetKey" v-on:keydown.native.ctrl.enter="addSnippet"></b-form-input>
+                <b-input-group-button>
+                    <b-popover class="popover-btn" :placement="'top'" :show="error !== '' && $parent.show" :content="error">
+                        <b-btn :variant="snippetDone ? 'success' : 'primary'" @click="addSnippet">
+                            <icon name="refresh" scale="1" spin v-if="pending"></icon>
+                            <icon name="check" aria-hidden="true" v-else></icon>
+                        </b-btn>
+                    </b-popover>
+                </b-input-group-button>
+            </b-input-group>
         </b-collapse>
         <b-input-group>
             <b-form-input
@@ -219,17 +223,8 @@ export default {
 </script>
 
 <style lang="less" scoped>
-button.btn {
-    cursor: pointer;
-}
-
 .minor-buttons:hover {
     z-index: 0;
-}
-
-.collapsep .input {
-    width: 80% !important;
-    flex: 1;
 }
 
 .collapsep {
@@ -237,18 +232,16 @@ button.btn {
     float: right;
     display: flex;
 }
-.flex-container {
-    flex-wrap: wrap;
-}
-.flex-container::after {
-    content: '';
-    width: 100%;
-}
-.flex-item:last-child { /* or `:nth-child(n + 4)` */
-    order: 1;
-}
-.help {
-    width: 80%;
-    float: left;
+
+.input-group .popover-btn {
+    button {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+
+    & > :not(:last-child) button {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
 }
 </style>

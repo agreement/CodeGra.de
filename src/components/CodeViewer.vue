@@ -3,11 +3,13 @@
         <center><span>Cannot display file!</span></center>
     </b-alert>
     <loader class="text-center" v-else-if="loading"></loader>
-    <ol class="code-viewer form-control" v-else :class="{ editable: editable }">
+    <ol class="code-viewer form-control" v-else :class="{ editable: editable }"
+        @click="onClick">
         <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
-            :class="{ 'linter-feedback': linterFeedback[i] }">
+            :class="{ 'linter-feedback-outer': linterFeedback[i] }">
 
-            <linter-feedback-area :feedback="linterFeedback[i]"> </linter-feedback-area>
+            <linter-feedback-area :feedback="linterFeedback[i]"></linter-feedback-area>
+
             <code  v-html="line"></code>
 
 
@@ -31,9 +33,6 @@
 import { getLanguage, highlight } from 'highlightjs';
 import Vue from 'vue';
 
-import { bAlert, bButton, bFormInput, bInputGroup, bInputGroupButton }
-    from 'bootstrap-vue/lib/components';
-
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
 
@@ -56,10 +55,6 @@ export default {
         editable: {
             type: Boolean,
             default: false,
-        },
-        id: {
-            type: Number,
-            default: 0,
         },
         tree: {
             type: Object,
@@ -92,10 +87,6 @@ export default {
     },
 
     watch: {
-        id(to) {
-            this.fileId = to;
-        },
-
         fileId() {
             this.loading = true;
             this.getCode();
@@ -208,8 +199,8 @@ export default {
             );
         },
 
-        onFileClick(event) {
-            // Check if the click was actually on a link to a file.
+        onClick(event) {
+            // Check if the click was on a link to a file.
             const fileId = event.target.getAttribute('data-file-id');
             if (fileId) {
                 event.stopImmediatePropagation();
@@ -252,11 +243,6 @@ export default {
     },
 
     components: {
-        bButton,
-        bFormInput,
-        bInputGroup,
-        bInputGroupButton,
-        bAlert,
         Icon,
         FeedbackArea,
         Loader,
@@ -276,8 +262,8 @@ ol {
 
 li {
     position: relative;
-    padding-left: 1em;
-    padding-right: 1em;
+    padding-left: .75em;
+    padding-right: .75em;
 
     .editable & {
         cursor: pointer;
@@ -286,6 +272,7 @@ li {
 
 code {
     white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .feedback {

@@ -1,16 +1,17 @@
 import os
 import enum
+import json
 import uuid
 import datetime
 
 from flask_login import UserMixin
+from sqlalchemy_utils import PasswordType
 from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 import psef.auth as auth
-from psef import db, login_manager
+from psef import db, app, login_manager
 from psef.helpers import get_request_start_time
-from sqlalchemy_utils import PasswordType
 
 permissions = db.Table('roles-permissions',
                        db.Column('permission_id', db.Integer,
@@ -37,6 +38,28 @@ user_course = db.Table('users-courses',
                                  db.ForeignKey('User.id', ondelete='CASCADE')))
 
 
+class LTIProvider(db.Model):
+    __tablename__ = 'LTIProvider'
+    id = db.Column('id', db.Integer, primary_key=True)
+    key = db.Column('key', db.Unicode)
+
+    @property
+    def secret(self):
+        return app.config['LTI_CONSUMER_KEY_SECRETS'][self.key]
+
+
+class AssignmentResult(db.Model):
+    __tablename__ = 'AssignmentResult'
+    sourcedid = db.Column('sourdid', db.Unicode)
+    user_id = db.Column('User_id', db.Integer,
+                        db.ForeignKey('User.id', ondelete='CASCADE'))
+    assignment_id = db.Column('Assignment_id', db.Integer,
+                              db.ForeignKey(
+                                  'Assignment.id', ondelete='CASCADE'))
+
+    __table_args__ = (db.PrimaryKeyConstraint(assignment_id, user_id), )
+
+
 class Permission(db.Model):
     __tablename__ = 'Permission'
     id = db.Column('id', db.Integer, primary_key=True)
@@ -55,7 +78,7 @@ class CourseRole(db.Model):
         collection_class=attribute_mapped_collection('name'),
         secondary=course_permissions)
 
-    course = db.relationship('Course', foreign_keys=course_id)
+    course = db.relationship('Course', foreign_keys=course_id, backref="roles")
 
     def has_permission(self, permission):
         if isinstance(permission, Permission):
@@ -94,6 +117,21 @@ class CourseRole(db.Model):
             else:
                 result[perm.name] = perm.default_value
         return result
+
+    @staticmethod
+    def get_default_course_roles():
+        res = {}
+        for name, c in app.config['DEFAULT_COURSE_ROLES'].items():
+            perms = Permission.query.filter_by(course_permission=True).all()
+            r_perms = {}
+            perms_set = set(c['permissions'])
+            for perm in perms:
+                if ((perm.default_value and perm.name not in perms_set) or
+                    (not perm.default_value and perm.name in perms_set)):
+                    r_perms[perm.name] = perm
+
+            res[name] = r_perms
+        return res
 
 
 class Role(db.Model):
@@ -140,6 +178,10 @@ class Role(db.Model):
 class User(db.Model, UserMixin):
     __tablename__ = "User"
     id = db.Column('id', db.Integer, primary_key=True)
+
+    # All stuff for LTI
+    lti_user_id = db.Column(db.Unicode, unique=True)
+
     name = db.Column('name', db.Unicode)
     active = db.Column('active', db.Boolean, default=True)
     role_id = db.Column('Role_id', db.Integer, db.ForeignKey('Role.id'))
@@ -154,7 +196,12 @@ class User(db.Model, UserMixin):
         PasswordType(schemes=[
             'pbkdf2_sha512',
         ], deprecated=[]),
-        nullable=False)
+        nullable=True)
+
+    assignment_results = db.relationship(
+        'AssignmentResult',
+        collection_class=attribute_mapped_collection('assignment_id'),
+        backref=db.backref('user', lazy='select'))
 
     role = db.relationship('Role', foreign_keys=role_id)
 
@@ -168,6 +215,29 @@ class User(db.Model, UserMixin):
                 course_id = course_id.id
             return (course_id in self.courses and
                     self.courses[course_id].has_permission(permission))
+
+    def get_permission_in_courses(self, permission):
+        if not isinstance(permission, Permission):
+            permission = Permission.query.filter_by(name=permission).first()
+        assert permission.course_permission
+
+        course_roles = db.session.query(user_course.c.course_id).join(
+            User, User.id == user_course.c.user_id).filter(
+                User.id == self.id).subquery('course_roles')
+
+        crp = db.session.query(course_permissions.c.course_role_id).join(
+            Permission,
+            course_permissions.c.permission_id == Permission.id).filter(
+                Permission.id == permission.id).subquery('crp')
+
+        res = db.session.query(course_roles.c.course_id).join(
+            crp, course_roles.c.course_id == crp.c.course_role_id).all()
+
+        return {
+            course_role.course_id:
+            (course_role.id, ) in res != permission.default_value
+            for course_role in self.courses.values()
+        }
 
     @property
     def can_see_hidden(self):
@@ -245,8 +315,24 @@ class Course(db.Model):
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode)
 
+    # All stuff for LTI
+    lti_course_id = db.Column(db.Unicode, unique=True)
+
+    lti_provider_id = db.Column(db.Integer, db.ForeignKey('LTIProvider.id'))
+    lti_provider = db.relationship("LTIProvider")
+
     assignments = db.relationship(
         "Assignment", back_populates="course", cascade='all,delete')
+
+    def __init__(self, name=None, lti_course_id=None, lti_provider=None):
+        self.name = name
+        self.lti_course_id = lti_course_id
+        self.lti_provider = lti_provider
+        for name, perms in CourseRole.get_default_course_roles().items():
+            CourseRole(name=name, course=self, _permissions=perms)
+
+    def __to_json__(self):
+        return {'id': self.id, 'name': self.name}
 
 
 class Work(db.Model):
@@ -257,7 +343,7 @@ class Work(db.Model):
     user_id = db.Column('User_id', db.Integer,
                         db.ForeignKey('User.id', ondelete='CASCADE'))
     edit = db.Column('edit', db.Integer)
-    grade = db.Column('grade', db.Float, default=None)
+    _grade = db.Column('grade', db.Float, default=None)
     comment = db.Column('comment', db.Unicode, default=None)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     assigned_to = db.Column('assigned_to', db.Integer,
@@ -271,21 +357,49 @@ class Work(db.Model):
     def is_graded(self):
         raise NotImplementedError()
 
+    @property
+    def grade(self):
+        return self._grade
+
+    @grade.setter
+    def grade(self, new_grade):
+        from psef.lti import LTI
+        self._grade = new_grade
+        if self.assignment.course.lti_provider:
+            lti_provider = self.assignment.course.lti_provider
+            LTI.passback_grade(
+                lti_provider.key,
+                lti_provider.secret,
+                self.grade / 10,
+                self.assignment.lti_outcome_service_url,
+                self.user.assignment_results[self.assignment_id].sourcedid,
+                url=('{}/'
+                     'courses/{}/assignments/{}/submissions/{}?lti=true'
+                     ).format(app.config['EXTERNAL_URL'],
+                              self.assignment.course_id, self.assignment_id,
+                              self.id))
+
     def __to_json__(self):
         item = {
             'id': self.id,
             'user': self.user,
             'edit': self.edit,
             'created_at': self.created_at.isoformat(),
-            'assignee': self.assignee.name if self.assignee else "-",
         }
+
+        try:
+            auth.ensure_permission('can_see_assignee', self.assignment.course_id)
+            item['assignee'] = self.assignee
+        except auth.PermissionException:
+            item['assignee'] = False
+
         try:
             auth.ensure_can_see_grade(self)
             item['grade'] = self.grade
             item['comment'] = self.comment
         except auth.PermissionException:
-            item['grade'] = '-'
-            item['comment'] = '-'
+            item['grade'] = False
+            item['comment'] = False
         return item
 
     def add_file_tree(self, session, tree):
@@ -392,7 +506,6 @@ class LinterComment(db.Model):
             'code': self.linter_code,
             'line': self.line,
             'msg': self.comment,
-            'id': self.id,
         }
 
 
@@ -474,7 +587,7 @@ class AssignmentLinter(db.Model):
                      sub.c.max_date == Work.created_at)).filter(
                          Work.assignment_id == assignment_id).order_by(
                              Work.id).all():
-            tests.append(LinterInstance.create_test(work, self))
+            tests.append(LinterInstance(work, self))
         self.tests = tests
         return self
 
@@ -496,13 +609,15 @@ class LinterInstance(db.Model):
     comments = db.relationship(
         "LinterComment", back_populates="linter", cascade='all,delete')
 
-    @classmethod
-    def create_test(cls, work, tester):
+    def __init__(self, work, tester):
         id = str(uuid.uuid4())
         while db.session.query(
-                LinterInstance.query.filter(cls.id == id).exists()).scalar():
+                LinterInstance.query.filter(LinterInstance.id == id)
+                .exists()).scalar():
             id = str(uuid.uuid4())
-        return cls(id=id, work=work, tester=tester)
+        self.id = id
+        self.work = work
+        self.tester = tester
 
     def to_dict(self):
         return {
@@ -531,6 +646,15 @@ class Assignment(db.Model):
     course_id = db.Column('Course_id', db.Integer, db.ForeignKey('Course.id'))
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     deadline = db.Column('deadline', db.DateTime)
+
+    # All stuff for LTI
+    lti_assignment_id = db.Column(db.Unicode, unique=True)
+    lti_outcome_service_url = db.Column(db.Unicode)
+
+    assignment_results = db.relationship(
+        'AssignmentResult',
+        collection_class=attribute_mapped_collection('user_id'),
+        backref=db.backref('assignment', lazy='select'))
 
     course = db.relationship(
         'Course', foreign_keys=course_id, back_populates='assignments')

@@ -1,31 +1,21 @@
 <template>
     <div class="userinfo">
-        <loader class="col-md-10 text-center" v-if="loading"></loader>
-
-        <div v-else-if="!edit">
-            <b-alert variant="success" :show="success">
-                Your userdata has been updated.
-            </b-alert>
-            Username: {{ username }} <br>
-            Email: {{ email }} <br>
-            <b-button type="edit" variant="primary" @click="edit = true">Edit</b-button>
-        </div>
-
-        <div v-else @keyup.enter="submit()">
+        <loader class="col-md-12 text-center" v-if="loading"></loader>
+        <div @keyup.enter="submit()" v-else>
             <b-form-fieldset>
                 <b-input-group left="Username">
-                    <b-form-input  type="text" v-model="username"></b-form-input>
+                    <b-form-input type="text" v-model="username"></b-form-input>
                 </b-input-group>
-                <b-alert variant="danger" :show="submitted && invalid_username_error.length">
+                <b-alert variant="danger" :show="true" v-if="invalid_username_error.length">
                     {{ invalid_username_error }}
                 </b-alert>
             </b-form-fieldset>
 
             <b-form-fieldset>
                 <b-input-group left="Email">
-                    <b-form-input  type="text" v-model="email"></b-form-input>
+                    <b-form-input type="text" v-model="email"></b-form-input>
                 </b-input-group>
-                <b-alert variant="danger" :show="submitted && !validator.validate(email)">
+                <b-alert variant="danger" :show="!validator.validate(email)">
                     Please enter a valid email
                 </b-alert>
             </b-form-fieldset>
@@ -40,8 +30,8 @@
                         </b-button>
                     </b-input-group-button>
                 </b-input-group>
-                <b-alert variant="danger" :show="submitted && invalid_credentials">
-                    Wrong password
+                <b-alert variant="danger" :show="true" v-if="invalid_credentials_error.length">
+                    {{ invalid_credentials_error }}
                 </b-alert>
             </b-form-fieldset>
 
@@ -55,7 +45,7 @@
                         </b-button>
                     </b-input-group-button>
                 </b-input-group>
-                <b-alert variant="danger" :show="submitted && invalid_password_error.length">
+                <b-alert variant="danger" :show="true" v-if="invalid_password_error.length">
                     {{ invalid_password_error }}
                 </b-alert>
             </b-form-fieldset>
@@ -70,26 +60,29 @@
                         </b-button>
                     </b-input-group-button>
                 </b-input-group>
-                <b-alert variant="danger" :show="newPassword != confirmPassword">
+                <b-alert variant="danger" :show="true" v-if="newPassword != confirmPassword">
                     New password is not equal to the confirmation password
                 </b-alert>
             </b-form-fieldset>
 
-            <b-button-group justify>
-                <b-button variant="primary" @click="edit = false; resetParams()">Cancel</b-button>
-                <b-button variant="primary" @click="submit()">Submit</b-button>
-            </b-button-group>
+            <b-button-toolbar justify>
+                <b-button :variant="success ? 'success' : failure ? 'danger' : 'primary'" @click="submit()">
+                    <icon name="refresh" spin v-if="submitted"></icon>
+                    <span v-else>Submit</span>
+                </b-button>
+                <b-button variant="danger" @click="resetErrors(); resetParams()">Reset</b-button>
+            </b-button-toolbar>
         </div>
     </div>
 </template>
 
 <script>
 import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/eye';
 import 'vue-awesome/icons/eye-slash';
-
-import { bAlert, bButtonGroup, bButton, bFormFieldset, bFormInput, bInputGroup }
-    from 'bootstrap-vue/lib/components';
+import 'vue-awesome/icons/refresh';
+import 'vue-awesome/icons/times';
 
 import Loader from './Loader';
 
@@ -100,40 +93,37 @@ export default {
 
     data() {
         return {
+            original: {},
             username: '',
             email: '',
             oldPassword: '',
             newPassword: '',
             confirmPassword: '',
-            edit: false,
+            loading: false,
             submitted: false,
-            succes: false,
+            success: false,
+            failure: false,
             o_pw_visible: false,
             n_pw_visible: false,
             c_pw_visible: false,
             invalid_password_error: '',
             invalid_username_error: '',
-            invalid_credentials: false,
+            invalid_credentials_error: '',
             validator,
-            loading: true,
         };
     },
 
     components: {
         Icon,
         Loader,
-        bAlert,
-        bButtonGroup,
-        bButton,
-        bFormFieldset,
-        bFormInput,
-        bInputGroup,
     },
 
     mounted() {
-        this.$http.get('/api/v1/login').then((data) => {
-            this.username = data.data.name;
-            this.email = data.data.email;
+        this.loading = true;
+        this.$http.get('/api/v1/login').then(({ data }) => {
+            this.original = data;
+            this.username = data.name;
+            this.email = data.email;
             this.loading = false;
         });
     },
@@ -142,57 +132,54 @@ export default {
         resetErrors() {
             this.invalid_password_error = '';
             this.invalid_username_error = '';
-            this.invalid_credentials = false;
+            this.invalid_credentials_error = '';
         },
 
         resetParams() {
+            this.username = this.original.name;
+            this.email = this.original.email;
             this.oldPassword = '';
             this.newPassword = '';
             this.confirmPassword = '';
-            this.submitted = false;
             this.o_pw_visible = false;
             this.n_pw_visible = false;
             this.c_pw_visible = false;
-            this.resetErrors();
         },
 
         submit() {
-            this.submitted = true;
             this.resetErrors();
 
             if (this.newPassword !== this.confirmPassword || !validator.validate(this.email)) {
                 return;
             }
 
-            this.loading = true;
-            this.$http.patch('/api/v1/login',
-                {
-                    username: this.username,
-                    email: this.email,
-                    o_password: this.oldPassword,
-                    n_password: this.newPassword,
-                },
-            ).then(() => {
-                this.edit = false;
-                this.succes = true;
+            this.submitted = true;
+
+            this.$http.patch('/api/v1/login', {
+                username: this.username,
+                email: this.email,
+                o_password: this.oldPassword,
+                n_password: this.newPassword,
+            }).then(() => {
+                this.original.name = this.username;
+                this.original.email = this.email;
                 this.resetParams();
-            }).catch(({ response }) => {
+                this.success = true;
+                this.$nextTick(() =>
+                    setTimeout(() => { this.success = false; }, 1000));
+            }, ({ response }) => {
                 if (response.data.code === 5) {
                     this.invalid_password_error = response.data.rest.password;
                     this.invalid_username_error = response.data.rest.username;
                 } else if (response.data.code === 12) {
-                    this.invalid_credentials = true;
+                    this.invalid_credentials_error = response.data.message;
                 }
+                this.failure = true;
+                setTimeout(() => { this.failure = false; }, 1000);
             }).then(() => {
-                this.loading = false;
+                this.submitted = false;
             });
         },
     },
 };
 </script>
-
-<style lang="less" scoped>
-.form-group .alert {
-    margin-bottom: 0;
-}
-</style>

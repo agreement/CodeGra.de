@@ -54,7 +54,6 @@
 </template>
 
 <script>
-import { bProgress } from 'bootstrap-vue/lib/components';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/times';
@@ -93,7 +92,6 @@ export default {
     components: {
         Loader,
         Icon,
-        bProgress,
     },
 
     methods: {
@@ -187,6 +185,7 @@ export default {
     margin-top: 1em;
     padding: 15px 5em;
 }
+
 .right-float {
     float: right;
 }
@@ -194,22 +193,12 @@ export default {
 .center-table {
     text-align: center;
 }
+
 .center-table th {
     text-align: center;
 }
 
-.table-striped tbody tr:nth-of-type(even) table.trans tr {
-    background-color: rgba(0, 0, 0, 0.05);
-}
-.table-striped tbody tr:nth-of-type(odd) table.trans tr {
-    background-color: #fff;
-}
-
-button {
-    cursor: pointer;
-}
-
-span.progress-text {
+.progress-text {
     display: block;
     margin-top: 15px;
 }

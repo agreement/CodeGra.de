@@ -1,24 +1,15 @@
 <template>
-  <div class="page submission-list">
-    <div class="row justify-content-center">
-      <loader :class="`col-md-${canUpload ? 5 : 10} text-center`" v-if="loading < 2"></loader>
-      <div :class="`col-md-${canUpload ? 5 : 10}`" v-else>
-        <h1>Submissions</h1>
-        <submission-list :submissions="submissions"></submission-list>
-        <submissions-exporter :assignment="assignment" v-if="canDownload"></submissions-exporter>
-      </div>
-
-        <div class="col-md-6" v-if="canUpload">
-            <h1>Submit work for assignment {{ assignmentId }}</h1>
-            <code-uploader :assignmentId="assignmentId"></code-uploader>
-        </div>
-      </div>
-  </div>
+    <loader :class="`col-md-12 text-center`" v-if="loading < 2"></loader>
+    <div class="page submission-list" v-else>
+        <h1>Submissions for {{ assignment.name }}</h1>
+        <submission-list :assignment="assignment" :submissions="submissions" :canDownload="canDownload"></submission-list>
+        <code-uploader :assignment="assignment" v-if="canUpload"></code-uploader>
+    </div>
 </template>
 
 <script>
 import { mapActions } from 'vuex';
-import { SubmissionList, CodeUploader, Loader, SubmissionsExporter }
+import { SubmissionList, CodeUploader, Loader }
     from '@/components';
 import moment from 'moment';
 
@@ -36,6 +27,7 @@ export default {
             canUpload: false,
             assignment: null,
             canDownload: false,
+            showAssignedFilter: false,
         };
     },
 
@@ -73,12 +65,14 @@ export default {
         hasPermission(perm) {
             return this.u_hasPermission({ name: perm, course_id: this.courseId });
         },
+
         gotoSubmission(submission) {
             this.$router.push({
                 name: 'submission',
                 params: { submissionId: submission.id },
             });
         },
+
         ...mapActions({
             u_hasPermission: 'user/hasPermission',
         }),
@@ -88,12 +82,11 @@ export default {
         SubmissionList,
         CodeUploader,
         Loader,
-        SubmissionsExporter,
     },
 };
 </script>
 
-<style lang="less">
+<style lang="less" scoped>
 .loader {
     padding-top: 3.5em;
 }
