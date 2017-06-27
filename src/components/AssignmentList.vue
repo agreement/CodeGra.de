@@ -239,17 +239,18 @@ export default {
     }
 }
 
-// <<<<<<< HEAD
-// .custom-checkbox {
-//     margin-right: 0;
-//     padding-left: 2.25rem;
-//     font-size: 0.95em;
-//
-//     .custom-control-indicator {
-//         top: .75rem;
-//         left: .75rem;
-//     }
-// =======
+
+.custom-checkbox {
+    margin-right: 0;
+    padding-left: 2.25rem;
+    font-size: 0.95em;
+
+    .custom-control-indicator {
+        top: .75rem;
+        left: .75rem;
+    }
+}
+
 .table-control input {
     display: table-cell;
     width: 100%;

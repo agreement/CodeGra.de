@@ -42,7 +42,6 @@ def get_student_assignments():
             if ((not assignment.is_hidden) or current_user.has_permission(
                     'can_see_hidden_assignments', assignment.course_id)):
                 res.append(assignment)
-
     return jsonify(res)
 
 
