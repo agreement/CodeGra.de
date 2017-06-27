@@ -280,6 +280,7 @@ def get_all_graders(assignment_id):
     :rtype: Response
     """
     assignment = models.Assignment.query.get(assignment_id)
+    auth.ensure_permission('can_manage_course', assignment.course.id)
 
     if not assignment:
         raise APIException(
