@@ -15,21 +15,27 @@
                 <div
                     class="inner-container"
                     ref="rubricContainer">
-                    <b-card-group
+                    <div
                         class="rubric"
                         v-for="(rubric, i) in rubrics"
                         :key="`rubric-${i}`">
                         <b-card
-                            class="rubric-item"
-                            v-for="item in rubric.items"
-                            :key="`rubric-${i}-${item.id}`"
-                            @click.native="select(i, item)"
-                            :class="{ selected: isSelected(i, item) }">
-                            <span>
-                                <b>{{ item.points }}</b> - {{ item.description }}
-                            </span>
+                            no-block
+                            :header="rubric.header + ' - ' + rubric.description">
+                            <b-card-group>
+                                <b-card
+                                    class="rubric-item"
+                                    v-for="item in rubric.items"
+                                    :key="`rubric-${i}-${item.id}`"
+                                    @click.native="select(i, item)"
+                                    :class="{ selected: isSelected(i, item) }">
+                                    <span>
+                                        <b>{{ item.points }}</b> - {{ item.description }}
+                                    </span>
+                                </b-card>
+                            </b-card-group>
                         </b-card>
-                    </b-card-group>
+                    </div>
                 </div>
             </div>
             <b-input-group-button>
@@ -149,12 +155,17 @@ export default {
 
 .rubric {
     flex: 1 1 0;
-
     padding-left: .75rem;
     padding-right: .75rem;
 }
 
 .rubric-item {
+    border-width: 0;
+
+    &:not(:last-child) {
+        border-right-width: 1px;
+    }
+
     .editable & {
         cursor: pointer;
 
@@ -169,6 +180,15 @@ export default {
 
     &.selected {
         background: rgba(0, 0, 0, 0.05);
+    }
+}
+</style>
+
+<style lang="less">
+.rubric-viewer {
+    .card-header,
+    .card-block {
+        padding: .5rem .75rem;
     }
 }
 </style>

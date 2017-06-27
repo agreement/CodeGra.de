@@ -101,22 +101,22 @@ export default {
                     items: [
                         {
                             id: 0,
-                            description: 'Description 1',
+                            description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed fringilla, purus vitae vulputate vulputate, libero nunc tincidunt massa, at iaculis orci felis a risus. Nunc varius velit at ipsum tempor consequat. Etiam commodo lacus quis ante rhoncus blandit. Nam sed nisi congue, tempus est eu, ullamcorper ipsum.',
                             points: 0,
                         },
                         {
                             id: 1,
-                            description: 'Description 1',
+                            description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed fringilla, purus vitae vulputate vulputate, libero nunc tincidunt massa, at iaculis orci felis a risus. Nunc varius velit at ipsum tempor consequat. ',
                             points: 1,
                         },
                         {
                             id: 2,
-                            description: 'Description 1',
+                            description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed fringilla, purus vitae vulputate vulputate, libero nunc tincidunt massa, at iaculis orci felis a risus. Nunc varius velit at ipsum tempor consequat. Etiam commodo lacus quis ante rhoncus blandit.',
                             points: 2,
                         },
                         {
                             id: 3,
-                            description: 'Description 1',
+                            description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed fringilla, purus vitae vulputate vulputate, libero nunc tincidunt massa, at iaculis orci felis a risus. ',
                             points: 3,
                         },
                     ],
