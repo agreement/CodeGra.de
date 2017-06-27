@@ -41,7 +41,6 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
-import { bInputGroupButton, bFormCheckbox } from 'bootstrap-vue/lib/components';
 
 export default {
     name: 'submission-list',
@@ -165,11 +164,6 @@ export default {
         ...mapActions({
             u_hasPermission: 'user/hasPermission',
         }),
-    },
-
-    components: {
-        bInputGroupButton,
-        bFormCheckbox,
     },
 };
 </script>

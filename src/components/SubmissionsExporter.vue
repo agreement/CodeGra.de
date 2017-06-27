@@ -3,14 +3,8 @@
 </template>
 
 <script>
-import { bButton } from 'bootstrap-vue/lib/components';
-
 export default {
     name: 'submissions-exporter',
-
-    components: {
-        bButton,
-    },
 
     props: ['assignment'],
 

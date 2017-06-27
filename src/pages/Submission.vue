@@ -3,24 +3,24 @@
         <loader style="text-align: center; margin-top: 30px;"/>
     </div>
     <div class="page submission" v-else>
-        <h2><i><router-link :to="{ name: 'assignment_submissions', }">"{{ this.assignment.name }}"</router-link></i> by {{ this.submission.user.name }}</h2>
-        <div class="row submission-nav-bar">
-            <div class="col-12">
+        <h2>
+            <i><router-link :to="{ name: 'assignment_submissions', }">"{{ assignment.name }}"</router-link></i>
+            by {{ submission.user.name }}
+        </h2>
+        <div class="row">
+            <div class="col-9 code-and-grade">
                 <submission-nav-bar v-if="submissions && submission"
                                     v-on:subChange="reloadSubmission"
                                     :submission="submission"
                                     :submissions="submissions"
                                     :courseId="courseId"
                                     :assignmentId="assignmentId"></submission-nav-bar>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-9 code-and-grade">
                 <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
-                <code-viewer class="" :editable="editable" :id="fileId"
+                <code-viewer class="" :editable="editable"
                     :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
-                <grade-viewer :id="submissionId"
+                <grade-viewer :submission="submission"
                               :editable="editable"
+                              v-if="editable || assignment.state === assignmentState.DONE"
                               v-on:gradeChange="gradeChange"
                               @submit="submitAllFeedback($event)"></grade-viewer>
             </div>
@@ -33,6 +33,8 @@
 <script>
 import { mapActions } from 'vuex';
 import { CodeViewer, FileTreeContainer, GradeViewer, Loader, PdfViewer, SubmissionNavBar } from '@/components';
+
+import * as assignmentState from '../store/assignment-states';
 
 function getFirstFile(fileTree) {
     // Returns the first file in the file tree that is not a folder
@@ -58,7 +60,7 @@ export default {
 
     data() {
         return {
-            submission: null,
+            submission: {},
             fileTree: null,
             editable: false,
             fileExtension: '',
@@ -68,6 +70,7 @@ export default {
             feedback: '',
             submissions: null,
             loading: true,
+            assignmentState,
         };
     },
 
@@ -78,15 +81,22 @@ export default {
         fileId() { return Number(this.$route.params.fileId); },
     },
 
+    watch: {
+        fileId() {
+            this.getFileMetadata();
+        },
+    },
+
     mounted() {
-        console.log('asdfsad');
-        this.hasPermission({ name: 'can_grade_work', course_id: this.courseId }).then((val) => {
+        this.hasPermission({
+            name: 'can_grade_work',
+            course_id: this.courseId,
+        }).then((val) => {
             this.editable = val;
         });
         Promise.all([
             this.getSubmission(),
             this.getSubmissionFiles(),
-            this.getFileMetadata(),
             this.getAllSubmissions(),
             this.getAssignment(),
         ]).then(() => {
@@ -151,7 +161,6 @@ export default {
                 this.$router.replace({
                     name: 'submission_file',
                     params: {
-                        submissionId: this.submissionId,
                         fileId: this.fileId ? this.fileId : getFirstFile(this.fileTree).id,
                     },
                 });
@@ -172,8 +181,14 @@ export default {
         },
 
         getSubmission() {
-            return this.$http.get(`/api/v1/submissions/${this.submissionId}`).then((data) => {
-                this.submission = data.data;
+            return new Promise((resolve) => {
+                this.$http.get(`/api/v1/submissions/${this.submissionId}`).then(({ data }) => {
+                    this.submission = data;
+                    resolve();
+                }).catch(() => {
+                    this.submission = {};
+                    resolve();
+                });
             });
         },
 
@@ -226,6 +241,12 @@ export default {
 };
 </script>
 
+<style lang="less">
+.page {
+    margin-bottom: 0;
+}
+</style>
+
 <style lang="less" scoped>
 h2 {
     text-align: center;
@@ -241,6 +262,7 @@ h2 {
     flex-direction: column;
     flex-grow: 1;
     flex-shrink: 1;
+    margin-bottom: 2em;
 }
 
 .row {
@@ -267,15 +289,15 @@ h1 {
     overflow: auto;
 }
 
-.grade-viewer {
+.grade-viewer,
+.submission-nav-bar {
     flex-grow: 0;
     flex-shrink: 0;
 }
 
 h1,
 .code-viewer,
-.pdfobject-container,
-.grade-viewer {
+.pdfobject-container {
     margin-bottom: 30px;
 }
 

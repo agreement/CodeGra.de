@@ -1,5 +1,5 @@
 <template>
-    <b-form-fieldset class="table-control">
+    <b-form-fieldset class="submission-nav-bar">
         <b-input-group>
             <b-input-group-button class="buttons">
                 <b-popover placement="top" triggers="hover" content="Back to all submissions">
@@ -9,22 +9,18 @@
                 </b-popover>
             </b-input-group-button>
             <b-input-group-button class="buttons">
-                <b-popover placement="top" triggers="hover" content="Previous submission">
-                    <b-button :disabled="!prev" @click="selected = prev" class="angle-btn">
-                        <icon name="angle-left"></icon>
-                    </b-button>
-                </b-popover>
+                <b-button :disabled="!prev" @click="selected = prev" class="angle-btn">
+                    <icon name="angle-left"></icon>
+                </b-button>
             </b-input-group-button>
             <b-form-select v-model="selected"
                            :options="options"
                            style="height: 2em; text-align: center;"
                            size="lg"></b-form-select>
             <b-input-group-button class="buttons">
-                <b-popover placement="top" triggers="hover" content="Next submission">
-                    <b-button :disabled="!next" @click="selected = next" class="angle-btn">
-                        <icon name="angle-right"></icon>
-                    </b-button>
-                </b-popover>
+                <b-button :disabled="!next" @click="selected = next" class="angle-btn">
+                    <icon name="angle-right"></icon>
+                </b-button>
             </b-input-group-button>
         </b-input-group>
     </b-form-fieldset>
@@ -71,8 +67,14 @@ export default {
                 if (seen[sub.user.id] !== true) {
                     const grade = sub.grade ? `- ${sub.grade} -` : '';
                     const assignee = sub.assignee ? sub.assignee.name : 'nobody';
+                    let assigneeText;
+                    if (sub.assignee === false) { // no permission
+                        assigneeText = '';
+                    } else {
+                        assigneeText = `- Assigned to ${assignee}`;
+                    }
                     latestSubs.push({
-                        text: `${sub.user.name} ${grade} Assigned to ${assignee}`,
+                        text: `${sub.user.name} ${grade} ${assigneeText}`,
                         value: sub.id,
                         assignee: sub.assignee,
                     });
@@ -178,13 +180,10 @@ export default {
     height: 100%;
 }
 
-.row {
-    padding-bottom: 1em;
-}
-
 select {
     text-align-last: center; text-align: center;
     -ms-text-align-last: center;
     -moz-text-align-last: center; text-align-last: center;
+    cursor: pointer;
 }
 </style>
