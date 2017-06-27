@@ -97,6 +97,45 @@ class Flake8(Linter):
                     pass
 
 
+# de berenlinter template
+# TODO
+# de beer (of ik) kan nog niet niet overweg met de tempdir
+# netter parsen
+# verder standarblablaizeren voor template gebruik (go,java,c,blabla)
+class PyFlakesB(Linter):
+    NAME = 'PyFlakesBear'
+    DESCRIPTION = 'DO THE BEAR WOW'
+    DEFAULT_OPTIONS = {'Empty config file': ''}
+
+    def __init__(self, config):
+        self.config = config
+
+    def run(self, tempdir, emit):
+        cfg = os.path.join(tempdir, '.flake8')
+        # cfg = os.path.join(tempdir)
+        with open(cfg, 'w') as f:
+            f.write(self.config)
+
+        # This is not guessable
+        sep = uuid.uuid4()
+        fmt = '%(path)s{0}%(row)d{0}%(code)s{0}%(text)s'.format(sep)
+        out = subprocess.run(
+            [
+                'coala', '--format', '{line}, {message}', '--files', tempdir, '--bears', 'PyFlakesBear'
+            ],
+            stdout=subprocess.PIPE).stdout.decode('utf8')
+        print(out)
+        for line in out.split('\n'):
+            print(line)
+            args = line.split(str(sep))
+            if len(line) > 0:
+                line2 = line.split(None, 1)
+                try:
+                    emit(line2[1], int(line2[0]), *line2[1])
+                except ValueError:
+                    pass
+
+
 class LinterRunner():
     def __init__(self, cls, cfg):
         self.linter = cls(cfg)
