@@ -1,6 +1,6 @@
 <template>
     <div class="page assignments">
-        <loader class="text-center" v-if="loading1 || loading2"></loader>
+        <loader class="text-center" v-if="loading"></loader>
         <div v-else>
             <h1>Assignments</h1>
             <assignment-list :assignments="assignments" :canSeeHidden="canSeeHidden"></assignment-list>
@@ -18,14 +18,18 @@ export default {
 
     data() {
         return {
-            loading1: true,
-            loading2: true,
+            loading: true,
             assignments: [],
-            course_roles: [],
         };
     },
 
     mounted() {
+        let request3 = null;
+        let courseRoles = null;
+        let assignments = null;
+        // I cant use this.assignments because as soon as this.assignments
+        // is set, it will pass its value to the AssignmentList components\
+        // which then wont have all the data needed
         const request1 = this.$http.get('/api/v1/assignments/').then(({ data }) => {
             const promises = [];
             for (let i = 0, len = data.length; i < len; i += 1) {
@@ -35,20 +39,20 @@ export default {
                 promise.then((response) => { data[i].can_grade = response; });
                 promises.push(promise);
             }
-            Promise.all(promises).then(() => {
-                this.assignments = data;
-                this.loading1 = false;
-            });
+            assignments = data;
+            request3 = Promise.all(promises);
         });
         const request2 = this.$http.get('/api/v1/login?type=roles').then(({ data }) => {
-            this.course_roles = data;
-            this.loading2 = false;
+            courseRoles = data;
         });
-        Promise.all([request1, request2]).then(() => {
-            for (let i = 0, len = this.assignments.length; i < len; i += 1) {
-                const assignment = this.assignments[i];
-                assignment.course_role = this.course_roles[assignment.course_id];
+
+        Promise.all([request1, request2, request3]).then(() => {
+            for (let i = 0, len = assignments.length; i < len; i += 1) {
+                const assignment = assignments[i];
+                assignment.course_role = courseRoles[assignment.course_id];
             }
+            this.loading = false;
+            this.assignments = assignments;
         });
     },
 

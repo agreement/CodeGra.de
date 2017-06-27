@@ -51,7 +51,7 @@
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="course_role" scope="item">
-                {{item.value ? item.value : '-'}}
+                {{ item.value ? item.value : '-'}}
             </template>
             <template slot="name" scope="item">
                 {{item.value ? item.value : '-'}}
