@@ -20,8 +20,11 @@
                         v-for="(rubric, i) in rubrics"
                         :key="`rubric-${i}`">
                         <b-card
-                            no-block
-                            :header="rubric.header + ' - ' + rubric.description">
+                            no-block>
+                            <div class="card-header">
+                                {{ rubric.header }} - {{ rubric.description }}
+                                <span class="rubric-index">{{ i + 1 }} / {{ rubrics.length }}</span>
+                            </div>
                             <b-card-group>
                                 <b-card
                                     class="rubric-item"
@@ -157,6 +160,10 @@ export default {
     flex: 1 1 0;
     padding-left: .75rem;
     padding-right: .75rem;
+}
+
+.rubric-index {
+    float: right;
 }
 
 .rubric-item {
