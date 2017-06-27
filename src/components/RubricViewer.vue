@@ -153,6 +153,7 @@ export default {
 .inner-container {
     display: flex;
     flex-direction: row;
+    align-items: center;
     transition: transform 500ms;
 }
 
