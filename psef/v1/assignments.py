@@ -61,7 +61,6 @@ def get_assignment(assignment_id):
     else:
         return jsonify(assignment)
 
-
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
 def update_assignment(assignment_id):
     assig = models.Assignment.query.get(assignment_id)
@@ -119,10 +118,11 @@ def upload_work(assignment_id):
 
     if (request.content_length and
             request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException('Uploaded files are too big.', (
-            'Request is bigger than maximum ' +
-            'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-                           APICodes.REQUEST_TOO_LARGE, 400)
+        raise APIException(
+            'Uploaded files are too big.',
+            ('Request is bigger than maximum ' +
+             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
+            APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
@@ -279,9 +279,9 @@ def get_all_works_for_assignment(assignment_id):
             'id', 'user_name', 'user_id', 'grade', 'comment', 'created_at'
         ]
         file = psef.files.create_csv_from_rows([headers] + [[
-            work.id, work.user.name
-            if work.user else "Unknown", work.user_id, work.grade,
-            work.comment, work.created_at.strftime("%d-%m-%Y %H:%M")
+            work.id, work.user.name if work.user else "Unknown", work.user_id,
+            work.grade, work.comment,
+            work.created_at.strftime("%d-%m-%Y %H:%M")
         ] for work in res])
 
         @after_this_request

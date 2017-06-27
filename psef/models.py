@@ -362,6 +362,12 @@ class Work(db.Model):
                         is_directory=False,
                         parent=new_top))
 
+    def get_selected_rubric_items(self):
+        return db.session.query(RubricItem.id).join(
+            RubricItem,
+            RubricItem.id == user_rubricitem.c.rubricitem_id).filter_by(
+                user_id=self.user_id).all()
+
 
 class File(db.Model):
     __tablename__ = "File"
@@ -632,6 +638,21 @@ class Assignment(db.Model):
                  sub.c.max_date == Work.created_at)).filter(
                      Work.assignment_id == self.id).all()
 
+    def get_rubric(self):
+        rubric_rows = db.session.query(RubricRow).filter_by(
+            assignment_id=self.id).all()
+        full_rubric = []
+        for rubric_row in rubric_rows:
+            rubric_items = db.session.query(RubricItem).filter_by(
+                rubricrow=rubric_row).all()
+            full_rubric.append({
+                'header': rubric_row.header,
+                'description': rubric_row.description,
+                items: rubric_items
+            })
+
+        return full_rubric
+
 
 class Snippet(db.Model):
     __tablename__ = 'Snippet'
@@ -657,7 +678,6 @@ class RubricRow(db.Model):
                               db.ForeignKey('Assignment.id'))
     header = db.Column('header', db.Unicode)
     description = db.Column('description', db.Unicode, default='')
-    points = db.Column('points', db.Float)
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
 
@@ -667,8 +687,8 @@ class RubricItem(db.Model):
     id = db.Column('id', db.Integer, primary_key=True)
     rubricrow_id = db.Column('Rubricrow_id', db.Integer,
                              db.ForeignKey('RubricRow.id'))
-    row = db.Column('row', db.Integer)
     col = db.Column('col', db.Integer)
     description = db.Column('description', db.Unicode, default='')
+    points = db.Column('points', db.Float)
 
     rubricrow = db.relationship('RubricRow', foreign_keys=rubricrow_id)

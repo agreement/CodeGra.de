@@ -42,6 +42,24 @@ def get_submission(submission_id):
     return jsonify(work)
 
 
+@api.route("/submissions/<int:submission_id>/rubrics/", methods=['GET'])
+def get_rubric(submission_id):
+    """
+    Return full rubric of assignment X.
+    """
+    work = models.Work.query.get(submission_id).first()
+    if work is None:
+        raise APIException(
+            'Work submission not found',
+            'The submission with code {} was not found'.format(submission_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    return jsonify({
+        'rubrics': work.assignment.get_rubric(),
+        'selected': work.get_selected_rubric_items()
+    })
+
+
 def get_feedback(work):
     """
     Get the feedback of work as a plain text file.
