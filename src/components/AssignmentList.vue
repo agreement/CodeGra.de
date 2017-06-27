@@ -15,7 +15,7 @@
                     <b-popover placement="top" triggers="hover" content="Submitting">
                         <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
                                     @click="toggleFilter('submitting')">
-                            <icon name="download"></icon>
+                            <icon name="clock-o"></icon>
                         </b-button>
                     </b-popover>
                 </b-input-group-button>
@@ -80,14 +80,11 @@
 </template>
 
 <script>
-import { bButton, bButtonGroup, bFormInput, bInputGroup, bPopover, bTable } from
-    'bootstrap-vue/lib/components';
-
 import Icon from 'vue-awesome/components/Icon';
-import 'vue-awesome/icons/download';
+import 'vue-awesome/icons/eye-slash';
+import 'vue-awesome/icons/clock-o';
 import 'vue-awesome/icons/pencil';
 import 'vue-awesome/icons/check';
-import 'vue-awesome/icons/eye-slash';
 
 import * as assignmentState from '../store/assignment-states';
 
@@ -207,12 +204,6 @@ export default {
 
     components: {
         Icon,
-        bButton,
-        bButtonGroup,
-        bFormInput,
-        bInputGroup,
-        bPopover,
-        bTable,
     },
 };
 </script>

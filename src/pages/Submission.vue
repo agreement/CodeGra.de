@@ -1,22 +1,39 @@
 <template>
-    <div class="page submission">
-        <div class="row">
-            <div class="col-9 code-and-grade">
+    <div v-if="loading">
+        <loader style="text-align: center; margin-top: 30px;"/>
+    </div>
+    <div class="page submission" v-else>
+        <h2>
+            <i><router-link :to="{ name: 'assignment_submissions', }">"{{ assignment.name }}"</router-link></i>
+            by {{ submission.user.name }}
+        </h2>
+        <div class="row justify-content-center">
+            <div class="col-lg-9 code-and-grade">
+                <submission-nav-bar v-if="submissions && submission"
+                                    v-on:subChange="reloadSubmission"
+                                    :submission="submission"
+                                    :submissions="submissions"
+                                    :courseId="courseId"
+                                    :assignmentId="assignmentId"></submission-nav-bar>
                 <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
-                <code-viewer class="" :editable="editable" :id="fileId"
-                    :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
-                <grade-viewer :id="submissionId" :editable="editable"
-                    @submit="submitAllFeedback($event)"></grade-viewer>
+                <code-viewer class="" :editable="editable"
+                             :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
+                <grade-viewer :submission="submission"
+                              :editable="editable"
+                              v-if="editable || assignment.state === assignmentState.DONE"
+                              v-on:gradeChange="gradeChange"
+                              @submit="submitAllFeedback($event)"/>
             </div>
-
-            <file-tree-container class="col-3" :fileTree="fileTree"></file-tree-container>
+            <file-tree-container class="col-lg-3" :fileTree="fileTree"></file-tree-container>
         </div>
     </div>
 </template>
 
 <script>
 import { mapActions } from 'vuex';
-import { CodeViewer, FileTreeContainer, GradeViewer, Loader, PdfViewer } from '@/components';
+import { CodeViewer, FileTreeContainer, GradeViewer, Loader, PdfViewer, SubmissionNavBar } from '@/components';
+
+import * as assignmentState from '../store/assignment-states';
 
 function getFirstFile(fileTree) {
     // Returns the first file in the file tree that is not a folder
@@ -42,6 +59,7 @@ export default {
 
     data() {
         return {
+            submission: {},
             fileTree: null,
             editable: false,
             fileExtension: '',
@@ -49,13 +67,16 @@ export default {
             grade: 0,
             showGrade: false,
             feedback: '',
+            submissions: null,
+            loading: true,
+            assignmentState,
         };
     },
 
     computed: {
-        courseId() { return this.$route.params.courseId; },
-        assignmentId() { return this.$route.params.assignmentId; },
-        submissionId() { return this.$route.params.submissionId; },
+        courseId() { return Number(this.$route.params.courseId); },
+        assignmentId() { return Number(this.$route.params.assignmentId); },
+        submissionId() { return Number(this.$route.params.submissionId); },
         fileId() { return Number(this.$route.params.fileId); },
     },
 
@@ -66,11 +87,20 @@ export default {
     },
 
     mounted() {
-        this.hasPermission({ name: 'can_grade_work', course_id: this.courseId }).then((val) => {
+        this.hasPermission({
+            name: 'can_grade_work',
+            course_id: this.courseId,
+        }).then((val) => {
             this.editable = val;
         });
-        this.getSubmission();
-        this.getFileMetadata();
+        Promise.all([
+            this.getSubmission(),
+            this.getSubmissionFiles(),
+            this.getAllSubmissions(),
+            this.getAssignment(),
+        ]).then(() => {
+            this.loading = false;
+        });
 
         const elements = Array.from(document.querySelectorAll('html, body, #app, nav, footer'));
         const [html, body, app, nav, footer] = elements;
@@ -124,33 +154,76 @@ export default {
     },
 
     methods: {
-        getSubmission() {
-            this.$http.get(`/api/v1/submissions/${this.submissionId}/files/`).then((data) => {
+        getSubmissionFiles() {
+            return this.$http.get(`/api/v1/submissions/${this.submissionId}/files/`).then((data) => {
                 this.fileTree = data.data;
                 this.$router.replace({
                     name: 'submission_file',
                     params: {
-                        submissionId: this.submissionId,
                         fileId: this.fileId ? this.fileId : getFirstFile(this.fileTree).id,
                     },
                 });
             });
         },
 
+        gradeChange(grade) {
+            this.$set(this.submission, 'grade', Number(grade));
+            let i = 0;
+            for (const len = this.submissions.length; i < len; i += 1) {
+                if (this.submissions[i].id === this.submission.id) {
+                    break;
+                }
+            }
+            const sub = this.submissions[i];
+            this.$set(sub, 'grade', Number(grade));
+            this.$set(this.submissions, i, sub);
+        },
+
+        getSubmission() {
+            return new Promise((resolve) => {
+                this.$http.get(`/api/v1/submissions/${this.submissionId}`).then(({ data }) => {
+                    this.submission = data;
+                    resolve();
+                }).catch(() => {
+                    this.submission = {};
+                    resolve();
+                });
+            });
+        },
+
+        getAssignment() {
+            return this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then(({ data }) => {
+                this.assignment = data;
+            });
+        },
+
         getFileMetadata() {
             if (this.fileId === undefined) {
-                return;
+                return null;
             }
 
             this.fileExtension = '';
-            this.$http.get(`/api/v1/code/${this.fileId}?type=metadata`).then((response) => {
+            return this.$http.get(`/api/v1/code/${this.fileId}?type=metadata`).then((response) => {
                 this.fileExtension = response.data.extension;
+            });
+        },
+
+        getAllSubmissions() {
+            return this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then(({ data }) => {
+                this.submissions = data;
             });
         },
 
         submitAllFeedback(event) {
             this.$refs.codeViewer.submitAllFeedback(event);
         },
+
+        reloadSubmission() {
+            this.getSubmission();
+            this.getSubmissionFiles();
+            this.getFileMetadata();
+        },
+
         ...mapActions({
             hasPermission: 'user/hasPermission',
         }),
@@ -162,16 +235,33 @@ export default {
         GradeViewer,
         Loader,
         PdfViewer,
+        SubmissionNavBar,
     },
 };
 </script>
 
-<style scoped>
+<style lang="less">
+.page {
+    margin-bottom: 0;
+}
+</style>
+
+<style lang="less" scoped>
+h2 {
+    text-align: center;
+    margin-bottom: 15px;
+    a {
+        cursor: pointer;
+        color: black;
+    }
+}
+
 .page.submission {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
     flex-shrink: 1;
+    margin-bottom: 2em;
 }
 
 .row {
@@ -198,19 +288,32 @@ h1 {
     overflow: auto;
 }
 
-.grade-viewer {
+.grade-viewer,
+.submission-nav-bar {
     flex-grow: 0;
     flex-shrink: 0;
 }
 
 h1,
 .code-viewer,
-.pdfobject-container,
-.grade-viewer {
+.pdfobject-container {
     margin-bottom: 30px;
 }
 
 .loader {
     margin-top: 1em;
+}
+
+.submission-nav-bar {
+    flex-shrink: 0;
+    flex-grow: 0;
+}
+</style>
+
+<style>
+@media (max-width: 992px) {
+    #app, html {
+        height: inherit !important;
+    }
 }
 </style>

@@ -6,10 +6,11 @@ import datetime
 
 from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
+from sqlalchemy_utils import PasswordType
 
+import psef
 import psef.models as m
 from psef import db, app
-from sqlalchemy_utils import PasswordType
 
 
 def render_item(type_, col, autogen_context):
@@ -30,13 +31,32 @@ manager.add_command('db', MigrateCommand)
 def seed():
     with open('./seed_data/permissions.json', 'r') as perms:
         perms = json.load(perms)
-        for perm in perms:
-            old_perm = m.Permission.query.filter_by(name=perm['name']).first()
+        for name, perm in perms.items():
+            old_perm = m.Permission.query.filter_by(name=name).first()
             if old_perm is not None:
                 old_perm.default_value = perm['default_value']
                 old_perm.course_permission = perm['course_permission']
             else:
-                db.session.add(m.Permission(**perm))
+                db.session.add(m.Permission(name=name, **perm))
+
+    with open('./seed_data/roles.json', 'r') as c:
+        cs = json.load(c)
+        for name, c in cs.items():
+            perms = m.Permission.query.filter_by(course_permission=False).all()
+            r_perms = {}
+            perms_set = set(c['permissions'])
+            for perm in perms:
+                if ((perm.default_value and perm.name not in perms_set) or
+                        (not perm.default_value and perm.name in perms_set)):
+                    r_perms[perm.name] = perm
+
+            r = m.Role.query.filter_by(name=name).first()
+
+            if r is not None:
+                r._permissions = r_perms
+            else:
+                db.session.add(m.Role(name=name, _permissions=r_perms))
+
     db.session.commit()
 
 
@@ -48,44 +68,6 @@ def test_data():
         for c in cs:
             if m.Course.query.filter_by(name=c['name']).first() is None:
                 db.session.add(m.Course(name=c['name']))
-    with open('./test_data/roles.json', 'r') as c:
-        cs = json.load(c)
-        for c in cs:
-            perms = {
-                name: m.Permission.query.filter_by(name=name).first()
-                for name in c['permissions']
-            }
-            r = m.Role.query.filter_by(name=c['name']).first()
-            if r is not None:
-                r._permissions = perms
-                db.session.add(r)
-                continue
-            else:
-                db.session.add(m.Role(name=c['name'], _permissions=perms))
-    with open('./test_data/course_roles.json', 'r') as c:
-        cs = json.load(c)
-        for c in cs:
-            u = m.CourseRole.query.filter_by(
-                name=c['name'],
-                course=m.Course.query.filter_by(
-                    name=c['course']).first()).first()
-            assert m.Course.query.filter_by(name=c['course']).first()
-
-            perms = {
-                name: m.Permission.query.filter_by(name=name).first()
-                for name in c['permissions']
-            }
-            if u is not None:
-                u.name = c['name']
-                u._permissions = perms
-                course = m.Course.query.filter_by(name=c['course']).first()
-            else:
-                db.session.add(
-                    m.CourseRole(
-                        name=c['name'],
-                        _permissions=perms,
-                        course=m.Course.query.filter_by(name=c['course'])
-                        .first()))
     with open('./test_data/assignments.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
@@ -149,7 +131,7 @@ def test_data():
                         name=c['assignment']).first(),
                     user=m.User.query.filter_by(name=c['user']).first(),
                     comment=c['comment'],
-                    grade=c['grade'],
+                    _grade=c['grade'],
                     edit=c['edit']))
     with open('./test_data/snippets.json', 'r') as c:
         cs = json.load(c)

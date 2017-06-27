@@ -102,12 +102,16 @@ const actions = {
         });
     },
     verifyLogin({ commit }) {
-        axios.get('/api/v1/login').then((response) => {
-            // We are already logged in. Update state to logged in state
-            commit(types.LOGIN, response.data);
-            actions.refreshSnippets({ commit });
-        }).catch(() => {
-            commit(types.LOGOUT);
+        return new Promise((resolve, reject) => {
+            axios.get('/api/v1/login').then((response) => {
+                // We are already logged in. Update state to logged in state
+                commit(types.LOGIN, response.data);
+                actions.refreshSnippets({ commit });
+                resolve();
+            }).catch(() => {
+                commit(types.LOGOUT);
+                reject();
+            });
         });
     },
 };
