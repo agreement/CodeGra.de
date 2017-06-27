@@ -161,6 +161,19 @@ def test_data():
                     m.Snippet(key=c['key'], value=c['value'], user=user))
             else:
                 snip.value = c['value']
+    with open('./test_data/rubrics.json', 'r') as c:
+        cs = json.load(c)
+        for c in cs:
+            for row in c['rows']:
+                assignment = m.Assignment.query.filter_by(name=c['assignment']).first()
+                if assignment is not None:
+                    rubric_row = m.RubricRow(header=row['header'], description=row['description'], assignment=assignment)
+                    db.session.add(rubric_row)
+                    for item in row['items']:
+                        rubric_item = m.RubricItem(col=item['col'], description=item['description'], points=item['points'], rubricrow=rubric_row)
+                        db.session.add(rubric_item)
+                else:
+                    print('bah')
     db.session.commit()
 
 

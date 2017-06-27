@@ -47,7 +47,7 @@ def get_rubric(submission_id):
     """
     Return full rubric of assignment X.
     """
-    work = models.Work.query.get(submission_id).first()
+    work = models.Work.query.get(submission_id)
     if work is None:
         raise APIException(
             'Work submission not found',

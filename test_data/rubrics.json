@@ -1,0 +1,70 @@
+[
+    {
+        "assignment": "Shell",
+        "rows": [
+            {
+                "header": "row 1",
+                "description": "test description 1",
+                "items": [
+                    {
+                        "col": 1,
+                        "description": "you suck",
+                        "points": 2
+                    },
+                    {
+                        "col": 2,
+                        "description": "you suck 2",
+                        "points": 2
+                    },
+                    {
+                        "col": 3,
+                        "description": "you suck 3",
+                        "points": 2
+                    }
+                ]
+            },
+            {
+                "header": "row 2",
+                "description": "test description 2",
+                "items": [
+                    {
+                        "col": 1,
+                        "description": "you suck haha",
+                        "points": 2
+                    },
+                    {
+                        "col": 2,
+                        "description": "you suck haha 2",
+                        "points": 2
+                    },
+                    {
+                        "col": 3,
+                        "description": "you suck haha 3",
+                        "points": 2
+                    }
+                ]
+            },
+            {
+                "header": "row 3",
+                "description": "test description 3",
+                "items": [
+                    {
+                        "col": 1,
+                        "description": "you are awesome",
+                        "points": 2
+                    },
+                    {
+                        "col": 2,
+                        "description": "you are awesome 2",
+                        "points": 2
+                    },
+                    {
+                        "col": 3,
+                        "description": "you are awesome 3",
+                        "points": 2
+                    }
+                ]
+            }
+        ]
+    }
+]
