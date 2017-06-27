@@ -4,9 +4,7 @@
     </div>
     <div class="page submission" v-else>
         <h2>
-            <i><router-link :to="{ name: 'assignment_submissions', }">
-                    "{{ assignment.name }}"
-            </router-link></i>
+            <i><router-link :to="{ name: 'assignment_submissions', }">"{{ assignment.name }}"</router-link></i>
             by {{ submission.user.name }}
         </h2>
         <div class="row">
