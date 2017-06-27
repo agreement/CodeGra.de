@@ -2,12 +2,12 @@
     <div class="grade-viewer">
         <b-collapse
             id="rubric-collapse"
-            v-if="rubrics"
-            :show="true">
+            v-if="rubrics">
             <rubric-viewer
-                v-model="rubricResult"
+                v-model="rubricSelected"
                 :editable="editable"
-                :rubrics="rubrics">
+                :rubrics="rubrics"
+                ref="rubricViewer">
             </rubric-viewer>
         </b-collapse>
         <div class="row">
@@ -92,13 +92,97 @@ export default {
             submitted: false,
             feedback: this.submission.feedaback || '',
             grade: this.submission.grade || 0,
-            rubrics: null,
-            rubricResult: {},
+            rubrics: [
+                {
+                    id: 0,
+                    header: 'Header 1',
+                    description: 'Description for header 1',
+                    items: [
+                        {
+                            id: 0,
+                            description: 'Description 1',
+                            points: 0,
+                        },
+                        {
+                            id: 1,
+                            description: 'Description 1',
+                            points: 1,
+                        },
+                        {
+                            id: 2,
+                            description: 'Description 1',
+                            points: 2,
+                        },
+                        {
+                            id: 3,
+                            description: 'Description 1',
+                            points: 3,
+                        },
+                    ],
+                },
+                {
+                    id: 1,
+                    header: 'Header 2',
+                    description: 'Description for header 2',
+                    items: [
+                        {
+                            id: 4,
+                            description: 'Description 1',
+                            points: 0,
+                        },
+                        {
+                            id: 5,
+                            description: 'Description 1',
+                            points: 1,
+                        },
+                        {
+                            id: 6,
+                            description: 'Description 1',
+                            points: 2,
+                        },
+                        {
+                            id: 7,
+                            description: 'Description 1',
+                            points: 3,
+                        },
+                    ],
+                },
+                {
+                    id: 1,
+                    header: 'Header 2',
+                    description: 'Description for header 2',
+                    items: [
+                        {
+                            id: 8,
+                            description: 'Description 1',
+                            points: 0,
+                        },
+                        {
+                            id: 9,
+                            description: 'Description 1',
+                            points: 1,
+                        },
+                        {
+                            id: 10,
+                            description: 'Description 1',
+                            points: 2,
+                        },
+                        {
+                            id: 11,
+                            description: 'Description 1',
+                            points: 3,
+                        },
+                    ],
+                },
+            ],
+            rubricSelected: [2, 5, 8],
         };
     },
 
     watch: {
-        rubricResult({ total, max }) {
+        rubricSelected() {
+            const total = this.$refs.rubricViewer.totalPoints();
+            const max = this.$refs.rubricViewer.maxPoints();
             this.grade = 10 * (total / max);
         },
     },
@@ -111,89 +195,6 @@ export default {
         // }, (err) => {
         //     console.dir(err);
         // });
-        this.rubrics = [
-            {
-                id: 0,
-                header: 'Header 1',
-                description: 'Description for header 1',
-                items: [
-                    {
-                        id: 0,
-                        description: 'Description 1',
-                        points: 0,
-                    },
-                    {
-                        id: 1,
-                        description: 'Description 1',
-                        points: 1,
-                    },
-                    {
-                        id: 2,
-                        description: 'Description 1',
-                        points: 2,
-                    },
-                    {
-                        id: 3,
-                        description: 'Description 1',
-                        points: 3,
-                    },
-                ],
-            },
-            {
-                id: 1,
-                header: 'Header 2',
-                description: 'Description for header 2',
-                items: [
-                    {
-                        id: 0,
-                        description: 'Description 1',
-                        points: 0,
-                    },
-                    {
-                        id: 1,
-                        description: 'Description 1',
-                        points: 1,
-                    },
-                    {
-                        id: 2,
-                        description: 'Description 1',
-                        points: 2,
-                    },
-                    {
-                        id: 3,
-                        description: 'Description 1',
-                        points: 3,
-                    },
-                ],
-            },
-            {
-                id: 1,
-                header: 'Header 2',
-                description: 'Description for header 2',
-                items: [
-                    {
-                        id: 0,
-                        description: 'Description 1',
-                        points: 0,
-                    },
-                    {
-                        id: 1,
-                        description: 'Description 1',
-                        points: 1,
-                    },
-                    {
-                        id: 2,
-                        description: 'Description 1',
-                        points: 2,
-                    },
-                    {
-                        id: 3,
-                        description: 'Description 1',
-                        points: 3,
-                    },
-                ],
-            },
-        ];
     },
 
     methods: {
@@ -235,9 +236,11 @@ export default {
                 this.$emit('gradeChange', this.grade);
             });
         },
+
         ...mapActions({
             refreshSnippets: 'user/refreshSnippets',
         }),
+
         ...mapGetters({
             snippets: 'user/snippets',
         }),

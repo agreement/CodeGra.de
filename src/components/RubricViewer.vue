@@ -1,6 +1,7 @@
 <template>
     <b-form-fieldset
-        class="rubric-viewer">
+        class="rubric-viewer"
+        :class="{ editable }">
         <b-input-group>
             <b-input-group-button>
                 <b-button
@@ -55,15 +56,19 @@ export default {
             type: Array,
             default: [],
         },
+        editable: {
+            type: Boolean,
+            default: false,
+        },
         value: {
-            type: Object,
-            default: {},
+            type: Array,
+            default: [],
         },
     },
 
     data() {
         return {
-            selected: this.rubrics.map(() => null),
+            selected: this.setSelected(),
             current: 0,
         };
     },
@@ -84,23 +89,16 @@ export default {
     },
 
     methods: {
+        setSelected() {
+            const items = [];
+            this.rubrics.forEach(rubric => items.push(...rubric.items));
+            return this.value.map(id => items.find(item => item.id === id));
+        },
+
         select(row, item) {
+            if (!this.editable) return;
             this.$set(this.selected, row, item);
-            this.$emit('input', {
-                total: this.totalPoints(),
-                max: this.maxPoints(),
-                selected: this.selected.map(sel => (sel ? sel.id : -1)),
-            });
-        },
-
-        totalPoints() {
-            return this.selected.filter(x => x).reduce(
-                (sum, item) => sum + item.points, 0);
-        },
-
-        maxPoints() {
-            return this.rubrics.reduce((sum, rubric) =>
-                sum + rubric.items[rubric.items.length - 1].points, 0);
+            this.$emit('input', this.selected.map(sel => (sel ? sel.id : -1)));
         },
 
         isSelected(row, item) {
@@ -117,6 +115,16 @@ export default {
 
         adjustRubricElements() {
             this.$refs.rubricContainer.style.width = `${this.rubrics.length * 100}%`;
+        },
+
+        totalPoints() {
+            return this.selected.filter(x => x).reduce(
+                (sum, item) => sum + item.points, 0);
+        },
+
+        maxPoints() {
+            return this.rubrics.reduce((sum, rubric) =>
+                sum + rubric.items[rubric.items.length - 1].points, 0);
         },
     },
 
@@ -147,15 +155,20 @@ export default {
 }
 
 .rubric-item {
-    cursor: pointer;
+    .editable & {
+        cursor: pointer;
 
-    &:hover {
-        background: rgba(0, 0, 0, 0.075);
+        &:hover {
+            background: rgba(0, 0, 0, 0.075);
+        }
+
+        &.selected {
+            font-weight: bold;
+        }
     }
 
     &.selected {
-        font-weight: bold;
-        background: rgba(0, 0, 0, 0.075);
+        background: rgba(0, 0, 0, 0.05);
     }
 }
 </style>
