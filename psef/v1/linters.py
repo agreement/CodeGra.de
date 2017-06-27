@@ -14,6 +14,8 @@ def put_linter_comment(token):
     Add a linter comment.
 
     :param token: The token of the linter
+    :type token: ?
+    :returns: An empty response with return code 204
     :rtype: (str, int)
     """
     unit = models.LinterInstance.query.get(token)
@@ -73,7 +75,9 @@ def delete_linter_output(linter_id):
     """
     Delete the all the output created by the linter with the given id.
 
-    :param int linter_id: The id of the linter
+    :param linter_id: The id of the linter
+    :type linter_id: int
+    :returns: An empty response with return code 204
     :rtype: (str, int)
     """
     linter = models.AssignmentLinter.query.get(linter_id)
@@ -96,7 +100,9 @@ def get_linter_state(linter_id):
     """
     Get the state of the linter with the given id.
 
-    :param int linter_id: The id of the linter
+    :param linter_id: The id of the linter
+    :type linter_id: int
+    :returns: A response containing the JSON serialized linter
     :rtype: Response
     """
     # check for user rights

@@ -15,6 +15,8 @@ def add_snippet():
     """
     Add or modify a snippet by key.
 
+    :returns: A response containing the JSON serialized snippet and return
+              code 201
     :rtype: (Response, int)
     """
     content = request.get_json()
@@ -43,6 +45,8 @@ def get_snippets():
     """
     Get all snippets of the current user.
 
+    :returns: The JSON serialized snippets or an empty response with return
+              code 204
     :rtype: Response or (str, int)
     """
     res = models.Snippet.get_all_snippets(current_user)
@@ -58,7 +62,9 @@ def patch_snippet(snippet_id):
     """
     Modify the snippet with the given id.
 
-    :param int snipped_id: The id of the snippet
+    :param snippet_id: The id of the snippet
+    :type snippet_id: int
+    :returns: An empty response with return code 204
     :rtype: (str, int)
     """
     content = request.get_json()
@@ -91,7 +97,9 @@ def delete_snippets(snippet_id):
     """
     Delete the snippet with the given id.
 
-    :param int snipped_id: The id of the snippet
+    :param snippet_id: The id of the snippet
+    :type snippet_id: int
+    :returns: An empty response with return code 204
     :rtype: (str, int)
     """
     snip = models.Snippet.query.get(snippet_id)

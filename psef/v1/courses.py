@@ -14,7 +14,9 @@ def get_all_course_assignments(course_id):
     """
     Get all assignments of the course with the given id sorted by deadline.
 
-    :param int course_id: The id of the course
+    :param course_id: The id of the course
+    :type course_id: int
+    :returns: A response containing the JSON serialized assignments
     :rtype: Response
     """
     auth.ensure_permission('can_see_assignments', course_id)
@@ -33,6 +35,7 @@ def add_course():
     """
     Add a new course.
 
+    :returns: A response containing the JSON serialization of the new course
     :rtype: Response
     """
     content = request.get_json()
@@ -54,6 +57,7 @@ def get_courses():
     """
     Return all courses of the current user.
 
+    :returns: A response containing the JSON serialized courses
     :rtype: Response
     """
     return jsonify([{

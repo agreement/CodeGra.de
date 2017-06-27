@@ -15,8 +15,11 @@ def put_comment(id, line):
     """
     Create or change a single line comment of a code file
 
-    :param int id: The id of the code file
-    :param int line: The line number of the comment
+    :param id: The id of the code file
+    :type id: int
+    :param line: The line number of the comment
+    :type line: int
+    :returns: An empty response with return code 204
     :rtype: (str, int)
     """
     content = request.get_json()
@@ -53,8 +56,11 @@ def remove_comment(id, line):
     Raises APIException:
         - If no comment on line X was found
 
-    :param int id: The id of the code file
-    :param int line: The line number of the comment
+    :param id: The id of the code file
+    :type id: int
+    :param line: The line number of the comment
+    :type line: int
+    :returns: An empty response with return code 204
     :rtype: (str, int)
     """
     comment = db.session.query(models.Comment).filter(
@@ -79,7 +85,9 @@ def get_code(file_id):
     """
     Get data from the file with the given id.
 
-    :param int file_id: The id of the file
+    :param file_id: The id of the file
+    :type file_id: int
+    :returns: A response containing a plain text file unless specified otherwise
     :rtype: Response
     """
     file = db.session.query(models.File).filter(
@@ -113,7 +121,9 @@ def get_binary_file(file):
     """
     Creates a response with the content of the given file as inline pdf.
 
-    :param File file: Tthe file object
+    :param file: The file object
+    :type file: File
+    :returns: A response containing a pdf file
     :rtype: Response
     """
     file_data = psef.files.get_binary_contents(file)
@@ -129,8 +139,11 @@ def get_feedback(file, linter=False):
     Returns the comments attached to the given file if the user can see them,
     else returns an empty dict.
 
-    :param File file: The file object
-    :param bool linter: If true returns linter comments instead
+    :param file: The file object
+    :type file: File
+    :param linter: If true returns linter comments instead
+    :type linter: bool
+    :returns: A response containing the JSON serialized comments
     :rtype: Response
     """
     try:

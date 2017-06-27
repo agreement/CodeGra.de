@@ -27,6 +27,7 @@ def get_student_assignments():
     Raises APIException:
     - If there is no logged in user
 
+    :returns: A response containing the JSON serialized assignments.
     :rtype: Response
     """
     perm = models.Permission.query.filter_by(
@@ -57,7 +58,9 @@ def get_assignment(assignment_id):
         - If no assignment with given ID exists
         - If the user is not allowed to view this assignment
 
-    :param int assignment_id: The id of the assignment
+    :param assignment_id: The id of the assignment
+    :type assignment_id: int
+    :returns: A response containing the JSON serialized assignment.
     :rtype: Response
     """
     assignment = models.Assignment.query.get(assignment_id)
@@ -84,7 +87,9 @@ def update_assignment(assignment_id):
         - If the user is not allowed to edit this is assignment
         - If an invalid value is submitted
 
-    :param int assignment_id: The id of the assignment
+    :param assignment_id: The id of the assignment
+    :type assignment_id: int
+    :returns: An empty response with return code 204
     :rtype: (str, int)
     """
     assig = models.Assignment.query.get(assignment_id)
@@ -142,7 +147,9 @@ def upload_work(assignment_id):
         - at least one file starting with key 'file' in the request files
         - all files must be named
 
-    :param int assignment_id: The id of the assignment
+    :param assignment_id: The id of the assignment
+    :type assignment_id: int
+    :returns: A the JSON serialized submission and return code 201.
     :rtype: (Response, int)
     """
 
@@ -208,7 +215,9 @@ def divide_assignments(assignment_id):
         - If some grader id is invalid
         - If some grader does not have the permission to grade the assignment
 
-    :param int assignment_id: The id of the assignment
+    :param assignment_id: The id of the assignment
+    :type assignment_id: int
+    :returns: An empty response with return code 204
     :rtype: (str, int)
     """
     assignment = models.Assignment.query.get(assignment_id)
@@ -265,7 +274,9 @@ def get_all_graders(assignment_id):
     Raises APIException:
         - If no assignment with given ID exists
 
-    :param int assignment_id: The id of the assignment
+    :param assignment_id: The id of the assignment
+    :type assignment_id: int
+    :returns: A response containing the JSON serialized graders.
     :rtype: Response
     """
     assignment = models.Assignment.query.get(assignment_id)
@@ -309,7 +320,9 @@ def get_all_works_for_assignment(assignment_id):
     """
     Return all works for assignment X if the user permission is valid.
 
-    :param int assignment_id: The id of the assignment
+    :param assignment_id: The id of the assignment
+    :type assignment_id: int
+    :returns: A response containing the JSON serialized submissions.
     :rtype: Response
     """
     assignment = models.Assignment.query.get(assignment_id)
@@ -334,7 +347,9 @@ def post_submissions(assignment_id):
     """
     Add submissions to the server from a blackboard zip file.
 
-    :param int assignment_id: The id of the assignment
+    :param assignment_id: The id of the assignment
+    :type assignment_id: int
+    :returns: An empty response with return code 204
     :rtype: (str, int)
     """
     assignment = models.Assignment.query.get(assignment_id)
@@ -396,7 +411,9 @@ def get_linters(assignment_id):
     """
     Get all linters for the given assignment.
 
-    :param int assignment_id: The id of the assignment
+    :param assignment_id: The id of the assignment
+    :type assignment_id: int
+    :returns: A response containing the JSON serialized linters
     :rtype: Response
     """
     assignment = models.Assignment.query.get(assignment_id)
@@ -451,7 +468,9 @@ def start_linting(assignment_id):
         - If a required parameter is missing
         - If a linter of the same name is already running on the assignment
 
-    :param int assignment_id: The id of the assignment
+    :param assignment_id: The id of the assignment
+    :type assignment_id: int
+    :returns: A response containing the serialized linter that is started
     :rtype: Response
     """
     content = request.get_json()

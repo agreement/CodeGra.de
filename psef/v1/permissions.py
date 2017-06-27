@@ -14,6 +14,8 @@ def get_permissions():
     """
     Get permissions of the currently logged in user.
 
+    :returns: A response containing the JSON serialized permissions and return
+              code 200
     :rtype: (Response, int)
     """
     course_id = request.args.get('course_id')

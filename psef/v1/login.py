@@ -20,6 +20,7 @@ def login():
         - request file contains invalid login credentials
         - request file contains inactive login credentials
 
+    :returns: A response containing the JSON serialized user
     :rtype: Response
     """
     data = request.get_json()
@@ -54,6 +55,7 @@ def me():
     """
     Get the info of the currently logged in user.
 
+    :returns: A response containing the JSON serialized user
     :rtype: Response
     """
     return jsonify(current_user)
@@ -65,6 +67,7 @@ def get_user_update():
     """
     Change data of the current user.
 
+    :returns: An empty response with return code 204
     :rtype: (str, int)
     """
     data = request.get_json()
@@ -113,6 +116,7 @@ def logout():
     """
     Logout the currently logged in user.
 
+    :returns: An empty response with return code 204
     :rtype: (str, int)
     """
     logout_user()
