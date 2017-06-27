@@ -1,0 +1,47 @@
+{
+  "student": {
+    "permissions": [
+      "can_submit_own_work",
+      "can_see_assignments"
+    ]
+  },
+  "ta": {
+    "permissions": [
+      "can_grade_work",
+      "can_see_others_work",
+      "can_view_files",
+      "can_see_grade_before_open",
+      "can_see_assignments",
+      "can_manage_course",
+      "can_use_linter",
+      "can_see_assignee",
+      "can_see_hidden_assignments"
+    ]
+  },
+  "teacher": {
+    "permissions": [
+      "can_grade_work",
+      "can_see_others_work",
+      "can_view_files",
+      "can_see_grade_before_open",
+      "can_see_assignments",
+      "can_manage_course",
+      "can_use_linter",
+      "can_see_assignee",
+      "can_see_hidden_assignments"
+    ]
+  },
+  "observer": {
+    "permissions": []
+  },
+  "designer": {
+    "permissions": [
+      "can_view_files",
+      "can_see_grade_before_open",
+      "can_manage_course",
+      "can_user_linter",
+      "can_see_assignee",
+      "can_see_hidden_assignments"
+    ]
+  }
+}

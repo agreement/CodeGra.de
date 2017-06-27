@@ -21,6 +21,7 @@ class APICodes(IntEnum):
     BLOCKED_ASSIGNMENT = 11
     INVALID_CREDENTIALS = 12
     INVALID_STATE = 13
+    INVALID_OAUTH_REQUEST = 14
 
 
 class APIException(Exception):
