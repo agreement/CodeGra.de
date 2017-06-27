@@ -71,7 +71,7 @@ export default {
                     if (sub.assignee === false) { // no permission
                         assigneeText = '';
                     } else {
-                        assigneeText = `Assigned to ${assignee}`;
+                        assigneeText = `- Assigned to ${assignee}`;
                     }
                     latestSubs.push({
                         text: `${sub.user.name} ${grade} ${assigneeText}`,
