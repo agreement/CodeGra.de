@@ -7,8 +7,8 @@
             <i><router-link :to="{ name: 'assignment_submissions', }">"{{ assignment.name }}"</router-link></i>
             by {{ submission.user.name }}
         </h2>
-        <div class="row">
-            <div class="col-9 code-and-grade">
+        <div class="row justify-content-center">
+            <div class="col-lg-9 code-and-grade">
                 <submission-nav-bar v-if="submissions && submission"
                                     v-on:subChange="reloadSubmission"
                                     :submission="submission"
@@ -17,15 +17,14 @@
                                     :assignmentId="assignmentId"></submission-nav-bar>
                 <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
                 <code-viewer class="" :editable="editable"
-                    :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
+                             :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
                 <grade-viewer :submission="submission"
                               :editable="editable"
                               v-if="editable || assignment.state === assignmentState.DONE"
                               v-on:gradeChange="gradeChange"
-                              @submit="submitAllFeedback($event)"></grade-viewer>
+                              @submit="submitAllFeedback($event)"/>
             </div>
-
-            <file-tree-container class="col-3" :fileTree="fileTree"></file-tree-container>
+            <file-tree-container class="col-lg-3" :fileTree="fileTree"></file-tree-container>
         </div>
     </div>
 </template>
@@ -308,5 +307,13 @@ h1,
 .submission-nav-bar {
     flex-shrink: 0;
     flex-grow: 0;
+}
+</style>
+
+<style>
+@media (max-width: 992px) {
+    #app, html {
+        height: inherit !important;
+    }
 }
 </style>

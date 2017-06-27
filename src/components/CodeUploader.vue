@@ -67,8 +67,7 @@ export default {
                 this.$nextTick(() => setTimeout(() => {
                     this.done = false;
                 }, 1000));
-            }, (err) => {
-                console.dir(err);
+            }, () => {
                 this.error = 'Something went wrong';
                 this.pending = false;
             });
