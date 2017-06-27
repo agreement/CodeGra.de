@@ -40,26 +40,26 @@
             </b-button-group>
         </div>
         <b-collapse :id="`assignment-${assignment.id}`">
-            <b-form-fieldset>
-                <b-input-group left="Name">
-                    <b-form-input type="text" v-model="assignment.name" @keyup.native.enter="updateName" :disabled="assignment.is_lti"/>
-                    <b-popover placement="top" :triggers="assignment.is_lti ? ['hover'] : []" content="Not available for LTI assignments">
+            <b-popover placement="top" :triggers="assignment.is_lti ? ['hover'] : []" content="Not available for LTI assignments">
+                <b-form-fieldset>
+                    <b-input-group left="Name">
+                        <b-form-input type="text" v-model="assignment.name" @keyup.native.enter="updateName" :disabled="assignment.is_lti"/>
                         <b-input-group-button>
                             <submit-button :update="updateName" ref="updateName" :disabled="assignment.is_lti"/>
                         </b-input-group-button>
-                    </b-popover>
-                </b-input-group>
-            </b-form-fieldset>
-            <b-form-fieldset>
-                <b-input-group left="Deadline">
-                    <b-form-input type="datetime-local" v-model="assignment.deadline" @keyup.native.enter="updateDeadline" :disabled="assignment.is_lti"/>
-                    <b-popover placement="top" :triggers="assignment.is_lti ? ['hover'] : []" content="Not available for LTI assignments">
+                    </b-input-group>
+                </b-form-fieldset>
+            </b-popover>
+            <b-popover placement="top" :triggers="assignment.is_lti ? ['hover'] : []" content="Not available for LTI assignments">
+                <b-form-fieldset>
+                    <b-input-group left="Deadline">
+                        <b-form-input type="datetime-local" v-model="assignment.deadline" @keyup.native.enter="updateDeadline" :disabled="assignment.is_lti"/>
                         <b-input-group-button>
                             <submit-button :update="updateDeadline" ref="updateDeadline" :disabled="assignment.is_lti"/>
                         </b-input-group-button>
-                    </b-popover>
-                </b-input-group>
-            </b-form-fieldset>
+                    </b-input-group>
+                </b-form-fieldset>
+            </b-popover>
 
             <div class="row">
                 <divide-submissions class="col-6" :assignment="assignment"></divide-submissions>
@@ -67,7 +67,9 @@
             </div>
 
             <b-form-fieldset label="Upload blackboard zip">
-                <blackboard-uploader :assignment="assignment"></blackboard-uploader>
+                <b-popover placement="top" :triggers="assignment.is_lti ? ['hover'] : []" content="Not available for LTI assignments">
+                    <blackboard-uploader :disabled="assignment.is_lti" :assignment="assignment"></blackboard-uploader>
+                </b-popover>
             </b-form-fieldset>
         </b-collapse>
     </div>
