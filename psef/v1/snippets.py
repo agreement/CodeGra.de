@@ -12,6 +12,11 @@ from . import api
 @api.route('/snippet', methods=['PUT'])
 @auth.permission_required('can_use_snippets')
 def add_snippet():
+    """
+    Add or modify a snippet by key.
+
+    :rtype: (Response, int)
+    """
     content = request.get_json()
     if 'key' not in content or 'value' not in content:
         raise APIException(
@@ -35,6 +40,11 @@ def add_snippet():
 @api.route('/snippets/', methods=['GET'])
 @auth.permission_required('can_use_snippets')
 def get_snippets():
+    """
+    Get all snippets of the current user.
+
+    :rtype: Response or (str, int)
+    """
     res = models.Snippet.get_all_snippets(current_user)
     if res:
         return jsonify(res)
@@ -45,6 +55,12 @@ def get_snippets():
 @api.route('/snippets/<int:snippet_id>', methods=['PATCH'])
 @auth.permission_required('can_use_snippets')
 def patch_snippet(snippet_id):
+    """
+    Modify the snippet with the given id.
+
+    :param int snipped_id: The id of the snippet
+    :rtype: (str, int)
+    """
     content = request.get_json()
     if 'key' not in content or 'value' not in content:
         raise APIException(
@@ -72,6 +88,12 @@ def patch_snippet(snippet_id):
 @api.route('/snippets/<int:snippet_id>', methods=['DELETE'])
 @auth.permission_required('can_use_snippets')
 def delete_snippets(snippet_id):
+    """
+    Delete the snippet with the given id.
+
+    :param int snipped_id: The id of the snippet
+    :rtype: (str, int)
+    """
     snip = models.Snippet.query.get(snippet_id)
     if snip is None:
         raise APIException(

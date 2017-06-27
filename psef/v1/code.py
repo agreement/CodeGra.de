@@ -14,6 +14,10 @@ from . import api
 def put_comment(id, line):
     """
     Create or change a single line comment of a code file
+
+    :param int id: The id of the code file
+    :param int line: The line number of the comment
+    :rtype: (str, int)
     """
     content = request.get_json()
 
@@ -48,6 +52,10 @@ def remove_comment(id, line):
 
     Raises APIException:
         - If no comment on line X was found
+
+    :param int id: The id of the code file
+    :param int line: The line number of the comment
+    :rtype: (str, int)
     """
     comment = db.session.query(models.Comment).filter(
         models.Comment.file_id == id,
@@ -68,6 +76,12 @@ def remove_comment(id, line):
 @api.route("/code/<int:file_id>", methods=['GET'])
 @login_required
 def get_code(file_id):
+    """
+    Get data from the file with the given id.
+
+    :param int file_id: The id of the file
+    :rtype: Response
+    """
     file = db.session.query(models.File).filter(
         models.File.id == file_id).first()
 
@@ -96,6 +110,12 @@ def get_code(file_id):
 
 
 def get_binary_file(file):
+    """
+    Creates a response with the content of the given file as inline pdf.
+
+    :param File file: Tthe file object
+    :rtype: Response
+    """
     file_data = psef.files.get_binary_contents(file)
     response = make_response(file_data)
     response.headers['Content-Type'] = 'application/pdf'
@@ -105,6 +125,14 @@ def get_binary_file(file):
 
 
 def get_feedback(file, linter=False):
+    """
+    Returns the comments attached to the given file if the user can see them,
+    else returns an empty dict.
+
+    :param File file: The file object
+    :param bool linter: If true returns linter comments instead
+    :rtype: Response
+    """
     try:
         auth.ensure_can_see_grade(file.work)
         if linter:

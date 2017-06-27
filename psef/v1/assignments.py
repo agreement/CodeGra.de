@@ -22,7 +22,12 @@ from . import api
 @login_required
 def get_student_assignments():
     """
-    Get all the student assignments that the current user can see.
+    Get all the assignments that the current user can see.
+
+    Raises APIException:
+    - If there is no logged in user
+
+    :rtype: Response
     """
     perm = models.Permission.query.filter_by(
         name='can_see_assignments').first()
@@ -47,6 +52,13 @@ def get_student_assignments():
 def get_assignment(assignment_id):
     """
     Return student assignment X if the user permission is valid.
+
+    Raises APIException:
+        - If no assignment with given ID exists
+        - If the user is not allowed to view this assignment
+
+    :param int assignment_id: The id of the assignment
+    :rtype: Response
     """
     assignment = models.Assignment.query.get(assignment_id)
     auth.ensure_permission('can_see_assignments', assignment.course_id)
@@ -64,6 +76,17 @@ def get_assignment(assignment_id):
 
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
 def update_assignment(assignment_id):
+    """
+    Update assignment X with new values.
+
+    Raises APIException:
+        - If no assignment with given ID exists
+        - If the user is not allowed to edit this is assignment
+        - If an invalid value is submitted
+
+    :param int assignment_id: The id of the assignment
+    :rtype: (str, int)
+    """
     assig = models.Assignment.query.get(assignment_id)
     if assig is None:
         raise APIException(
@@ -118,6 +141,9 @@ def upload_work(assignment_id):
     For a request to be valid there needs to be:
         - at least one file starting with key 'file' in the request files
         - all files must be named
+
+    :param int assignment_id: The id of the assignment
+    :rtype: (Response, int)
     """
 
     files = []
@@ -172,6 +198,19 @@ def upload_work(assignment_id):
 
 @api.route('/assignments/<int:assignment_id>/divide', methods=['PATCH'])
 def divide_assignments(assignment_id):
+    """
+    Assigns the graders to all the latest submissions of the given assignment.
+
+    Raises APIException:
+        - If no assignment with given ID exists
+        - If the assignment has no submissions
+        - If there was no grader in the request
+        - If some grader id is invalid
+        - If some grader does not have the permission to grade the assignment
+
+    :param int assignment_id: The id of the assignment
+    :rtype: (str, int)
+    """
     assignment = models.Assignment.query.get(assignment_id)
     auth.ensure_permission('can_manage_course', assignment.course.id)
     if not assignment:
@@ -220,8 +259,16 @@ def divide_assignments(assignment_id):
 
 @api.route('/assignments/<int:assignment_id>/graders', methods=['GET'])
 def get_all_graders(assignment_id):
+    """
+    Gets a list of all users who can grade the given assignment
+
+    Raises APIException:
+        - If no assignment with given ID exists
+
+    :param int assignment_id: The id of the assignment
+    :rtype: Response
+    """
     assignment = models.Assignment.query.get(assignment_id)
-    auth.ensure_permission('can_manage_course', assignment.course.id)
 
     if not assignment:
         raise APIException(
@@ -261,6 +308,9 @@ def get_all_graders(assignment_id):
 def get_all_works_for_assignment(assignment_id):
     """
     Return all works for assignment X if the user permission is valid.
+
+    :param int assignment_id: The id of the assignment
+    :rtype: Response
     """
     assignment = models.Assignment.query.get(assignment_id)
     if current_user.has_permission(
@@ -281,7 +331,11 @@ def get_all_works_for_assignment(assignment_id):
 
 @api.route("/assignments/<int:assignment_id>/submissions/", methods=['POST'])
 def post_submissions(assignment_id):
-    """Add submissions to the server from a blackboard zip file.
+    """
+    Add submissions to the server from a blackboard zip file.
+
+    :param int assignment_id: The id of the assignment
+    :rtype: (str, int)
     """
     assignment = models.Assignment.query.get(assignment_id)
 
@@ -339,7 +393,11 @@ def post_submissions(assignment_id):
 
 @api.route('/assignments/<int:assignment_id>/linters/', methods=['GET'])
 def get_linters(assignment_id):
-    """Get all linters for the given assignment.
+    """
+    Get all linters for the given assignment.
+
+    :param int assignment_id: The id of the assignment
+    :rtype: Response
     """
     assignment = models.Assignment.query.get(assignment_id)
 
@@ -385,6 +443,17 @@ def get_linters(assignment_id):
 
 @api.route('/assignments/<int:assignment_id>/linter', methods=['POST'])
 def start_linting(assignment_id):
+    """
+    Starts running a specific linter on all the latest submissions of the given
+    assignment.
+
+    Raises APIException:
+        - If a required parameter is missing
+        - If a linter of the same name is already running on the assignment
+
+    :param int assignment_id: The id of the assignment
+    :rtype: Response
+    """
     content = request.get_json()
 
     if not ('cfg' in content and 'name' in content):

@@ -11,6 +11,12 @@ from . import api
 
 @api.route('/courses/<int:course_id>/assignments/', methods=['GET'])
 def get_all_course_assignments(course_id):
+    """
+    Get all assignments of the course with the given id sorted by deadline.
+
+    :param int course_id: The id of the course
+    :rtype: Response
+    """
     auth.ensure_permission('can_see_assignments', course_id)
 
     course = models.Course.query.get(course_id)
@@ -24,6 +30,11 @@ def get_all_course_assignments(course_id):
 @api.route('/courses/', methods=['POST'])
 @auth.permission_required('can_create_courses')
 def add_course():
+    """
+    Add a new course.
+
+    :rtype: Response
+    """
     content = request.get_json()
 
     if 'name' not in content:
@@ -42,6 +53,8 @@ def add_course():
 def get_courses():
     """
     Return all courses of the current user.
+
+    :rtype: Response
     """
     return jsonify([{
         'name': c.course.name,

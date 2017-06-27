@@ -10,6 +10,12 @@ from . import api
 
 @api.route('/linter_comments/<token>', methods=['PUT'])
 def put_linter_comment(token):
+    """
+    Add a linter comment.
+
+    :param token: The token of the linter
+    :rtype: (str, int)
+    """
     unit = models.LinterInstance.query.get(token)
 
     if unit is None:
@@ -64,6 +70,12 @@ def put_linter_comment(token):
 
 @api.route('/linters/<linter_id>', methods=['DELETE'])
 def delete_linter_output(linter_id):
+    """
+    Delete the all the output created by the linter with the given id.
+
+    :param int linter_id: The id of the linter
+    :rtype: (str, int)
+    """
     linter = models.AssignmentLinter.query.get(linter_id)
 
     if linter is None:
@@ -81,6 +93,12 @@ def delete_linter_output(linter_id):
 
 @api.route('/linters/<linter_id>', methods=['GET'])
 def get_linter_state(linter_id):
+    """
+    Get the state of the linter with the given id.
+
+    :param int linter_id: The id of the linter
+    :rtype: Response
+    """
     # check for user rights
     perm = db.session.query(models.AssignmentLinter).get(linter_id)
     auth.ensure_permission('can_use_linter', perm.assignment.course_id)

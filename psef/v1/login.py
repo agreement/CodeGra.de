@@ -19,6 +19,8 @@ def login():
         - request file does not contain email and/or password
         - request file contains invalid login credentials
         - request file contains inactive login credentials
+
+    :rtype: Response
     """
     data = request.get_json()
 
@@ -49,12 +51,22 @@ def login():
 @api.route("/login", methods=["GET"])
 @login_required
 def me():
+    """
+    Get the info of the currently logged in user.
+
+    :rtype: Response
+    """
     return jsonify(current_user)
 
 
 @api.route('/login', methods=['PATCH'])
 @login_required
 def get_user_update():
+    """
+    Change data of the current user.
+
+    :rtype: (str, int)
+    """
     data = request.get_json()
 
     required_keys = ['email', 'o_password', 'username', 'n_password']
@@ -98,5 +110,10 @@ def get_user_update():
 
 @api.route("/login", methods=["DELETE"])
 def logout():
+    """
+    Logout the currently logged in user.
+
+    :rtype: (str, int)
+    """
     logout_user()
     return '', 204

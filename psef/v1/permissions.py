@@ -11,6 +11,11 @@ from . import api
 @api.route('/permissions/', methods=['GET'])
 @login_required
 def get_permissions():
+    """
+    Get permissions of the currently logged in user.
+
+    :rtype: (Response, int)
+    """
     course_id = request.args.get('course_id')
     if course_id:
         try:
