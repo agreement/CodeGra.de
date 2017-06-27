@@ -238,29 +238,18 @@ export default {
 };
 </script>
 
-<style lang="less">
-.page {
-    margin-bottom: 0;
-}
-</style>
-
 <style lang="less" scoped>
 .page.submission {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
     flex-shrink: 1;
-    margin-bottom: 1em;
+    margin-bottom: 0;
 }
 
 .row {
     flex-grow: 1;
     flex-shrink: 1;
-}
-
-h1 {
-    flex-grow: 0;
-    flex-shrink: 0;
 }
 
 .code-and-grade {
@@ -283,19 +272,14 @@ h1 {
     flex-shrink: 0;
 }
 
-h1,
 .code-viewer,
-.pdfobject-container {
-    margin-bottom: 1em;
+.pdfobject-container,
+.grade-viewer {
+    margin-bottom: 1rem;
 }
 
 .loader {
     margin-top: 1em;
-}
-
-.submission-nav-bar {
-    flex-shrink: 0;
-    flex-grow: 0;
 }
 </style>
 
