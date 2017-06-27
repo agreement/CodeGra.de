@@ -22,8 +22,8 @@ import SubmissionsExporter from './SubmissionsExporter';
 import SnippetManager from './SnippetManager';
 import PdfViewer from './PdfViewer';
 import BlackboardUploader from './BlackboardUploader';
+import SubmissionNavBar from './SubmissionNavBar';
 import NewCourse from './NewCourse';
-import FeedbackExporter from './FeedbackExporter';
 import CourseList from './CourseList';
 
 export {
@@ -51,7 +51,7 @@ export {
     SubmissionsExporter,
     SnippetManager,
     PdfViewer,
+    SubmissionNavBar,
     NewCourse,
-    FeedbackExporter,
     CourseList,
 };

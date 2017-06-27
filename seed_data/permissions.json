@@ -54,5 +54,9 @@
   "can_create_courses": {
     "default_value": false,
     "course_permission": false
+  },
+  "can_see_assignee": {
+    "default_value": false,
+    "course_permission": true
   }
 }

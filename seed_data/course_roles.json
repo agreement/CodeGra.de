@@ -14,6 +14,7 @@
       "can_see_assignments",
       "can_manage_course",
       "can_use_linter",
+      "can_see_assignee",
       "can_see_hidden_assignments"
     ]
   },
@@ -26,6 +27,7 @@
       "can_see_assignments",
       "can_manage_course",
       "can_use_linter",
+      "can_see_assignee",
       "can_see_hidden_assignments"
     ]
   },
@@ -38,6 +40,7 @@
       "can_see_grade_before_open",
       "can_manage_course",
       "can_user_linter",
+      "can_see_assignee",
       "can_see_hidden_assignments"
     ]
   }
