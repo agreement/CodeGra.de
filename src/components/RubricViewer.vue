@@ -77,7 +77,7 @@ export default {
 
     data() {
         return {
-            selected: this.setSelected(),
+            selected: [],
             current: 0,
         };
     },
@@ -94,20 +94,26 @@ export default {
     },
 
     mounted() {
+        this.setSelected();
         this.adjustRubricElements();
     },
 
     methods: {
+        emitInputEvent() {
+            this.$emit('input', this.selected.map(sel => (sel ? sel.id : -1)));
+        },
+
         setSelected() {
             const items = [];
             this.rubrics.forEach(rubric => items.push(...rubric.items));
-            return this.value.map(id => items.find(item => item.id === id));
+            this.selected = this.value.map(id => items.find(item => item.id === id));
+            this.emitInputEvent();
         },
 
         select(row, item) {
             if (!this.editable) return;
             this.$set(this.selected, row, item);
-            this.$emit('input', this.selected.map(sel => (sel ? sel.id : -1)));
+            this.emitInputEvent();
         },
 
         isSelected(row, item) {

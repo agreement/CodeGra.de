@@ -21,15 +21,24 @@
                             <span v-else>Submit all</span>
                         </b-button>
                     </b-input-group-button>
+
                     <b-form-input
                         type="number"
                         step="any"
                         min="0"
                         max="10"
-                        :disabled="!!rubrics || !editable"
+                        :disabled="!editable"
                         placeholder="Grade"
-                        v-model="grade">
+                        v-model="grade"
+                        v-if="!rubrics">
                     </b-form-input>
+                    <b-form-input
+                        class="text-right"
+                        :disabled="true"
+                        :value="rubricPoints"
+                        v-else>
+                    </b-form-input>
+
                     <b-input-group-button v-if="rubrics">
                         <b-popover
                             placement="top"
@@ -52,7 +61,7 @@
                         :rows="3"
                         ref="field"
                         v-model="feedback"
-                        v-on:keydown.native.tab.capture="expandSnippet"
+                        @keydown.native.tab.capture="expandSnippet"
                         :disabled="!editable">
                     </b-form-input>
                 </b-input-group>
@@ -92,85 +101,64 @@ export default {
             submitted: false,
             feedback: this.submission.feedaback || '',
             grade: this.submission.grade || 0,
-            rubricSelected: this.submission.rubric || [2, 5, 8],
+            rubricSelected: this.submission.rubric || [2, 5],
+            rubricPoints: '0 / 0',
             rubrics: this.assignment.rubrics || [
                 {
                     id: 0,
-                    header: 'Header 1',
-                    description: 'Description for header 1',
+                    header: 'Stijl',
+                    description: 'Ziet je code er netjes uit, gebruik je duidelijke namen, deel je het programma op in logische functies etc.',
                     items: [
                         {
                             id: 0,
-                            description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed fringilla, purus vitae vulputate vulputate, libero nunc tincidunt massa, at iaculis orci felis a risus. Nunc varius velit at ipsum tempor consequat. Etiam commodo lacus quis ante rhoncus blandit. Nam sed nisi congue, tempus est eu, ullamcorper ipsum.',
+                            description: 'Slecht.',
                             points: 0,
                         },
                         {
                             id: 1,
-                            description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed fringilla, purus vitae vulputate vulputate, libero nunc tincidunt massa, at iaculis orci felis a risus. Nunc varius velit at ipsum tempor consequat. ',
+                            description: 'Matig',
                             points: 1,
                         },
                         {
                             id: 2,
-                            description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed fringilla, purus vitae vulputate vulputate, libero nunc tincidunt massa, at iaculis orci felis a risus. Nunc varius velit at ipsum tempor consequat. Etiam commodo lacus quis ante rhoncus blandit.',
+                            description: 'Voldoende',
                             points: 2,
                         },
                         {
                             id: 3,
-                            description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed fringilla, purus vitae vulputate vulputate, libero nunc tincidunt massa, at iaculis orci felis a risus. ',
+                            description: 'Goed',
                             points: 3,
+                        },
+                        {
+                            id: 8,
+                            description: 'Awesome!',
+                            points: 4,
                         },
                     ],
                 },
                 {
                     id: 1,
-                    header: 'Header 2',
-                    description: 'Description for header 2',
+                    header: 'Correctness',
+                    description: 'Bereikt het programma het beoogde resultaat, hebben je antwoorden de juiste precisie etc.',
                     items: [
                         {
                             id: 4,
-                            description: 'Description 1',
+                            description: 'Slecht',
                             points: 0,
                         },
                         {
                             id: 5,
-                            description: 'Description 1',
+                            description: 'Voldoende',
                             points: 1,
                         },
                         {
                             id: 6,
-                            description: 'Description 1',
+                            description: 'Goed',
                             points: 2,
                         },
                         {
                             id: 7,
-                            description: 'Description 1',
-                            points: 3,
-                        },
-                    ],
-                },
-                {
-                    id: 1,
-                    header: 'Header 2',
-                    description: 'Description for header 2',
-                    items: [
-                        {
-                            id: 8,
-                            description: 'Description 1',
-                            points: 0,
-                        },
-                        {
-                            id: 9,
-                            description: 'Description 1',
-                            points: 1,
-                        },
-                        {
-                            id: 10,
-                            description: 'Description 1',
-                            points: 2,
-                        },
-                        {
-                            id: 11,
-                            description: 'Description 1',
+                            description: 'Awesome!',
                             points: 3,
                         },
                     ],
@@ -184,6 +172,7 @@ export default {
             const total = this.$refs.rubricViewer.totalPoints();
             const max = this.$refs.rubricViewer.maxPoints();
             this.grade = (10 * (total / max)).toFixed(2);
+            this.rubricPoints = `${total} / ${max}`;
         },
     },
 
