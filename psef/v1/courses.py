@@ -19,6 +19,32 @@ def get_all_course_roles(course_id):
             key=lambda item: item.name))
 
 
+@api.route('/courses/<int:course_id>/users/', methods=['PUT'])
+def set_course_permission_user(course_id):
+    content = request.get_json()
+
+    auth.ensure_permission('can_manage_course', course_id)
+
+    if 'user_id' not in content or 'role_id' not in content:
+        raise APIException(
+            'Required parameter "user_id" or "role_id" is missing',
+            'The given content ({}) does  not contain "user_id" and "role_id"'.
+            format(content), APICodes.MISSING_REQUIRED_PARAM, 400)
+
+    user = models.User.query.get(content['user_id'])
+    role = models.CourseRole.query.get(content['role_id'])
+    if user is None or role is None:
+        return APIException(
+            'Specified user or role not found',
+            'The user {user_id} or the role {role_id} was not found'.format(
+                **content), APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    user.courses[role.course_id] = role
+
+    db.session.commit()
+    return '', 204
+
+
 @api.route('/courses/<int:course_id>/users/', methods=['GET'])
 def get_all_course_users(course_id):
     auth.ensure_permission('can_manage_course', course_id)
