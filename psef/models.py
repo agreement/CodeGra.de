@@ -362,6 +362,19 @@ class Course(db.Model):
     def __to_json__(self):
         return {'id': self.id, 'name': self.name}
 
+    def ensure_default_roles(self):
+        """Ensures that the default roles for this course exist.
+
+        All changes to the object are not committed to the database.
+
+        :rtype: None
+        """
+        for name, perms in CourseRole.get_default_course_roles().items():
+            if not db.session.query(
+                    CourseRole.query.filter_by(name=name, course_id=self.id)
+                    .exists()).scalar():
+                CourseRole(name=name, course=self, _permissions=perms)
+
 
 class Work(db.Model):
     __tablename__ = "Work"

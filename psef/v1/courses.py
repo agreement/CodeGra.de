@@ -3,7 +3,7 @@ from flask_login import current_user, login_required
 
 import psef.auth as auth
 import psef.models as models
-from psef import db
+from psef import LTI_ROLE_LOOKUPS, db
 from psef.errors import APICodes, APIException
 
 from . import api
@@ -13,6 +13,8 @@ from . import api
 def delete_role(course_id, role_id):
     auth.ensure_permission('can_manage_course', course_id)
 
+    course = models.Course.query.get(course_id)
+
     role = models.CourseRole.query.filter_by(
         course_id=course_id, id=role_id).first()
     if role is None:
@@ -20,6 +22,14 @@ def delete_role(course_id, role_id):
             'The specified role was not found',
             'The fole with name "{role_id}" was not found'.format(role_id),
             APICodes.OBJECT_NOT_FOUND, 404)
+
+    if course.lti_provider is not None:
+        if any(r['role'] == role.name for r in LTI_ROLE_LOOKUPS.values()):
+            raise APIException(
+                'You cannot delete default LTI roles for a LTI course',
+                ('The course "{}" is an LTI course '
+                 'so it is impossible to delete role {}').format(
+                     course.id, role.id), APICodes.INCORRECT_PERMISSION, 403)
 
     sql = db.session.query(models.user_course).filter(
         models.user_course.c.course_id == role_id).exists()
@@ -95,6 +105,13 @@ def update_role(course_id, role_id):
             'The fole with name "{permission}" was not found'.format(
                 **content), APICodes.OBJECT_NOT_FOUND, 404)
 
+    if (current_user.courses[course_id].id == role.id and
+            role.name == 'can_manage_course'):
+        raise APIException('You remove this permission from your own role', (
+            'The current user is in role {} which'
+            ' cannot remove "can_manage_course"').format(role.id),
+                           APICodes.INCORRECT_PERMISSION, 403)
+
     role.set_permission(perm, content['value'])
 
     db.session.commit()
@@ -112,10 +129,11 @@ def get_all_course_roles(course_id):
     if request.args.get('with_roles') == 'true':
         res = []
         for course in courses:
-            perms = course.get_all_permissions()
-            course = course.__to_json__()
-            course['perms'] = perms
-            res.append(course)
+            json_course = course.__to_json__()
+            json_course['perms'] = course.get_all_permissions()
+            json_course['own'] = current_user.courses[
+                course.course_id] == course
+            res.append(json_course)
         courses = res
     return jsonify(courses)
 
@@ -153,6 +171,12 @@ def set_course_permission_user(course_id):
                                'The user {user_id} was not found'.format(
                                    **content), APICodes.OBJECT_ID_NOT_FOUND,
                                404)
+
+        if user.id == current_user.id:
+            raise APIException(
+                'You cannot change your own role',
+                'The user requested and the current user are the same',
+                APICodes.INCORRECT_PERMISSION, 403)
 
         res = '', 204
     else:

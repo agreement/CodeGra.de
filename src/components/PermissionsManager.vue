@@ -21,6 +21,12 @@
                 <b-input-group v-if="item.item.name !== 'Remove'">
                     <loader :scale="1"
                             v-if="item.item[field] === 'loading'"/>
+                    <b-popover content="You cannot disable this permission for yourself"
+                               triggers="hover"
+                               v-else-if="item.item.name === 'can_manage_course' && fields[field].own">
+                        <b-form-checkbox :checked="item.item[field]"
+                                         disabled class="disabled"/>
+                    </b-popover>
                     <b-form-checkbox :checked="item.item[field]"
                                      @change="changeButton(item.item.name, field)"
                                      v-else/>
@@ -105,6 +111,7 @@ export default {
                         label: item.name,
                         sortable: true,
                         id: item.id,
+                        own: item.own,
                     };
                     let i = 0;
                     Object.keys(item.perms).forEach((key) => {
@@ -222,6 +229,9 @@ table.permissions-table {
                 align-items: center;
                 justify-content: center;
             }
+        }
+        .custom-checkbox.disabled {
+            cursor: not-allowed !important;
         }
     }
 }
