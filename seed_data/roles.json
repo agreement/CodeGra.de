@@ -2,19 +2,19 @@
   "student": {
     "permissions": [
       "can_use_snippets",
-      "can_edit_own_information"
+      "can_edit_own_info"
     ]
   },
   "staff": {
     "permissions": [
       "can_use_snippets",
-      "can_edit_own_information"
+      "can_edit_own_info"
     ]
   },
   "admin": {
     "permissions": [
       "can_use_snippets",
-      "can_edit_own_information",
+      "can_edit_own_info",
       "can_add_users"
     ]
   }

@@ -20,7 +20,7 @@
                               v-on:gradeChange="gradeChange"
                               @submit="submitAllFeedback($event)"/>
             </div>
-            <file-tree-container class="col-lx-3" :fileTree="fileTree"></file-tree-container>
+            <file-tree-container class="col-lg-3" :fileTree="fileTree"></file-tree-container>
         </div>
     </div>
 </template>
@@ -30,6 +30,8 @@ import { mapActions } from 'vuex';
 import { CodeViewer, FileTreeContainer, GradeViewer, Loader, PdfViewer, SubmissionNavBar } from '@/components';
 
 import * as assignmentState from '../store/assignment-states';
+
+import { setTitle, titleSep } from './title';
 
 function getFirstFile(fileTree) {
     // Returns the first file in the file tree that is not a folder
@@ -96,6 +98,12 @@ export default {
             this.getAssignment(),
         ]).then(() => {
             this.loading = false;
+
+            let title = this.assignment.name;
+            if (this.submission.grade) {
+                title += ` (${this.submission.grade})`;
+            }
+            setTitle(`${title} ${titleSep} ${this.submission.created_at}`);
         });
 
         const elements = Array.from(document.querySelectorAll('html, body, #app, nav, footer'));

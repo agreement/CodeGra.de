@@ -113,6 +113,27 @@ class CourseRole(db.Model):
             'id': self.id,
         }
 
+    def set_permission(self, perm, should_have):
+        """Set the given permission to the given value.
+
+        :param bool should_have: If this role should have this permission
+        :param Permission perm: The permission this role should (not) have.
+        :rtype None:
+        """
+        try:
+            if perm.default_value:
+                if should_have:
+                    self._permissions.pop(perm.name)
+                else:
+                    self._permissions[perm.name] = perm
+            else:
+                if should_have:
+                    self._permissions[perm.name] = perm
+                else:
+                    self._permissions.pop(perm.name)
+        except KeyError:
+            pass
+
     def has_permission(self, permission):
         """
         Check whether this course role has the specified permission
@@ -558,7 +579,8 @@ class Work(db.Model):
         }
 
         try:
-            auth.ensure_permission('can_see_assignee', self.assignment.course_id)
+            auth.ensure_permission('can_see_assignee',
+                                   self.assignment.course_id)
             item['assignee'] = self.assignee
         except auth.PermissionException:
             item['assignee'] = False
@@ -808,19 +830,10 @@ class AssignmentLinter(db.Model):
                 AssignmentLinter.query.filter(cls.id == id).exists()).scalar():
             id = str(uuid.uuid4())
         self = cls(id=id, assignment_id=assignment_id, name=name)
-        tests = []
-        sub = db.session.query(
-            Work.user_id.label('user_id'),
-            func.max(Work.created_at).label('max_date')).group_by(
-                Work.user_id).subquery('sub')
-        for work in db.session.query(Work).join(
-                sub,
-                and_(sub.c.user_id == Work.user_id,
-                     sub.c.max_date == Work.created_at)).filter(
-                         Work.assignment_id == assignment_id).order_by(
-                             Work.id).all():
-            tests.append(LinterInstance(work, self))
-        self.tests = tests
+        self.tests = []
+        for work in Assignment.query.get(
+                assignment_id).get_all_latest_submissions():
+            self.tests.append(LinterInstance(work, self))
         return self
 
 
@@ -950,8 +963,8 @@ class Assignment(db.Model):
     def get_all_latest_submissions(self):
         sub = db.session.query(
             Work.user_id.label('user_id'),
-            func.max(Work.created_at).label('max_date')).group_by(
-                Work.user_id).subquery('sub')
+            func.max(Work.created_at).label('max_date')).filter_by(
+                assignment_id=self.id).group_by(Work.user_id).subquery('sub')
         return db.session.query(Work).join(
             sub,
             and_(sub.c.user_id == Work.user_id,
