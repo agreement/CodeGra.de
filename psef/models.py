@@ -465,6 +465,10 @@ class Work(db.Model):
         return self.selected_items
 
     def remove_selected_rubric_item(self, row_id):
+        """
+        Deselects the selected rubric item (if any) for the given row for this
+        Work.
+        """
         rubricitem = db.session.query(RubricItem).join(
             work_rubric_item,
             RubricItem.id == work_rubric_item.c.rubricitem_id).filter(
@@ -474,6 +478,9 @@ class Work(db.Model):
             self.selected_items.remove(rubricitem)
 
     def select_rubric_item(self, rubricitem):
+        """
+        Selects the given rubric item.
+        """
         if isinstance(rubricitem, RubricItem):
             self.selected_items.append(rubricitem)
 
@@ -758,6 +765,9 @@ class Assignment(db.Model):
                      Work.assignment_id == self.id).all()
 
     def get_rubric(self):
+        """
+        Returns the full rubric for the current assignment.
+        """
         rubric_rows = db.session.query(RubricRow).filter_by(
             assignment_id=self.id).all()
         full_rubric = []
