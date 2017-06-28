@@ -115,7 +115,6 @@ def test_data():
                         '@example.com',
                         password=c['name'],
                         role=m.Role.query.filter_by(name=c['role']).first()))
-<<<<<<< HEAD
     with open('./test_data/works.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
@@ -163,10 +162,6 @@ def test_data():
                             points=item['points'],
                             rubricrow=rubric_row)
                         db.session.add(rubric_item)
-                else:
-                    print('bah')
-=======
->>>>>>> 858fdf3ae9a994510db24bd007bdcb0cc934d431
     db.session.commit()
 
 
