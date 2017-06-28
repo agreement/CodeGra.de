@@ -126,7 +126,10 @@ export default {
             }).then(() => {
                 this.$set(this.updating, user.User.id, false);
                 delete this.updating[user.User.id];
-            }).catch(err => console.dir(err));
+            }).catch((err) => {
+                // eslint-disable-next-line
+                console.dir(err)
+            });
         },
         addUser() {
             this.done = false;
