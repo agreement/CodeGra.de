@@ -377,7 +377,7 @@ class Work(db.Model):
 
     def select_rubric_item(self, rubricitem):
         if isinstance(rubricitem, RubricItem):
-            selected_items.append(rubricitem)
+            self.selected_items.append(rubricitem)
 
 
 class File(db.Model):

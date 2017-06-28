@@ -84,6 +84,7 @@ def select_rubric_item(submission_id, rubricitem_id):
     auth.ensure_permission('can_grade_work', work.assignment.course.id)
     work.remove_selected_rubric_item(rubric_item.rubricrow_id)
     work.select_rubric_item(rubric_item)
+    db.session.commit()
 
     return ('', 204)
 
