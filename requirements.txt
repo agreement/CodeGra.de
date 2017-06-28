@@ -1,5 +1,6 @@
 alembic==0.9.2
 click==6.7
+lxml==3.8.0
 coverage==4.4.1
 Flask==0.12.2
 Flask-Login==0.4.0
@@ -28,5 +29,3 @@ requests==2.18.1
 flake8==3.3.0
 pylint==1.7.1
 oauth2==1.9.0.post1
-lxml==3.8.0
-coala-bears==0.12.0.dev20170626113046

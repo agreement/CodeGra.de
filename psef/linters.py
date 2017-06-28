@@ -5,6 +5,7 @@ import uuid
 import tempfile
 import traceback
 import subprocess
+import sys
 
 import requests
 import sqlalchemy
@@ -42,7 +43,7 @@ class Pylint(Linter):
         sep = uuid.uuid4()
         fmt = '{1}{0}{2}{0}{3}{4}{0}{5}'.format(sep, '{path}', '{line}', '{C}',
                                                 '{msg_id}', '{msg}')
-
+                                                
         out = subprocess.run(
             [
                 'pylint', '--rcfile={}'.format(cfg), '--msg-template', fmt,
@@ -119,9 +120,13 @@ class PyFlakesB(Linter):
         # This is not guessable
         sep = uuid.uuid4()
         fmt = '%(path)s{0}%(row)d{0}%(code)s{0}%(text)s'.format(sep)
+        # 'coala', '--format', '{line}, {message}', '--files', tempdir, '--bears', 'PyFlakesBear'
+        # print(tempdir)
+        # print(tempdir + "/*.py")
+        tempdir2 = tempdir + "/*.py"
         out = subprocess.run(
             [
-                'coala', '--format', '{line}, {message}', '--files', tempdir, '--bears', 'PyFlakesBear'
+                'coala', '--format', '{line}, {message}', '--files', tempdir2, '--bears', 'PyFlakesBear'
             ],
             stdout=subprocess.PIPE).stdout.decode('utf8')
         print(out)
