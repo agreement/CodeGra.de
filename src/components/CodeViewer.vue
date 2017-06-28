@@ -6,7 +6,7 @@
     <ol class="code-viewer form-control" v-else :class="{ editable: editable }"
         @click="onClick">
         <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
-            :class="{ 'linter-feedback-outer': linterFeedback[i] }">
+            :class="{ 'linter-feedback-outer': linterFeedback[i] }" v-bind:key="i">
 
             <linter-feedback-area :feedback="linterFeedback[i]"></linter-feedback-area>
 
@@ -89,7 +89,7 @@ export default {
     },
 
     watch: {
-        id(to) {
+        fileId() {
             if (!this.loading && !this.error) {
                 // Save old scroll position
                 const viewer = this.$refs.viewer;
@@ -99,11 +99,8 @@ export default {
                     scrollTop: viewer.scrollTop,
                 };
             }
-            this.fileId = to;
             this.oldFileId = this.fileId;
-        },
 
-        fileId() {
             this.loading = true;
             this.getCode();
         },
