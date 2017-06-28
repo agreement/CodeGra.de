@@ -10,7 +10,7 @@
 import { mapGetters } from 'vuex';
 import { Login } from '@/components';
 
-import setTitle from './title';
+import { setTitle } from './title';
 
 export default {
     name: 'login-page',
