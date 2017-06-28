@@ -10,6 +10,8 @@
 import { mapGetters } from 'vuex';
 import { Login } from '@/components';
 
+import { setTitle } from './title';
+
 export default {
     name: 'login-page',
 
@@ -17,10 +19,14 @@ export default {
         return {};
     },
 
-    mounted() {
+    beforeCreate() {
         if (this.loggedIn) {
-            this.$router.replace({ name: 'home' });
+            this.$router.replace({ name: 'assignments' });
         }
+    },
+
+    mounted() {
+        setTitle('Login');
     },
 
     components: {

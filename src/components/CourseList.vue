@@ -23,12 +23,12 @@
             <template slot="actions" scope="item">
                 <div class="row">
                     <b-tooltip placement="bottom" :delay="500" content="View assignments">
-                        <b-btn size="sm" variant="success" @click="gotoCourse(item.item)">
+                        <b-btn size="sm" variant="success" @click.stop="gotoCourse(item.item)">
                             <icon name="list"></icon>
                         </b-btn>
                     </b-tooltip>
                     <b-tooltip placement="bottom" :delay="500" content="Manage course">
-                        <b-btn v-if="item.item.manageable" @click="gotoCourseEdit(item.item) "size="sm" variant="warning">
+                        <b-btn v-if="item.item.manageable" @click.stop="gotoCourseEdit(item.item) "size="sm" variant="warning">
                             <icon name="pencil"></icon>
                         </b-btn>
                     </b-tooltip>
@@ -42,9 +42,6 @@
 </template>
 
 <script>
-import { bInputGroup, bTable, bButton, bTooltip } from
-    'bootstrap-vue/lib/components';
-
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/pencil';
 import 'vue-awesome/icons/list';
@@ -112,10 +109,6 @@ export default {
     },
 
     components: {
-        bInputGroup,
-        bTable,
-        bButton,
-        bTooltip,
         Icon,
     },
 };

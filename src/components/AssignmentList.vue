@@ -3,6 +3,8 @@
         <b-form-fieldset class="table-control">
             <b-input-group>
                 <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"/>
+                <b-form-checkbox class="input-group-addon" v-model="checkbox_student">student</b-form-checkbox>
+                <b-form-checkbox class="input-group-addon" v-model="checkbox_assistant">ta</b-form-checkbox>
                 <b-input-group-button class="buttons">
                     <b-popover placement="top" triggers="hover" content="Hidden" v-if="canSeeHidden">
                         <b-button class="btn-info" :class="{ 'btn-outline-info': !toggles.hidden}"
@@ -15,7 +17,7 @@
                     <b-popover placement="top" triggers="hover" content="Submitting">
                         <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
                                     @click="toggleFilter('submitting')">
-                            <icon name="download"></icon>
+                            <icon name="clock-o"></icon>
                         </b-button>
                     </b-popover>
                 </b-input-group-button>
@@ -48,6 +50,9 @@
             <template slot="course_name" scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
+            <template slot="course_role" scope="item">
+                {{ item.value ? item.value : '-'}}
+            </template>
             <template slot="name" scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
@@ -55,10 +60,22 @@
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="state" scope="item">
-                <icon name="eye-slash" v-if="item.item.state == assignmentState.HIDDEN"></icon>
-                <icon name="download" v-if="item.item.state == assignmentState.SUBMITTING"></icon>
-                <icon name="pencil" v-else-if="item.item.state == assignmentState.GRADING"></icon>
-                <icon name="check" v-else-if="item.item.state == assignmentState.DONE"></icon>
+                <b-popover placement="top" triggers="hover" content="Hidden"
+                    v-if="item.item.state == assignmentState.HIDDEN">
+                    <icon name="eye-slash"></icon>
+                </b-popover>
+                <b-popover placement="top" triggers="hover" content="Submitting"
+                    v-if="item.item.state == assignmentState.SUBMITTING">
+                    <icon name="download"></icon>
+                </b-popover>
+                <b-popover placement="top" triggers="hover" content="Grading"
+                    v-else-if="item.item.state == assignmentState.GRADING">
+                    <icon name="pencil"></icon>
+                </b-popover>
+                <b-popover placement="top" triggers="hover" content="Done"
+                    v-else-if="item.item.state == assignmentState.DONE">
+                    <icon name="check"></icon>
+                </b-popover>
             </template>
             <template slot="empty">
                 No results found.
@@ -68,14 +85,11 @@
 </template>
 
 <script>
-import { bButton, bButtonGroup, bFormInput, bInputGroup, bTooltip, bTable } from
-    'bootstrap-vue/lib/components';
-
 import Icon from 'vue-awesome/components/Icon';
-import 'vue-awesome/icons/download';
+import 'vue-awesome/icons/eye-slash';
+import 'vue-awesome/icons/clock-o';
 import 'vue-awesome/icons/pencil';
 import 'vue-awesome/icons/check';
-import 'vue-awesome/icons/eye-slash';
 
 import * as assignmentState from '../store/assignment-states';
 
@@ -109,6 +123,10 @@ export default {
                     label: 'Course',
                     sortable: true,
                 },
+                course_role: {
+                    label: 'Role',
+                    sortable: true,
+                },
                 name: {
                     label: 'Assignment',
                     sortable: true,
@@ -123,6 +141,8 @@ export default {
                     class: 'text-center',
                 },
             },
+            checkbox_student: true,
+            checkbox_assistant: true,
         };
     },
 
@@ -137,6 +157,12 @@ export default {
 
     methods: {
         filterItems(item) {
+            if (!this.checkbox_student && !item.can_grade) {
+                return false;
+            } else if (!this.checkbox_assistant && item.can_grade) {
+                return false;
+            }
+
             if (!this.filterState(item)) {
                 return false;
             } else if (!this.filter) {
@@ -145,6 +171,7 @@ export default {
             const terms = {
                 name: item.name.toLowerCase(),
                 course_name: item.course_name.toLowerCase(),
+                course_role: item.course_role,
                 deadline: item.deadline,
             };
             return this.filter.toLowerCase().split(' ').every(word =>
@@ -195,12 +222,6 @@ export default {
 
     components: {
         Icon,
-        bButton,
-        bButtonGroup,
-        bFormInput,
-        bInputGroup,
-        bTooltip,
-        bTable,
     },
 };
 </script>

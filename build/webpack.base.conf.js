@@ -33,7 +33,6 @@ module.exports = {
         enforce: 'pre',
           include: [
               resolve('src'),
-              resolve('node_modules/bootstrap-vue'),
               resolve('test')
           ],
         options: {
@@ -69,5 +68,8 @@ module.exports = {
         }
       }
     ]
+  },
+  node: {
+    fs: 'empty'
   }
 }

@@ -17,8 +17,9 @@
 
 <script>
 import { mapGetters } from 'vuex';
-import { bCard } from 'bootstrap-vue/lib/components';
 import { UserInfo, SnippetManager } from '@/components';
+
+import { setTitle } from './title';
 
 export default {
     name: 'user-page',
@@ -26,7 +27,10 @@ export default {
     components: {
         UserInfo,
         SnippetManager,
-        bCard,
+    },
+
+    mounted() {
+        setTitle('User info');
     },
 
     computed: {

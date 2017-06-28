@@ -14,8 +14,8 @@
         "role": "admin",
         "courses": {
             "Project Software Engineering": "student",
-            "Besturingssystemen": "TA",
-            "Programmeertalen": "TA"
+            "Besturingssystemen": "ta",
+            "Programmeertalen": "ta"
         }
     },
     {
@@ -23,8 +23,8 @@
         "role": "student",
         "courses": {
             "Project Software Engineering": "student",
-            "Besturingssystemen": "TA",
-            "Programmeertalen": "TA"
+            "Besturingssystemen": "ta",
+            "Programmeertalen": "ta"
         }
     },
     {
@@ -32,8 +32,8 @@
         "role": "student",
         "courses": {
             "Project Software Engineering": "student",
-            "Programmeertalen": "TA",
-            "Inleiding Programmeren": "TA"
+            "Programmeertalen": "ta",
+            "Inleiding Programmeren": "ta"
         }
     },
     {
@@ -56,16 +56,16 @@
         "name": "Stupid3",
         "role": "student",
         "courses": {
-            "Programmeertalen": "stupid_student",
-            "Besturingssystemen": "stupid_student"
+            "Programmeertalen": "student",
+            "Besturingssystemen": "student"
         }
     },
     {
         "name": "Stupid4",
         "role": "student",
         "courses": {
-            "Programmeertalen": "stupid_student",
-            "Besturingssystemen": "stupid_student"
+            "Programmeertalen": "student",
+            "Besturingssystemen": "student"
         }
     }
 ]
