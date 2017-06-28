@@ -26,7 +26,8 @@ def get_submission(submission_id):
     work = db.session.query(models.Work).get(submission_id)
 
     if work.user_id != current_user.id:
-        auth.ensure_permission('can_see_others_work', work.assignment.course_id)
+        auth.ensure_permission('can_see_others_work',
+                               work.assignment.course_id)
 
     if work is None:
         raise APIException(
@@ -113,7 +114,7 @@ def get_zip(work):
         response = make_response(fp.read())
         response.headers['Content-Type'] = 'application/zip'
         filename = '{}-{}-archive.zip'.format(work.assignment.name,
-                                           work.user.name)
+                                              work.user.name)
         response.headers[
             'Content-Disposition'] = 'attachment; filename=' + filename
         return response
@@ -153,6 +154,13 @@ def patch_submission(submission_id):
                 'Grade submitted not a number',
                 'Grade for work with id {} not a number'.format(submission_id),
                 APICodes.INVALID_PARAM, 400)
+
+    if content['grade'] < 0 or content['grade'] > 10:
+        raise APIException(
+            'Grade submitted not between 0 and 10',
+            'Grade for work with id {} is {} which is not between 0 and 10'.
+            format(submission_id,
+                   content['grade']), APICodes.INVALID_PARAM, 400)
 
     work.grade = content['grade']
     work.comment = content['feedback']
