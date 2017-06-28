@@ -25,6 +25,9 @@ def get_submission(submission_id):
     """
     work = db.session.query(models.Work).get(submission_id)
 
+    if work.user_id != current_user.id:
+        auth.ensure_permission('can_see_others_work', work.assignment.course_id)
+
     if work is None:
         raise APIException(
             'Work submission not found',
@@ -33,8 +36,6 @@ def get_submission(submission_id):
 
     if request.args.get('type') == 'zip':
         return get_zip(work)
-
-    auth.ensure_can_see_grade(work)
 
     if request.args.get('type') == 'feedback':
         return get_feedback(work)

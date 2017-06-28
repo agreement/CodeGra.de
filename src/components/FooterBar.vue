@@ -1,6 +1,6 @@
 <template>
     <footer class="footer">
-        <small>&copy; {{ new Date().getFullYear() }} - CodeGra.de</small>
+        <small>&copy; {{ new Date().getFullYear() }} - CodeGra.de - Made with ❤️ & 🍺</small>
     </footer>
 </template>
 

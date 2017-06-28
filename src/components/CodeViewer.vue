@@ -1,23 +1,30 @@
 <template>
     <b-alert variant="danger" show v-if="error">
-        <center>
-            <span>Cannot display file!</span>
-        </center>
+        <center><span>Cannot display file!</span></center>
     </b-alert>
     <loader class="text-center" v-else-if="loading"></loader>
-    <ol class="code-viewer form-control" v-else :class="{ editable: editable }" ref="viewer">
+    <ol class="code-viewer form-control" v-else :class="{ editable: editable }"
+        @click="onClick">
         <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
-            :class="{ 'linter-feedback': linterFeedback[i] }">
+            :class="{ 'linter-feedback-outer': linterFeedback[i] }">
 
-            <linter-feedback-area :feedback="linterFeedback[i]"> </linter-feedback-area>
-            <code v-html="line"></code>
+            <linter-feedback-area :feedback="linterFeedback[i]"></linter-feedback-area>
 
-            <feedback-area :editing="editing[i] === true" :feedback='feedback[i].msg' :editable='editable'
-                :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }"
-                v-on:cancel='onChildCancel' v-if="feedback[i] != null">
+            <code  v-html="line"></code>
+
+
+            <feedback-area :editing="editing[i] === true"
+                            :feedback='feedback[i].msg'
+                            :editable='editable'
+                            :line='i'
+                            :fileId='fileId'
+                            v-on:feedbackChange="val => { feedbackChange(i, val); }"
+                            v-on:cancel='onChildCancel'
+                            v-if="feedback[i] != null">
             </feedback-area>
 
-            <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null" v-on:click="addFeedback($event, value)"></icon>
+            <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
+                    v-on:click="addFeedback($event, value)"></icon>
         </li>
     </ol>
 </template>
@@ -25,9 +32,6 @@
 <script>
 import { getLanguage, highlight } from 'highlightjs';
 import Vue from 'vue';
-
-import { bAlert, bButton, bFormInput, bInputGroup, bInputGroupButton }
-    from 'bootstrap-vue/lib/components';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
@@ -51,10 +55,6 @@ export default {
         editable: {
             type: Boolean,
             default: false,
-        },
-        id: {
-            type: Number,
-            default: 0,
         },
         tree: {
             type: Object,
@@ -224,8 +224,8 @@ export default {
             );
         },
 
-        onFileClick(event) {
-            // Check if the click was actually on a link to a file.
+        onClick(event) {
+            // Check if the click was on a link to a file.
             const fileId = event.target.getAttribute('data-file-id');
             if (fileId) {
                 event.stopImmediatePropagation();
@@ -268,11 +268,6 @@ export default {
     },
 
     components: {
-        bButton,
-        bFormInput,
-        bInputGroup,
-        bInputGroupButton,
-        bAlert,
         Icon,
         FeedbackArea,
         Loader,
@@ -302,6 +297,7 @@ li {
 
 code {
     white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .feedback {

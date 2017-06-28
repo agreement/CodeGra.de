@@ -3,6 +3,7 @@ DEBUG = True
 
 # Define the application directory
 import os
+import json
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -35,3 +36,14 @@ UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
 
 # Maximum size in bytes for single upload request
 MAX_UPLOAD_SIZE = 64 * 2**20  # 64 megabytes
+
+LTI_CONSUMER_KEY_SECRETS = {
+    'my_lti': '12345678',
+}
+
+with open(os.path.join('seed_data', 'course_roles.json'), 'r') as f:
+    DEFAULT_COURSE_ROLES = json.load(f)
+
+DEFAULT_ROLE = 'student'
+
+EXTERNAL_URL = 'http://localhost:8080'

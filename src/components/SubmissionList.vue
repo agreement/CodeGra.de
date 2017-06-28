@@ -15,10 +15,16 @@
                 </b-form-checkbox>
             </b-input-group>
         </b-form-fieldset>
+        <submissions-exporter v-if="canDownload && submissions.length"
+          :table="getTable"
+          :filename="exportFilename">
+            Export feedback
+        </submissions-exporter>
 
         <b-table striped hover
+            ref="table"
             v-on:row-clicked='gotoSubmission'
-            :items="latestOnly ? latest : submissions"
+            :items="submissions"
             :fields="fields"
             :current-page="currentPage"
             :filter="filterItems"
@@ -33,7 +39,7 @@
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="assignee" scope="item">
-                {{item.value ? item.value : '-'}}
+                {{item.value ? item.value.name : '-'}}
             </template>
         </b-table>
     </div>
@@ -41,15 +47,23 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
-import { bInputGroupButton, bFormCheckbox } from 'bootstrap-vue/lib/components';
+import SubmissionsExporter from './SubmissionsExporter';
 
 export default {
     name: 'submission-list',
 
     props: {
+        assignment: {
+            type: Object,
+            default: null,
+        },
         submissions: {
             type: Array,
             default: [],
+        },
+        canDownload: {
+            type: Boolean,
+            default: false,
         },
     },
 
@@ -83,14 +97,14 @@ export default {
     },
 
     computed: {
-        courseId() {
-            return this.$route.params.courseId;
-        },
-
         ...mapGetters('user', {
             userId: 'id',
             userName: 'name',
         }),
+
+        exportFilename() {
+            return this.assignment ? `${this.assignment.course_name}-${this.assignment.name}.csv` : null;
+        },
     },
 
     watch: {
@@ -107,12 +121,17 @@ export default {
 
     methods: {
         getLatest(submissions) {
-            const seen = [];
-            return submissions.filter((item) => {
-                const ret = !seen[item.user.id];
-                seen[item.user.id] = true;
-                return ret;
+            const latest = {};
+            submissions.forEach((item) => {
+                if (!latest[item.user.id]) {
+                    latest[item.user.id] = item.id;
+                }
             });
+            return latest;
+        },
+
+        getTable() {
+            return this.$refs ? this.$refs.table : null;
         },
 
         gotoSubmission(submission) {
@@ -134,10 +153,14 @@ export default {
             this.$router.replace({ query });
         },
 
+        isEmptyObject(obj) {
+            return Object.keys(obj).length === 0 && obj.constructor === Object;
+        },
+
         filterItems(item) {
-            if ((this.latestOnly && !this.latest.includes(item)) ||
-                // TODO: change to user id
-                (this.assigneeFilter && this.mineOnly && item.assignee !== this.userName)) {
+            if ((this.latestOnly && this.latest[item.user.id] !== item.id) ||
+                (this.assigneeFilter && this.mineOnly &&
+                 (item.assignee == null || item.assignee.id !== this.userId))) {
                 return false;
             } else if (!this.filter) {
                 return true;
@@ -147,7 +170,7 @@ export default {
                 user_name: item.user.name.toLowerCase(),
                 grade: (item.grade || 0).toString(),
                 created_at: item.created_at,
-                assignee: item.assignee.toLowerCase(),
+                assignee: item.assignee ? item.assignee.name.toLowerCase() : '-',
             };
             return this.filter.toLowerCase().split(' ').every(word =>
                 Object.keys(terms).some(key =>
@@ -155,7 +178,7 @@ export default {
         },
 
         hasPermission(perm) {
-            return this.u_hasPermission({ name: perm, course_id: this.courseId });
+            return this.u_hasPermission({ name: perm, course_id: this.assignment.course_id });
         },
 
         ...mapActions({
@@ -164,8 +187,7 @@ export default {
     },
 
     components: {
-        bInputGroupButton,
-        bFormCheckbox,
+        SubmissionsExporter,
     },
 };
 </script>
