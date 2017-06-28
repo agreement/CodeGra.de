@@ -2,7 +2,7 @@ import Vue from 'vue';
 import Router from 'vue-router';
 import store from '@/store';
 import { Assignments, Courses, Home, Login, ManageCourse, Submission, Submissions, User } from '@/pages';
-import { NewCourse, ManageUsers } from '@/components';
+import { NewCourse, PermissionsManager } from '@/components';
 
 Vue.use(Router);
 
@@ -66,9 +66,9 @@ const router = new Router({
             component: NewCourse,
         },
         {
-            path: '/manage-users/:courseId/',
-            name: 'manage-user',
-            component: ManageUsers,
+            path: '/manage-permissions/:courseId/',
+            name: 'manage-permissions',
+            component: PermissionsManager,
         },
     ],
 });

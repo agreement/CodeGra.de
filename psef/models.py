@@ -87,6 +87,21 @@ class CourseRole(db.Model):
             'id': self.id,
         }
 
+    def set_permission(self, perm, should_have):
+        try:
+            if perm.default_value:
+                if should_have:
+                    self._permissions.pop(perm.name)
+                else:
+                    self._permissions[perm.name] = perm
+            else:
+                if should_have:
+                    self._permissions[perm.name] = perm
+                else:
+                    self._permissions.pop(perm.name)
+        except KeyError:
+            pass
+
     def has_permission(self, permission):
         if isinstance(permission, Permission):
             permission_name = permission.name
