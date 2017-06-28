@@ -360,7 +360,10 @@ class Course(db.Model):
             CourseRole(name=name, course=self, _permissions=perms)
 
     def __to_json__(self):
-        return {'id': self.id, 'name': self.name}
+        return {
+            'id': self.id,
+            'name': self.name,
+        }
 
     def ensure_default_roles(self):
         """Ensures that the default roles for this course exist.
@@ -726,8 +729,7 @@ class Assignment(db.Model):
             'created_at': self.created_at.isoformat(),
             'deadline': self.deadline.isoformat(),
             'name': self.name,
-            'course_name': self.course.name,
-            'course_id': self.course_id,
+            'course': self.course,
         }
 
     def set_state(self, state):
