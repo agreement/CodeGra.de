@@ -1,77 +1,214 @@
 <template>
-    <div class="rubric-viewer">
-        <b-card-group
-            v-for="(row, i) in rows" :key="`row-${i}`">
-            <b-card
-                v-for="(col, j) in row" :key="`row-${i}-col-${j}`"
-                @click.native="select(i, j)"
-                :class="{ selected: selected[i] == j }">
-                {{ col }}
-            </b-card>
-        </b-card-group>
-    </div>
+    <b-form-fieldset
+        class="rubric-viewer"
+        :class="{ editable }">
+        <b-input-group>
+            <b-input-group-button>
+                <b-button
+                    @click="goToPrev"
+                    :disabled="current <= 0">
+                    <icon name="angle-left"></icon>
+                </b-button>
+            </b-input-group-button>
+            <div
+                class="form-control outer-container">
+                <div
+                    class="inner-container"
+                    ref="rubricContainer">
+                    <div
+                        class="rubric"
+                        v-for="(rubric, i) in rubrics"
+                        :key="`rubric-${i}`">
+                        <b-card
+                            no-block>
+                            <div class="card-header rubric-header">
+                                <span class="title"><b>{{ rubric.header }}</b> - {{ rubric.description }}</span>
+                                <span class="index">{{ i + 1 }} / {{ rubrics.length }}</span>
+                            </div>
+                            <b-card-group>
+                                <b-card
+                                    class="rubric-item"
+                                    v-for="item in rubric.items"
+                                    :key="`rubric-${i}-${item.id}`"
+                                    @click.native="select(i, item)"
+                                    :class="{ selected: isSelected(i, item) }">
+                                    <span>
+                                        <b>{{ item.points }}</b> - {{ item.description }}
+                                    </span>
+                                </b-card>
+                            </b-card-group>
+                        </b-card>
+                    </div>
+                </div>
+            </div>
+            <b-input-group-button>
+                <b-button
+                    @click="goToNext"
+                    :disabled="current >= rubrics.length - 1">
+                    <icon name="angle-right"></icon>
+                </b-button>
+            </b-input-group-button>
+        </b-input-group>
+    </b-form-fieldset>
 </template>
 
 <script>
-import { bCard, bCardGroup } from 'bootstrap-vue/lib/components';
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/angle-left';
+import 'vue-awesome/icons/angle-right';
 
 export default {
     name: 'rubric-viewer',
 
     props: {
-        rows: {
+        rubrics: {
             type: Array,
-            default() {
-                return [
-                    [
-                        'stupid',
-                        'meh',
-                        'alright',
-                        'good',
-                        'excellent',
-                    ],
-                    [
-                        'stupid',
-                        'meh',
-                        'alright',
-                        'good',
-                        'excellent',
-                    ],
-                ];
-            },
+            default: [],
+        },
+        editable: {
+            type: Boolean,
+            default: false,
+        },
+        value: {
+            type: Array,
+            default: [],
         },
     },
 
     data() {
         return {
-            selected: this.rows.map(() => -1),
+            selected: [],
+            current: 0,
         };
     },
 
+    watch: {
+        rubrics() {
+            this.adjustRubricElements();
+        },
+
+        current(curr) {
+            this.$refs.rubricContainer.style.transform =
+                `translateX(-${100 * (curr / this.rubrics.length)}%)`;
+        },
+    },
+
+    mounted() {
+        this.setSelected();
+        this.adjustRubricElements();
+    },
+
     methods: {
-        select(row, col) {
-            this.$set(this.selected, row, col);
+        emitInputEvent() {
+            this.$emit('input', this.selected.map(sel => (sel ? sel.id : -1)));
+        },
+
+        setSelected() {
+            const items = [];
+            this.rubrics.forEach(rubric => items.push(...rubric.items));
+            this.selected = this.value.map(id => items.find(item => item.id === id));
+            this.emitInputEvent();
+        },
+
+        select(row, item) {
+            if (!this.editable) return;
+            this.$set(this.selected, row, item);
+            this.emitInputEvent();
+        },
+
+        isSelected(row, item) {
+            return this.selected[row] === item;
+        },
+
+        goToPrev() {
+            this.current = Math.max(this.current - 1, 0);
+        },
+
+        goToNext() {
+            this.current = Math.min(this.current + 1, this.rubrics.length - 1);
+        },
+
+        adjustRubricElements() {
+            this.$refs.rubricContainer.style.width = `${this.rubrics.length * 100}%`;
+        },
+
+        totalPoints() {
+            return this.selected.filter(x => x).reduce(
+                (sum, item) => sum + item.points, 0);
+        },
+
+        maxPoints() {
+            return this.rubrics.reduce((sum, rubric) =>
+                sum + rubric.items[rubric.items.length - 1].points, 0);
         },
     },
 
     components: {
-        bCard,
-        bCardGroup,
+        Icon,
     },
 };
 </script>
 
 <style lang="less" scoped>
-.card {
-    cursor: pointer;
+.outer-container {
+    overflow: hidden;
+    padding-left: 0;
+    padding-right: 0;
+}
 
-    &:hover {
-        background: rgba(0, 0, 0, 0.075);
+.inner-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    transition: transform 500ms;
+}
+
+.rubric {
+    flex: 1 1 0;
+    padding-left: .75rem;
+    padding-right: .75rem;
+}
+
+.rubric-header {
+    display: flex;
+    flex-direction: row;
+
+    .title {
+        flex: 1 1 0;
+    }
+
+    .index {
+        flex: 0 0 auto;
+        margin-left: 1em;
+    }
+}
+
+.rubric-item {
+    border-width: 0;
+
+    &:not(:last-child) {
+        border-right-width: 1px;
+    }
+
+    .editable & {
+        cursor: pointer;
+
+        &:hover {
+            background: rgba(0, 0, 0, 0.075);
+        }
     }
 
     &.selected {
-        font-weight: bold;
-        background: rgba(0, 0, 0, 0.075);
+        background: rgba(0, 0, 0, 0.05);
+    }
+}
+</style>
+
+<style lang="less">
+.rubric-viewer {
+    .card-header,
+    .card-block {
+        padding: .5rem .75rem;
     }
 }
 </style>
