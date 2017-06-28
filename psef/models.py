@@ -362,6 +362,13 @@ class Course(db.Model):
     def __to_json__(self):
         return {'id': self.id, 'name': self.name}
 
+    def ensure_default_roles(self):
+        for name, perms in CourseRole.get_default_course_roles().items():
+            if not db.session.query(
+                    CourseRole.query.filter_by(name=name, course_id=self.id)
+                    .exists()).scalar():
+                CourseRole(name=name, course=self, _permissions=perms)
+
 
 class Work(db.Model):
     __tablename__ = "Work"
@@ -416,7 +423,8 @@ class Work(db.Model):
         }
 
         try:
-            auth.ensure_permission('can_see_assignee', self.assignment.course_id)
+            auth.ensure_permission('can_see_assignee',
+                                   self.assignment.course_id)
             item['assignee'] = self.assignee
         except auth.PermissionException:
             item['assignee'] = False
