@@ -461,9 +461,6 @@ class Work(db.Model):
                         is_directory=False,
                         parent=new_top))
 
-    def get_selected_rubric_items(self):
-        return self.selected_items
-
     def remove_selected_rubric_item(self, row_id):
         """
         Deselects the selected rubric item (if any) for the given row for this
@@ -483,6 +480,8 @@ class Work(db.Model):
         """
         if isinstance(rubricitem, RubricItem):
             self.selected_items.append(rubricitem)
+        else:
+            raise TypeError('The given rubricitem is invalid!)
 
 
 class File(db.Model):

@@ -56,9 +56,11 @@ def get_rubric(submission_id):
             'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
+    auth.ensure_permission('can_see_assignments', work.assignment.course.id)
+
     return jsonify({
         'rubrics': work.assignment.get_rubric(),
-        'selected': work.get_selected_rubric_items()
+        'selected': work.selected_items
     })
 
 
