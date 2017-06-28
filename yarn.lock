@@ -4150,6 +4150,10 @@ mocha@^3.2.0:
     mkdirp "0.5.1"
     supports-color "3.1.2"
 
+moment@^2.18.1:
+  version "2.18.1"
+  resolved "https://registry.yarnpkg.com/moment/-/moment-2.18.1.tgz#c36193dd3ce1c2eed2adb7c802dbbc77a81b1c0f"
+
 ms@0.7.1:
   version "0.7.1"
   resolved "https://registry.yarnpkg.com/ms/-/ms-0.7.1.tgz#9cd13c03adbff25b65effde7ce864ee952017098"
@@ -6324,6 +6328,10 @@ void-elements@^2.0.0:
 vue-awesome@^2.3.1:
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/vue-awesome/-/vue-awesome-2.3.1.tgz#edd8f54a62af322df81f06ddf25c1ec2ae995b05"
+
+vue-datetime-picker@^0.2.1:
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/vue-datetime-picker/-/vue-datetime-picker-0.2.1.tgz#7b724dde3b72d531645a27d6597589d6d882ad3b"
 
 vue-hot-reload-api@^2.1.0:
   version "2.1.0"

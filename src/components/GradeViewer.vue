@@ -101,69 +101,9 @@ export default {
             submitted: false,
             feedback: this.submission.feedaback || '',
             grade: this.submission.grade || 0,
-            rubricSelected: this.submission.rubric || [2, 5],
+            rubricSelected: this.submission.rubric,
             rubricPoints: '0 / 0',
-            rubrics: this.assignment.rubrics || [
-                {
-                    id: 0,
-                    header: 'Stijl',
-                    description: 'Ziet je code er netjes uit, gebruik je duidelijke namen, deel je het programma op in logische functies etc.',
-                    items: [
-                        {
-                            id: 0,
-                            description: 'Slecht.',
-                            points: 0,
-                        },
-                        {
-                            id: 1,
-                            description: 'Matig',
-                            points: 1,
-                        },
-                        {
-                            id: 2,
-                            description: 'Voldoende',
-                            points: 2,
-                        },
-                        {
-                            id: 3,
-                            description: 'Goed',
-                            points: 3,
-                        },
-                        {
-                            id: 8,
-                            description: 'Awesome!',
-                            points: 4,
-                        },
-                    ],
-                },
-                {
-                    id: 1,
-                    header: 'Correctness',
-                    description: 'Bereikt het programma het beoogde resultaat, hebben je antwoorden de juiste precisie etc.',
-                    items: [
-                        {
-                            id: 4,
-                            description: 'Slecht',
-                            points: 0,
-                        },
-                        {
-                            id: 5,
-                            description: 'Voldoende',
-                            points: 1,
-                        },
-                        {
-                            id: 6,
-                            description: 'Goed',
-                            points: 2,
-                        },
-                        {
-                            id: 7,
-                            description: 'Awesome!',
-                            points: 3,
-                        },
-                    ],
-                },
-            ],
+            rubrics: this.assignment.rubrics,
         };
     },
 
