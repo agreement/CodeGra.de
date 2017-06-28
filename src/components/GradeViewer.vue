@@ -4,19 +4,24 @@
             <div class="col-6">
                 <b-input-group>
                     <b-input-group-button v-if="editable">
-                        <b-button :variant="submitted ? 'success' : 'primary'" v-on:click="putFeedback()">
-                            <icon name="refresh" spin v-if="submitting"></icon>
-                            <span v-else>Submit all</span>
-                        </b-button>
+                        <b-popover :show="grade < 0 || grade > 10"
+                                   content="Grade have to be between 0 and 10">
+                            <b-button :variant="submitted ? 'success' : 'primary'"
+                                      v-on:click="putFeedback"
+                                      :disabled="grade < 0 || grade > 10">
+                                <loader :scale="1" v-if="submitting"/>
+                                <span v-else>Submit all</span>
+                            </b-button>
+                        </b-popover>
                     </b-input-group-button>
 
                     <b-form-input type="number"
-                                step="any"
-                                min="0"
-                                max="10"
-                                :disabled="!editable"
-                                placeholder="Grade"
-                                v-model="grade">
+                                  step="any"
+                                  min="0"
+                                  max="10"
+                                  :disabled="!editable"
+                                  placeholder="Grade"
+                                  v-model="grade">
                     </b-form-input>
                 </b-input-group>
             </div>
