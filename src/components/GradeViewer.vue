@@ -4,8 +4,8 @@
             <div class="col-6">
                 <b-input-group>
                     <b-input-group-button v-if="editable">
-                        <b-popover :show="grade < 0 || grade > 10"
-                                   content="Grade have to be between 0 and 10">
+                        <b-popover :show="!!(grade < 0 || grade > 10 || error)"
+                                   :content="error || 'Grade have to be between 0 and 10'">
                             <b-button :variant="submitted ? 'success' : 'primary'"
                                       v-on:click="putFeedback"
                                       class="grade-submit"
@@ -20,6 +20,7 @@
                                   step="any"
                                   min="0"
                                   max="10"
+                                  v-on:change="() => { this.error = false; }"
                                   :disabled="!editable"
                                   placeholder="Grade"
                                   v-model="grade">
@@ -70,6 +71,7 @@ export default {
             submitted: false,
             feedback: '',
             grade: '',
+            error: false,
         };
     },
 
@@ -97,10 +99,19 @@ export default {
         },
 
         putFeedback() {
+            const grade = parseFloat(this.grade);
+            if (!(grade >= 0 && grade <= 10)) {
+                this.error = `The given grade '${this.grade}' is not a number between 0 and 10`;
+                this.$nextTick(() => setTimeout(() => {
+                    this.error = false;
+                }, 3000));
+                return;
+            }
+            this.error = false;
             this.submitting = true;
             this.$http.patch(`/api/v1/submissions/${this.submission.id}`,
                 {
-                    grade: this.grade,
+                    grade,
                     feedback: this.feedback,
                 },
                 {
