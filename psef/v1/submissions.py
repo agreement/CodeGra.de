@@ -26,7 +26,8 @@ def get_submission(submission_id):
     work = db.session.query(models.Work).get(submission_id)
 
     if work.user_id != current_user.id:
-        auth.ensure_permission('can_see_others_work', work.assignment.course_id)
+        auth.ensure_permission('can_see_others_work',
+                               work.assignment.course_id)
 
     if work is None:
         raise APIException(
@@ -83,6 +84,12 @@ def select_rubric_item(submission_id, rubricitem_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     auth.ensure_permission('can_grade_work', work.assignment.course.id)
+    if rubric_item.rubricrow.assignment_id != work.assignment_id:
+        raise APIException(
+            'Rubric item selected does not match assignment',
+            'The rubric item with id {} does not match the assignment'.format(
+                rubricitem_id), APICodes.INVALID_PARAM, 400)
+
     work.remove_selected_rubric_item(rubric_item.rubricrow_id)
     work.select_rubric_item(rubric_item)
     db.session.commit()
@@ -160,7 +167,7 @@ def get_zip(work):
         response = make_response(fp.read())
         response.headers['Content-Type'] = 'application/zip'
         filename = '{}-{}-archive.zip'.format(work.assignment.name,
-                                           work.user.name)
+                                              work.user.name)
         response.headers[
             'Content-Disposition'] = 'attachment; filename=' + filename
         return response

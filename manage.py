@@ -115,34 +115,6 @@ def test_data():
                         '@example.com',
                         password=c['name'],
                         role=m.Role.query.filter_by(name=c['role']).first()))
-    with open('./test_data/works.json', 'r') as c:
-        cs = json.load(c)
-        for c in cs:
-            if m.Work.query.filter_by(
-                    assignment=m.Assignment.query.filter_by(
-                        name=c['assignment']).first(),
-                    user=m.User.query.filter_by(
-                        name=c['user']).first()).first() is not None:
-                continue
-
-            db.session.add(
-                m.Work(
-                    assignment=m.Assignment.query.filter_by(
-                        name=c['assignment']).first(),
-                    user=m.User.query.filter_by(name=c['user']).first(),
-                    comment=c['comment'],
-                    grade=c['grade'],
-                    edit=c['edit']))
-    with open('./test_data/snippets.json', 'r') as c:
-        cs = json.load(c)
-        for c in cs:
-            user = m.User.query.filter_by(name=c['user']).first()
-            snip = m.Snippet.query.filter_by(key=c['key'], user=user).first()
-            if snip is None:
-                db.session.add(
-                    m.Snippet(key=c['key'], value=c['value'], user=user))
-            else:
-                snip.value = c['value']
     with open('./test_data/rubrics.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
