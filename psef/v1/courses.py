@@ -25,24 +25,58 @@ def set_course_permission_user(course_id):
 
     auth.ensure_permission('can_manage_course', course_id)
 
-    if 'user_id' not in content or 'role_id' not in content:
+    if 'role_id' not in content:
         raise APIException(
-            'Required parameter "user_id" or "role_id" is missing',
-            'The given content ({}) does  not contain "user_id" and "role_id"'.
-            format(content), APICodes.MISSING_REQUIRED_PARAM, 400)
+            'Required parameter "role_id" is missing',
+            'The given content ({}) does  not contain "role_id"'.format(
+                content), APICodes.MISSING_REQUIRED_PARAM, 400)
 
-    user = models.User.query.get(content['user_id'])
+    if 'user_id' not in content and 'user_email' not in content:
+        raise APIException(
+            'None of the keys "user_id" or "role_id" were found',
+            ('The given content ({})'
+             ' does  not contain "user_id" or "user_email"').format(content),
+            APICodes.MISSING_REQUIRED_PARAM, 400)
+
     role = models.CourseRole.query.get(content['role_id'])
-    if user is None or role is None:
-        return APIException(
-            'Specified user or role not found',
-            'The user {user_id} or the role {role_id} was not found'.format(
-                **content), APICodes.OBJECT_ID_NOT_FOUND, 404)
+    if role is None:
+        raise APIException('Specified role was not found',
+                           'The role {role_id} was not found'.format(
+                               **content), APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    if 'user_id' in content:
+        user = models.User.query.get(content['user_id'])
+
+        if user is None:
+            raise APIException('The specified user was not found',
+                               'The user {user_id} was not found'.format(
+                                   **content), APICodes.OBJECT_ID_NOT_FOUND,
+                               404)
+
+        res = '', 204
+    else:
+        user = models.User.query.filter_by(email=content['user_email']).first()
+
+        if user is None:
+            raise APIException(
+                'The specified user email was not found',
+                'The user with email "{user_email}" was not found'.format(
+                    **content), APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+        if role.course_id in user.courses:
+            raise APIException('The specified user is already in this course',
+                               'The user {} is in course {}'.format(
+                                   user.id, role.course_id),
+                               APICodes.INVALID_PARAM, 400)
+
+        res = jsonify({
+            'User': user,
+            "CourseRole": role,
+        }), 201
 
     user.courses[role.course_id] = role
-
     db.session.commit()
-    return '', 204
+    return res
 
 
 @api.route('/courses/<int:course_id>/users/', methods=['GET'])
@@ -66,9 +100,9 @@ def get_all_course_assignments(course_id):
 
     course = models.Course.query.get(course_id)
     if course is None:
-        return APIException('Specified course not found',
-                            'The course {} was not found'.format(course_id),
-                            APICodes.OBJECT_ID_NOT_FOUND, 404)
+        raise APIException('Specified course not found',
+                           'The course {} was not found'.format(course_id),
+                           APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     return jsonify(sorted(course.assignments, key=lambda item: item.deadline))
 
