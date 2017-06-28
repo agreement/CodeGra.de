@@ -66,6 +66,7 @@ def add_role(course_id):
 
     return '', 204
 
+
 @api.route('/courses/<int:course_id>/roles/<int:role_id>', methods=['PATCH'])
 def update_role(course_id, role_id):
     content = request.get_json()
