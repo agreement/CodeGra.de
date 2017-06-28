@@ -1,8 +1,9 @@
 <template>
     <div v-if="loading">
-        <loader style="text-align: center; margin-top: 30px;"/>
+        <loader style="text-align: center; margin-top: 30px;"></loader>
     </div>
-    <div class="page submission" v-else>
+    <div class="page submission"
+         v-else>
         <div class="row justify-content-center">
             <div class="col-lg-9 code-and-grade">
                 <submission-nav-bar v-if="submissions && submission"
@@ -11,16 +12,21 @@
                                     :submissions="submissions"
                                     :courseId="courseId"
                                     :assignmentId="assignmentId"></submission-nav-bar>
-                <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
-                <code-viewer class="" :editable="editable"
-                             :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
+                <pdf-viewer v-if="fileExtension === 'pdf'"
+                            :id="fileId"></pdf-viewer>
+                <code-viewer class=""
+                             :editable="editable"
+                             :tree="fileTree"
+                             v-else-if="fileId"
+                             ref="codeViewer"></code-viewer>
                 <grade-viewer :submission="submission"
                               :editable="editable"
                               v-if="editable || assignment.state === assignmentState.DONE"
                               v-on:gradeChange="gradeChange"
-                              @submit="submitAllFeedback($event)"/>
+                              @submit="submitAllFeedback($event)"></grade-viewer>
             </div>
-            <file-tree-container class="col-lx-3" :fileTree="fileTree"></file-tree-container>
+            <file-tree-container class="col-lx-3"
+                                 :fileTree="fileTree"></file-tree-container>
         </div>
     </div>
 </template>
@@ -299,7 +305,8 @@ h1,
 
 <style>
 @media (max-width: 992px) {
-    #app, html {
+    #app,
+    html {
         height: inherit !important;
     }
 }

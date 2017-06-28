@@ -135,3 +135,22 @@ def get_courses():
         'id': c.course.id,
         'role': c.name
     } for c in current_user.courses.values()])
+
+
+@api.route('/courses/<int:course_id>', methods=['GET'])
+@login_required
+def get_course_data(course_id):
+    """
+    Return course data for a given course id
+    """
+    for c in current_user.courses.values():
+        if c.course.id == course_id:
+            return jsonify({
+                'name': c.course.name,
+                'id': c.course.id,
+                'role': c.name
+            })
+
+    raise APIException('Course not found',
+                       'The course with id {} was not found'.format(course_id),
+                       APICodes.OBJECT_ID_NOT_FOUND, 404)
