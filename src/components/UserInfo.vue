@@ -84,9 +84,6 @@ import 'vue-awesome/icons/eye-slash';
 import 'vue-awesome/icons/refresh';
 import 'vue-awesome/icons/times';
 
-import { bAlert, bButton, bButtonToolbar, bFormFieldset, bFormInput, bInputGroup }
-    from 'bootstrap-vue/lib/components';
-
 import Loader from './Loader';
 
 const validator = require('email-validator');
@@ -119,12 +116,6 @@ export default {
     components: {
         Icon,
         Loader,
-        bAlert,
-        bButton,
-        bButtonToolbar,
-        bFormFieldset,
-        bFormInput,
-        bInputGroup,
     },
 
     mounted() {

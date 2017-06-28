@@ -24,6 +24,7 @@ echo "Echo starting python and NPM, press Ctrl-C to stop"
 quit() {
     STOPPING=true
     echo "Stopping!"
+    echo "$npm $python"
     kill "$python"
     kill -9 "$npm"
 }
@@ -39,11 +40,9 @@ npm="$!"
 while true; do
     wait -n "$npm" "$python"
     status="$?"
-    if [[ $status -ne 0 ]]; then
-        if ! $STOPPING; then
-            echo "NPM or python crashed!"
-            quit
-        fi
+    if $STOPPING || [[ $status -ne 0 ]]; then
+        echo "NPM or python crashed!"
+        $STOPPING || quit
         exit "$status"
     fi
     if kill -0 "$python" 2> /dev/null; then

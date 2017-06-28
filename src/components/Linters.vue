@@ -4,6 +4,7 @@
     <loader/>
   </div>
   <div class="" v-else>
+    <div class="col-6">Linters</div>
     <table class="table table-striped">
       <thead>
         <tr>

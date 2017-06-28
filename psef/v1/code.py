@@ -91,7 +91,7 @@ def get_code(file_id):
     else:
         contents = psef.files.get_file_contents(file)
         res = make_response(contents)
-        res.headers['Content-Type'] = 'text/plan'
+        res.headers['Content-Type'] = 'text/plain'
         return res
 
 

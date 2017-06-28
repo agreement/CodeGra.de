@@ -9,21 +9,21 @@ import FileTree from './FileTree';
 import FileTreeContainer from './FileTreeContainer';
 import FooterBar from './FooterBar';
 import GradeViewer from './GradeViewer';
-import HeaderBar from './HeaderBar';
 import Loader from './Loader';
 import Login from './Login';
 import NavBar from './NavBar';
 import UserInfo from './UserInfo';
 import AssignmentList from './AssignmentList';
-import AssignmentState from './AssignmentState';
 import CodeUploader from './CodeUploader';
 import SubmissionList from './SubmissionList';
 import DivideSubmissions from './DivideSubmissions';
+import ManageUsers from './UsersManager';
 import SubmissionsExporter from './SubmissionsExporter';
 import SnippetManager from './SnippetManager';
 import PdfViewer from './PdfViewer';
 import BlackboardUploader from './BlackboardUploader';
-import FeedbackExporter from './FeedbackExporter';
+import SubmissionNavBar from './SubmissionNavBar';
+import NewCourse from './NewCourse';
 import CourseList from './CourseList';
 
 export {
@@ -39,19 +39,19 @@ export {
     FileTreeContainer,
     FooterBar,
     GradeViewer,
-    HeaderBar,
     Loader,
     Login,
     NavBar,
     UserInfo,
     AssignmentList,
-    AssignmentState,
     CodeUploader,
     SubmissionList,
     DivideSubmissions,
     SubmissionsExporter,
+    ManageUsers,
     SnippetManager,
     PdfViewer,
-    FeedbackExporter,
+    SubmissionNavBar,
+    NewCourse,
     CourseList,
 };
