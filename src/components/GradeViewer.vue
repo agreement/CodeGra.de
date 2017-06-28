@@ -171,8 +171,9 @@ export default {
         rubricSelected() {
             const total = this.$refs.rubricViewer.totalPoints();
             const max = this.$refs.rubricViewer.maxPoints();
-            this.grade = (10 * (total / max)).toFixed(2);
-            this.rubricPoints = `${total} / ${max}`;
+            const grade = (10 * (total / max)).toFixed(2);
+            this.grade = grade;
+            this.rubricPoints = `${grade} (${total} / ${max})`;
         },
     },
 
