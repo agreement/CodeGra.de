@@ -584,19 +584,10 @@ class AssignmentLinter(db.Model):
                 AssignmentLinter.query.filter(cls.id == id).exists()).scalar():
             id = str(uuid.uuid4())
         self = cls(id=id, assignment_id=assignment_id, name=name)
-        tests = []
-        sub = db.session.query(
-            Work.user_id.label('user_id'),
-            func.max(Work.created_at).label('max_date')).group_by(
-                Work.user_id).subquery('sub')
-        for work in db.session.query(Work).join(
-                sub,
-                and_(sub.c.user_id == Work.user_id,
-                     sub.c.max_date == Work.created_at)).filter(
-                         Work.assignment_id == assignment_id).order_by(
-                             Work.id).all():
-            tests.append(LinterInstance(work, self))
-        self.tests = tests
+        self.tests = []
+        for work in Assignment.query.get(
+                assignment_id).get_all_latest_submissions():
+            self.tests.append(LinterInstance(work, self))
         return self
 
 
