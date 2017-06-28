@@ -812,7 +812,7 @@ class RubricRow(db.Model):
     def __to_json__(self):
         return {
             'id': self.id,
-            'assignment_id': self.assignment_id,
+            'assignment': self.assignment,
             'header': self.header,
             'description': self.description
         }
@@ -835,5 +835,4 @@ class RubricItem(db.Model):
             'col': self.col,
             'description': self.description,
             'points': self.points,
-            'rubricrow_id': self.rubricrow_id
         }
