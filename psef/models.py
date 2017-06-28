@@ -87,6 +87,27 @@ class CourseRole(db.Model):
             'id': self.id,
         }
 
+    def set_permission(self, perm, should_have):
+        """Set the given permission to the given value.
+
+        :param bool should_have: If this role should have this permission
+        :param Permission perm: The permission this role should (not) have.
+        :rtype None:
+        """
+        try:
+            if perm.default_value:
+                if should_have:
+                    self._permissions.pop(perm.name)
+                else:
+                    self._permissions[perm.name] = perm
+            else:
+                if should_have:
+                    self._permissions[perm.name] = perm
+                else:
+                    self._permissions.pop(perm.name)
+        except KeyError:
+            pass
+
     def has_permission(self, permission):
         if isinstance(permission, Permission):
             permission_name = permission.name
