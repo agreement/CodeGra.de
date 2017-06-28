@@ -88,6 +88,12 @@ class CourseRole(db.Model):
         }
 
     def set_permission(self, perm, should_have):
+        """Set the given permission to the given value.
+
+        :param bool should_have: If this role should have this permission
+        :param Permission perm: The permission this role should (not) have.
+        :rtype None:
+        """
         try:
             if perm.default_value:
                 if should_have:
