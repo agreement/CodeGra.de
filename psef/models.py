@@ -395,7 +395,8 @@ class Work(db.Model):
         }
 
         try:
-            auth.ensure_permission('can_see_assignee', self.assignment.course_id)
+            auth.ensure_permission('can_see_assignee',
+                                   self.assignment.course_id)
             item['assignee'] = self.assignee
         except auth.PermissionException:
             item['assignee'] = False
@@ -725,8 +726,8 @@ class Assignment(db.Model):
     def get_all_latest_submissions(self):
         sub = db.session.query(
             Work.user_id.label('user_id'),
-            func.max(Work.created_at).label('max_date')).group_by(
-                Work.user_id).subquery('sub')
+            func.max(Work.created_at).label('max_date')).filter_by(
+                assignment_id=self.id).group_by(Work.user_id).subquery('sub')
         return db.session.query(Work).join(
             sub,
             and_(sub.c.user_id == Work.user_id,
