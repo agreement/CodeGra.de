@@ -466,6 +466,15 @@ class Work(db.Model):
         Deselects the selected rubric item (if any) for the given row for this
         Work.
         """
+        """Deselect selected rubric item on row.
+
+        Deselects the selected rubric item on the given row with _row_id_  (if
+        there are any selected).
+
+        :param int row_id: The id of the RubricRow from which to deselect
+                           rubric items
+        :rtype: None
+        """
         rubricitem = db.session.query(RubricItem).join(
             work_rubric_item,
             RubricItem.id == work_rubric_item.c.rubricitem_id).filter(
@@ -478,10 +487,7 @@ class Work(db.Model):
         """
         Selects the given rubric item.
         """
-        if isinstance(rubricitem, RubricItem):
-            self.selected_items.append(rubricitem)
-        else:
-            raise TypeError('The given rubricitem is invalid!)
+        self.selected_items.append(rubricitem)
 
 
 class File(db.Model):
@@ -764,8 +770,11 @@ class Assignment(db.Model):
                      Work.assignment_id == self.id).all()
 
     def get_rubric(self):
-        """
-        Returns the full rubric for the current assignment.
+        """Get rubric.
+
+        Returns the rubric corresponding to the current assignment.
+
+        :rtype: [dict[str, str, [RubricItem, ...]], ...]
         """
         rubric_rows = db.session.query(RubricRow).filter_by(
             assignment_id=self.id).all()
