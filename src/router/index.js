@@ -68,17 +68,28 @@ const router = new Router({
     ],
 });
 
+// Stores path of page that requires login when user is not
+// logged in, so we can restore it when the user logs in.
+let restorePath = '';
+
 router.beforeEach((to, from, next) => {
-    if (!store.getters['user/loggedIn'] &&
-        to.path !== '/login' &&
-        to.name !== 'home') {
+    const loggedIn = store.getters['user/loggedIn'];
+    if (loggedIn && restorePath) {
+        // Reset restorePath before calling (synchronous) next.
+        const path = restorePath;
+        restorePath = '';
+        next({ path });
+    } else if (!loggedIn && to.path !== '/login' && to.name !== 'home') {
         store.dispatch('user/verifyLogin').then(() => {
             next();
         }).catch(() => {
+            // Store path so we can go to the requested route
+            // when the user is logged in.
+            restorePath = to.path;
             next('/login');
         });
-    } else if (store.getters['user/loggedIn'] && to === '/login') {
-        next({ name: 'home' });
+    } else if (loggedIn && to.name === 'login') {
+        next('/');
     } else {
         next();
     }
