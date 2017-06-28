@@ -1,7 +1,10 @@
 <template>
-    <loader :class="`col-md-12 text-center`" v-if="loading < 2"></loader>
+    <loader :class="`col-md-12 text-center`" v-if="loading < 3">
+    </loader>
     <div class="page submission-list" v-else>
-        <h1>Submissions for {{ assignment.name }}</h1>
+        <h1>Submissions for {{ assignment.name }} in
+            <router-link :to="{ name: 'assignments', query: { q: course.name }}">{{ course.name }}</router-link>
+        </h1>
         <submission-list :assignment="assignment" :submissions="submissions" :canDownload="canDownload"></submission-list>
         <code-uploader :assignment="assignment" v-if="canUpload"></code-uploader>
     </div>
@@ -26,6 +29,7 @@ export default {
             submissions: [],
             canUpload: false,
             assignment: null,
+            course: null,
             canDownload: false,
             showAssignedFilter: false,
         };
@@ -44,6 +48,11 @@ export default {
             }
         });
 
+        this.$http.get(`/api/v1/courses/${this.courseId}`).then(({ data }) => {
+            this.course = data;
+            partDone();
+        });
+
         this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then((data) => {
             this.assignment = data.data;
             this.assignment.id = this.assignmentId;
@@ -59,6 +68,12 @@ export default {
                 partDone();
             });
         });
+    },
+
+    computed: {
+        courseLink() {
+            return `/assignments?q=${this.course.name}`;
+        },
     },
 
     methods: {
