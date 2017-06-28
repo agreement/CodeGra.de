@@ -22,7 +22,7 @@ Key Features
   ![](manual_data/linter.ogv)
 * integration with LTI (Canvas/Blackboard)
 * feedback snippets
-  ![](manual_data/snippet.ogv)
+  ![](manual_data/snippet.webm)
 
 
 Pages
