@@ -23,7 +23,7 @@ Key Features
 * integration with LTI (Canvas/Blackboard)
 * feedback snippets
 <div class="video-container">
-<video src="manual_data/snippet.webm" width="400" controls="true" data-setup="{}"></video><p><a href="/PSE1617B/pse1617b/raw/172-add-manual/docs/manual_data/snippet.webm" target="_blank" title="Download ''"></a></p>
+<video src="manual_data/snippet.webm" width="400" controls="true" data-setup="{}"></video><p><a href="manual_data/snippet.webm" target="_blank" title="Download ''"></a></p>
 </div>
 
 
