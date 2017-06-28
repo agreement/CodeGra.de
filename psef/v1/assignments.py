@@ -24,11 +24,14 @@ def get_student_assignments():
     """
     Get all the student assignments that the current user can see.
     """
-    perm = models.Permission.query.filter_by(
+    perm_can_see = models.Permission.query.filter_by(
         name='can_see_assignments').first()
+    perm_can_grade = models.Permission.query.filter_by(
+        name='can_grade_work').first()
     courses = []
+
     for course_role in current_user.courses.values():
-        if course_role.has_permission(perm):
+        if course_role.has_permission(perm_can_see):
             courses.append(course_role.course_id)
 
     res = []
@@ -39,7 +42,6 @@ def get_student_assignments():
             if ((not assignment.is_hidden) or current_user.has_permission(
                     'can_see_hidden_assignments', assignment.course_id)):
                 res.append(assignment)
-
     return jsonify(res)
 
 
@@ -271,8 +273,8 @@ def get_all_works_for_assignment(assignment_id):
             assignment_id=assignment_id, user_id=current_user.id)
 
     if assignment.is_hidden:
-        current_user.has_permission('can_see_hidden_assignments',
-                                    assignment.course_id)
+        auth.ensure_permission('can_see_hidden_assignments',
+                               assignment.course_id)
 
     res = obj.order_by(models.Work.created_at.desc()).all()
 

@@ -23,12 +23,12 @@
             <template slot="actions" scope="item">
                 <div class="row">
                     <b-tooltip placement="bottom" :delay="500" content="View assignments">
-                        <b-btn size="sm" variant="success" @click="gotoCourse(item.item)">
+                        <b-btn size="sm" variant="success" @click.stop="gotoCourse(item.item)">
                             <icon name="list"></icon>
                         </b-btn>
                     </b-tooltip>
                     <b-tooltip placement="bottom" :delay="500" content="Manage course">
-                        <b-btn v-if="item.item.manageable" @click="gotoCourseEdit(item.item) "size="sm" variant="warning">
+                        <b-btn v-if="item.item.manageable" @click.stop="gotoCourseEdit(item.item) "size="sm" variant="warning">
                             <icon name="pencil"></icon>
                         </b-btn>
                     </b-tooltip>
