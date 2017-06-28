@@ -19,7 +19,15 @@
 
             <template slot="CourseRole" scope="item">
                 <loader :scale="1" v-if="updating[item.item.User.id]"/>
-                <b-dropdown :text="item.value.name" v-else>
+                <b-popover content="You cannot change your own role"
+                           triggers="hover"
+                           v-if="item.item.User.name == userName">
+                    <b-dropdown :text="item.value.name"
+                                disabled/>
+                </b-popover>
+                <b-dropdown :text="item.value.name"
+                            :disabled="item.item.User.name == userName"
+                            v-else>
                     <b-dropdown-header>Select the new role</b-dropdown-header>
                     <b-dropdown-item v-for="role in roles"
                                      v-on:click="changed(item.item, role)"
@@ -61,6 +69,7 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/pencil';
@@ -98,6 +107,12 @@ export default {
                 },
             },
         };
+    },
+
+    computed: {
+        ...mapGetters('user', {
+            userName: 'name',
+        }),
     },
 
     methods: {

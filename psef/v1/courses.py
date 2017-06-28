@@ -112,10 +112,10 @@ def get_all_course_roles(course_id):
     if request.args.get('with_roles') == 'true':
         res = []
         for course in courses:
-            perms = course.get_all_permissions()
-            course = course.__to_json__()
-            course['perms'] = perms
-            res.append(course)
+            json_course = course.__to_json__()
+            json_course['perms'] = course.get_all_permissions()
+            json_course['own'] = current_user.courses[course.course_id] == course
+            res.append(json_course)
         courses = res
     return jsonify(courses)
 
