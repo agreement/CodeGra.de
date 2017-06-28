@@ -19,6 +19,10 @@ Key Features
 * line by line (inline) feedback
   ![](https://i.imgur.com/3yPRL3u.gif)
 * linters
+<video controls="controls">
+    <source type="video/ogv" src="manual_data/linters.ogv"></source>
+    <p>Your browser does not support the video element.</p>
+</video>
 * integration with LTI (Canvas/Blackboard)
 * feedback snippets
 
