@@ -8,6 +8,7 @@
                                    content="Grade have to be between 0 and 10">
                             <b-button :variant="submitted ? 'success' : 'primary'"
                                       v-on:click="putFeedback"
+                                      class="grade-submit"
                                       :disabled="grade < 0 || grade > 10">
                                 <loader :scale="1" v-if="submitting"/>
                                 <span v-else>Submit all</span>
@@ -45,6 +46,8 @@
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/refresh';
 import { mapActions, mapGetters } from 'vuex';
+
+import Loader from './Loader';
 
 export default {
     name: 'grade-viewer',
@@ -123,6 +126,13 @@ export default {
 
     components: {
         Icon,
+        Loader,
     },
 };
 </script>
+
+<style lang="less">
+.grade-viewer .grade-submit .loader {
+    height: 1.25rem;
+}
+</style>
