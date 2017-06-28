@@ -9,9 +9,15 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 import { AssignmentList, Loader } from '@/components';
 import moment from 'moment';
+
+import { setTitle } from './title';
+
+function formatDate(d) {
+    return moment.utc(d, moment.ISO_8601).local().format('YYYY-MM-DD HH:mm');
+}
 
 export default {
     name: 'assignment-list-page',
@@ -24,19 +30,30 @@ export default {
     },
 
     mounted() {
-        this.$http.get('/api/v1/assignments/').then(({ data }) => {
+        setTitle('Assignments');
+
+        Promise.all([
+            this.$http.get('/api/v1/assignments/'),
+            this.$http.get('/api/v1/login?type=roles'),
+        ]).then(([assignments, roles]) => {
             this.loading = false;
-            for (let i = 0, len = data.length; i < len; i += 1) {
-                data[i].deadline = moment.utc(data[i].deadline, moment.ISO_8601).local().format('YYYY-MM-DD HH:mm');
-                data[i].created_at = moment.utc(data[i].created_at, moment.ISO_8601).local().format('YYYY-MM-DD HH:mm');
-            }
-            this.assignments = data;
+            this.assignments = assignments.data.map((assig) => {
+                assig.course.role = roles.data[assig.course.id];
+                assig.deadline = formatDate(assig.deadline);
+                assig.created_at = formatDate(assig.created_at);
+                return assig;
+            });
         });
     },
 
     components: {
         AssignmentList,
         Loader,
+    },
+    methods: {
+        ...mapActions({
+            hasPermission: 'user/hasPermission',
+        }),
     },
     computed: {
         ...mapGetters('user', [

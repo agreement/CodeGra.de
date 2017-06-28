@@ -2,7 +2,9 @@ import Vue from 'vue';
 import Router from 'vue-router';
 import store from '@/store';
 import { Assignments, Courses, Home, Login, ManageCourse, Submission, Submissions, User } from '@/pages';
-import { NewCourse } from '@/components';
+import { NewCourse, UsersManager } from '@/components';
+
+import { setTitle } from '@/pages/title';
 
 Vue.use(Router);
 
@@ -65,20 +67,40 @@ const router = new Router({
             name: 'new-course',
             component: NewCourse,
         },
+        {
+            path: '/manage-permissions/:courseId/',
+            name: 'manage-permissions',
+            component: UsersManager,
+        },
     ],
 });
 
+// Stores path of page that requires login when user is not
+// logged in, so we can restore it when the user logs in.
+let restorePath = '';
+
 router.beforeEach((to, from, next) => {
-    if (!store.getters['user/loggedIn'] &&
-        to.path !== '/login' &&
-        to.name !== 'home') {
+    // Unset page title. Pages will set  title,
+    // this is mostly to catch pages that don't.
+    setTitle();
+
+    const loggedIn = store.getters['user/loggedIn'];
+    if (loggedIn && restorePath) {
+        // Reset restorePath before calling (synchronous) next.
+        const path = restorePath;
+        restorePath = '';
+        next({ path });
+    } else if (!loggedIn && to.path !== '/login' && to.name !== 'home') {
         store.dispatch('user/verifyLogin').then(() => {
             next();
         }).catch(() => {
+            // Store path so we can go to the requested route
+            // when the user is logged in.
+            restorePath = to.path;
             next('/login');
         });
-    } else if (store.getters['user/loggedIn'] && to === '/login') {
-        next({ name: 'home' });
+    } else if (loggedIn && to.name === 'login') {
+        next('/');
     } else {
         next();
     }
