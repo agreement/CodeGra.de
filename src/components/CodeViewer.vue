@@ -4,7 +4,7 @@
     </b-alert>
     <loader class="text-center" v-else-if="loading"></loader>
     <ol class="code-viewer form-control" v-else :class="{ editable: editable }"
-        @click="onClick">
+        @click="onClick" ref="viewer">
         <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
             :class="{ 'linter-feedback-outer': linterFeedback[i] }" v-bind:key="i">
 
@@ -86,6 +86,7 @@ export default {
 
     mounted() {
         this.getCode();
+        this.oldFileId = this.fileId;
     },
 
     watch: {
@@ -93,13 +94,13 @@ export default {
             if (!this.loading && !this.error) {
                 // Save old scroll position
                 const viewer = this.$refs.viewer;
-
                 this.scrollPos[this.oldFileId] = {
                     scrollLeft: viewer.scrollLeft,
                     scrollTop: viewer.scrollTop,
                 };
             }
             this.oldFileId = this.fileId;
+
 
             this.loading = true;
             this.getCode();
