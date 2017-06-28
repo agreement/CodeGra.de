@@ -95,6 +95,13 @@ def update_role(course_id, role_id):
             'The fole with name "{permission}" was not found'.format(
                 **content), APICodes.OBJECT_NOT_FOUND, 404)
 
+    if (current_user.courses[course_id].id == role.id and
+            role.name == 'can_manage_course'):
+        raise APIException('You remove this permission from your own role', (
+            'The current user is in role {} which'
+            ' cannot remove "can_manage_course"').format(role.id),
+                           APICodes.INCORRECT_PERMISSION, 403)
+
     role.set_permission(perm, content['value'])
 
     db.session.commit()
@@ -114,7 +121,8 @@ def get_all_course_roles(course_id):
         for course in courses:
             json_course = course.__to_json__()
             json_course['perms'] = course.get_all_permissions()
-            json_course['own'] = current_user.courses[course.course_id] == course
+            json_course['own'] = current_user.courses[
+                course.course_id] == course
             res.append(json_course)
         courses = res
     return jsonify(courses)
@@ -153,6 +161,12 @@ def set_course_permission_user(course_id):
                                'The user {user_id} was not found'.format(
                                    **content), APICodes.OBJECT_ID_NOT_FOUND,
                                404)
+
+        if user.id == current_user.id:
+            raise APIException(
+                'You cannot change your own role',
+                'The user requested and the current user are the same',
+                APICodes.INCORRECT_PERMISSION, 403)
 
         res = '', 204
     else:
