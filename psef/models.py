@@ -363,6 +363,9 @@ class Course(db.Model):
         return {'id': self.id, 'name': self.name}
 
     def ensure_default_roles(self):
+        """
+        Ensures that the default roles for this course exist.
+        """
         for name, perms in CourseRole.get_default_course_roles().items():
             if not db.session.query(
                     CourseRole.query.filter_by(name=name, course_id=self.id)
