@@ -112,7 +112,8 @@ def get_zip(work):
 
         response = make_response(fp.read())
         response.headers['Content-Type'] = 'application/zip'
-        filename = 'CG_archive.zip'
+        filename = '{}-{}-archive.zip'.format(work.assignment.name,
+                                           work.user.name)
         response.headers[
             'Content-Disposition'] = 'attachment; filename=' + filename
         return response
