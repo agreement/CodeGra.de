@@ -23,3 +23,14 @@ export default {
     },
 };
 </script>
+
+<style lang="less" scoped>
+.loader {
+    display: -webkit-flex; /* Safari */
+    display: flex;
+    -webkit-align-items: center; /* Safari 7.0+ */
+    align-items: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+}
+</style>

@@ -2,7 +2,7 @@ import Vue from 'vue';
 import Router from 'vue-router';
 import store from '@/store';
 import { Assignments, Courses, Home, Login, ManageCourse, Submission, Submissions, User } from '@/pages';
-import { NewCourse } from '@/components';
+import { NewCourse, ManageUsers } from '@/components';
 
 Vue.use(Router);
 
@@ -64,6 +64,11 @@ const router = new Router({
             path: '/add-course',
             name: 'new-course',
             component: NewCourse,
+        },
+        {
+            path: '/manage-users/:courseId/',
+            name: 'manage-user',
+            component: ManageUsers,
         },
     ],
 });
