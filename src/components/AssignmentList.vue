@@ -4,7 +4,7 @@
             <b-input-group>
                 <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"/>
                 <b-form-checkbox class="input-group-addon" v-model="checkbox_student">student</b-form-checkbox>
-                <b-form-checkbox class="input-group-addon" v-model="checkbox_assistant">assistant</b-form-checkbox>
+                <b-form-checkbox class="input-group-addon" v-model="checkbox_assistant">ta</b-form-checkbox>
                 <b-input-group-button class="buttons">
                     <b-popover placement="top" triggers="hover" content="Hidden" v-if="canSeeHidden">
                         <b-button class="btn-info" :class="{ 'btn-outline-info': !toggles.hidden}"
