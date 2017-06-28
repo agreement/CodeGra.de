@@ -363,8 +363,11 @@ class Course(db.Model):
         return {'id': self.id, 'name': self.name}
 
     def ensure_default_roles(self):
-        """
-        Ensures that the default roles for this course exist.
+        """Ensures that the default roles for this course exist.
+
+        All changes to the object are not committed to the database.
+
+        :rtype: None
         """
         for name, perms in CourseRole.get_default_course_roles().items():
             if not db.session.query(
