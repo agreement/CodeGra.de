@@ -365,7 +365,7 @@ class Work(db.Model):
     def grade(self, new_grade):
         from psef.lti import LTI
         self._grade = new_grade
-        if self.assignment.course.lti_provider:
+        if self.assignment and self.assignment.course.lti_provider:
             lti_provider = self.assignment.course.lti_provider
             LTI.passback_grade(
                 lti_provider.key,

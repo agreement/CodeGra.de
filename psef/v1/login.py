@@ -49,6 +49,10 @@ def login():
 @api.route("/login", methods=["GET"])
 @login_required
 def me():
+    if request.args.get('type') == 'roles':
+        return jsonify({
+            role.course_id: role.name for role in current_user.courses.values()
+        })
     return jsonify(current_user)
 
 
