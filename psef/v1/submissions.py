@@ -59,7 +59,10 @@ def get_rubric(submission_id):
         'selected': work.get_selected_rubric_items()
     })
 
-@api.route("/submissions/<int:submission_id>/rubricitems/<int:rubricitem_id>", methods=['PATCH'])
+
+@api.route(
+    "/submissions/<int:submission_id>/rubricitems/<int:rubricitem_id>",
+    methods=['PATCH'])
 def select_rubric_item(submission_id, rubricitem_id):
     """
     Select given rubric item of submission X.
@@ -79,9 +82,10 @@ def select_rubric_item(submission_id, rubricitem_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     auth.ensure_permission('can_grade_work', work.assignment.course.id)
-    same_row_item = work.get_selected_rubric_items(rubric_item.rubricrow_id)
-    if same_row_item is not None:
-        #remove this selection
+    work.remove_selected_rubric_item(rubric_item.rubricrow_id)
+    work.select_rubric_item(rubric_item)
+
+    return ('', 204)
 
 
 def get_feedback(work):

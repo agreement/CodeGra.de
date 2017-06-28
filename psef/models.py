@@ -36,10 +36,10 @@ user_course = db.Table('users-courses',
                        db.Column('user_id', db.Integer,
                                  db.ForeignKey('User.id', ondelete='CASCADE')))
 
-user_rubricitem = db.Table('user_rubricitem',
-                           db.Column('user_id', db.Integer,
+work_rubricitem = db.Table('work_rubricitem',
+                           db.Column('work_id', db.Integer,
                                      db.ForeignKey(
-                                         'User.id', ondelete='CASCADE')),
+                                         'Work.id', ondelete='CASCADE')),
                            db.Column('rubricitem_id', db.Integer,
                                      db.ForeignKey(
                                          'RubricItem.id', ondelete='CASCADE')))
@@ -293,6 +293,7 @@ class Work(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     assigned_to = db.Column('assigned_to', db.Integer,
                             db.ForeignKey('User.id'))
+    selected_items = db.relationship('RubricItem', secondary=work_rubricitem)
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', single_parent=True, foreign_keys=user_id)
@@ -362,18 +363,21 @@ class Work(db.Model):
                         is_directory=False,
                         parent=new_top))
 
-    def get_selected_rubric_items(self, row_id=None):
-        if row_id == None:
-            return db.session.query(RubricItem.id).join(
-                user_rubricitem,
-                RubricItem.id == user_rubricitem.c.rubricitem_id).filter_by(
-                    user_id=self.user_id).all()
-        else:
-            return db.session.query(RubricItem.id).join(
-                user_rubricitem,
-                RubricItem.id == user_rubricitem.c.rubricitem_id).filter(
-                    user_rubricitem.c.user_id == self.user_id,
-                    RubricItem.rubricrow_id == row_id).all()
+    def get_selected_rubric_items(self):
+        return self.selected_items
+
+    def remove_selected_rubric_item(self, row_id):
+        rubricitem = db.session.query(RubricItem).join(
+            work_rubricitem,
+            RubricItem.id == work_rubricitem.c.rubricitem_id).filter(
+                work_rubricitem.c.work_id == self.id,
+                RubricItem.rubricrow_id == row_id).first()
+        if rubricitem is not None:
+            self.selected_items.remove(rubricitem)
+
+    def select_rubric_item(self, rubricitem):
+        if isinstance(rubricitem, RubricItem):
+            selected_items.append(rubricitem)
 
 
 class File(db.Model):
@@ -695,6 +699,7 @@ class RubricRow(db.Model):
             'header': self.header,
             'description': self.description
         }
+
 
 class RubricItem(db.Model):
     __tablename__ = 'RubricItem'
