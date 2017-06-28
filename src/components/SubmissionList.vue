@@ -103,7 +103,7 @@ export default {
         }),
 
         exportFilename() {
-            return this.assignment ? `${this.assignment.course_name}-${this.assignment.name}.csv` : null;
+            return this.assignment ? `${this.assignment.course.name}-${this.assignment.name}.csv` : null;
         },
     },
 

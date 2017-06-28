@@ -32,36 +32,17 @@ export default {
     mounted() {
         setTitle('Assignments');
 
-        let courseRoles = null;
-        let assignments = null;
-        // I cant use this.assignments because as soon as this.assignments
-        // is set, it will pass its value to the AssignmentList components\
-        // which then wont have all the data needed
-        const request1 = this.$http.get('/api/v1/assignments/').then(({ data }) => {
-            assignments = data;
-
-            return Promise.all(assignments.map((ass) => {
-                ass.deadline = formatDate(ass.deadline);
-                ass.created_at = formatDate(ass.created_at);
-                return this.hasPermission({
-                    name: 'can_grade_work',
-                    course_id: ass.course_id,
-                }).then((response) => {
-                    ass.can_grade = response;
-                });
-            }));
-        });
-        const request2 = this.$http.get('/api/v1/login?type=roles').then(({ data }) => {
-            courseRoles = data;
-        });
-
-        Promise.all([request1, request2]).then(() => {
-            for (let i = 0, len = assignments.length; i < len; i += 1) {
-                const assignment = assignments[i];
-                assignment.course_role = courseRoles[assignment.course_id];
-            }
+        Promise.all([
+            this.$http.get('/api/v1/assignments/'),
+            this.$http.get('/api/v1/login?type=roles'),
+        ]).then(([assignments, roles]) => {
             this.loading = false;
-            this.assignments = assignments;
+            this.assignments = assignments.data.map((assig) => {
+                assig.course.role = roles.data[assig.course.id];
+                assig.deadline = formatDate(assig.deadline);
+                assig.created_at = formatDate(assig.created_at);
+                return assig;
+            });
         });
     },
 
