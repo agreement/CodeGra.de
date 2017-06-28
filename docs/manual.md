@@ -22,9 +22,7 @@ Key Features
   ![](manual_data/linter.ogv)
 * integration with LTI (Canvas/Blackboard)
 * feedback snippets
-<div class="video-container">
-<video src="manual_data/snippet.webm" width="400" controls="true" data-setup="{}"></video><p><a href="manual_data/snippet.webm" target="_blank" title="Download ''"></a></p>
-</div>
+  ![](manual_data/snippet.webm)
 
 
 Pages
