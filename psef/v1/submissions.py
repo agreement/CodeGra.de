@@ -1,3 +1,9 @@
+"""
+This module defines all API routes with the main directory "submissions". The
+APIs allow the retrieving, and patching of :class: Work objects. Furthermore
+functions are defined to get related objects and information.
+"""
+
 import os
 import zipfile
 import tempfile
@@ -20,8 +26,18 @@ def get_submission(submission_id):
     """
     Return submission X if the user permission is valid.
 
-    Raises APIException:
-        - If submission X was not found
+    :param submission_id: The id of the submission
+    :type submission_id: int
+
+    :returns: A response with the JSON serialized submission as content
+    :rtype: Response
+
+    :raises APIException: if the submission with given id does not exist
+        (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the submission does not belong to the
+        current user and the user can not see others work in the attached
+        course (INCORRECT_PERMISSION)
     """
     work = db.session.query(models.Work).get(submission_id)
 
@@ -46,6 +62,11 @@ def get_submission(submission_id):
 def get_feedback(work):
     """
     Get the feedback of work as a plain text file.
+
+    :param work: The submission with the required feedback
+    :type work: Work
+    :returns: A response with the plain text feedback as attached file
+    :rtype: Response
     """
     comments = models.Comment.query.filter(
         models.Comment.file.has(work=work)).order_by(
@@ -89,8 +110,14 @@ def get_zip(work):
     """
     Return a zip file of a submission.
 
-    Raises APIException:
-        - If the submission is None.
+    :param work: The submission which should be returns as zip file
+    :type work: Work
+    :returns: A response with the zip as attached file
+    :rtype: Response
+
+    :raises PermissionException: if submission does not belong to the current
+        user and the user can not view files in the attached course
+        (INCORRECT_PERMISSION)
     """
     if (work.user.id != current_user.id):
         auth.ensure_permission('can_view_files', work.assignment.course.id)
@@ -124,10 +151,18 @@ def patch_submission(submission_id):
     Update submission X if it already exists and if the user permission is
     valid.
 
-    Raises APIException:
-        - If submission X was not found
-        - request file does not contain grade and/or feedback
-        - request file grade is not a float
+    :param submission_id: The id of the submission
+    :type submission_id: int
+
+    :raise APIException: if the submission with the given id does not exist
+        (OBJECT_ID_NOT_FOUND)
+    :raise APIException: if the request does not contain the parameters "grade"
+        and/or "feedback" (MISSING_REQUIRED_PARAM)
+    :raise APIException: if the value of the "grade" parameter is not a float
+        (INVALID_PARAM)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if user can not grade the submission with the
+        given id (INCORRECT_PERMISSION)
     """
     work = db.session.query(models.Work).get(submission_id)
     content = request.get_json()
@@ -164,10 +199,23 @@ def get_dir_contents(submission_id):
     """
     Return the object containing all the files of submission X
 
-    Raises APIException:
-        - If there are no files to be returned
-        - If the submission id does not match the work id
-        - If the file with code {} is not a directory
+    :param submission_id: The id of the submission
+    :type submission_id: int
+    :returns: A response with the JSON serialized directory structure as
+        content and return code 200
+    :rtype: (Response, int)
+
+    :raise APIException: if the submission with the given id does not exist or
+        when a file id was specified no file with this id exists
+        (OBJECT_ID_NOT_FOUND)
+    :raises APIException: when a file id is specified and the submission id
+        does not match the submission id of the file (INVALID_URL)
+    :raises APIException: when a file id is specified and the file with that id
+        is not a directory (OBJECT_WRONG_TYPE)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if submission does not belong to the current
+        user and the user can not view files in the attached course
+        (INCORRECT_PERMISSION)
     """
     work = models.Work.query.get(submission_id)
     if work is None:

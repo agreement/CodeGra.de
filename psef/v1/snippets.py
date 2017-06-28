@@ -1,3 +1,9 @@
+"""
+This module defines all API routes with the main directory "snippet" or
+"snippets. These APIs can be used to add, modify, delete and retrieve the
+snippets of the current user.
+"""
+
 from flask import jsonify, request
 from flask_login import current_user
 
@@ -18,6 +24,12 @@ def add_snippet():
     :returns: A response containing the JSON serialized snippet and return
               code 201
     :rtype: (Response, int)
+
+    :raises APIException: if the parameters "key" and/or "value" were not in
+        the request (MISSING_REQUIRED_PARAM)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not user snippets
+        (INCORRECT_PERMISSION)
     """
     content = request.get_json()
     if 'key' not in content or 'value' not in content:
@@ -48,6 +60,10 @@ def get_snippets():
     :returns: The JSON serialized snippets or an empty response with return
               code 204
     :rtype: Response or (str, int)
+
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not user snippets
+        (INCORRECT_PERMISSION)
     """
     res = models.Snippet.get_all_snippets(current_user)
     if res:
@@ -66,6 +82,14 @@ def patch_snippet(snippet_id):
     :type snippet_id: int
     :returns: An empty response with return code 204
     :rtype: (str, int)
+
+    :raises APIException: if the parameters "key" and/or "value" were not in
+        the request (MISSING_REQUIRED_PARAM)
+    :raises APIException: if the snippet does not belong to the current user
+        (INCORRECT_PERMISSION)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not use snippets
+        (INCORRECT_PERMISSION)
     """
     content = request.get_json()
     if 'key' not in content or 'value' not in content:
@@ -101,6 +125,14 @@ def delete_snippets(snippet_id):
     :type snippet_id: int
     :returns: An empty response with return code 204
     :rtype: (str, int)
+
+    :raises APIException: if the snippet with the given id does not exist
+        (OBJECT_ID_NOT_FOUND)
+    :raises APIException: if the snippet does not belong the current user
+        (INCORRECT_PERMISSION)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not use snippets
+        (INCORRECT_PERMISSION)
     """
     snip = models.Snippet.query.get(snippet_id)
     if snip is None:

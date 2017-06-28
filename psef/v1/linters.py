@@ -1,3 +1,9 @@
+"""
+This module defines all API routes with the main directory "linters" and
+"linter_comments". These APIs are used to directly communicate about the  state
+of linters and their output.
+"""
+
 from flask import jsonify, request
 
 import psef.auth as auth
@@ -17,6 +23,11 @@ def put_linter_comment(token):
     :type token: ?
     :returns: An empty response with return code 204
     :rtype: (str, int)
+
+    :raises APIException: if the linter with the given token was not found
+        (OBJECT_ID_NOT_FOUND)
+    :raises APIExcpetion: if the "file" parameter was missing from the request
+        (MISSING_REQUIRED_PARAM)
     """
     unit = models.LinterInstance.query.get(token)
 
@@ -79,6 +90,12 @@ def delete_linter_output(linter_id):
     :type linter_id: int
     :returns: An empty response with return code 204
     :rtype: (str, int)
+
+    :raises APIException: if the linter with the given id does not exist
+        (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not use the linters in the
+        course attached to the linter with the given id (INCORRECT_PERMISSION)
     """
     linter = models.AssignmentLinter.query.get(linter_id)
 
@@ -104,6 +121,10 @@ def get_linter_state(linter_id):
     :type linter_id: int
     :returns: A response containing the JSON serialized linter
     :rtype: Response
+
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not use the linters in the
+        course attached to the linter with the given id (INCORRECT_PERMISSION)
     """
     # check for user rights
     perm = db.session.query(models.AssignmentLinter).get(linter_id)

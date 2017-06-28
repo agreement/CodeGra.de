@@ -1,3 +1,8 @@
+"""
+This module defines all API routes with the main directory "code". Thus the
+APIs are used to manipulate student submitted code and the related feedback.
+"""
+
 from flask import jsonify, request, make_response
 from flask_login import current_user, login_required
 
@@ -13,7 +18,7 @@ from . import api
 @api.route("/code/<int:id>/comments/<int:line>", methods=['PUT'])
 def put_comment(id, line):
     """
-    Create or change a single line comment of a code file
+    Create or change a single line comment of a code file.
 
     :param id: The id of the code file
     :type id: int
@@ -21,6 +26,10 @@ def put_comment(id, line):
     :type line: int
     :returns: An empty response with return code 204
     :rtype: (str, int)
+
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not can grade work in the
+        attached course (INCORRECT_PERMISSION)
     """
     content = request.get_json()
 
@@ -62,6 +71,12 @@ def remove_comment(id, line):
     :type line: int
     :returns: An empty response with return code 204
     :rtype: (str, int)
+
+    :raises APIException: if there is no comment at the given line number
+        (OBJECT_NOT_FOUND)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not can grade work in the
+        attached course (INCORRECT_PERMISSION)
     """
     comment = db.session.query(models.Comment).filter(
         models.Comment.file_id == id,
@@ -75,7 +90,7 @@ def remove_comment(id, line):
     else:
         raise APIException('Feedback comment not found',
                            'The comment on line {} was not found'.format(line),
-                           APICodes.OBJECT_ID_NOT_FOUND, 404)
+                           APICodes.OBJECT_NOT_FOUND, 404)
     return '', 204
 
 
@@ -89,6 +104,12 @@ def get_code(file_id):
     :type file_id: int
     :returns: A response containing a plain text file unless specified otherwise
     :rtype: Response
+
+    :raises APIException: if there is file with the given id
+        (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the file does not belong to user and the
+        user can not view files in the attached course (INCORRECT_PERMISSION)
     """
     file = db.session.query(models.File).filter(
         models.File.id == file_id).first()

@@ -1,3 +1,8 @@
+"""
+This module defines all API routes with the main directory "permissions". These
+APIs are used communicate the permissions users.
+"""
+
 import functools
 
 from flask import jsonify, request
@@ -17,6 +22,12 @@ def get_permissions():
     :returns: A response containing the JSON serialized permissions and return
               code 200
     :rtype: (Response, int)
+
+    :raises APIException: if the supplied course id was not a number
+        (INVALID_PARAM)
+    :raises APIException: if specified permission does not exist
+        (OBJECT_NOT_FOUND)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
     """
     course_id = request.args.get('course_id')
     if course_id:

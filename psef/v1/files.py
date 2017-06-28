@@ -1,3 +1,9 @@
+"""
+This module defines all API routes with the main directory "files". These APIs
+serve to upload and download temporary files which are not stored explicitly in
+the database.
+"""
+
 import os
 import threading
 
@@ -17,6 +23,14 @@ def post_file():
     """
     Temporarily store some data on the server.
     The posted data will be removed after 60 seconds.
+
+    :returns: A response with the JSON serialized name of the file as content
+        and return code 201
+    :rtype: (Response, int)
+
+    :raises APIException: if the request is bigger than the maximum upload size
+        (REQUEST_TOO_LARGE)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
     """
     if (request.content_length and
             request.content_length > app.config['MAX_UPLOAD_SIZE']):
@@ -40,6 +54,8 @@ def post_file():
 def get_file(file_name):
     """
     Serve some specific file in the uploads folder
+
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
     """
     name = request.args.get('name')
 

@@ -1,3 +1,8 @@
+"""
+This module defines all API routes with the main directory "courses". The APIs
+are used to create courses and return information about courses.
+"""
+
 from flask import jsonify, request
 from flask_login import current_user, login_required
 
@@ -103,6 +108,12 @@ def get_all_course_assignments(course_id):
     :type course_id: int
     :returns: A response containing the JSON serialized assignments
     :rtype: Response
+
+    :raises APIException: if there is no course with the given id
+        (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not see assignments in the
+        course with the given id (INCORRECT_PERMISSION)
     """
     auth.ensure_permission('can_see_assignments', course_id)
 
@@ -123,6 +134,12 @@ def add_course():
 
     :returns: A response containing the JSON serialization of the new course
     :rtype: Response
+
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not create courses
+        (INCORRECT_PERMISSION)
+    :raises APIException: if the parameter "name" is not in the request
+        (MISSING_REQUIRED_PARAM)
     """
     content = request.get_json()
 
@@ -146,6 +163,8 @@ def get_courses():
 
     :returns: A response containing the JSON serialized courses
     :rtype: Response
+
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
     """
     return jsonify([{
         'name': c.course.name,
