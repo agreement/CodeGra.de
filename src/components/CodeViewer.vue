@@ -4,9 +4,9 @@
     </b-alert>
     <loader class="text-center" v-else-if="loading"></loader>
     <ol class="code-viewer form-control" v-else :class="{ editable: editable }"
-        @click="onClick" ref="viewer">
+        @click="onClick">
         <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
-            :class="{ 'linter-feedback-outer': linterFeedback[i] }" v-bind:key="i">
+            :class="{ 'linter-feedback-outer': linterFeedback[i] }">
 
             <linter-feedback-area :feedback="linterFeedback[i]"></linter-feedback-area>
 
@@ -72,8 +72,6 @@ export default {
             linterFeedback: {},
             clicks: {},
             error: false,
-            oldFileId: 0,
-            scrollPos: {},
         };
     },
 
@@ -86,22 +84,10 @@ export default {
 
     mounted() {
         this.getCode();
-        this.oldFileId = this.fileId;
     },
 
     watch: {
         fileId() {
-            if (!this.loading && !this.error) {
-                // Save old scroll position
-                const viewer = this.$refs.viewer;
-                this.scrollPos[this.oldFileId] = {
-                    scrollLeft: viewer.scrollLeft,
-                    scrollTop: viewer.scrollTop,
-                };
-            }
-            this.oldFileId = this.fileId;
-
-
             this.loading = true;
             this.getCode();
         },
@@ -125,15 +111,6 @@ export default {
                     this.linkFiles();
                     this.loading = false;
                     this.error = false;
-                    this.$nextTick(() => {
-                        const viewer = this.$refs.viewer;
-
-                        const scrollTo = this.scrollPos[this.fileId];
-                        if (scrollTo) {
-                            viewer.scrollLeft = scrollTo.scrollLeft;
-                            viewer.scrollTop = scrollTo.scrollTop;
-                        }
-                    });
                 }
             };
 
@@ -262,7 +239,7 @@ export default {
             }
         },
         // eslint-disable-next-line
-        submitAllFeedback(event) { },
+        submitAllFeedback(event) {},
     },
 
     components: {
