@@ -120,17 +120,15 @@ class PyLintBear(Linter):
                 '--files', sourcedir, '--bears', 'PyLintBear', '-I'
             ],
             stdout=subprocess.PIPE).stdout.decode('utf8')
-        helpme(out)
+        for line in out.split('\n'):
+            if len(line) > 0:
+                line2 = line.split(None, 3)
+                try:
+                    Linter.emit(line2[0], int(line2[1]), line2[2], line2[3])
+                except ValueError:
+                    pass
 
-
-def helpme(out):
-    for line in out.split('\n'):
-        if len(line) > 0:
-            line2 = line.split(None, 3)
-            try:
-                Linter.emit(line2[0], int(line2[1]), line2[2], line2[3])
-            except ValueError:
-                pass    
+ 
 # html lint
 class HtmlLintBear(Linter):
     NAME = 'HTML Linter'
