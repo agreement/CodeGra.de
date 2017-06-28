@@ -80,9 +80,9 @@ const router = new Router({
 let restorePath = '';
 
 router.beforeEach((to, from, next) => {
-    // Set page title to UNTITLED. Pages will set another title,
+    // Unset page title. Pages will set  title,
     // this is mostly to catch pages that don't.
-    setTitle('UNTITLED');
+    setTitle();
 
     const loggedIn = store.getters['user/loggedIn'];
     if (loggedIn && restorePath) {
