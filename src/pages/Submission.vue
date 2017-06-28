@@ -20,7 +20,7 @@
                               v-on:gradeChange="gradeChange"
                               @submit="submitAllFeedback($event)"/>
             </div>
-            <file-tree-container class="col-lg-3" :fileTree="fileTree"></file-tree-container>
+            <file-tree-container class="col-lx-3" :fileTree="fileTree"></file-tree-container>
         </div>
     </div>
 </template>

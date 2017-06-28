@@ -271,8 +271,8 @@ def get_all_works_for_assignment(assignment_id):
             assignment_id=assignment_id, user_id=current_user.id)
 
     if assignment.is_hidden:
-        current_user.has_permission('can_see_hidden_assignments',
-                                    assignment.course_id)
+        auth.ensure_permission('can_see_hidden_assignments',
+                               assignment.course_id)
 
     res = obj.order_by(models.Work.created_at.desc()).all()
 
