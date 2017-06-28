@@ -6,6 +6,7 @@ import tempfile
 import traceback
 import subprocess
 import sys
+import glob
 
 import requests
 import sqlalchemy
@@ -38,8 +39,8 @@ class Pylint(Linter):
         cfg = os.path.join(tempdir, '.flake8')
         with open(cfg, 'w') as f:
             f.write(self.config)
-
-        # This is not guessable
+        print("TEMPDIR IS WOW:")
+        print(tempdir)
         sep = uuid.uuid4()
         fmt = '{1}{0}{2}{0}{3}{4}{0}{5}'.format(sep, '{path}', '{line}', '{C}',
                                                 '{msg_id}', '{msg}')
@@ -113,31 +114,27 @@ class PyFlakesB(Linter):
 
     def run(self, tempdir, emit):
         cfg = os.path.join(tempdir, '.flake8')
-        # cfg = os.path.join(tempdir)
         with open(cfg, 'w') as f:
             f.write(self.config)
 
         # This is not guessable
         sep = uuid.uuid4()
         fmt = '%(path)s{0}%(row)d{0}%(code)s{0}%(text)s'.format(sep)
-        # 'coala', '--format', '{line}, {message}', '--files', tempdir, '--bears', 'PyFlakesBear'
-        # print(tempdir)
-        # print(tempdir + "/*.py")
-        tempdir2 = tempdir + "/*.py"
+        tempdir2 = tempdir + "/**/*.*"
         out = subprocess.run(
             [
-                'coala', '--format', '{line}, {message}', '--files', tempdir2, '--bears', 'PyFlakesBear'
+                'coala', '--format', '{file}, {line}, {message}',  '--files', tempdir2, '--bears', 'PyFlakesBear'
             ],
             stdout=subprocess.PIPE).stdout.decode('utf8')
-        print(out)
         for line in out.split('\n'):
-            print(line)
             args = line.split(str(sep))
             if len(line) > 0:
-                line2 = line.split(None, 1)
+                line2 = line.split(None, 2)
+                b = (line2[1])[:-1]
                 try:
-                    emit(line2[1], int(line2[0]), *line2[1])
+                    emit((line2[0])[:-1], int(b), 'ERR', line2[2])
                 except ValueError:
+                    print(ValueError)
                     pass
 
 
