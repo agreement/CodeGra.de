@@ -16,6 +16,23 @@ from . import api
 
 @api.route('/courses/<int:course_id>/roles/<int:role_id>', methods=['DELETE'])
 def delete_role(course_id, role_id):
+    """
+    Add a new role to the given course.
+
+    :param course_id: The id of the course
+    :type course_id: int
+
+    :returns: An empty response with return code 204
+    :rtype: (str, int)
+
+    :raises APIException: if the role with the given ids does not exist
+        (OBJECT_NOT_FOUND)
+    :raises APIException: if there are still users with this role
+        (INVALID_PARAM)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not manage the course with the
+        given id (INCORRECT_PERMISSION)
+    """
     auth.ensure_permission('can_manage_course', course_id)
 
     role = models.CourseRole.query.filter_by(
@@ -41,6 +58,25 @@ def delete_role(course_id, role_id):
 
 @api.route('/courses/<int:course_id>/roles/', methods=['POST'])
 def add_role(course_id):
+    """
+    Add a new role to the given course.
+
+    :param course_id: The id of the course
+    :type course_id: int
+
+    :returns: An empty response with return code 204
+    :rtype: (str, int)
+
+    :raises APIException: if the name parameter was not in the request
+        (MISSING_REQUIRED_PARAM)
+    :raises APIException: if the course with the given id was not found
+        (OBJECT_NOT_FOUND)
+    :raises APIException: if the course already has a role with the submitted
+        name (INVALID_PARAM)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not manage the course with the
+        given id (INCORRECT_PERMISSION)
+    """
     auth.ensure_permission('can_manage_course', course_id)
 
     content = request.get_json()
@@ -74,6 +110,25 @@ def add_role(course_id):
 
 @api.route('/courses/<int:course_id>/roles/<int:role_id>', methods=['PATCH'])
 def update_role(course_id, role_id):
+    """
+    Update a permission of a specific course role in the given course.
+
+    :param course_id: The id of the course
+    :type course_id: int
+    :param role_id: The id of the role
+    :type role_id: int
+
+    :returns: An empty response with return code 204
+    :rtype: (str, int)
+
+    :raises APIException: if the value or permission parameter are not in the
+        request (MISSING_REQUIRED_PARAM)
+    :raises APIException: if the role with the given id does not exist or the
+        permission with the given name does not exist (OBJECT_NOT_FOUND)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not manage the course with the
+        given id (INCORRECT_PERMISSION)
+    """
     content = request.get_json()
 
     auth.ensure_permission('can_manage_course', course_id)
@@ -109,6 +164,19 @@ def update_role(course_id, role_id):
 
 @api.route('/courses/<int:course_id>/roles/', methods=['GET'])
 def get_all_course_roles(course_id):
+    """
+    Get a list of all course roles of a given course.
+
+    :param course_id: The id of the course
+    :type course_id: int
+
+    :returns: A response containing the JSON serialized course roles.
+    :rtype: Response
+
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not manage the course with the
+        given id (INCORRECT_PERMISSION)
+    """
     auth.ensure_permission('can_manage_course', course_id)
 
     courses = sorted(
@@ -127,6 +195,27 @@ def get_all_course_roles(course_id):
 
 @api.route('/courses/<int:course_id>/users/', methods=['PUT'])
 def set_course_permission_user(course_id):
+    """
+    Set the course role of a specific user.
+
+    :param course_id: The id of the course
+    :type course_id: int
+
+    :returns: If the user_id parameter is set in the request the response will
+        be empty with return code 204. Otherwise the response will contain the
+        JSON serialized user and course role with return code 201
+    :rtype: (Response, int) or (str, int)
+
+    :raises APIException: if the parameter role_id or not at least one of
+        user_id and user_email are in the request (MISSING_REQUIRED_PARAM)
+    :raises APIException: if no role with the given role_id or no user
+        with the supplied parameters exists (OBJECT_ID_NOT_FOUND)
+    :raises APIException: if the user was selected by email and the user is
+        already in the course (INVALID_PARAM)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not manage the course with the
+        given id (INCORRECT_PERMISSION)
+    """
     content = request.get_json()
 
     auth.ensure_permission('can_manage_course', course_id)
@@ -187,6 +276,21 @@ def set_course_permission_user(course_id):
 
 @api.route('/courses/<int:course_id>/users/', methods=['GET'])
 def get_all_course_users(course_id):
+    """
+    Return a list of all user and their course role in the given course.
+
+    :param course_id: The id of the course
+    :type course_id: int
+
+    :returns: A response containing the JSON serialized users and course roles
+    :rtype: Response
+
+    :raises APIException: if there is no course with the given id
+        (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not manage the course with the
+        given id (INCORRECT_PERMISSION)
+    """
     auth.ensure_permission('can_manage_course', course_id)
 
     users = db.session.query(models.User, models.CourseRole).join(
@@ -279,6 +383,16 @@ def get_courses():
 def get_course_data(course_id):
     """
     Return course data for a given course id
+
+    :param course_id: The id of the course
+    :type course_id: int
+
+    :returns: A response containing the JSON serialized course
+    :rtype: Response
+
+    :raises APIException: if there is no course with the given id
+        (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
     """
     for c in current_user.courses.values():
         if c.course.id == course_id:
