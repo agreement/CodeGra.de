@@ -40,13 +40,13 @@
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/cog';
 
-import * as Papa from 'papaparse';
+import Baby from 'babyparse';
 
 export default {
     name: 'submissions-exporter',
 
     components: {
-        Papa,
+        Baby,
         Icon,
     },
 
@@ -123,7 +123,7 @@ export default {
                 }
                 data.push(row);
             }
-            const csv = Papa.unparse({
+            const csv = Baby.unparse({
                 fields: this.enabledColumns.map(obj => obj.name),
                 data,
             });

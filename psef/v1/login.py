@@ -58,6 +58,10 @@ def me():
     :returns: A response containing the JSON serialized user
     :rtype: Response
     """
+    if request.args.get('type') == 'roles':
+        return jsonify({
+            role.course_id: role.name for role in current_user.courses.values()
+        })
     return jsonify(current_user)
 
 

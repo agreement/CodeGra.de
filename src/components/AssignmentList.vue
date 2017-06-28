@@ -3,6 +3,8 @@
         <b-form-fieldset class="table-control">
             <b-input-group>
                 <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"/>
+                <b-form-checkbox class="input-group-addon" v-model="checkbox_student">student</b-form-checkbox>
+                <b-form-checkbox class="input-group-addon" v-model="checkbox_assistant">ta</b-form-checkbox>
                 <b-input-group-button class="buttons">
                     <b-popover placement="top" triggers="hover" content="Hidden" v-if="canSeeHidden">
                         <b-button class="btn-info" :class="{ 'btn-outline-info': !toggles.hidden}"
@@ -47,6 +49,9 @@
                 :show-empty="true">
             <template slot="course_name" scope="item">
                 {{item.value ? item.value : '-'}}
+            </template>
+            <template slot="course_role" scope="item">
+                {{ item.value ? item.value : '-'}}
             </template>
             <template slot="name" scope="item">
                 {{item.value ? item.value : '-'}}
@@ -118,6 +123,10 @@ export default {
                     label: 'Course',
                     sortable: true,
                 },
+                course_role: {
+                    label: 'Role',
+                    sortable: true,
+                },
                 name: {
                     label: 'Assignment',
                     sortable: true,
@@ -132,6 +141,8 @@ export default {
                     class: 'text-center',
                 },
             },
+            checkbox_student: true,
+            checkbox_assistant: true,
         };
     },
 
@@ -146,6 +157,12 @@ export default {
 
     methods: {
         filterItems(item) {
+            if (!this.checkbox_student && !item.can_grade) {
+                return false;
+            } else if (!this.checkbox_assistant && item.can_grade) {
+                return false;
+            }
+
             if (!this.filterState(item)) {
                 return false;
             } else if (!this.filter) {
@@ -154,6 +171,7 @@ export default {
             const terms = {
                 name: item.name.toLowerCase(),
                 course_name: item.course_name.toLowerCase(),
+                course_role: item.course_role,
                 deadline: item.deadline,
             };
             return this.filter.toLowerCase().split(' ').every(word =>
