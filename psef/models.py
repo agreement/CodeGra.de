@@ -36,7 +36,7 @@ user_course = db.Table('users-courses',
                        db.Column('user_id', db.Integer,
                                  db.ForeignKey('User.id', ondelete='CASCADE')))
 
-work_rubricitem = db.Table('work_rubricitem',
+work_rubric_item = db.Table('work_rubric_item',
                            db.Column('work_id', db.Integer,
                                      db.ForeignKey(
                                          'Work.id', ondelete='CASCADE')),
@@ -293,7 +293,7 @@ class Work(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     assigned_to = db.Column('assigned_to', db.Integer,
                             db.ForeignKey('User.id'))
-    selected_items = db.relationship('RubricItem', secondary=work_rubricitem)
+    selected_items = db.relationship('RubricItem', secondary=work_rubric_item)
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', single_parent=True, foreign_keys=user_id)
@@ -368,9 +368,9 @@ class Work(db.Model):
 
     def remove_selected_rubric_item(self, row_id):
         rubricitem = db.session.query(RubricItem).join(
-            work_rubricitem,
-            RubricItem.id == work_rubricitem.c.rubricitem_id).filter(
-                work_rubricitem.c.work_id == self.id,
+            work_rubric_item,
+            RubricItem.id == work_rubric_item.c.rubricitem_id).filter(
+                work_rubric_item.c.work_id == self.id,
                 RubricItem.rubricrow_id == row_id).first()
         if rubricitem is not None:
             self.selected_items.remove(rubricitem)
