@@ -462,10 +462,6 @@ class Work(db.Model):
                         parent=new_top))
 
     def remove_selected_rubric_item(self, row_id):
-        """
-        Deselects the selected rubric item (if any) for the given row for this
-        Work.
-        """
         """Deselect selected rubric item on row.
 
         Deselects the selected rubric item on the given row with _row_id_  (if
