@@ -306,33 +306,45 @@ def post_submissions(assignment_id):
                            APICodes.INVALID_PARAM, 400)
 
     file = request.files['file']
-    submissions = psef.files.process_blackboard_zip(file)
+    try:
+        submissions = psef.files.process_blackboard_zip(file)
+    except:
+        raise APIException("The blackboard zip could not imported.",
+                           "The blackboard zip could not be parsed.",
+                           APICodes.INVALID_PARAM, 400)
+    try:
+        for submission_info, submission_tree in submissions:
+            user = models.User.query.filter_by(
+                name=submission_info.student_name).first()
 
-    for submission_info, submission_tree in submissions:
-        user = models.User.query.filter_by(
-            name=submission_info.student_name).first()
+            if user is None:
+                perms = {
+                    assignment.course.id:
+                    models.CourseRole.query.filter_by(
+                        name='Student', course_id=assignment.course.id).first()
+                }
+                user = models.User(
+                    name=submission_info.student_name,
+                    courses=perms,
+                    email=submission_info.student_name + '@example.com',
+                    password='password',
+                    role=models.Role.query.filter_by(name='Student').first())
 
-        if user is None:
-            perms = {
-                assignment.course.id:
-                models.CourseRole.query.filter_by(
-                    name='student', course_id=assignment.course.id).first()
-            }
-            user = models.User(
-                name=submission_info.student_name,
-                courses=perms,
-                email=submission_info.student_name + '@example.com',
-                password='password',
-                role=models.Role.query.filter_by(name='student').first())
-
-            db.session.add(user)
-        work = models.Work(
-            assignment_id=assignment.id,
-            user=user,
-            created_at=submission_info.created_at,
-            grade=submission_info.grade)
-        db.session.add(work)
-        work.add_file_tree(db.session, submission_tree)
+                db.session.add(user)
+            work = models.Work(
+                assignment_id=assignment.id,
+                user=user,
+                created_at=submission_info.created_at,
+                grade=submission_info.grade)
+            db.session.add(work)
+            work.add_file_tree(db.session, submission_tree)
+    except:
+        for _, tree in submissions:
+            psef.files.remove_tree(tree)
+        raise APIException("Could not add the submissions to the database.",
+                           "There was an unknown error while adding"
+                           "the submissions to the db session.",
+                           APICodes.UNKNOWN_ERROR, 400)
 
     db.session.commit()
 

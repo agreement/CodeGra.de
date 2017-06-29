@@ -464,7 +464,7 @@ class Work(db.Model):
         :rtype: None
         """
         self._grade = new_grade
-        if self.assignment.should_passback:
+        if self.assignment and self.assignment.should_passback:
             self.passback_grade()
 
     def __to_json__(self):

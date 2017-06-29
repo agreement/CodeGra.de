@@ -304,3 +304,23 @@ def create_csv_from_rows(rows):
         csv_writer = csv.writer(csv_output)
         csv_writer.writerows(rows)
     return csv_file
+
+
+def remove_tree(tree):
+    """Removes all files in the tree.
+
+    This removes all files in a tree as described by
+    :py:func`rename_directory_structure`
+
+    :param dict tree: Tree of files
+    :returns: Nothing
+    :rtype None:
+    """
+    if isinstance(tree, dict):
+        for key in tree.keys():
+            remove_tree(tree[key])
+    elif isinstance(tree, list):
+        for item in tree:
+            remove_tree(item)
+    else:
+        os.remove(os.path.join(app.config['UPLOAD_DIR'], tree[1]))
