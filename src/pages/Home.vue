@@ -96,6 +96,7 @@ export default {
         font-family: Montserrat,"Helvetica Neue",Helvetica,Arial,sans-serif;
     }
     position: fixed;
+    left: 0;
     width: 100%;
     height: 50vh;
 }
