@@ -213,6 +213,17 @@ export default {
 };
 </script>
 
+<style lang="less" scoped>
+input,
+textarea {
+    &:disabled {
+        color: black;
+        background-color: white;
+        cursor: text;
+    }
+}
+</style>
+
 <style lang="less">
 .grade-viewer .grade-submit .loader {
     height: 1.25rem;
