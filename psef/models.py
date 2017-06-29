@@ -273,6 +273,7 @@ class User(db.Model, UserMixin):
             for course_role in self.courses.values()
         }
 
+    @property
     def can_see_hidden(self):
         return self.has_course_permission_once('can_see_hidden_assignments')
 

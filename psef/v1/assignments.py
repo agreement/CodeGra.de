@@ -327,7 +327,7 @@ def post_submissions(assignment_id):
 
             db.session.add(user)
         work = models.Work(
-            assignment_id=assignment_id,
+            assignment_id=assignment.id,
             user=user,
             created_at=submission_info.created_at,
             grade=submission_info.grade)
