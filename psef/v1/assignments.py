@@ -110,6 +110,25 @@ def update_assignment(assignment_id):
 
     return '', 204
 
+@api.route('/assignments/<int:assignment_id>/rubrics/', methods=['GET'])
+def get_rubric(assignment_id):
+    assig = models.Assignment.query.get(assignment_id)
+    if assig is None:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with id "{}" was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_see_assignments', assig.course_id)
+
+    if len(assig.rubric_rows) == 0:
+        raise APIException(
+            'Assignment has no rubric',
+            'The assignment with id "{}" has no rubric'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    return assig.rubric_rows
+
 
 @api.route("/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id):
