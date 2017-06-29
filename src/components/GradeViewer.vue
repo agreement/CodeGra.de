@@ -2,7 +2,7 @@
     <div class="grade-viewer">
         <b-collapse
             id="rubric-collapse"
-            v-if="rubric">
+            v-if="showRubric">
             <rubric-viewer
                 v-model="rubricScore"
                 :editable="editable"
@@ -31,7 +31,7 @@
                         :disabled="!editable"
                         placeholder="Grade"
                         v-model="grade"
-                        v-if="!rubric">
+                        v-if="!showRubric">
                     </b-form-input>
                     <b-form-input
                         class="text-right"
@@ -40,7 +40,7 @@
                         v-else>
                     </b-form-input>
 
-                    <b-input-group-button v-if="rubric">
+                    <b-input-group-button v-if="showRubric">
                         <b-popover
                             placement="top"
                             triggers="hover"
@@ -108,6 +108,12 @@ export default {
             grade: 0,
             rubricScore: {},
         };
+    },
+
+    computed: {
+        showRubric() {
+            return this.rubric && this.rubric.rubrics.length;
+        },
     },
 
     watch: {
