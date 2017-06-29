@@ -19,10 +19,6 @@ def put_linter_comment(token):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     content = request.get_json()
-    print("token: ")
-    print(token)
-    print("content: ")
-    print(content)
 
     if 'crashed' in content:
         unit.state = models.LinterState.crashed

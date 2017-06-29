@@ -39,8 +39,6 @@ class Pylint(Linter):
         cfg = os.path.join(tempdir, '.flake8')
         with open(cfg, 'w') as f:
             f.write(self.config)
-        print("TEMPDIR IS WOW:")
-        print(tempdir)
         sep = uuid.uuid4()
         fmt = '{1}{0}{2}{0}{3}{4}{0}{5}'.format(sep, '{path}', '{line}', '{C}',
                                                 '{msg_id}', '{msg}')
@@ -99,14 +97,43 @@ class Flake8(Linter):
                     pass
 
 
-# de berenlinter template
-# TODO
-# de beer (of ik) kan nog niet niet overweg met de tempdir
-# netter parsen
-# verder standarblablaizeren voor template gebruik (go,java,c,blabla)
-class PyFlakesB(Linter):
-    NAME = 'PyFlakesBear'
-    DESCRIPTION = 'DO THE BEAR WOW'
+# BERENLINTERS
+
+# generic linter
+# unused, pass linterInterface model en doe je ding
+class GenericLinter(Linter):
+    NAME = "req_linter"
+    DESCRIPTION = 'req_linter'
+    DEFAULT_OPTIONS = {'Empty config file': ''}
+
+    def __init__(self, config, req):
+        self.config = config
+        self.req_linter = models.LinterInterface.query.filter_by(
+            key=self.req['name']).first()
+
+    def run(self, tempdir, emit):
+        cfg = os.path.join(tempdir, '.flake8')
+        with open(cfg, 'w') as f:
+            f.write(self.config)
+
+        sourcedir = tempdir + "/**/*.*"
+        out = subprocess.run(
+            [
+                'coala', '--format', '{file} {line} {severity_str} {message}',
+                '--files', sourcedir, '--bears', 'PyLintBear', '-I'
+            ],
+            stdout=subprocess.PIPE).stdout.decode('utf8')
+        for line in out.split('\n'):
+            if len(line) > 0:
+                line2 = line.split(None, 3)
+                try:
+                    emit(line2[0], int(line2[1]), line2[2], line2[3])
+                except ValueError:
+                    pass
+# pylint
+class PyLintBear(Linter):
+    NAME = 'PyLint'
+    DESCRIPTION = 'The pylint checker'
     DEFAULT_OPTIONS = {'Empty config file': ''}
 
     def __init__(self, config):
@@ -117,26 +144,338 @@ class PyFlakesB(Linter):
         with open(cfg, 'w') as f:
             f.write(self.config)
 
-        # This is not guessable
-        sep = uuid.uuid4()
-        fmt = '%(path)s{0}%(row)d{0}%(code)s{0}%(text)s'.format(sep)
-        tempdir2 = tempdir + "/**/*.*"
+        sourcedir = tempdir + "/**/*.*"
         out = subprocess.run(
             [
-                'coala', '--format', '{file}, {line}, {message}',  '--files', tempdir2, '--bears', 'PyFlakesBear'
+                'coala', '--format', '{file} {line} {severity_str} {message}',
+                '--files', sourcedir, '--bears', 'PyLintBear', '-I'
             ],
             stdout=subprocess.PIPE).stdout.decode('utf8')
         for line in out.split('\n'):
-            args = line.split(str(sep))
             if len(line) > 0:
-                line2 = line.split(None, 2)
-                b = (line2[1])[:-1]
+                line2 = line.split(None, 3)
                 try:
-                    emit((line2[0])[:-1], int(b), 'ERR', line2[2])
+                    emit(line2[0], int(line2[1]), line2[2], line2[3])
                 except ValueError:
-                    print(ValueError)
                     pass
 
+ 
+# html lint
+class HtmlLintBear(Linter):
+    NAME = 'HTML Linter'
+    DESCRIPTION = 'The HTML lint checker'
+    DEFAULT_OPTIONS = {'Empty config file': ''}
+
+    def __init__(self, config):
+        self.config = config
+
+    def run(self, tempdir, emit):
+        cfg = os.path.join(tempdir, '.flake8')
+        with open(cfg, 'w') as f:
+            f.write(self.config)
+
+        sourcedir = tempdir + "/**/*.*"
+        out = subprocess.run(
+            [
+                'coala', '--format', '{file} {line} {severity_str} {message}',
+                '--files', sourcedir, '--bears', 'HTMLLintBear', '-I'
+            ],
+            stdout=subprocess.PIPE).stdout.decode('utf8')
+        for line in out.split('\n'):
+            if len(line) > 0:
+                args = line.split(None, 3)
+                try:
+                    emit(args[0], int(args[1]), args[2], args[3])
+                except ValueError:
+                    pass
+
+
+class ShellCheckBear(Linter):
+    NAME = 'Shell Linter'
+    DESCRIPTION = 'The Shell cheker'
+    DEFAULT_OPTIONS = {'Empty config file': ''}
+
+    def __init__(self, config):
+        self.config = config
+
+    def run(self, tempdir, emit):
+        cfg = os.path.join(tempdir, '.flake8')
+        with open(cfg, 'w') as f:
+            f.write(self.config)
+
+        sourcedir = tempdir + "/**/*.*"
+        out = subprocess.run(
+            [
+                'coala', '--format', '{file} {line} {severity_str} {message}',
+                '--files', sourcedir, '--bears', 'ShellCheckBear', '-I'
+            ],
+            stdout=subprocess.PIPE).stdout.decode('utf8')
+        for line in out.split('\n'):
+            if len(line) > 0:
+                args = line.split(None, 3)
+                try:
+                    emit(args[0], int(args[1]), args[2], args[3])
+                except ValueError:
+                    pass
+
+class HaskellCheckBear(Linter):
+    NAME = 'Haskell Linter'
+    DESCRIPTION = 'Haskell ghc mod package'
+    DEFAULT_OPTIONS = {'Empty config file': ''}
+
+    def __init__(self, config):
+        self.config = config
+
+    def run(self, tempdir, emit):
+        cfg = os.path.join(tempdir, '.flake8')
+        with open(cfg, 'w') as f:
+            f.write(self.config)
+
+        sourcedir = tempdir + "/**/*.*"
+        out = subprocess.run(
+            [
+                'coala', '--format', '{file} {line} {severity_str} {message}',
+                '--files', sourcedir, '--bears', 'GhcModBear', '-I'
+            ],
+            stdout=subprocess.PIPE).stdout.decode('utf8')
+        for line in out.split('\n'):
+            if len(line) > 0:
+                args = line.split(None, 3)
+                try:
+                    emit(args[0], int(args[1]), args[2], args[3])
+                except ValueError:
+                    pass
+
+class JavaCheckBear(Linter):
+    NAME = 'Java Linter'
+    DESCRIPTION = 'Java Checkstyle'
+    DEFAULT_OPTIONS = {'Empty config file': ''}
+
+    def __init__(self, config):
+        self.config = config
+
+    def run(self, tempdir, emit):
+        cfg = os.path.join(tempdir, '.flake8')
+        with open(cfg, 'w') as f:
+            f.write(self.config)
+
+        sourcedir = tempdir + "/**/*.*"
+        out = subprocess.run(
+            [
+                'coala', '--format', '{file} {line} {severity_str} {message}',
+                '--files', sourcedir, '--bears', 'CheckstyleBear', '-I'
+            ],
+            stdout=subprocess.PIPE).stdout.decode('utf8')
+        for line in out.split('\n'):
+            if len(line) > 0:
+                args = line.split(None, 3)
+                try:
+                    emit(args[0], int(args[1]), args[2], args[3])
+                except ValueError:
+                    pass
+
+
+class ClangCheckBear(Linter):
+    NAME = 'Clang'
+    DESCRIPTION = 'syntax and semantical problems'
+    DEFAULT_OPTIONS = {'Empty config file': ''}
+
+    def __init__(self, config):
+        self.config = config
+
+    def run(self, tempdir, emit):
+        cfg = os.path.join(tempdir, '.flake8')
+        with open(cfg, 'w') as f:
+            f.write(self.config)
+
+        sourcedir = tempdir + "/**/*.*"
+        out = subprocess.run(
+            [
+                'coala', '--format', '{file} {line} {severity_str} {message}',
+                '--files', sourcedir, '--bears', 'ClangBear', '-I'
+            ],
+            stdout=subprocess.PIPE).stdout.decode('utf8')
+        for line in out.split('\n'):
+            if len(line) > 0:
+                args = line.split(None, 3)
+                try:
+                    emit(args[0], int(args[1]), args[2], args[3])
+                except ValueError:
+                    pass
+
+
+class GoLintCheckBear(Linter):
+    NAME = 'golint'
+    DESCRIPTION = 'Suggest better formatting options in Go code.'
+    DEFAULT_OPTIONS = {'Empty config file': ''}
+
+    def __init__(self, config):
+        self.config = config
+
+    def run(self, tempdir, emit):
+        cfg = os.path.join(tempdir, '.flake8')
+        with open(cfg, 'w') as f:
+            f.write(self.config)
+
+        sourcedir = tempdir + "/**/*.*"
+        out = subprocess.run(
+            [
+                'coala', '--format', '{file} {line} {severity_str} {message}',
+                '--files', sourcedir, '--bears', 'GoLintBear', '-I'
+            ],
+            stdout=subprocess.PIPE).stdout.decode('utf8')
+        for line in out.split('\n'):
+            if len(line) > 0:
+                args = line.split(None, 3)
+                try:
+                    emit(args[0], int(args[1]), args[2], args[3])
+                except ValueError:
+                    pass
+
+
+class GoFmtCheckBear(Linter):
+    NAME = 'gofmt'
+    DESCRIPTION = 'Suggest better formatting options in Go code.'
+    DEFAULT_OPTIONS = {'Empty config file': ''}
+
+    def __init__(self, config):
+        self.config = config
+
+    def run(self, tempdir, emit):
+        cfg = os.path.join(tempdir, '.flake8')
+        with open(cfg, 'w') as f:
+            f.write(self.config)
+
+        sourcedir = tempdir + "/**/*.*"
+        out = subprocess.run(
+            [
+                'coala', '--format', '{file} {line} {severity_str} {message}',
+                '--files', sourcedir, '--bears', 'GofmtBear', '-I'
+            ],
+            stdout=subprocess.PIPE).stdout.decode('utf8')
+        for line in out.split('\n'):
+            if len(line) > 0:
+                args = line.split(None, 3)
+                try:
+                    emit(args[0], int(args[1]), args[2], args[3])
+                except ValueError:
+                    pass
+
+
+class PHPCodeCheckBear(Linter):
+    NAME = 'PHP Codesniffer'
+    DESCRIPTION = 'PHP syntax en formatting'
+    DEFAULT_OPTIONS = {'Empty config file': ''}
+
+    def __init__(self, config):
+        self.config = config
+
+    def run(self, tempdir, emit):
+        cfg = os.path.join(tempdir, '.flake8')
+        with open(cfg, 'w') as f:
+            f.write(self.config)
+
+        sourcedir = tempdir + "/**/*.*"
+        out = subprocess.run(
+            [
+                'coala', '--format', '{file} {line} {severity_str} {message}',
+                '--files', sourcedir, '--bears', 'PHPCodeSnifferBear', '-I'
+            ],
+            stdout=subprocess.PIPE).stdout.decode('utf8')
+        for line in out.split('\n'):
+            if len(line) > 0:
+                args = line.split(None, 3)
+                try:
+                    emit(args[0], int(args[1]), args[2], args[3])
+                except ValueError:
+                    pass
+
+
+class ESLintCheckBear(Linter):
+    NAME = 'Eslint'
+    DESCRIPTION = 'Check JavaScript for style issues and semantic errors.'
+    DEFAULT_OPTIONS = {'Empty config file': ''}
+
+    def __init__(self, config):
+        self.config = config
+
+    def run(self, tempdir, emit):
+        cfg = os.path.join(tempdir, '.flake8')
+        with open(cfg, 'w') as f:
+            f.write(self.config)
+
+        sourcedir = tempdir + "/**/*.*"
+        out = subprocess.run(
+            [
+                'coala', '--format', '{file} {line} {severity_str} {message}',
+                '--files', sourcedir, '--bears', 'ESLintBear', '-I'
+            ],
+            stdout=subprocess.PIPE).stdout.decode('utf8')
+        for line in out.split('\n'):
+            if len(line) > 0:
+                args = line.split(None, 3)
+                try:
+                    emit(args[0], int(args[1]), args[2], args[3])
+                except ValueError:
+                    pass
+
+
+class SCSSCheckBear(Linter):
+    NAME = 'SCSSLint'
+    DESCRIPTION = 'Check CSS for formatting and syntax errors'
+    DEFAULT_OPTIONS = {'Empty config file': ''}
+
+    def __init__(self, config):
+        self.config = config
+
+    def run(self, tempdir, emit):
+        cfg = os.path.join(tempdir, '.flake8')
+        with open(cfg, 'w') as f:
+            f.write(self.config)
+
+        sourcedir = tempdir + "/**/*.*"
+        out = subprocess.run(
+            [
+                'coala', '--format', '{file} {line} {severity_str} {message}',
+                '--files', sourcedir, '--bears', 'SCSSLintBear', '-I'
+            ],
+            stdout=subprocess.PIPE).stdout.decode('utf8')
+        for line in out.split('\n'):
+            if len(line) > 0:
+                args = line.split(None, 3)
+                try:
+                    emit(args[0], int(args[1]), args[2], args[3])
+                except ValueError:
+                    pass
+
+
+class LatexCheckBear(Linter):
+    NAME = 'chktex'
+    DESCRIPTION = 'Check Latex for formatting and syntax errors'
+    DEFAULT_OPTIONS = {'Empty config file': ''}
+
+    def __init__(self, config):
+        self.config = config
+
+    def run(self, tempdir, emit):
+        cfg = os.path.join(tempdir, '.flake8')
+        with open(cfg, 'w') as f:
+            f.write(self.config)
+
+        sourcedir = tempdir + "/**/*.*"
+        out = subprocess.run(
+            [
+                'coala', '--format', '{file} {line} {severity_str} {message}',
+                '--files', sourcedir, '--bears', 'LatexLintBear', '-I'
+            ],
+            stdout=subprocess.PIPE).stdout.decode('utf8')
+        for line in out.split('\n'):
+            if len(line) > 0:
+                args = line.split(None, 3)
+                try:
+                    emit(args[0], int(args[1]), args[2], args[3])
+                except ValueError:
+                    pass
 
 class LinterRunner():
     def __init__(self, cls, cfg):

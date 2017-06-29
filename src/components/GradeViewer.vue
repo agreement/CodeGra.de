@@ -67,7 +67,7 @@ export default {
 
     mounted() {
         this.grade = this.submission.grade ? this.submission.grade : '';
-        this.feedback = this.submission.grade ? this.submission.grade : '';
+        this.feedback = this.submission.comment ? this.submission.comment : '';
     },
 
     methods: {
