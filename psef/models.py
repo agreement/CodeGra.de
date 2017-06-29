@@ -415,7 +415,8 @@ class Work(db.Model):
         if self._grade is None:
             if not self.selected_items:
                 return None
-            return sum(item.points for item in self.selected_items)
+            selected = sum(item.points for item in self.selected_items)
+            return (selected / self.assignment.max_rubric_points) * 10
         return self._grade
 
     def passback_grade(self):
@@ -743,6 +744,11 @@ class Assignment(db.Model):
         with futures.ThreadPoolExecutor() as pool:
             for sub in self.get_all_latest_submissions():
                 pool.submit(sub.passback_grade)
+
+    @property
+    def max_rubric_points(self):
+        return sum(
+            sum(item.points for item in row.items) for row in self.rubric_rows)
 
     @property
     def is_open(self):
