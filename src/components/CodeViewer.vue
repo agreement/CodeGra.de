@@ -149,7 +149,7 @@ export default {
 
         visualizeWhitespace(line) {
             const replacer = match =>
-                `<span class="whitespace">${match.replace(/ /g, '&middot;').replace(/\t/g, '&#8213;&#8213;&#8213;&#10230;')}</span>`;
+                `<span class="whitespace">${match.replace(/ /g, '&middot;').replace(/\t/g, '&#10230;   ')}</span>`;
 
             // Replace line start and line end
             return line.replace(/^[ \t]*/g, replacer).replace(/[ \t]*$/g, replacer);
