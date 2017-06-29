@@ -1,7 +1,7 @@
 <template>
     <b-alert variant="danger" show v-if="error">
         <center>
-            <span>Cannot display file!</span>
+            <span>{{ error }}</span>
         </center>
     </b-alert>
     <loader class="text-center" v-else-if="loading"></loader>
@@ -95,39 +95,36 @@ export default {
         getCode() {
             this.error = false;
 
-            let done = 0;
-            const addDone = () => {
-                if (this.error) {
-                    return;
-                }
-                done += 1;
-                if (done === 2) {
-                    this.linkFiles();
-                    this.loading = false;
-                    this.error = false;
-                }
-            };
-
             // Split in two promises so that highlighting can begin before we
             // have feedback as this is not needed anyway.
             Promise.all([
-                this.$http.get(`/api/v1/code/${this.fileId}`),
-                this.$http.get(`/api/v1/code/${this.fileId}?type=metadata`),
-            ]).then(([file, metadata]) => {
-                this.code = file.data;
-                this.codeLines = this.code.split('\n');
-                this.highlightCode(metadata.data.extension);
-                addDone();
-            }).catch(() => { this.error = true; });
+                Promise.all([
+                    this.$http.get(`/api/v1/code/${this.fileId}`),
+                    this.$http.get(`/api/v1/code/${this.fileId}?type=metadata`),
+                ]).then(([file, metadata]) => {
+                    this.code = file.data;
+                    this.codeLines = this.code.split('\n');
+                    this.highlightCode(metadata.data.extension);
+                }, ({ response }) => {
+                    this.error = response.data.message;
+                    return Promise.reject();
+                }),
 
-            Promise.all([
-                this.$http.get(`/api/v1/code/${this.fileId}?type=feedback`),
-                this.$http.get(`/api/v1/code/${this.fileId}?type=linter-feedback`),
-            ]).then(([feedback, linterFeedback]) => {
-                this.linterFeedback = linterFeedback.data;
-                this.feedback = feedback.data;
-                addDone();
-            }).catch(() => { this.error = true; });
+                Promise.all([
+                    this.$http.get(`/api/v1/code/${this.fileId}?type=feedback`),
+                    this.$http.get(`/api/v1/code/${this.fileId}?type=linter-feedback`),
+                ]).then(([feedback, linterFeedback]) => {
+                    this.linterFeedback = linterFeedback.data;
+                    this.feedback = feedback.data;
+                }, ({ response }) => {
+                    this.error = response.data.message;
+                    return Promise.reject();
+                }),
+            ]).then(() => {
+                this.linkFiles();
+                this.loading = false;
+                this.error = false;
+            });
         },
 
         // Highlight this.codeLines.
