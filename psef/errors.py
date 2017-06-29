@@ -7,7 +7,6 @@ from psef import app
 
 @unique
 class APICodes(IntEnum):
-    UNKNOWN_ERROR = -1
     INCORRECT_PERMISSION = 0
     NOT_LOGGED_IN = 1
     OBJECT_ID_NOT_FOUND = 2

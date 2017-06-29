@@ -341,10 +341,7 @@ def post_submissions(assignment_id):
     except:
         for _, tree in submissions:
             psef.files.remove_tree(tree)
-        raise APIException("Could not add the submissions to the database.",
-                           "There was an unknown error while adding"
-                           "the submissions to the db session.",
-                           APICodes.UNKNOWN_ERROR, 400)
+        raise
 
     db.session.commit()
 
