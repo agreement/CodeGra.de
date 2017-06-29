@@ -141,7 +141,7 @@ export default {
     },
 
     mounted() {
-        this.feedback = this.submission.feedback || '';
+        this.feedback = this.submission.comment || '';
         this.grade = this.submission.grade || 0;
 
         if (this.showRubric) {
