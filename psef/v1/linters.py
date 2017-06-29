@@ -16,18 +16,16 @@ from . import api
 
 @api.route('/linter_comments/<token>', methods=['PUT'])
 def put_linter_comment(token):
-    """
-    Add a linter comment.
+    """Add a :class:`models.LinterComment`.
 
-    :param token: The token of the linter
-    :type token: ?
+    :param token: The token of the :class:`models.LinterInstance`.
     :returns: An empty response with return code 204
     :rtype: (str, int)
 
-    :raises APIException: if the linter with the given token was not found
-        (OBJECT_ID_NOT_FOUND)
-    :raises APIExcpetion: if the "file" parameter was missing from the request
-        (MISSING_REQUIRED_PARAM)
+    :raises APIException: If the linter with the given token was not found.
+                          (OBJECT_ID_NOT_FOUND)
+    :raises APIExcpetion: If the "file" parameter was missing from the request.
+                          (MISSING_REQUIRED_PARAM)
     """
     unit = models.LinterInstance.query.get(token)
 
@@ -83,19 +81,19 @@ def put_linter_comment(token):
 
 @api.route('/linters/<linter_id>', methods=['DELETE'])
 def delete_linter_output(linter_id):
-    """
-    Delete the all the output created by the linter with the given id.
+    """Delete the all the output created by the
+    :class:`models.AssignmentLinter` with the given id.
 
-    :param linter_id: The id of the linter
-    :type linter_id: int
+    :param int linter_id: The id of the linter
     :returns: An empty response with return code 204
     :rtype: (str, int)
 
-    :raises APIException: if the linter with the given id does not exist
-        (OBJECT_ID_NOT_FOUND)
-    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
-    :raises PermissionException: if the user can not use the linters in the
-        course attached to the linter with the given id (INCORRECT_PERMISSION)
+    :raises APIException: If the linter with the given id does not exist.
+                          (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If the user can not use the linters in the
+                                 course attached to the linter with the given
+                                 id. (INCORRECT_PERMISSION)
     """
     linter = models.AssignmentLinter.query.get(linter_id)
 
@@ -114,17 +112,16 @@ def delete_linter_output(linter_id):
 
 @api.route('/linters/<linter_id>', methods=['GET'])
 def get_linter_state(linter_id):
-    """
-    Get the state of the linter with the given id.
+    """Get the state of the :class:`models.AssignmentLinter` with the given id.
 
-    :param linter_id: The id of the linter
-    :type linter_id: int
+    :param int linter_id: The id of the linter
     :returns: A response containing the JSON serialized linter
-    :rtype: Response
+    :rtype: flask.Response
 
-    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
-    :raises PermissionException: if the user can not use the linters in the
-        course attached to the linter with the given id (INCORRECT_PERMISSION)
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If the user can not use the linters in the
+                                 course attached to the linter with the given
+                                 id. (INCORRECT_PERMISSION)
     """
     # check for user rights
     perm = db.session.query(models.AssignmentLinter).get(linter_id)

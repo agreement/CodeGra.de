@@ -16,18 +16,18 @@ from . import api
 @api.route('/permissions/', methods=['GET'])
 @login_required
 def get_permissions():
-    """
-    Get permissions of the currently logged in user.
+    """Get the permissions (:class:`models.Permission`) of the currently logged
+    in :class:`models.User`.
 
     :returns: A response containing the JSON serialized permissions and return
               code 200
-    :rtype: (Response, int)
+    :rtype: (flask.Response, int)
 
-    :raises APIException: if the supplied course id was not a number
-        (INVALID_PARAM)
-    :raises APIException: if specified permission does not exist
-        (OBJECT_NOT_FOUND)
-    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises APIException: If the supplied course id was not a number.
+                          (INVALID_PARAM)
+    :raises APIException: If specified permission does not exist.
+                          (OBJECT_NOT_FOUND)
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
     course_id = request.args.get('course_id')
     if course_id:

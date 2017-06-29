@@ -18,18 +18,17 @@ from . import api
 
 @api.route("/login", methods=["POST"])
 def login():
-    """
-    Login a user if the request is valid.
+    """Login a :class:`models.User` if the request is valid.
 
     :returns: A response containing the JSON serialized user
-    :rtype: Response
+    :rtype: flask.Response
 
-    :raises APIException: if the request does not contain email and/or password
-        parameter (MISSING_REQUIRED_PARAM)
-    :raises APIException: if no user with email exists or the password is wrong
-        (LOGIN_FAILURE)
-    :raises APIException: if the user with the given email and password is
-        inactive (INACTIVE_USER)
+    :raises APIException: If the request does not contain email and/or password
+                          parameter. (MISSING_REQUIRED_PARAM)
+    :raises APIException: If no user with email exists or the password is
+                          wrong. (LOGIN_FAILURE)
+    :raises APIException: If the user with the given email and password is
+                          inactive. (INACTIVE_USER)
     """
     data = request.get_json()
 
@@ -60,13 +59,12 @@ def login():
 @api.route("/login", methods=["GET"])
 @login_required
 def me():
-    """
-    Get the info of the currently logged in user.
+    """Get the info of the currently logged in :class:`models.User`.
 
     :returns: A response containing the JSON serialized user
-    :rtype: Response
+    :rtype: flask.Response
 
-    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
     if request.args.get('type') == 'roles':
         return jsonify({
@@ -78,22 +76,21 @@ def me():
 @api.route('/login', methods=['PATCH'])
 @login_required
 def get_user_update():
-    """
-    Change data of the current user.
+    """Change data of the current :class:`models.User`.
 
     :returns: An empty response with return code 204
     :rtype: (str, int)
 
-    :raises APIException: if not all required parameters ('email',
-        'o_password', 'username', 'n_password') were in the request
-        (MISSING_REQUIRED_PARAM)
-    :raises APIException: if the old password was not correct
-        (INVALID_CREDENTIALS)
-    :raises APIException: if the new password or username is not valid
-        (INVALID_PARAM)
-    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
-    :raises PermissionException: if the user can not edit his own info
-        (INCORRECT_PERMISSION)
+    :raises APIException: If not all required parameters ('email',
+                          'o_password', 'username', 'n_password') were in the
+                          request. (MISSING_REQUIRED_PARAM)
+    :raises APIException: If the old password was not correct.
+                          (INVALID_CREDENTIALS)
+    :raises APIException: If the new password or username is not valid.
+                          (INVALID_PARAM)
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If the user can not edit his own info.
+                                 (INCORRECT_PERMISSION)
     """
     data = request.get_json()
 
@@ -138,8 +135,7 @@ def get_user_update():
 
 @api.route("/login", methods=["DELETE"])
 def logout():
-    """
-    Logout the currently logged in user.
+    """Logout the currently logged in :class:`models.User`.
 
     :returns: An empty response with return code 204
     :rtype: (str, int)
