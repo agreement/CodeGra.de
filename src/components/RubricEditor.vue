@@ -44,12 +44,21 @@
                         </textarea>
                     </div>
                 </div>
+
                 <b-button
                     variant="success"
                     size="sm"
-                    class="col-button"
+                    class="add-col-button"
                     @click.native="createCol(i)">
-                    +
+                    <icon name="plus"/>
+                </b-button>
+
+                <b-button
+                    variant="danger"
+                    size="sm"
+                    class="del-row-button"
+                    @click.native="deleteRow(i)">
+                    <icon name="times"/>
                 </b-button>
             </b-card-group>
         </b-card>
@@ -68,7 +77,7 @@
                         style="height: 100%"
                         class="row-button"
                         @click.native="createRow">
-                        +
+                        <icon name="plus"/>
                     </b-button>
                 </b-popover>
             </b-button-toolbar>
@@ -77,6 +86,10 @@
 </template>
 
 <script>
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/plus';
+import 'vue-awesome/icons/times';
+
 import SubmitButton from './SubmitButton';
 
 export default {
@@ -137,7 +150,6 @@ export default {
         },
 
         submit() {
-            // this.updateRubrics();
             this.$refs.submitButton.submit(
                 this.$http.put(`/api/v1/assignments/${this.assignmentId}/rubrics/`, {
                     rows: this.rubrics,
@@ -147,9 +159,17 @@ export default {
                 console.dir(err);
             });
         },
+
+        deleteRow(row) {
+            const [rubric] = this.rubrics.splice(row, 1);
+            this.$http.delete(
+                `/api/v1/assignments/${this.assignmentId}/rubrics/${rubric.id}`,
+            ).catch(() => this.rubrics.splice(row, 0, rubric));
+        },
     },
 
     components: {
+        Icon,
         SubmitButton,
     },
 };
@@ -214,13 +234,27 @@ export default {
     }
 }
 
-.col-button {
+.add-col-popover {
+    > span {
+        display: block;
+        height: 100%;
+    }
+}
+
+.add-col-button {
     border-top-right-radius: 0;
     border-top-left-radius: 0;
+    border-bottom-right-radius: 0;
 
     &:not(:first-child) {
         border-bottom-left-radius: 0;
     }
+}
+
+.del-row-button {
+    border-top-right-radius: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
 }
 
 input,
