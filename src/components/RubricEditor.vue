@@ -1,24 +1,30 @@
 <template>
     <div class="rubric-editor">
         <b-form-fieldset>
-            <submit-button
-                @click.native="submit"
-                ref="submitButton"/>
+            <b-button-toolbar justify>
+                <submit-button
+                    @click.native="submit"
+                    ref="submitButton"/>
+
+                <submit-button
+                    class="submit-button row-button"
+                    size="sm"
+                    @click.native="createRow"
+                    ref="createRowButton"
+                    label="+"/>
+            </b-button-toolbar>
         </b-form-fieldset>
 
         <b-card no-block
             v-for="(rubric, i) in rubrics"
             :key="`rubric-${rubric.id}`"
-            class="rubric">
+            class="rubric"
+            @keyup.native.ctrl.enter="submit">
             <div class="card-header rubric-header">
                 <span class="title">
-                    <b contenteditable>
-                        {{ rubric.header }}
-                    </b>
+                    <b contenteditable>{{ rubric.header }}</b>
                     -
-                    <span contenteditable>
-                        {{ rubric.description }}
-                    </span>
+                    <span contenteditable>{{ rubric.description }}</span>
                 </span>
                 <span class="index">
                     {{ i + 1 }} / {{ rubrics.length }}
@@ -33,13 +39,9 @@
                     :class="{ selected: selected === item, }"
                     class="card rubric-item">
                     <div class="card-block">
-                        <b contenteditable>
-                            {{ item.points }}
-                        </b>
+                        <b contenteditable>{{ item.points }}</b>
                         -
-                        <span contenteditable>
-                            {{ item.description }}
-                        </span>
+                        <span contenteditable>{{ item.description }}</span>
                     </div>
                 </div>
             </b-card-group>
@@ -48,16 +50,9 @@
                 class="submit-button col-button"
                 label="+"
                 size="sm"
-                @click.native="createCol(i, j)"
-                :ref="`createColButton-${j}`"/>
+                @click.native="createCol(i)"
+                :ref="`createColButton_${rubric.id}`"/>
         </b-card>
-
-        <submit-button
-            class="submit-button row-button"
-            size="sm"
-            @click.native="createRow"
-            ref="createRowButton"
-            label="+"/>
     </div>
 </template>
 
@@ -163,15 +158,18 @@ export default {
 
     methods: {
         createRow() {
-            this.$refs.createButton.submit(
-                this.$http.post(`/api/v1/assignments/${this.assignmentId}/rubrics/`),
-            ).then(({ data: rubric }) => {
-                this.rubrics.push(rubric);
+            this.rubrics.push({
+                header: '',
+                description: '',
+                items: [],
             });
         },
 
-        createCol() {
-
+        createCol(row) {
+            this.rubrics[row].items.push({
+                description: '',
+                points: 0,
+            });
         },
 
         submit() {
@@ -243,6 +241,15 @@ export default {
             flex: 1 1 0;
         }
     }
+
+    .submit-button {
+        position: absolute;
+
+        &.col-button {
+            top: 50%;
+            left: 100%;
+        }
+    }
 }
 
 [contenteditable] {
@@ -251,16 +258,6 @@ export default {
 
     &:focus {
         background: white;
-        outline: 1px solid rgba(0, 0, 0, 0.075);
-    }
-}
-
-.submit-button {
-    position: absolute;
-
-    &.col-button {
-        top: 50%;
-        left: 100%;
     }
 }
 </style>
