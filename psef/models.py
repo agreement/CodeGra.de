@@ -1,3 +1,7 @@
+"""
+This module defines all the objects in the database in their relation.
+"""
+
 import os
 import enum
 import json
@@ -47,6 +51,9 @@ work_rubric_item = db.Table(
 
 
 class LTIProvider(db.Model):
+    """
+    This class defines the handshake with an LTI provider.
+    """
     __tablename__ = 'LTIProvider'
     id = db.Column('id', db.Integer, primary_key=True)
     key = db.Column('key', db.Unicode)
@@ -57,8 +64,12 @@ class LTIProvider(db.Model):
 
 
 class AssignmentResult(db.Model):
+    """
+    The class creates the link between an user and an assignment in the
+    database and the external users LIS sourcedid.
+    """
     __tablename__ = 'AssignmentResult'
-    sourcedid = db.Column('sourdid', db.Unicode)
+    sourcedid = db.Column('sourcedid', db.Unicode)
     user_id = db.Column('User_id', db.Integer,
                         db.ForeignKey('User.id', ondelete='CASCADE'))
     assignment_id = db.Column('Assignment_id', db.Integer,
@@ -69,6 +80,17 @@ class AssignmentResult(db.Model):
 
 
 class Permission(db.Model):
+    """
+    This class defines permissions by names that are checked in certain APIs.
+
+    A permission can be a global- or a course- permission. Global permissions
+    describe the ability to do something general, e.g. create a course or the
+    usage of snippets. These permissions are connected to a :class: Role which
+    is hold be a :class: User. Similarly course permissions are bound to a
+    :class: CourseRole. These roles are assigned to users only in the context
+    of a single course. Thus a user can hold different permissions in different
+    courses.
+    """
     __tablename__ = 'Permission'
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode, unique=True, index=True)
@@ -77,6 +99,10 @@ class Permission(db.Model):
 
 
 class CourseRole(db.Model):
+    """
+    A course role is used to describe the abilities of a :class: User in a
+    :class: Course.
+    """
     __tablename__ = 'Course_Role'
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode)
@@ -117,6 +143,18 @@ class CourseRole(db.Model):
             pass
 
     def has_permission(self, permission):
+        """
+        Check whether this course role has the specified permission
+
+        :param permission: The permission or permission name
+        :type permission: Permission or str
+
+        :returns: True if the course role has the permission
+        :rtype: bool
+
+        :raises KeyEror: if the permission parameter is a string and no
+            permission with this name exists
+        """
         if isinstance(permission, Permission):
             permission_name = permission.name
         else:
@@ -138,7 +176,8 @@ class CourseRole(db.Model):
                         permission.course_permission)
 
     def get_all_permissions(self):
-        """Get all course permissions for this course role.
+        """
+        Get all course permissions for this course role.
 
         :returns: A name boolean mapping where the name is the name of the
                   permission and the value indicates if this user has this
@@ -156,6 +195,15 @@ class CourseRole(db.Model):
 
     @staticmethod
     def get_default_course_roles():
+        """
+        Get all default course roles as specified in the config and their
+        permissions.
+
+        :returns: A name dict mapping where the name is the name of the course
+            role and the dict is name boolean mapping as returned by
+            :meth:get_all_permissions
+        :rtype: dict[str, dict[str, bool]]
+        """
         res = {}
         for name, c in app.config['DEFAULT_COURSE_ROLES'].items():
             perms = Permission.query.filter_by(course_permission=True).all()
@@ -171,6 +219,9 @@ class CourseRole(db.Model):
 
 
 class Role(db.Model):
+    """
+    A role defines the set of global permissions of a :class: User.
+    """
     __tablename__ = 'Role'
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode, unique=True)
@@ -181,6 +232,18 @@ class Role(db.Model):
         backref=db.backref('roles', lazy='dynamic'))
 
     def has_permission(self, permission):
+        """
+        Check whether this role has the specified permission
+
+        :param permission:
+        :type permission: Permission or str
+
+        :returns: Whether the role has the permission or not
+        :rtype: bool
+
+        :raises KeyEror: if the permission parameter is a string and no
+            permission with this name exists
+        """
         if permission in self._permissions:
             perm = self._permissions[permission]
             return (not perm.default_value) and (not perm.course_permission)
@@ -212,6 +275,9 @@ class Role(db.Model):
 
 
 class User(db.Model, UserMixin):
+    """
+    This class describes a user of the system.
+    """
     __tablename__ = "User"
     id = db.Column('id', db.Integer, primary_key=True)
 
@@ -242,6 +308,21 @@ class User(db.Model, UserMixin):
     role = db.relationship('Role', foreign_keys=role_id)
 
     def has_permission(self, permission, course_id=None):
+        """
+        Check whether this user has the specified global or course permission.
+        To check a course permission the course_id has to be set.
+
+        :param permission: The permission or permission name
+        :type permission: Permission or str
+        :param course_id: The course or course id
+        :type course_id: None or int or Course
+
+        :returns: Whether the role has the permission or not
+        :rtype: bool
+
+        :raises KeyEror: if the permission parameter is a string and no
+            permission with this name exists
+        """
         if not self.active:
             return False
         if course_id is None:
@@ -253,6 +334,17 @@ class User(db.Model, UserMixin):
                     self.courses[course_id].has_permission(permission))
 
     def get_permission_in_courses(self, permission):
+        """
+        Check for a specific course permission in all courses the user is
+        enrolled in.
+
+        :param permission: The permission or its name
+        :type permission: Permission or str
+        :returns: An int bool mapping where the int is the course id and the
+            the bool whether the user has the permission in the course with
+            thid id
+        :rtype: dict[int, bool]
+        """
         if not isinstance(permission, Permission):
             permission = Permission.query.filter_by(name=permission).first()
         assert permission.course_permission
@@ -288,6 +380,17 @@ class User(db.Model, UserMixin):
         }
 
     def has_course_permission_once(self, permission):
+        """
+        Check whether this user has the specified course permission in at least
+        one enrolled course.
+
+        :param permission: The permission or permission name
+        :type permission: Permission or str
+
+        :returns: True if the user has the permission once
+        :rtype: bool
+        """
+
         if not isinstance(permission, Permission):
             permission = Permission.query.filter_by(name=permission).first()
         assert permission.course_permission
@@ -306,6 +409,20 @@ class User(db.Model, UserMixin):
         return (not link) if permission.default_value else link
 
     def get_all_permissions(self, course_id=None):
+        """
+        Get all global permissions of this user or all course permissions of
+        the user in a specific course.
+
+        :param permission: The permission or permission name
+        :type permission: Permission or str
+        :param course_id: The course or course id
+        :type course_id: None or Course or int
+
+        :returns: A name boolean mapping where the name is the name of the
+            permission and the value indicates if this user has this
+            permission.
+        :rtype: dict[str, bool]
+        """
         if isinstance(course_id, Course):
             course_id = course_id.id
 
@@ -331,6 +448,14 @@ class User(db.Model, UserMixin):
 
     @staticmethod
     def validate_username(username):
+        """
+        Check the validity of the username.
+
+        :param username: The username to check
+        :type username: str
+        :returns: An error message if the name is invalid, else an empty string
+        :rtype: str
+        """
         min_len = 3
         if len(username) < min_len:
             return ('use at least {} chars'.format(min_len))
@@ -339,6 +464,15 @@ class User(db.Model, UserMixin):
 
     @staticmethod
     def validate_password(password):
+        """
+        Check the validity of the password.
+
+        :param password: The password to check
+        :type password: str
+        :returns: An error message if the password is invalid, else an empty
+            string
+        :rtype: str
+        """
         min_len = 3
         if len(password) < min_len:
             return ('use at least {} chars'.format(min_len))
@@ -347,6 +481,11 @@ class User(db.Model, UserMixin):
 
 
 class Course(db.Model):
+    """
+    This class describes a course.
+
+    A course can hold a collection of :class: Assignment objects.
+    """
     __tablename__ = "Course"
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode)
@@ -388,6 +527,10 @@ class Course(db.Model):
 
 
 class Work(db.Model):
+    """
+    This object describes a single work or submission of a :class: User for an
+    :class: Assignment.
+    """
     __tablename__ = "Work"
     id = db.Column('id', db.Integer, primary_key=True)
     assignment_id = db.Column('Assignment_id', db.Integer,
@@ -424,6 +567,12 @@ class Work(db.Model):
         return sum(item.points for item in self.selected_items)
 
     def passback_grade(self):
+        """
+        Initiates a passback of the grade to the LTI consumer.
+
+        :returns: Nothing
+        :rtype: None
+        """
         from psef.lti import LTI
         if self.assignment.lti_outcome_service_url is not None:
             lti_provider = self.assignment.course.lti_provider
@@ -461,6 +610,9 @@ class Work(db.Model):
         .. note:: This also passes back the grade to LTI if this is necessary.
 
         :param Number new_grade: The new grade to set.
+        :type new_grade: float
+
+        :returns: Nothing
         :rtype: None
         """
         self._grade = new_grade
@@ -468,6 +620,17 @@ class Work(db.Model):
             self.passback_grade()
 
     def __to_json__(self):
+        """
+        Returns the JSON serializable representation of this work.
+
+        The representation is based on the permissions of the logged in user.
+        Namely the assignee and feedback attributes are only included if the
+        current user can see them.
+
+        :returns: A dict containing JSON serializable representations of the
+            attributes of this work.
+        :rtype: dict
+        """
         item = {
             'id': self.id,
             'user': self.user,
@@ -497,9 +660,11 @@ class Work(db.Model):
         .. warning::
         The db session is not commited!
 
-        :param db: The db object.
+        :param session: The db session
+        :type session: Session
         :param tree: The file tree as described by
                      :py:func:`psef.files.rename_directory_structure`
+        :type tree: dict
         :returns: Nothing
         :rtype: None
         """
@@ -507,6 +672,19 @@ class Work(db.Model):
         return self._add_file_tree(session, tree, None)
 
     def _add_file_tree(self, session, tree, top):
+        """
+        Add the given tree to the session with top as parent.
+
+        :param session: The db session
+        :type session: Session
+        :param tree: The file tree as described by
+                     :py:func:`psef.files.rename_directory_structure`
+        :type tree: dict
+        :param top: The parent file
+        :type top: None or File
+        :returns: Nothing
+        :rtype: None
+        """
         def ensure_list(item):
             return item if isinstance(item, list) else [item]
 
@@ -554,6 +732,16 @@ class Work(db.Model):
 
 
 class File(db.Model):
+    """
+    This object describes a file or directory that stored is stored on the
+    server.
+
+    Files are always connected to :class: Work objects. A directory file does
+    not physically exist but is stored only in the database to preserve the
+    submitted work structure. Each submission should have a single top level
+    file. Each other file in a submission should be directly or indirectly
+    connected to this file via the parent attribute.
+    """
     __tablename__ = "File"
     id = db.Column('id', db.Integer, primary_key=True)
     work_id = db.Column('Work_id', db.Integer, db.ForeignKey('Work.id'))
@@ -572,12 +760,49 @@ class File(db.Model):
     )
 
     def get_filename(self):
+        """
+        Get the real filename of the file.
+
+        :returns: The filename of the file
+        :rtype: str
+        """
         if self.extension is not None and self.extension != "":
             return "{}.{}".format(self.name, self.extension)
         else:
             return self.name
 
     def list_contents(self):
+        """
+        List the basic file info and the info of its children.
+
+        If the file is a directory it will return a tree like this:
+        ```
+        {
+            'name': 'dir_1',
+            'id': 1,
+            'entries': [
+                {
+                    'name': 'file_1',
+                    'id': 2
+                },
+                {
+                    'name': 'file_2',
+                    'id': 3
+                },
+                {
+                    'name': 'dir_2',
+                    'id': 4,
+                    'entries': []
+                }
+            ]
+        }
+        ```
+        Otherwise it will formated like one of the file children of the above
+        tree.
+
+        :returns: A tree like above
+        :rtype: dict
+        """
         if not self.is_directory:
             return {"name": self.get_filename(), "id": self.id}
         else:
@@ -595,6 +820,11 @@ class File(db.Model):
 
 
 class LinterComment(db.Model):
+    """
+    Describes a comment created by a :class: LinterInstance.
+
+    Like a :class: Comment it is attached to a specific line in a :class: File.
+    """
     __tablename__ = "LinterComment"
     file_id = db.Column(
         'File_id', db.Integer, db.ForeignKey('File.id'), index=True)
@@ -617,6 +847,12 @@ class LinterComment(db.Model):
 
 
 class Comment(db.Model):
+    """
+    Describes a comment placed in a :class: File by a :class: User with the
+    ability to grade.
+
+    A comment is always linked to a specific line in a file.
+    """
     __tablename__ = "Comment"
     file_id = db.Column('File_id', db.Integer, db.ForeignKey('File.id'))
     user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
@@ -636,12 +872,22 @@ class Comment(db.Model):
 
 @enum.unique
 class LinterState(enum.IntEnum):
+    """
+    Describes in what state a :class: LinterInstance is.
+    """
     running = 1
     done = 2
     crashed = 3
 
 
 class AssignmentLinter(db.Model):
+    """
+    The class is used when a linter is used on a :class: Assignment.
+
+    Every :class: Work that is tested is attached by a :class: LinterInstance.
+
+    The name identifies which linter in :py:psef.linters: is used.
+    """
     __tablename__ = 'AssignmentLinter'
     id = db.Column('id', db.Unicode, nullable=False, primary_key=True)
     name = db.Column('name', db.Unicode)
@@ -656,6 +902,16 @@ class AssignmentLinter(db.Model):
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
 
     def __to_json__(self):
+        """
+        Returns the JSON serializable representation of this class.
+
+        This representation also returns a count of the :class: LinterState of
+        the attached :class: LinterInstance objects.
+
+        :returns: A dict containing JSON serializable representations of the
+            attributes and the test state counts of this LinterAssignment.
+        :rtype: dict
+        """
         working = 0
         crashed = 0
         done = 0
@@ -678,6 +934,17 @@ class AssignmentLinter(db.Model):
 
     @classmethod
     def create_tester(cls, assignment_id, name):
+        """
+        Create a new instance of this class for a given :class: Assignment with
+        a given :class: linters.Linter.
+
+        :param assignment_id: The id of the assignment
+        :type assignment_id: int
+        :param name: Name of the linter
+        :type name: str
+        :returns: The created AssignmentLinter
+        :rtype: AssignmentLinter
+        """
         id = str(uuid.uuid4())
         while db.session.query(
                 AssignmentLinter.query.filter(cls.id == id).exists()).scalar():
@@ -691,6 +958,10 @@ class AssignmentLinter(db.Model):
 
 
 class LinterInstance(db.Model):
+    """
+    Describes the connection between a :class: AssignmentLinter and a :class:
+    Work.
+    """
     __tablename__ = 'LinterInstance'
     id = db.Column('id', db.Unicode, nullable=False, primary_key=True)
     state = db.Column(
@@ -726,12 +997,18 @@ class LinterInstance(db.Model):
 
 @enum.unique
 class _AssignmentStateEnum(enum.IntEnum):
+    """
+    Describes in what state an :class: Assignment is.
+    """
     hidden = 0
     open = 1
     done = 2
 
 
 class Assignment(db.Model):
+    """
+    This class describes a :class: Course specific assignment.
+    """
     __tablename__ = "Assignment"
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode)
@@ -835,6 +1112,13 @@ class Assignment(db.Model):
             raise TypeError()
 
     def get_all_latest_submissions(self):
+        """
+        Get a list of all the latest submitted :class: Work by each :class:
+        User who has submitted at least one work for this assignment.
+
+        :returns: The latest submissions
+        :rtype: list of Work
+        """
         sub = db.session.query(
             Work.user_id.label('user_id'),
             func.max(Work.created_at).label('max_date')).filter_by(
@@ -847,6 +1131,9 @@ class Assignment(db.Model):
 
 
 class Snippet(db.Model):
+    """
+    Describes a :class: User specified mapping from a keyword to some string.
+    """
     __tablename__ = 'Snippet'
     id = db.Column('id', db.Integer, primary_key=True)
     key = db.Column('key', db.Unicode, nullable=False)
@@ -864,6 +1151,12 @@ class Snippet(db.Model):
 
 
 class RubricRow(db.Model):
+    """
+    Describes a row of some rubric.
+
+    This class forms the link between :class: Assignment and :class: RubricItem
+    and holds information about the row.
+    """
     __tablename__ = 'RubricRow'
     id = db.Column('id', db.Integer, primary_key=True)
     assignment_id = db.Column('Assignment_id', db.Integer,
@@ -882,6 +1175,10 @@ class RubricRow(db.Model):
 
 
 class RubricItem(db.Model):
+    """
+    This class holds the information about a single option/item in a :class:
+    RubricRow.
+    """
     __tablename__ = 'RubricItem'
     id = db.Column('id', db.Integer, primary_key=True)
     rubricrow_id = db.Column('Rubricrow_id', db.Integer,
