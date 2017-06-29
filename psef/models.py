@@ -3,6 +3,7 @@ import enum
 import json
 import uuid
 import datetime
+from concurrent import futures
 
 from flask_login import UserMixin
 from sqlalchemy_utils import PasswordType
@@ -37,13 +38,12 @@ user_course = db.Table('users-courses',
                        db.Column('user_id', db.Integer,
                                  db.ForeignKey('User.id', ondelete='CASCADE')))
 
-work_rubric_item = db.Table('work_rubric_item',
-                           db.Column('work_id', db.Integer,
-                                     db.ForeignKey(
-                                         'Work.id', ondelete='CASCADE')),
-                           db.Column('rubricitem_id', db.Integer,
-                                     db.ForeignKey(
-                                         'RubricItem.id', ondelete='CASCADE')))
+work_rubric_item = db.Table(
+    'work_rubric_item',
+    db.Column('work_id', db.Integer,
+              db.ForeignKey('Work.id', ondelete='CASCADE')),
+    db.Column('rubricitem_id', db.Integer,
+              db.ForeignKey('RubricItem.id', ondelete='CASCADE')))
 
 
 class LTIProvider(db.Model):
@@ -412,25 +412,33 @@ class Work(db.Model):
 
     @property
     def grade(self):
+        if self._grade is None:
+            if not self.selected_items:
+                return None
+            return sum(item.points for item in self.selected_items)
         return self._grade
 
-    @grade.setter
-    def grade(self, new_grade):
+    def passback_grade(self):
         from psef.lti import LTI
-        self._grade = new_grade
-        if self.assignment and self.assignment.course.lti_provider:
+        if self.assignment.lti_outcome_service_url is not None:
             lti_provider = self.assignment.course.lti_provider
-            LTI.passback_grade(
+            return LTI.passback_grade(
                 lti_provider.key,
                 lti_provider.secret,
                 self.grade / 10,
                 self.assignment.lti_outcome_service_url,
-                self.user.assignment_results[self.assignment_id].sourcedid,
+                self.assignment.assignment_results[self.user_id].sourcedid,
                 url=('{}/'
                      'courses/{}/assignments/{}/submissions/{}?lti=true'
                      ).format(app.config['EXTERNAL_URL'],
                               self.assignment.course_id, self.assignment_id,
                               self.id))
+
+    @grade.setter
+    def grade(self, new_grade):
+        self._grade = new_grade
+        if self.assignment.is_done:
+            self.passback_grade()
 
     def __to_json__(self):
         item = {
@@ -538,8 +546,9 @@ class File(db.Model):
 
     work = db.relationship('Work', foreign_keys=work_id)
 
-    __table_args__ = (db.CheckConstraint(
-        or_(is_directory == false(), extension == null())), )
+    __table_args__ = (
+        db.CheckConstraint(or_(is_directory == false(), extension == null())),
+    )
 
     def get_filename(self):
         if self.extension is not None and self.extension != "":
@@ -727,6 +736,14 @@ class Assignment(db.Model):
     course = db.relationship(
         'Course', foreign_keys=course_id, back_populates='assignments')
 
+    rubric_rows = db.relationship(
+        'RubricRow', backref=db.backref('assignment'))
+
+    def _submit_grades(self):
+        with futures.ThreadPoolExecutor() as pool:
+            for sub in self.get_all_latest_submissions():
+                pool.submit(sub.passback_grade)
+
     @property
     def is_open(self):
         if (self.state == _AssignmentStateEnum.open and
@@ -761,6 +778,7 @@ class Assignment(db.Model):
             'created_at': self.created_at.isoformat(),
             'deadline': self.deadline.isoformat(),
             'name': self.name,
+            'is_lti': self.lti_outcome_service_url is not None,
             'course': self.course,
         }
 
@@ -777,8 +795,12 @@ class Assignment(db.Model):
         """
         if state == 'open':
             self.state = _AssignmentStateEnum.open
-        elif state in {'done', 'hidden'}:
-            self.state = _AssignmentStateEnum.__members__[state]
+        elif state == 'hidden':
+            self.state = _AssignmentStateEnum.hidden
+        elif state == 'done':
+            self.state = _AssignmentStateEnum.done
+            if self.lti_outcome_service_url is not None:
+                self._submit_grades()
         else:
             raise TypeError()
 
@@ -792,27 +814,6 @@ class Assignment(db.Model):
             and_(sub.c.user_id == Work.user_id,
                  sub.c.max_date == Work.created_at)).filter(
                      Work.assignment_id == self.id).all()
-
-    def get_rubric(self):
-        """Get rubric.
-
-        Returns the rubric corresponding to the current assignment.
-
-        :rtype: [dict[str, str, [RubricItem, ...]], ...]
-        """
-        rubric_rows = db.session.query(RubricRow).filter_by(
-            assignment_id=self.id).all()
-        full_rubric = []
-        for rubric_row in rubric_rows:
-            rubric_items = db.session.query(RubricItem).filter_by(
-                rubricrow=rubric_row).all()
-            full_rubric.append({
-                'header': rubric_row.header,
-                'description': rubric_row.description,
-                'items': rubric_items
-            })
-
-        return full_rubric
 
 
 class Snippet(db.Model):
@@ -839,15 +840,14 @@ class RubricRow(db.Model):
                               db.ForeignKey('Assignment.id'))
     header = db.Column('header', db.Unicode)
     description = db.Column('description', db.Unicode, default='')
-
-    assignment = db.relationship('Assignment', foreign_keys=assignment_id)
+    items = db.relationship("RubricItem", backref="rubricrow")
 
     def __to_json__(self):
         return {
             'id': self.id,
-            'assignment': self.assignment,
             'header': self.header,
-            'description': self.description
+            'description': self.description,
+            'items': self.items,
         }
 
 
@@ -859,8 +859,6 @@ class RubricItem(db.Model):
     col = db.Column('col', db.Integer)
     description = db.Column('description', db.Unicode, default='')
     points = db.Column('points', db.Float)
-
-    rubricrow = db.relationship('RubricRow', foreign_keys=rubricrow_id)
 
     def __to_json__(self):
         return {

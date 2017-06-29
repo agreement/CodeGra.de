@@ -70,7 +70,7 @@
                 </b-popover>
                 <b-popover placement="top" triggers="hover" content="Submitting"
                     v-if="item.item.state == assignmentState.SUBMITTING">
-                    <icon name="download"></icon>
+                    <icon name="clock-o"></icon>
                 </b-popover>
                 <b-popover placement="top" triggers="hover" content="Grading"
                     v-else-if="item.item.state == assignmentState.GRADING">
