@@ -130,7 +130,7 @@ export default {
         },
 
         rubricPoints({ selected, max, grade }) {
-            if (grade) this.grade = grade;
+            if (grade) this.grade = Number(grade.toFixed(2));
             this.gradeAndRubricPoints = `${this.grade} ( ${selected} / ${max} )`;
         },
 
