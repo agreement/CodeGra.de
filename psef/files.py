@@ -6,10 +6,10 @@ import shutil
 import tempfile
 from functools import reduce
 
+import archive
 from werkzeug.utils import secure_filename
 from werkzeug.datastructures import FileStorage
 
-import archive
 from psef import app, blackboard
 from psef.errors import APICodes, APIException
 
@@ -43,7 +43,7 @@ def get_file_contents(code):
     """
     filename = os.path.join(app.config['UPLOAD_DIR'], code.filename)
     try:
-        with open(filename, 'r') as codefile:
+        with open(filename, 'r', encoding='utf-8') as codefile:
             return codefile.read()
     except UnicodeDecodeError:
         raise APIException(

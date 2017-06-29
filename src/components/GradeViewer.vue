@@ -4,19 +4,26 @@
             <div class="col-6">
                 <b-input-group>
                     <b-input-group-button v-if="editable">
-                        <b-button :variant="submitted ? 'success' : 'primary'" v-on:click="putFeedback()">
-                            <icon name="refresh" spin v-if="submitting"></icon>
-                            <span v-else>Submit all</span>
-                        </b-button>
+                        <b-popover :show="!!(grade < 0 || grade > 10 || error)"
+                                   :content="error || 'Grade have to be between 0 and 10'">
+                            <b-button :variant="submitted ? 'success' : 'primary'"
+                                      v-on:click="putFeedback"
+                                      class="grade-submit"
+                                      :disabled="grade < 0 || grade > 10">
+                                <loader :scale="1" v-if="submitting"/>
+                                <span v-else>Submit all</span>
+                            </b-button>
+                        </b-popover>
                     </b-input-group-button>
 
                     <b-form-input type="number"
-                                step="any"
-                                min="0"
-                                max="10"
-                                :disabled="!editable"
-                                placeholder="Grade"
-                                v-model="grade">
+                                  step="any"
+                                  min="0"
+                                  max="10"
+                                  v-on:change="() => { this.error = false; }"
+                                  :disabled="!editable"
+                                  placeholder="Grade"
+                                  v-model="grade">
                     </b-form-input>
                 </b-input-group>
             </div>
@@ -41,6 +48,8 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/refresh';
 import { mapActions, mapGetters } from 'vuex';
 
+import Loader from './Loader';
+
 export default {
     name: 'grade-viewer',
 
@@ -62,6 +71,7 @@ export default {
             submitted: false,
             feedback: '',
             grade: '',
+            error: false,
         };
     },
 
@@ -89,10 +99,19 @@ export default {
         },
 
         putFeedback() {
+            const grade = parseFloat(this.grade);
+            if (!(grade >= 0 && grade <= 10)) {
+                this.error = `The given grade '${this.grade}' is not a number between 0 and 10`;
+                this.$nextTick(() => setTimeout(() => {
+                    this.error = false;
+                }, 3000));
+                return;
+            }
+            this.error = false;
             this.submitting = true;
             this.$http.patch(`/api/v1/submissions/${this.submission.id}`,
                 {
-                    grade: this.grade,
+                    grade,
                     feedback: this.feedback,
                 },
                 {
@@ -118,6 +137,13 @@ export default {
 
     components: {
         Icon,
+        Loader,
     },
 };
 </script>
+
+<style lang="less">
+.grade-viewer .grade-submit .loader {
+    height: 1.25rem;
+}
+</style>

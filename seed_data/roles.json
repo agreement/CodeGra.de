@@ -1,17 +1,17 @@
 {
-  "student": {
+  "Student": {
     "permissions": [
       "can_use_snippets",
       "can_edit_own_info"
     ]
   },
-  "staff": {
+  "Staff": {
     "permissions": [
       "can_use_snippets",
       "can_edit_own_info"
     ]
   },
-  "admin": {
+  "Admin": {
     "permissions": [
       "can_use_snippets",
       "can_edit_own_info",

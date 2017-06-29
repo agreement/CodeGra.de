@@ -3,6 +3,7 @@ import enum
 import json
 import uuid
 import datetime
+from concurrent import futures
 
 from flask_login import UserMixin
 from sqlalchemy_utils import PasswordType
@@ -414,23 +415,27 @@ class Work(db.Model):
     def grade(self):
         return self._grade
 
-    @grade.setter
-    def grade(self, new_grade):
+    def passback_grade(self):
         from psef.lti import LTI
-        self._grade = new_grade
-        if self.assignment and self.assignment.course.lti_provider:
+        if self.assignment.lti_outcome_service_url is not None:
             lti_provider = self.assignment.course.lti_provider
-            LTI.passback_grade(
+            return LTI.passback_grade(
                 lti_provider.key,
                 lti_provider.secret,
                 self.grade / 10,
                 self.assignment.lti_outcome_service_url,
-                self.user.assignment_results[self.assignment_id].sourcedid,
+                self.assignment.assignment_results[self.user_id].sourcedid,
                 url=('{}/'
                      'courses/{}/assignments/{}/submissions/{}?lti=true'
                      ).format(app.config['EXTERNAL_URL'],
                               self.assignment.course_id, self.assignment_id,
                               self.id))
+
+    @grade.setter
+    def grade(self, new_grade):
+        self._grade = new_grade
+        if self.assignment.is_done:
+            self.passback_grade()
 
     def __to_json__(self):
         item = {
@@ -727,6 +732,11 @@ class Assignment(db.Model):
     course = db.relationship(
         'Course', foreign_keys=course_id, back_populates='assignments')
 
+    def _submit_grades(self):
+        with futures.ThreadPoolExecutor() as pool:
+            for sub in self.get_all_latest_submissions():
+                pool.submit(sub.passback_grade)
+
     @property
     def is_open(self):
         if (self.state == _AssignmentStateEnum.open and
@@ -761,6 +771,7 @@ class Assignment(db.Model):
             'created_at': self.created_at.isoformat(),
             'deadline': self.deadline.isoformat(),
             'name': self.name,
+            'is_lti': self.lti_outcome_service_url is not None,
             'course': self.course,
         }
 
@@ -777,8 +788,12 @@ class Assignment(db.Model):
         """
         if state == 'open':
             self.state = _AssignmentStateEnum.open
-        elif state in {'done', 'hidden'}:
-            self.state = _AssignmentStateEnum.__members__[state]
+        elif state == 'hidden':
+            self.state = _AssignmentStateEnum.hidden
+        elif state == 'done':
+            self.state = _AssignmentStateEnum.done
+            if self.lti_outcome_service_url is not None:
+                self._submit_grades()
         else:
             raise TypeError()
 

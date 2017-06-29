@@ -3,65 +3,65 @@
         "assignment": "Shell",
         "rows": [
             {
-                "header": "row 1",
-                "description": "test description 1",
+                "header": "Style",
+                "description": "The style of the code is conform to the styleguide.",
                 "items": [
                     {
                         "col": 1,
-                        "description": "you suck",
-                        "points": 2
+                        "description": "Expert",
+                        "points": 3
                     },
                     {
                         "col": 2,
-                        "description": "you suck 2",
+                        "description": "Competent",
                         "points": 2
                     },
                     {
                         "col": 3,
-                        "description": "you suck 3",
-                        "points": 2
+                        "description": "Novice",
+                        "points": 1
                     }
                 ]
             },
             {
-                "header": "row 2",
-                "description": "test description 2",
+                "header": "Documentation",
+                "description": "The documentation of the code is well written and complete.",
                 "items": [
                     {
                         "col": 1,
-                        "description": "you suck haha",
+                        "description": "Expert",
                         "points": 2
                     },
                     {
                         "col": 2,
-                        "description": "you suck haha 2",
-                        "points": 2
+                        "description": "Competent",
+                        "points": 1.5
                     },
                     {
                         "col": 3,
-                        "description": "you suck haha 3",
-                        "points": 2
+                        "description": "Novice",
+                        "points": 1
                     }
                 ]
             },
             {
-                "header": "row 3",
-                "description": "test description 3",
+                "header": "Code structure",
+                "description": "The code is strutured well and logical design choices were made.",
                 "items": [
                     {
                         "col": 1,
-                        "description": "you are awesome",
-                        "points": 2
+                        "description": "Expert",
+                        "points": 4
                     },
                     {
                         "col": 2,
-                        "description": "you are awesome 2",
-                        "points": 2
+                        "description": "Competent",
+                        "points": 2.5
                     },
                     {
                         "col": 3,
-                        "description": "you are awesome 3",
-                        "points": 2
+                        "description": "Novice",
+                        "points": 1
                     }
                 ]
             }
@@ -71,65 +71,65 @@
         "assignment": "Python",
         "rows": [
             {
-                "header": "row 11",
-                "description": "test description 11",
+                "header": "Style",
+                "description": "The style of the code is conform to the styleguide.",
                 "items": [
                     {
                         "col": 1,
-                        "description": "you suck 1",
-                        "points": 2
+                        "description": "Expert",
+                        "points": 3
                     },
                     {
                         "col": 2,
-                        "description": "you suck 12",
+                        "description": "Competent",
                         "points": 2
                     },
                     {
                         "col": 3,
-                        "description": "you suck 13",
-                        "points": 2
+                        "description": "Novice",
+                        "points": 1
                     }
                 ]
             },
             {
-                "header": "row 12",
-                "description": "test description 12",
+                "header": "Documentation",
+                "description": "The documentation of the code is well written and complete.",
                 "items": [
                     {
                         "col": 1,
-                        "description": "you suck haha 1",
+                        "description": "Expert",
                         "points": 2
                     },
                     {
                         "col": 2,
-                        "description": "you suck haha 12",
-                        "points": 2
+                        "description": "Competent",
+                        "points": 1.5
                     },
                     {
                         "col": 3,
-                        "description": "you suck haha 13",
-                        "points": 2
+                        "description": "Novice",
+                        "points": 1
                     }
                 ]
             },
             {
-                "header": "row 13",
-                "description": "test description 13",
+                "header": "Code structure",
+                "description": "The code is strutured well and logical design choices were made.",
                 "items": [
                     {
                         "col": 1,
-                        "description": "you are awesome 1",
-                        "points": 2
+                        "description": "Expert",
+                        "points": 4
                     },
                     {
                         "col": 2,
-                        "description": "you are awesome 12",
-                        "points": 2
+                        "description": "Competent",
+                        "points": 2.5
                     },
                     {
                         "col": 3,
-                        "description": "you are awesome 13",
-                        "points": 2
+                        "description": "Novice",
+                        "points": 1
                     }
                 ]
             }

@@ -1,18 +1,18 @@
 {
   "administrator": {
-    "role": "admin",
+    "role": "Admin",
     "course_role": false
   },
   "learner": {
-    "role": "student",
+    "role": "Student",
     "course_role": true
   },
   "instructor": {
-    "role": "teacher",
+    "role": "Teacher",
     "course_role": true
   },
   "teachingassistant": {
-    "role": "ta",
+    "role": "TA",
     "course_role": true
   }
 }
