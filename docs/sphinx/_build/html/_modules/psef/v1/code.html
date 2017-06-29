@@ -1,0 +1,278 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>psef.v1.code &#8212; CodeGra.de 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for psef.v1.code</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module defines all API routes with the main directory &quot;code&quot;. Thus the</span>
+<span class="sd">APIs are used to manipulate student submitted code and the related feedback.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">flask</span> <span class="k">import</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">make_response</span>
+<span class="kn">from</span> <span class="nn">flask_login</span> <span class="k">import</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">login_required</span>
+
+<span class="kn">import</span> <span class="nn">psef.auth</span> <span class="k">as</span> <span class="nn">auth</span>
+<span class="kn">import</span> <span class="nn">psef.files</span>
+<span class="kn">import</span> <span class="nn">psef.models</span> <span class="k">as</span> <span class="nn">models</span>
+<span class="kn">from</span> <span class="nn">psef</span> <span class="k">import</span> <span class="n">db</span>
+<span class="kn">from</span> <span class="nn">psef.errors</span> <span class="k">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">api</span>
+
+
+<div class="viewcode-block" id="put_comment"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.code.put_comment">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/code/&lt;int:id&gt;/comments/&lt;int:line&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PUT&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">put_comment</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create or change a single :class:`models.Comment` of a code</span>
+<span class="sd">    :class:`models.File`.</span>
+
+<span class="sd">    :param int id: The id of the code file</span>
+<span class="sd">    :param int line: The line number of the comment</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+<span class="sd">    :rtype: (str, int)</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not can grade work in the</span>
+<span class="sd">                                 attached course. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span>
+
+    <span class="n">comment</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="o">.</span><span class="n">file_id</span> <span class="o">==</span> <span class="nb">id</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="o">.</span><span class="n">line</span> <span class="o">==</span> <span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">one_or_none</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">comment</span><span class="p">:</span>
+        <span class="n">file</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span>
+                               <span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="p">(</span>
+                <span class="n">file_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
+                <span class="n">user_id</span><span class="o">=</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="p">,</span>
+                <span class="n">comment</span><span class="o">=</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;comment&#39;</span><span class="p">]))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span>
+                               <span class="n">comment</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">comment</span><span class="o">.</span><span class="n">comment</span> <span class="o">=</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;comment&#39;</span><span class="p">]</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">204</span></div>
+
+
+<div class="viewcode-block" id="remove_comment"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.code.remove_comment">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/code/&lt;int:id&gt;/comments/&lt;int:line&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;DELETE&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">remove_comment</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Removes the given :class:`models.Comment` in the given :class:`models.File`</span>
+
+<span class="sd">    :param int id: The id of the code file</span>
+<span class="sd">    :param int line: The line number of the comment</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+<span class="sd">    :rtype: (str, int)</span>
+
+<span class="sd">    :raises APIException: If there is no comment at the given line number.</span>
+<span class="sd">                          (OBJECT_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not can grade work in the</span>
+<span class="sd">                                 attached course. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">comment</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="o">.</span><span class="n">file_id</span> <span class="o">==</span> <span class="nb">id</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="o">.</span><span class="n">line</span> <span class="o">==</span> <span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">one_or_none</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">comment</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span>
+                               <span class="n">comment</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">comment</span><span class="p">)</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;Feedback comment not found&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;The comment on line </span><span class="si">{}</span><span class="s1"> was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">line</span><span class="p">),</span>
+                           <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">204</span></div>
+
+
+<div class="viewcode-block" id="get_code"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.code.get_code">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/code/&lt;int:file_id&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="nd">@login_required</span>
+<span class="k">def</span> <span class="nf">get_code</span><span class="p">(</span><span class="n">file_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get data from the :class:`models.File` with the given id.</span>
+
+<span class="sd">    The are several options to change the data that is returned. Based on the</span>
+<span class="sd">    argument type in the request different functions are called.</span>
+<span class="sd">    - If type == &#39;metadata&#39; the JSON serialized :class:`models.File` is</span>
+<span class="sd">        returned.</span>
+<span class="sd">    - If type == &#39;binary&#39; see :py:func:`get_binary_file`</span>
+<span class="sd">    - If type == &#39;feedback&#39; or type == &#39;linter-feedback&#39; see</span>
+<span class="sd">        :py:func:`get_feedback`</span>
+
+<span class="sd">    :param int file_id: The id of the file</span>
+<span class="sd">    :returns: A response containing a plain text file unless specified</span>
+<span class="sd">              otherwise</span>
+<span class="sd">    :rtype: flask.Response</span>
+
+<span class="sd">    :raises APIException: If there is not file with the given id.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the file does not belong to user and the</span>
+<span class="sd">                                 user can not view files in the attached</span>
+<span class="sd">                                 course. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">file</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">file_id</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;File not found&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;The file with id </span><span class="si">{}</span><span class="s1"> was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_id</span><span class="p">),</span>
+                           <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_view_files&#39;</span><span class="p">,</span>
+                               <span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;metadata&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;binary&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">get_binary_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;feedback&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">get_feedback</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">linter</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;linter-feedback&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">get_feedback</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">linter</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">contents</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">get_file_contents</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">make_response</span><span class="p">(</span><span class="n">contents</span><span class="p">)</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;text/plain&#39;</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="get_binary_file"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.code.get_binary_file">[docs]</a><span class="k">def</span> <span class="nf">get_binary_file</span><span class="p">(</span><span class="n">file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a response with the content of the given :class:`models.File` as</span>
+<span class="sd">    inline pdf.</span>
+
+<span class="sd">    :param models.File file: The file object</span>
+<span class="sd">    :returns: A response containing a pdf file</span>
+<span class="sd">    :rtype: flask.Response</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">file_data</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">get_binary_contents</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">make_response</span><span class="p">(</span><span class="n">file_data</span><span class="p">)</span>
+    <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;application/pdf&#39;</span>
+    <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Content-Disposition&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;inline; filename=&#39;</span> <span class="o">+</span> <span class="n">file</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">return</span> <span class="n">response</span></div>
+
+
+<div class="viewcode-block" id="get_feedback"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.code.get_feedback">[docs]</a><span class="k">def</span> <span class="nf">get_feedback</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">linter</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the :class:`models.Comment` objects attached to the given</span>
+<span class="sd">    :class:`models.File` if the user can see them, else returns an empty dict.</span>
+
+<span class="sd">    :param models.File file: The file object</span>
+<span class="sd">    :param bool linter: If true returns linter comments instead</span>
+<span class="sd">    :returns: A response containing the JSON serialized comments</span>
+<span class="sd">    :rtype: flask.Response</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_see_grade</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">linter</span><span class="p">:</span>
+            <span class="n">comments</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">LinterComment</span><span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+                <span class="n">file_id</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+            <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">comment</span> <span class="ow">in</span> <span class="n">comments</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">comment</span><span class="o">.</span><span class="n">line</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">line</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
+                    <span class="n">res</span><span class="p">[</span><span class="n">line</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">res</span><span class="p">[</span><span class="n">line</span><span class="p">][</span><span class="n">comment</span><span class="o">.</span><span class="n">linter</span><span class="o">.</span><span class="n">tester</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">comment</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">comments</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+                <span class="n">file_id</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+            <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">comment</span> <span class="ow">in</span> <span class="n">comments</span><span class="p">:</span>
+                <span class="n">res</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">comment</span><span class="o">.</span><span class="n">line</span><span class="p">)]</span> <span class="o">=</span> <span class="n">comment</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="n">auth</span><span class="o">.</span><span class="n">PermissionException</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({})</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../../psef.html">psef</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Thomas Schaper.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
