@@ -63,7 +63,19 @@ def get_submission(submission_id):
 @api.route("/submissions/<int:submission_id>/rubrics/", methods=['GET'])
 def get_rubric(submission_id):
     """
-    Return full rubric of assignment X.
+    Return full rubric of the :class:`models.Assignment` of the given
+    :class:`models.Submission`.
+
+    :param int submission_id: The id of the submission
+
+    :returns: A response containing the JSON serialized rubric
+    :rtype: flask.Response
+
+    :raises APIException: if the submission with the given id does not exist
+        (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not see the assignment of the
+        given submission (INCORRECT_PERMISSION)
     """
     work = models.Work.query.get(submission_id)
     if work is None:
@@ -85,7 +97,21 @@ def get_rubric(submission_id):
     methods=['PATCH'])
 def select_rubric_item(submission_id, rubricitem_id):
     """
-    Select given rubric item of submission X.
+    Select given rubric item of :class:`Submission` X.
+
+    :param int submission_id: The id of the submission
+    :param int rubricitem_id: The id of the rubric item
+
+    :returns: A response containing the JSON serialized rubric
+    :rtype: flask.Response
+
+    :raises APIException: if either the submission or rubric item with the
+        given ids does not exist (OBJECT_ID_NOT_FOUND)
+    :raises APIException: if the assignment of the rubric is not the assignment
+        of the submission (INVALID_PARAM)
+    :raises PermissionException: if there is no logged in user (NOT_LOGGED_IN)
+    :raises PermissionException: if the user can not grade the given submission
+        (INCORRECT_PERMISSION)
     """
     work = models.Work.query.get(submission_id)
     if work is None:
