@@ -439,10 +439,32 @@ class Work(db.Model):
                               self.assignment.course_id, self.assignment_id,
                               self.id))
 
+    def select_rubric_item(self, item):
+        """ Selects the given rubric item.
+
+        .. note:: This also passes back the grade to LTI if this is necessary.
+
+        .. note:: This also sets the actual grade field to `None`.
+
+        :param RubricItem item: The item to add.
+        :rtype: None
+        """
+        self.selected_items.append(item)
+        self._grade = None
+        if self.assignment.should_passback:
+            self.passback_grade()
+
     @grade.setter
     def grade(self, new_grade):
+        """Set the grade to the new grade
+
+        .. note:: This also passes back the grade to LTI if this is necessary.
+
+        :param Number new_grade: The new grade to set.
+        :rtype: None
+        """
         self._grade = new_grade
-        if self.assignment.is_done:
+        if self.assignment.should_passback:
             self.passback_grade()
 
     def __to_json__(self):
@@ -529,12 +551,6 @@ class Work(db.Model):
                 RubricItem.rubricrow_id == row_id).first()
         if rubricitem is not None:
             self.selected_items.remove(rubricitem)
-
-    def select_rubric_item(self, rubricitem):
-        """
-        Selects the given rubric item.
-        """
-        self.selected_items.append(rubricitem)
 
 
 class File(db.Model):
@@ -772,6 +788,10 @@ class Assignment(db.Model):
     @property
     def is_done(self):
         return self.state == _AssignmentStateEnum.done
+
+    @property
+    def should_passback(self):
+        return self.is_done
 
     @property
     def state_name(self):

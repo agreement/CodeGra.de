@@ -106,7 +106,6 @@ def select_rubric_item(submission_id, rubricitem_id):
 
     work.remove_selected_rubric_item(rubric_item.rubricrow_id)
     work.select_rubric_item(rubric_item)
-    work.grade = None
     db.session.commit()
 
     return jsonify({
