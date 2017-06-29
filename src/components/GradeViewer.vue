@@ -130,7 +130,7 @@ export default {
         },
 
         rubricPoints({ selected, max, grade }) {
-            if (grade) this.grade = grade;
+            if (grade) this.grade = Number(grade.toFixed(2));
             this.gradeAndRubricPoints = `${this.grade} ( ${selected} / ${max} )`;
         },
 
@@ -141,7 +141,7 @@ export default {
     },
 
     mounted() {
-        this.feedback = this.submission.feedback || '';
+        this.feedback = this.submission.comment || '';
         this.grade = this.submission.grade || 0;
 
         if (this.showRubric) {
@@ -212,6 +212,17 @@ export default {
     },
 };
 </script>
+
+<style lang="less" scoped>
+input,
+textarea {
+    &:disabled {
+        color: black;
+        background-color: white;
+        cursor: text;
+    }
+}
+</style>
 
 <style lang="less">
 .grade-viewer .grade-submit .loader {
