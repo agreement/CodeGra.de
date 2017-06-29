@@ -26,7 +26,8 @@ def get_submission(submission_id):
     work = db.session.query(models.Work).get(submission_id)
 
     if work.user_id != current_user.id:
-        auth.ensure_permission('can_see_others_work', work.assignment.course_id)
+        auth.ensure_permission('can_see_others_work',
+                               work.assignment.course_id)
 
     if work is None:
         raise APIException(
@@ -41,6 +42,61 @@ def get_submission(submission_id):
         return get_feedback(work)
 
     return jsonify(work)
+
+
+@api.route("/submissions/<int:submission_id>/rubrics/", methods=['GET'])
+def get_rubric(submission_id):
+    """
+    Return full rubric of assignment X.
+    """
+    work = models.Work.query.get(submission_id)
+    if work is None:
+        raise APIException(
+            'Work submission not found',
+            'The submission with code {} was not found'.format(submission_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_see_assignments', work.assignment.course.id)
+
+    return jsonify({
+        'rubrics': work.assignment.get_rubric(),
+        'selected': work.selected_items
+    })
+
+
+@api.route(
+    "/submissions/<int:submission_id>/rubricitems/<int:rubricitem_id>",
+    methods=['PATCH'])
+def select_rubric_item(submission_id, rubricitem_id):
+    """
+    Select given rubric item of submission X.
+    """
+    work = models.Work.query.get(submission_id)
+    if work is None:
+        raise APIException(
+            'Work submission not found',
+            'The submission with code {} was not found'.format(submission_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    rubric_item = models.RubricItem.query.get(rubricitem_id)
+    if rubric_item is None:
+        raise APIException(
+            'Rubric item not found',
+            'The rubric item with id {} was not found'.format(rubricitem_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_grade_work', work.assignment.course.id)
+    if rubric_item.rubricrow.assignment_id != work.assignment_id:
+        raise APIException(
+            'Rubric item selected does not match assignment',
+            'The rubric item with id {} does not match the assignment'.format(
+                rubricitem_id), APICodes.INVALID_PARAM, 400)
+
+    work.remove_selected_rubric_item(rubric_item.rubricrow_id)
+    work.select_rubric_item(rubric_item)
+    db.session.commit()
+
+    return ('', 204)
 
 
 def get_feedback(work):
@@ -112,7 +168,8 @@ def get_zip(work):
 
         response = make_response(fp.read())
         response.headers['Content-Type'] = 'application/zip'
-        filename = 'CG_archive.zip'
+        filename = '{}-{}-archive.zip'.format(work.assignment.name,
+                                              work.user.name)
         response.headers[
             'Content-Disposition'] = 'attachment; filename=' + filename
         return response

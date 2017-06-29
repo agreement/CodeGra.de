@@ -52,6 +52,8 @@
 <script>
 import { mapGetters } from 'vuex';
 
+import { setTitle } from './title';
+
 export default {
     name: 'home-page',
 
@@ -70,6 +72,10 @@ export default {
                 name: 'assignments',
             });
         }
+    },
+
+    mounted() {
+        setTitle('Home');
     },
 };
 </script>
