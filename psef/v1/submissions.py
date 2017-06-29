@@ -226,6 +226,13 @@ def patch_submission(submission_id):
                 'Grade for work with id {} not a number'.format(submission_id),
                 APICodes.INVALID_PARAM, 400)
 
+    if content['grade'] < 0 or content['grade'] > 10:
+        raise APIException(
+            'Grade submitted not between 0 and 10',
+            'Grade for work with id {} is {} which is not between 0 and 10'.
+            format(submission_id,
+                   content['grade']), APICodes.INVALID_PARAM, 400)
+
     work.grade = content['grade']
     work.comment = content['feedback']
     db.session.commit()
