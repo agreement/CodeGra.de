@@ -140,7 +140,7 @@ def add_assignment_rubric(assignment_id):
             'The assignment with id "{}" was not found'.format(assignment_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    auth.ensure_permission('can_manage_course', assig.course_id)
+    auth.ensure_permission('manage_rubrics', assig.course_id)
     content = request.get_json()
 
     if 'rows' not in content or not isinstance(content['rows'], list):
@@ -236,6 +236,8 @@ def delete_rubricrow(assignment_id, rubric_row):
             'The requested rubric row was not found',
             'There is now rubric row for assignment {} with id {}'.format(
                 assignment_id, rubric_row), APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('manage_rubrics', row.assignment.course_id)
 
     db.session.delete(row)
     db.session.commit()
