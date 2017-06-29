@@ -311,6 +311,7 @@ class LatexCheckBear(BearLinter):
 class LinterRunner():
     """The class that controls running a subclass of :class:`Linter`
     """
+
     def __init__(self, cls, cfg):
         """Create a new instance of :class:`LinterRunner`
 
