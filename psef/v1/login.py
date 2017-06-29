@@ -53,6 +53,8 @@ def me():
         return jsonify({
             role.course_id: role.name for role in current_user.courses.values()
         })
+    elif request.args.get('type') == 'extended':
+        return jsonify(current_user.__extended_to_json__())
     return jsonify(current_user)
 
 

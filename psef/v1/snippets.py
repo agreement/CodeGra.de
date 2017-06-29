@@ -56,7 +56,7 @@ def patch_snippet(snippet_id):
         raise APIException('Snippet not found',
                            'The snippet with id {} was not found'.format(snip),
                            APICodes.OBJECT_ID_NOT_FOUND, 404)
-    if snip.user.id != current_user.id:
+    if snip.user_id != current_user.id:
         raise APIException(
             'The given snippet is not your snippet',
             'The snippet "{}" does not belong to user "{}"'.format(
