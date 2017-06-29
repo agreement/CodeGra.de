@@ -91,9 +91,12 @@ class LTI:
             course = models.Course(
                 name=self.course_name, lti_course_id=self.course_id)
             db.session.add(course)
+        elif course.lti_provider is None:
+            course.ensure_default_roles()
 
         course.lti_provider = self.lti_provider
         db.session.commit()
+
         return course
 
     def get_assignment(self):
@@ -105,7 +108,7 @@ class LTI:
                 name=self.assignment_name,
                 state=self.assignment_state,
                 course_id=course.id,
-                deadline=self.assignment_deadline,
+                deadline=self.get_assignment_deadline(),
                 lti_assignment_id=self.assignment_id,
                 description='')
             db.session.add(assignment)
@@ -122,7 +125,10 @@ class LTI:
                 db.session.add(assig_res)
 
         assignment.lti_outcome_service_url = self.outcome_service_url
-        assignment.state = self.assignment_state
+        if not assignment.is_done:
+            assignment.state = self.assignment_state
+        assignment.deadline = self.get_assignment_deadline(
+            default=assignment.deadline)
 
         db.session.commit()
 
@@ -216,13 +222,16 @@ class CanvasLTI(LTI):
     def has_result_sourcedid(self):
         return 'lis_result_sourcedid' in self.launch_params
 
-    @property
-    def assignment_deadline(self):
+    def get_assignment_deadline(self, default=None):
         try:
             return dateutil.parser.parse(
                 self.launch_params['custom_canvas_assignment_due_at'])
         except:
-            return datetime.datetime.utcnow() + datetime.timedelta(days=365)
+            if default is None:
+                return (
+                    datetime.datetime.utcnow() + datetime.timedelta(days=365))
+            else:
+                return default
 
     @property
     def assignment_state(self):

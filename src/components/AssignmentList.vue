@@ -3,8 +3,12 @@
         <b-form-fieldset class="table-control">
             <b-input-group>
                 <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"/>
-                <b-form-checkbox class="input-group-addon" v-model="checkbox_student">student</b-form-checkbox>
-                <b-form-checkbox class="input-group-addon" v-model="checkbox_assistant">ta</b-form-checkbox>
+                <b-form-checkbox class="input-group-addon"
+                                 :checked="checkboxRoles[role] === true"
+                                 @change="setRoleFilter(role)"
+                                 v-for="role in getUniqueRoles()">
+                    {{ role }}
+                </b-form-checkbox>
                 <b-input-group-button class="buttons">
                     <b-popover placement="top" triggers="hover" content="Hidden" v-if="canSeeHidden">
                         <b-button class="btn-info" :class="{ 'btn-outline-info': !toggles.hidden}"
@@ -48,10 +52,10 @@
                 :filter="filterItems"
                 :show-empty="true">
             <template slot="course_name" scope="item">
-                {{item.value ? item.value : '-'}}
+                {{item.item.course.name ? item.item.course.name : '-'}}
             </template>
             <template slot="course_role" scope="item">
-                {{ item.value ? item.value : '-'}}
+                {{item.item.course.role ? item.item.course.role : '-'}}
             </template>
             <template slot="name" scope="item">
                 {{item.value ? item.value : '-'}}
@@ -66,7 +70,7 @@
                 </b-popover>
                 <b-popover placement="top" triggers="hover" content="Submitting"
                     v-if="item.item.state == assignmentState.SUBMITTING">
-                    <icon name="download"></icon>
+                    <icon name="clock-o"></icon>
                 </b-popover>
                 <b-popover placement="top" triggers="hover" content="Grading"
                     v-else-if="item.item.state == assignmentState.GRADING">
@@ -141,8 +145,7 @@ export default {
                     class: 'text-center',
                 },
             },
-            checkbox_student: true,
-            checkbox_assistant: true,
+            checkboxRoles: {},
         };
     },
 
@@ -152,14 +155,23 @@ export default {
         this.toggles.submitting = q.submitting == null ? true : q.submitting === 'true';
         this.toggles.grading = q.grading == null ? false : q.grading === 'true';
         this.toggles.done = q.done == null ? true : q.done === 'true';
+
+        let roles;
+        if (q.roles === undefined) {
+            roles = this.getUniqueRoles();
+        } else {
+            roles = JSON.parse(q.roles);
+        }
+        roles.forEach((val) => {
+            this.$set(this.checkboxRoles, val, true);
+        });
+
         this.filter = q.q;
     },
 
     methods: {
         filterItems(item) {
-            if (!this.checkbox_student && !item.can_grade) {
-                return false;
-            } else if (!this.checkbox_assistant && item.can_grade) {
+            if (!this.checkboxRoles[item.course.role]) {
                 return false;
             }
 
@@ -170,13 +182,30 @@ export default {
             }
             const terms = {
                 name: item.name.toLowerCase(),
-                course_name: item.course_name.toLowerCase(),
-                course_role: item.course_role,
+                course_name: item.course.name.toLowerCase(),
+                course_role: item.course.role,
                 deadline: item.deadline,
             };
             return this.filter.toLowerCase().split(' ').every(word =>
                 Object.keys(terms).some(key =>
                     terms[key].indexOf(word) >= 0));
+        },
+
+        setRoleFilter(role) {
+            this.$set(this.checkboxRoles, role, !this.checkboxRoles[role]);
+            this.submit();
+        },
+
+        getUniqueRoles() {
+            const seen = {};
+            const res = [];
+            this.assignments.forEach((assig) => {
+                if (!seen[assig.course.role]) {
+                    seen[assig.course.role] = true;
+                    res.push(assig.course.role);
+                }
+            });
+            return res;
         },
 
         filterState(item) {
@@ -191,7 +220,7 @@ export default {
 
         matchesWord(item, word) {
             return item.name.indexOf(word) >= 0 ||
-                item.course_name.indexOf(word) >= 0 ||
+                item.course.name.indexOf(word) >= 0 ||
                 item.deadline.indexOf(word) >= 0;
         },
 
@@ -205,7 +234,7 @@ export default {
             this.$router.push({
                 name: 'assignment_submissions',
                 params: {
-                    courseId: assignment.course_id,
+                    courseId: assignment.course.id,
                     assignmentId: assignment.id,
                 },
             });
@@ -216,6 +245,15 @@ export default {
             if (this.filter) {
                 query.q = this.filter;
             }
+
+            const q = [];
+            Object.keys(this.checkboxRoles).forEach((key) => {
+                if (this.checkboxRoles[key]) {
+                    q.push(key);
+                }
+            });
+            query.roles = JSON.stringify(q);
+
             this.$router.replace({ query });
         },
     },
