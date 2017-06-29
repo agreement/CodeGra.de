@@ -109,11 +109,11 @@ def select_rubric_item(submission_id, rubricitem_id):
     work.grade = None
     db.session.commit()
 
-    return ({
+    return jsonify({
         'selected': work.selected_rubric_points,
         'max': work.assignment.max_rubric_points,
         'grade': work.grade,
-    }, 201)
+    }), 201
 
 
 def get_feedback(work):

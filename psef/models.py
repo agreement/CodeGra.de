@@ -752,7 +752,7 @@ class Assignment(db.Model):
     @property
     def max_rubric_points(self):
         return sum(
-            sum(item.points for item in row.items) for row in self.rubric_rows)
+            max(item.points for item in row.items) for row in self.rubric_rows)
 
     @property
     def is_open(self):
