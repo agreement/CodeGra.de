@@ -873,7 +873,7 @@ class LinterState(enum.IntEnum):
 
 
 class AssignmentLinter(db.Model):
-    """The class is used when a linter (see :module:`psef.linters`) is used on
+    """The class is used when a linter (see :py:module:`psef.linters`) is used on
     a :class:`Assignment`.
 
     Every :class:`Work` that is tested is attached by a :class:`LinterInstance`.
