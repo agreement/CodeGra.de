@@ -161,7 +161,6 @@ export default {
             roles = this.getUniqueRoles();
         } else {
             roles = JSON.parse(q.roles);
-            console.dir(roles);
         }
         roles.forEach((val) => {
             this.$set(this.checkboxRoles, val, true);
