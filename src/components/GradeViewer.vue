@@ -2,11 +2,12 @@
     <div class="grade-viewer">
         <b-collapse
             id="rubric-collapse"
-            v-if="rubrics">
+            v-if="rubric">
             <rubric-viewer
-                v-model="rubricSelected"
+                v-model="rubricScore"
                 :editable="editable"
-                :rubrics="rubrics"
+                :submission="submission"
+                :rubric="rubric"
                 ref="rubricViewer">
             </rubric-viewer>
         </b-collapse>
@@ -30,16 +31,16 @@
                         :disabled="!editable"
                         placeholder="Grade"
                         v-model="grade"
-                        v-if="!rubrics">
+                        v-if="!rubric">
                     </b-form-input>
                     <b-form-input
                         class="text-right"
                         :disabled="true"
-                        :value="rubricPoints"
+                        :value="`${this.grade.toFixed(2)} ( ${this.rubricScore.total} / ${this.rubricScore.max} )`"
                         v-else>
                     </b-form-input>
 
-                    <b-input-group-button v-if="rubrics">
+                    <b-input-group-button v-if="rubric">
                         <b-popover
                             placement="top"
                             triggers="hover"
@@ -93,28 +94,31 @@ export default {
             type: Object,
             default: {},
         },
+        rubric: {
+            type: Object,
+            default: null,
+        },
     },
 
     data() {
         return {
             submitting: false,
             submitted: false,
-            feedback: this.submission.feedaback || '',
-            grade: this.submission.grade || 0,
-            rubricSelected: this.submission.rubric,
-            rubricPoints: '0 / 0',
-            rubrics: this.assignment.rubrics,
+            feedback: '',
+            grade: 0,
+            rubricScore: {},
         };
     },
 
     watch: {
-        rubricSelected() {
-            const total = this.$refs.rubricViewer.totalPoints();
-            const max = this.$refs.rubricViewer.maxPoints();
-            const grade = (10 * (total / max)).toFixed(2);
-            this.grade = grade;
-            this.rubricPoints = `${grade} (${total} / ${max})`;
+        rubricScore({ total, max }) {
+            this.grade = 10 * (total / max);
         },
+    },
+
+    mounted() {
+        this.feedback = this.submission.feedback || '';
+        this.grade = this.submission.grade || 0;
     },
 
     methods: {
@@ -141,7 +145,6 @@ export default {
                 {
                     grade: this.grade,
                     feedback: this.feedback,
-                    rubric: this.rubricResult.selected,
                 },
                 {
                     headers: { 'Content-Type': 'application/json' },

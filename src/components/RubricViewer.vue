@@ -7,11 +7,10 @@
                 <b-button
                     @click="goToPrev"
                     :disabled="current <= 0">
-                    <icon name="angle-left"></icon>
+                    <icon name="angle-left"/>
                 </b-button>
             </b-input-group-button>
-            <div
-                class="form-control outer-container">
+            <div class="form-control outer-container">
                 <div
                     class="inner-container"
                     ref="rubricContainer">
@@ -19,11 +18,14 @@
                         class="rubric"
                         v-for="(rubric, i) in rubrics"
                         :key="`rubric-${i}`">
-                        <b-card
-                            no-block>
+                        <b-card no-block>
                             <div class="card-header rubric-header">
-                                <span class="title"><b>{{ rubric.header }}</b> - {{ rubric.description }}</span>
-                                <span class="index">{{ i + 1 }} / {{ rubrics.length }}</span>
+                                <span class="title">
+                                    <b>{{ rubric.header }}</b> - {{ rubric.description }}
+                                </span>
+                                <span class="index">
+                                    {{ i + 1 }} / {{ rubrics.length }}
+                                </span>
                             </div>
                             <b-card-group>
                                 <b-card
@@ -31,7 +33,7 @@
                                     v-for="item in rubric.items"
                                     :key="`rubric-${i}-${item.id}`"
                                     @click.native="select(i, item)"
-                                    :class="{ selected: isSelected(i, item) }">
+                                    :class="{ selected: selected[i] === item }">
                                     <span>
                                         <b>{{ item.points }}</b> - {{ item.description }}
                                     </span>
@@ -45,7 +47,7 @@
                 <b-button
                     @click="goToNext"
                     :disabled="current >= rubrics.length - 1">
-                    <icon name="angle-right"></icon>
+                    <icon name="angle-right"/>
                 </b-button>
             </b-input-group-button>
         </b-input-group>
@@ -61,85 +63,94 @@ export default {
     name: 'rubric-viewer',
 
     props: {
-        rubrics: {
-            type: Array,
-            default: [],
+        submission: {
+            type: Object,
+            default: null,
+        },
+        rubric: {
+            type: Object,
+            default: null,
         },
         editable: {
             type: Boolean,
             default: false,
         },
-        value: {
-            type: Array,
-            default: [],
-        },
     },
 
     data() {
         return {
+            rubrics: [],
             selected: [],
             current: 0,
+            totalPoints: 0,
+            maxPoints: 0,
         };
     },
 
     watch: {
-        rubrics() {
-            this.adjustRubricElements();
-        },
-
-        current(curr) {
-            this.$refs.rubricContainer.style.transform =
-                `translateX(-${100 * (curr / this.rubrics.length)}%)`;
+        rubric(rubric) {
+            this.rubricUpdated(rubric);
         },
     },
 
     mounted() {
-        this.setSelected();
-        this.adjustRubricElements();
+        this.rubricUpdated(this.rubric);
     },
 
     methods: {
         emitInputEvent() {
-            this.$emit('input', this.selected.map(sel => (sel ? sel.id : -1)));
+            this.$emit('input', {
+                total: this.getTotalPoints(),
+                max: this.getMaxPoints(),
+            });
         },
 
-        setSelected() {
-            const items = [];
-            this.rubrics.forEach(rubric => items.push(...rubric.items));
-            this.selected = this.value.map(id => items.find(item => item.id === id));
+        rubricUpdated({ rubrics, selected }) {
+            this.rubrics = rubrics;
+            const allItems = rubrics.reduce((arr, { items }) => arr.concat(items), []);
+            this.selected = selected.map(({ id }) => allItems.find(item => item.id === id));
+
             this.emitInputEvent();
+
+            this.$refs.rubricContainer.style.width = `${rubrics.length * 100}%`;
         },
 
         select(row, item) {
             if (!this.editable) return;
             this.$set(this.selected, row, item);
             this.emitInputEvent();
+
+            this.$http.patch(
+                `/api/v1/submissions/${this.submission.id}/rubricitems/${item.id}`,
+            ).catch((err) => {
+                // eslint-disable-next-line
+                console.dir(err);
+            });
         },
 
-        isSelected(row, item) {
-            return this.selected[row] === item;
-        },
-
-        goToPrev() {
-            this.current = Math.max(this.current - 1, 0);
-        },
-
-        goToNext() {
-            this.current = Math.min(this.current + 1, this.rubrics.length - 1);
-        },
-
-        adjustRubricElements() {
-            this.$refs.rubricContainer.style.width = `${this.rubrics.length * 100}%`;
-        },
-
-        totalPoints() {
+        getTotalPoints() {
             return this.selected.filter(x => x).reduce(
                 (sum, item) => sum + item.points, 0);
         },
 
-        maxPoints() {
+        getMaxPoints() {
             return this.rubrics.reduce((sum, rubric) =>
                 sum + rubric.items[rubric.items.length - 1].points, 0);
+        },
+
+        goToPrev() {
+            this.current = Math.max(this.current - 1, 0);
+            this.slide();
+        },
+
+        goToNext() {
+            this.current = Math.min(this.current + 1, this.rubrics.length - 1);
+            this.slide();
+        },
+
+        slide() {
+            this.$refs.rubricContainer.style.transform =
+                `translateX(-${100 * (this.current / this.rubrics.length)}%)`;
         },
     },
 

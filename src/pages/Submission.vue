@@ -16,6 +16,7 @@
                              :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
                 <grade-viewer :assignment="assignment"
                               :submission="submission"
+                              :rubric="rubric"
                               :editable="editable"
                               v-if="editable || assignment.state === assignmentState.DONE"
                               v-on:gradeChange="gradeChange"
@@ -61,13 +62,14 @@ export default {
             assignment: {},
             submission: {},
             fileTree: null,
+            submissions: null,
+            rubric: null,
             editable: false,
             fileExtension: '',
             title: '',
             grade: 0,
             showGrade: false,
             feedback: '',
-            submissions: null,
             loading: true,
             assignmentState,
         };
@@ -95,80 +97,86 @@ export default {
         });
         Promise.all([
             this.getSubmission(),
-            this.getSubmissionFiles(),
-            this.getAllSubmissions(),
+            this.getFileTree(),
+            this.getRubric(),
             this.getAssignment(),
-        ]).then(() => {
+            this.getAllSubmissions(),
+        ]).then(([submission, fileTree, rubric, assignment, allSubmissions]) => {
             this.loading = false;
 
-            let title = this.assignment.name;
-            if (this.submission.grade) {
-                title += ` (${this.submission.grade})`;
+            Object.assign(this, {
+                submission,
+                fileTree,
+                rubric,
+                assignment,
+                allSubmissions,
+            });
+
+            this.setPageCSS();
+
+            let title = assignment.name;
+            if (submission.grade) {
+                title += ` (${submission.grade})`;
             }
-            setTitle(`${title} ${titleSep} ${this.submission.created_at}`);
-        });
+            setTitle(`${title} ${titleSep} ${submission.created_at}`);
 
-        const elements = Array.from(document.querySelectorAll('html, body, #app, nav, footer'));
-        const [html, body, app, nav, footer] = elements;
-
-        this.oldCSS = {
-            html: {
-                height: html.style.height,
-            },
-            body: {
-                height: body.style.height,
-            },
-            app: {
-                height: app.style.height,
-                display: app.style.display,
-                flexDirection: app.style.flexDirection,
-            },
-            nav: {
-                flexGrow: nav.style.flexGrow,
-                flexShrink: nav.style.flexShrink,
-            },
-            footer: {
-                flexGrow: footer.style.flexGrow,
-                flexShrink: footer.style.flexShrink,
-            },
-        };
-
-        html.style.height = '100%';
-        body.style.height = '100%';
-        app.style.height = '100%';
-        app.style.display = 'flex';
-        app.style.flexDirection = 'column';
-        nav.style.flexGrow = 0;
-        nav.style.flexShrink = 0;
-        footer.style.flexGrow = 0;
-        footer.style.flexShrink = 0;
-    },
-
-    destroyed() {
-        const elements = Array.from(document.querySelectorAll('html, body, #app, nav, footer'));
-        const [html, body, app, nav, footer] = elements;
-
-        html.style.height = this.oldCSS.html.height;
-        body.style.height = this.oldCSS.body.height;
-        app.style.height = this.oldCSS.app.height;
-        app.style.display = this.oldCSS.app.display;
-        app.style.flexDirection = this.oldCSS.app.flexDirection;
-        nav.style.flexGrow = this.oldCSS.nav.flexGrow;
-        nav.style.flexShrink = this.oldCSS.nav.flexShrink;
-        footer.style.flexGrow = this.oldCSS.footer.flexGrow;
-        footer.style.flexShrink = this.oldCSS.footer.flexShrink;
-    },
-
-    methods: {
-        getSubmissionFiles() {
-            return this.$http.get(`/api/v1/submissions/${this.submissionId}/files/`).then((data) => {
-                this.fileTree = data.data;
+            if (!this.fileId) {
                 this.$router.replace({
                     name: 'submission_file',
                     params: {
-                        fileId: this.fileId ? this.fileId : getFirstFile(this.fileTree).id,
+                        fileId: getFirstFile(fileTree).id,
                     },
                 });
+            }
+        }, (err) => {
+            // eslint-disable-next-line
+            console.dir(err);
+        });
+    },
+
+    destroyed() {
+        this.restorePageCSS();
+    },
+
+    methods: {
+        getSubmission() {
+            return this.$http.get(
+                `/api/v1/submissions/${this.submissionId}`,
+            ).then(({ data }) => data, () => ({}));
+        },
+
+        getFileTree() {
+            return this.$http.get(
+                `/api/v1/submissions/${this.submissionId}/files/`,
+            ).then(({ data }) => data);
+        },
+
+        getRubric() {
+            return this.$http.get(
+                `/api/v1/submissions/${this.submissionId}/rubrics/`,
+            ).then(({ data }) => data);
+        },
+
+        getAssignment() {
+            return this.$http.get(
+                `/api/v1/assignments/${this.assignmentId}`,
+            ).then(({ data }) => data);
+        },
+
+        getAllSubmissions() {
+            return this.$http.get(
+                `/api/v1/assignments/${this.assignmentId}/submissions/`,
+            ).then(({ data }) => data);
+        },
+
+        getFileMetadata() {
+            if (this.fileId === undefined) {
+                return Promise.resolve(null);
+            }
+
+            this.fileExtension = '';
+            return this.$http.get(`/api/v1/code/${this.fileId}?type=metadata`).then((response) => {
+                this.fileExtension = response.data.extension;
             });
         },
 
@@ -185,41 +193,6 @@ export default {
             this.$set(this.submissions, i, sub);
         },
 
-        getSubmission() {
-            return new Promise((resolve) => {
-                this.$http.get(`/api/v1/submissions/${this.submissionId}`).then(({ data }) => {
-                    this.submission = data;
-                    resolve();
-                }).catch(() => {
-                    this.submission = {};
-                    resolve();
-                });
-            });
-        },
-
-        getAssignment() {
-            return this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then(({ data }) => {
-                this.assignment = data;
-            });
-        },
-
-        getFileMetadata() {
-            if (this.fileId === undefined) {
-                return null;
-            }
-
-            this.fileExtension = '';
-            return this.$http.get(`/api/v1/code/${this.fileId}?type=metadata`).then((response) => {
-                this.fileExtension = response.data.extension;
-            });
-        },
-
-        getAllSubmissions() {
-            return this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then(({ data }) => {
-                this.submissions = data;
-            });
-        },
-
         submitAllFeedback(event) {
             this.$refs.codeViewer.submitAllFeedback(event);
         },
@@ -233,6 +206,58 @@ export default {
         ...mapActions({
             hasPermission: 'user/hasPermission',
         }),
+
+        setPageCSS() {
+            const elements = Array.from(document.querySelectorAll('html, body, #app, nav, footer'));
+            const [html, body, app, nav, footer] = elements;
+
+            this.oldCSS = {
+                html: {
+                    height: html.style.height,
+                },
+                body: {
+                    height: body.style.height,
+                },
+                app: {
+                    height: app.style.height,
+                    display: app.style.display,
+                    flexDirection: app.style.flexDirection,
+                },
+                nav: {
+                    flexGrow: nav.style.flexGrow,
+                    flexShrink: nav.style.flexShrink,
+                },
+                footer: {
+                    flexGrow: footer.style.flexGrow,
+                    flexShrink: footer.style.flexShrink,
+                },
+            };
+
+            html.style.height = '100%';
+            body.style.height = '100%';
+            app.style.height = '100%';
+            app.style.display = 'flex';
+            app.style.flexDirection = 'column';
+            nav.style.flexGrow = 0;
+            nav.style.flexShrink = 0;
+            footer.style.flexGrow = 0;
+            footer.style.flexShrink = 0;
+        },
+
+        restorePageCSS() {
+            const elements = Array.from(document.querySelectorAll('html, body, #app, nav, footer'));
+            const [html, body, app, nav, footer] = elements;
+
+            html.style.height = this.oldCSS.html.height;
+            body.style.height = this.oldCSS.body.height;
+            app.style.height = this.oldCSS.app.height;
+            app.style.display = this.oldCSS.app.display;
+            app.style.flexDirection = this.oldCSS.app.flexDirection;
+            nav.style.flexGrow = this.oldCSS.nav.flexGrow;
+            nav.style.flexShrink = this.oldCSS.nav.flexShrink;
+            footer.style.flexGrow = this.oldCSS.footer.flexGrow;
+            footer.style.flexShrink = this.oldCSS.footer.flexShrink;
+        },
     },
 
     components: {
