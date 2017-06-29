@@ -1,0 +1,23 @@
+[
+    {
+        "name": "PyLint",
+        "code": "Python",
+        "extension": ".py",
+        "description": "Python linter",
+        "executable": "PyLintBear"
+    },
+    {
+        "name": "HTMLLint",
+        "code": "HTML",
+        "extension": ".html",
+        "description": "HTMLLint linter",
+        "executable": "HTMLLintBear"
+    },
+    {
+        "name": "GoFmt",
+        "code": "Go",
+        "extension": ".go",
+        "description": "GoFmt go linter",
+        "executable": "GofmtBear"
+    }    
+]
