@@ -1,28 +1,22 @@
 <template>
     <b-form-fieldset class="submission-nav-bar">
-        <b-input-group>
-            <b-input-group-button class="buttons">
-                <b-popover placement="top" triggers="hover" content="Back to all submissions">
-                    <b-button class="angle-btn" @click="backToSubmissions">
-                        <icon name="angle-double-left"></icon>
-                    </b-button>
-                </b-popover>
-            </b-input-group-button>
-            <b-input-group-button class="buttons">
-                <b-button :disabled="!prev" @click="selected = prev" class="angle-btn">
-                    <icon name="angle-left"></icon>
-                </b-button>
-            </b-input-group-button>
-            <b-form-select v-model="selected"
-                           :options="options"
-                           style="height: 2em; text-align: center;"
-                           size="lg"></b-form-select>
-            <b-input-group-button class="buttons">
-                <b-button :disabled="!next" @click="selected = next" class="angle-btn">
-                    <icon name="angle-right"></icon>
-                </b-button>
-            </b-input-group-button>
-        </b-input-group>
+        <b-button-group>
+            <b-button class="angle-btn" @click="backToSubmissions">
+                <icon name="angle-double-left"></icon>
+            </b-button>
+            <b-button :disabled="!prev" @click="selected = prev" class="angle-btn">
+                <icon name="angle-left"></icon>
+            </b-button>
+            <b-dropdown class=""
+                        :text="selectedOption"
+                        size="lg">
+                <b-dropdown-header>Studentnaam...</b-dropdown-header>
+                <b-dropdown-item v-for="x in options" v-on:click="clicked(x.value)">{{ x.text }}</b-dropdown-item>
+            </b-dropdown>
+            <b-button :disabled="!next" @click="selected = next" class="angle-btn">
+                <icon name="angle-right"></icon>
+            </b-button>
+        </b-button-group>
     </b-form-fieldset>
 </template>
 
@@ -40,6 +34,7 @@ export default {
 
     data() {
         return {
+            selectedOption: '',
             selected: this.submission.id,
             options: {},
             next: null,
@@ -50,9 +45,18 @@ export default {
     mounted() {
         this.options = this.filterAll();
         this.findNextPrev();
+        this.selectedOption = this.getItemText(this.submission);
     },
 
     methods: {
+        getItemText(submission) {
+            let text = submission.user.name;
+            if (submission.assignee) {
+                text += ` (${submission.assignee.name})`;
+            }
+            return text;
+        },
+
         filterAll() {
             const options = this.filterLatestSubmissions(this.submissions);
             return this.filterMineOnly(options);
@@ -65,16 +69,8 @@ export default {
             for (let i = 0, len = submissions.length; i < len; i += 1) {
                 const sub = submissions[i];
                 if (seen[sub.user.id] !== true) {
-                    const grade = sub.grade ? `- ${sub.grade} -` : '';
-                    const assignee = sub.assignee ? sub.assignee.name : 'nobody';
-                    let assigneeText;
-                    if (sub.assignee === false) { // no permission
-                        assigneeText = '';
-                    } else {
-                        assigneeText = `- Assigned to ${assignee}`;
-                    }
                     latestSubs.push({
-                        text: `${sub.user.name} ${grade} ${assigneeText}`,
+                        text: this.getItemText(sub),
                         value: sub.id,
                         assignee: sub.assignee,
                     });
@@ -114,6 +110,18 @@ export default {
             this.$router.push({
                 name: 'assignment_submissions',
             });
+        },
+
+        clicked(val) {
+            this.$router.push({
+                name: 'submission',
+                params: {
+                    assignmentId: this.assignmentId,
+                    submissionId: val,
+                },
+            });
+            this.$emit('subChange');
+            this.options = this.filterMineOnly(this.options);
         },
     },
 
@@ -176,14 +184,21 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.buttons div, button {
-    height: 100%;
+.btn-group {
+    width: 100%;
 }
 
-select {
-    text-align-last: center; text-align: center;
-    -ms-text-align-last: center;
-    -moz-text-align-last: center; text-align-last: center;
-    cursor: pointer;
+.dropdown {
+    width: 100%;
+}
+</style>
+
+<style lang="less">
+.submission-nav-bar {
+    .dropdown button {
+        width: 100%;
+        font-size: 1rem;
+        padding: 0.5rem;
+    }
 }
 </style>
