@@ -56,7 +56,7 @@ def get_rubric(submission_id):
             'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    auth.ensure_permission('can_see_assignments', work.assignment.course.id)
+    auth.ensure_can_see_grade(work)
 
     rubrics = work.assignment.rubric_rows
     selected_items = work.selected_items
