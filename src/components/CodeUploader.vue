@@ -1,18 +1,20 @@
 <template>
     <form ref="fileInput">
-        <b-form-fieldset :feedback="error">
-            <b-input-group>
-                <b-input-group-button>
-                <b-button :disabled="!hasFile" :variant="error ? 'danger' : (done ? 'success' : 'primary')" @click.native="submit" >
-                    <icon scale=1 name="exclamation-triangle" v-if="error"></icon>
-                    <loader scale=1 v-else-if="pending"></loader>
-                    <icon scale=1 name="check" v-else-if="done"></icon>
-                    <span v-else>Submit</span>
-                </b-button>
-                </b-input-group-button>
-                <b-form-file name="file" placeholder="click or drop file" v-model="file" @change="change"></b-form-file>
-            </b-input-group>
-        </b-form-fieldset>
+        <b-popover placement="top" :triggers="disabled ? ['hover'] : []" content="You can only submit this assignment from within your LMS">
+            <b-form-fieldset :feedback="error">
+                <b-input-group>
+                    <b-input-group-button>
+                        <b-button :disabled="!hasFile" :variant="error ? 'danger' : (done ? 'success' : 'primary')" @click.native="submit" >
+                            <icon scale=1 name="exclamation-triangle" v-if="error"></icon>
+                            <loader scale=1 v-else-if="pending"></loader>
+                            <icon scale=1 name="check" v-else-if="done"></icon>
+                            <span v-else>Submit</span>
+                        </b-button>
+                    </b-input-group-button>
+                    <b-form-file name="file" placeholder="click or drop file" v-model="file" @change="change" :disabled="disabled"/>
+                </b-input-group>
+            </b-form-fieldset>
+        </b-popover>
     </form>
 </template>
 
@@ -47,6 +49,7 @@ export default {
             pending: false,
             error: '',
             hasFile: false,
+            disabled: this.assignment.is_lti && !window.inLTI,
         };
     },
 
@@ -80,3 +83,9 @@ export default {
     },
 };
 </script>
+
+<style lang="less">
+.custom-file input:disabled {
+    cursor: not-allowed !important;
+}
+</style>
