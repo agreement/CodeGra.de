@@ -1,0 +1,138 @@
+[
+    {
+        "assignment": "Shell",
+        "rows": [
+            {
+                "header": "Style",
+                "description": "The style of the code is conform to the styleguide.",
+                "items": [
+                    {
+                        "col": 1,
+                        "description": "Expert",
+                        "points": 3
+                    },
+                    {
+                        "col": 2,
+                        "description": "Competent",
+                        "points": 2
+                    },
+                    {
+                        "col": 3,
+                        "description": "Novice",
+                        "points": 1
+                    }
+                ]
+            },
+            {
+                "header": "Documentation",
+                "description": "The documentation of the code is well written and complete.",
+                "items": [
+                    {
+                        "col": 1,
+                        "description": "Expert",
+                        "points": 2
+                    },
+                    {
+                        "col": 2,
+                        "description": "Competent",
+                        "points": 1.5
+                    },
+                    {
+                        "col": 3,
+                        "description": "Novice",
+                        "points": 1
+                    }
+                ]
+            },
+            {
+                "header": "Code structure",
+                "description": "The code is strutured well and logical design choices were made.",
+                "items": [
+                    {
+                        "col": 1,
+                        "description": "Expert",
+                        "points": 4
+                    },
+                    {
+                        "col": 2,
+                        "description": "Competent",
+                        "points": 2.5
+                    },
+                    {
+                        "col": 3,
+                        "description": "Novice",
+                        "points": 1
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "assignment": "Python",
+        "rows": [
+            {
+                "header": "Style",
+                "description": "The style of the code is conform to the styleguide.",
+                "items": [
+                    {
+                        "col": 1,
+                        "description": "Expert",
+                        "points": 3
+                    },
+                    {
+                        "col": 2,
+                        "description": "Competent",
+                        "points": 2
+                    },
+                    {
+                        "col": 3,
+                        "description": "Novice",
+                        "points": 1
+                    }
+                ]
+            },
+            {
+                "header": "Documentation",
+                "description": "The documentation of the code is well written and complete.",
+                "items": [
+                    {
+                        "col": 1,
+                        "description": "Expert",
+                        "points": 2
+                    },
+                    {
+                        "col": 2,
+                        "description": "Competent",
+                        "points": 1.5
+                    },
+                    {
+                        "col": 3,
+                        "description": "Novice",
+                        "points": 1
+                    }
+                ]
+            },
+            {
+                "header": "Code structure",
+                "description": "The code is strutured well and logical design choices were made.",
+                "items": [
+                    {
+                        "col": 1,
+                        "description": "Expert",
+                        "points": 4
+                    },
+                    {
+                        "col": 2,
+                        "description": "Competent",
+                        "points": 2.5
+                    },
+                    {
+                        "col": 3,
+                        "description": "Novice",
+                        "points": 1
+                    }
+                ]
+            }
+        ]
+    }
+]

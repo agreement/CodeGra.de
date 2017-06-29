@@ -31,6 +31,17 @@ footer {
     margin-bottom: 4em;
 }
 
+.btn-outline-primary {
+    color: @color-primary;
+    background-image: none;
+    background-color: transparent;
+    border-color: @color-primary;
+
+    &:hover {
+        background-color: @color-primary;
+    }
+}
+
 .btn {
     cursor: pointer;
 
@@ -242,4 +253,9 @@ textarea:disabled {
 .show > .dropdown-menu {
     max-height: 50vh;
     overflow-y: scroll;
+}
+
+.whitespace {
+    opacity: 0.4;
+    color: #000;
 }

@@ -1,17 +1,19 @@
 <template>
-    <form method="post" enctype="multipart/form-data" :action="action" v-on:submit.prevent="submit"
-    :label-size="1">
+    <form method="post" enctype="multipart/form-data"
+            :action="action"
+            v-on:submit.prevent="submit"
+            :label-size="1">
         <b-form-fieldset :feedback="error">
             <b-input-group>
                 <b-input-group-button>
-                    <b-button :disabled="!hasFile" :variant="error ? 'danger' : (done ? 'success' : 'primary')" type="submit">
+                    <b-button :disabled="disabled || !hasFile" :variant="error ? 'danger' : (done ? 'success' : 'primary')" type="submit">
                         <icon scale=1 name="exclamation-triangle" v-if="error"></icon>
                         <loader scale=1 v-else-if="pending"></loader>
                         <icon scale=1 name="check" v-else-if="done"></icon>
                         <span v-else>Submit</span>
                     </b-button>
                 </b-input-group-button>
-                <b-form-file name="file" v-model="file" @change="change"></b-form-file>
+                <b-form-file name="file" v-model="file" @change="change" :disabled="disabled"/>
             </b-input-group>
         </b-form-fieldset>
     </form>
@@ -31,6 +33,10 @@ export default {
         assignment: {
             type: Object,
             default: null,
+        },
+        disabled: {
+            type: Boolean,
+            default: false,
         },
     },
 
@@ -77,3 +83,9 @@ export default {
     },
 };
 </script>
+
+<style lang="less">
+input:disabled {
+    cursor: not-allowed !important;
+}
+</style>
