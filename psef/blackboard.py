@@ -53,7 +53,7 @@ Info = namedtuple('SubmissionInfo', [
 
 
 FileInfo = namedtuple('SubmissionFileInfo', ['original_name', 'name'])
-"""A namedtuple holding information about a specific file
+"""A namedtuple holding information about a specific file.
 
 .. py:attribute:: original_name
     The name provided by the user
@@ -64,10 +64,9 @@ FileInfo = namedtuple('SubmissionFileInfo', ['original_name', 'name'])
 
 
 def parse_info_file(file):
-    """Parses a blackboard gradebook .txt file
+    """Parses a blackboard gradebook .txt file.
 
-    :param file: Path to the file
-    :type file: str
+    :param str file: Path to the file
     :returns: The parsed information
     :rtype: SubmissionInfo
     """

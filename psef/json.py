@@ -6,8 +6,7 @@ from psef import app
 
 
 class _CustomJSONEncoder(json.JSONEncoder):
-    """
-    This JSON encoder is used to enable the serialization JSON of custom
+    """This JSON encoder is used to enable the JSON serialization of custom
     classes.
 
     Classes can define their serialization by implementing a __to_json__

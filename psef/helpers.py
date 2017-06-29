@@ -9,9 +9,14 @@ from flask import Flask, g, render_template
 
 
 def get_all_subclasses(cls):
-    """
+    """Returns all subclasses of the given class.
+
     Stolen from:
     https://stackoverflow.com/questions/3862310/how-can-i-find-all-subclasses-of-a-class-given-its-name
+
+    :param object cls: The parent class
+    :returns: A list of all subclasses
+    :rtype: list of object
     """
     all_subclasses = []
 
@@ -23,8 +28,7 @@ def get_all_subclasses(cls):
 
 
 def get_request_start_time():
-    """
-    Return the start time of the current request.
+    """Return the start time of the current request.
 
     :returns: The time as returned by the python time module.
     :rtype: float
