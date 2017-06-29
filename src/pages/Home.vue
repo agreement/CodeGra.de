@@ -52,6 +52,8 @@
 <script>
 import { mapGetters } from 'vuex';
 
+import { setTitle } from './title';
+
 export default {
     name: 'home-page',
 
@@ -70,6 +72,10 @@ export default {
                 name: 'assignments',
             });
         }
+    },
+
+    mounted() {
+        setTitle('Home');
     },
 };
 </script>
@@ -90,7 +96,6 @@ export default {
         font-family: Montserrat,"Helvetica Neue",Helvetica,Arial,sans-serif;
     }
     position: fixed;
-    z-index: -2;
     width: 100%;
     height: 50vh;
 }
@@ -117,7 +122,7 @@ export default {
     margin-top: 50vh;
     width: 100%;
     padding-top: 30px;
-    z-index: -1;
+    z-index: 1;
     margin-left: 0;
     margin-right: 0;
 }
