@@ -292,7 +292,7 @@ def process_files(files):
 
 
 def process_blackboard_zip(file):
-    """Process the given :module:`blackboard` zip file by extracting, moving and saving
+    """Process the given :py:module:`blackboard` zip file by extracting, moving and saving
     the tree structure of each submission.
 
     :param FileStorage file: The blackboard gradebook to import
