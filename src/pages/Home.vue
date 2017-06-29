@@ -1,7 +1,7 @@
 <template>
     <div class="page home col-12">
         <b-jumbotron :fluid="true" header="Code grading made intuitive" lead="The best code grader & feedback tool on the web" >
-            <b-btn variant="primary" size="lg">Sign up</b-btn>
+            <b-btn variant="primary" size="lg" v-if="!loggedIn">Sign up</b-btn>
         </b-jumbotron>
         <div class="row justify-content-center container">
             <div class="content col-10">

@@ -1,11 +1,11 @@
 {
-  "student": {
+  "Student": {
     "permissions": [
       "can_submit_own_work",
       "can_see_assignments"
     ]
   },
-  "ta": {
+  "TA": {
     "permissions": [
       "can_grade_work",
       "can_see_others_work",
@@ -18,7 +18,7 @@
       "can_see_hidden_assignments"
     ]
   },
-  "teacher": {
+  "Teacher": {
     "permissions": [
       "can_grade_work",
       "can_see_others_work",
@@ -31,10 +31,10 @@
       "can_see_hidden_assignments"
     ]
   },
-  "observer": {
+  "Observer": {
     "permissions": []
   },
-  "designer": {
+  "Designer": {
     "permissions": [
       "can_view_files",
       "can_see_grade_before_open",
