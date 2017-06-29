@@ -1,71 +1,71 @@
 [
     {
         "name": "admin",
-        "role": "admin",
+        "role": "Admin",
         "courses": {}
     },
     {
         "name": "a",
-        "role": "admin",
+        "role": "Admin",
         "courses": {}
     },
     {
         "name": "b",
-        "role": "admin",
+        "role": "Admin",
         "courses": {
-            "Project Software Engineering": "student",
-            "Besturingssystemen": "ta",
-            "Programmeertalen": "ta"
+            "Project Software Engineering": "Student",
+            "Besturingssystemen": "TA",
+            "Programmeertalen": "TA"
         }
     },
     {
         "name": "Thomas Schaper",
-        "role": "student",
+        "role": "Student",
         "courses": {
-            "Project Software Engineering": "student",
-            "Besturingssystemen": "ta",
-            "Programmeertalen": "ta"
+            "Project Software Engineering": "Student",
+            "Besturingssystemen": "TA",
+            "Programmeertalen": "TA"
         }
     },
     {
         "name": "Devin Hillenius",
-        "role": "student",
+        "role": "Student",
         "courses": {
-            "Project Software Engineering": "student",
-            "Programmeertalen": "ta",
-            "Inleiding Programmeren": "ta"
+            "Project Software Engineering": "Student",
+            "Programmeertalen": "TA",
+            "Inleiding Programmeren": "TA"
         }
     },
     {
         "name": "Stupid1",
-        "role": "student",
+        "role": "Student",
         "courses": {
-            "Programmeertalen": "student",
-            "Inleiding Programmeren": "student"
+            "Programmeertalen": "Student",
+            "Inleiding Programmeren": "Student"
         }
     },
     {
         "name": "Stupid2",
-        "role": "student",
+        "role": "Student",
         "courses": {
-            "Programmeertalen": "student",
-            "Besturingssystemen": "student"
+            "Programmeertalen": "Student",
+            "Besturingssystemen": "Student"
         }
     },
     {
         "name": "Stupid3",
-        "role": "student",
+        "role": "Student",
         "courses": {
-            "Programmeertalen": "student",
-            "Besturingssystemen": "student"
+            "Programmeertalen": "Student",
+            "Besturingssystemen": "Student"
         }
     },
     {
         "name": "Stupid4",
-        "role": "student",
+        "role": "Student",
         "courses": {
-            "Programmeertalen": "student",
-            "Besturingssystemen": "student"
+            "Programmeertalen": "Student",
+            "Besturingssystemen": "Student"
         }
     }
 ]
