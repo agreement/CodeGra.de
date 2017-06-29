@@ -64,12 +64,24 @@ def get_rubric(submission_id):
             'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    auth.ensure_permission('can_see_assignments', work.assignment.course.id)
+    auth.ensure_permission('can_see_assignments', work.assignment.course_id)
 
-    return jsonify({
-        'rubrics': work.assignment.get_rubric(),
-        'selected': work.selected_items
-    })
+    try:
+        auth.ensure_can_see_grade(work)
+
+        return jsonify({
+            'rubrics': work.assignment.rubric_rows,
+            'selected': work.selected_items,
+            'points': {
+                'max': work.assignment.max_rubric_points,
+                'selected': work.selected_rubric_points,
+            },
+        })
+    except auth.PermissionException:
+        print('salkdjfas')
+        return jsonify({
+            'rubrics': work.assignment.rubric_rows,
+        })
 
 
 @api.route(
@@ -104,7 +116,11 @@ def select_rubric_item(submission_id, rubricitem_id):
     work.select_rubric_item(rubric_item)
     db.session.commit()
 
-    return ('', 204)
+    return jsonify({
+        'selected': work.selected_rubric_points,
+        'max': work.assignment.max_rubric_points,
+        'grade': work.grade,
+    }), 201
 
 
 def get_feedback(work):
