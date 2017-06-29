@@ -63,6 +63,7 @@ def get_assignment(assignment_id):
     else:
         return jsonify(assignment)
 
+
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
 def update_assignment(assignment_id):
     assig = models.Assignment.query.get(assignment_id)
@@ -93,8 +94,8 @@ def update_assignment(assignment_id):
         if len(content['name']) < 3:
             raise APIException(
                 'The name of an assignment should be longer than 3',
-                'len({}) < 3'.format(content['name']),
-                APICodes.INVALID_PARAM, 400)
+                'len({}) < 3'.format(content['name']), APICodes.INVALID_PARAM,
+                400)
         assig.name = content['name']
 
     if 'deadline' in content:
@@ -110,8 +111,9 @@ def update_assignment(assignment_id):
 
     return '', 204
 
+
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['GET'])
-def get_rubric(assignment_id):
+def get_assignment_rubric(assignment_id):
     assig = models.Assignment.query.get(assignment_id)
     if assig is None:
         raise APIException(
@@ -120,15 +122,75 @@ def get_rubric(assignment_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     auth.ensure_permission('can_see_assignments', assig.course_id)
-
     if len(assig.rubric_rows) == 0:
         raise APIException(
             'Assignment has no rubric',
             'The assignment with id "{}" has no rubric'.format(assignment_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    return assig.rubric_rows
+    return jsonify(assig.rubric_rows)
 
+
+@api.route('/assignments/<int:assignment_id>/rubrics/', methods=['PUT'])
+def add_assignment_rubric(assignment_id):
+    assig = models.Assignment.query.get(assignment_id)
+    if assig is None:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with id "{}" was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_manage_course', assig.course_id)
+    content = request.get_json()
+
+    if 'rows' not in content or not isinstance(content['rows'], list):
+        raise APIException('The rows are invalid',
+                           'The rows provied are not valid',
+                           APICodes.INVALID_PARAM, 400)
+
+    for row in content['rows']:
+        if ('header' not in row or 'description' not in row or
+                'items' not in row or not isinstance(row['items'], list)):
+            raise APIException('The provided row is invalid',
+                               'The provided row "{}" is invaled'.format(row),
+                               APICodes.INVALID_PARAM, 400)
+            if 'id' in row:
+                patch_rubric_row(assig, row)
+            else:
+                add_new_rubric_row(assig, row)
+
+    db.session.commit()
+    return ('', 204)
+
+
+def add_new_rubric_row(assig, row):
+    rubric_row = models.RubricRow(
+        assignment_id=assig.id,
+        header=row['header'],
+        description=row['description'])
+    add_rubric_items(rubric_row, row['items'])
+
+def patch_rubric_row(assig, row):
+    rubric_row = models.RubricRow.query.get(row['id'])
+    if rubric_row is None:
+        raise APIException(
+            'Rubric row not found',
+            'The Rubric row with id "{}" was not found'.format(row['id']),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    add_rubric_items(rubric_row, row['items'])
+
+def add_rubric_items(rubric_row, items):
+    for item in items:
+        if 'description' not in item or 'points' not in item:
+            raise APIException(
+                'The provided item is invalid',
+                'The provided item "{}" is invaled'.format(item),
+                APICodes.INVALID_PARAM, 400)
+        rubric_row.items.append(
+            models.RubricItem(
+                rubricrow_id=rubric_row.id,
+                description=item['description'],
+                points=item['points']))
 
 @api.route("/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id):
