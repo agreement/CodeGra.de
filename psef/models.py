@@ -41,6 +41,14 @@ user_course = db.Table('users-courses',
                        db.Column('user_id', db.Integer,
                                  db.ForeignKey('User.id', ondelete='CASCADE')))
 
+work_rubric_item = db.Table('work_rubric_item',
+                           db.Column('work_id', db.Integer,
+                                     db.ForeignKey(
+                                         'Work.id', ondelete='CASCADE')),
+                           db.Column('rubricitem_id', db.Integer,
+                                     db.ForeignKey(
+                                         'RubricItem.id', ondelete='CASCADE')))
+
 
 class LTIProvider(db.Model):
     """
@@ -499,7 +507,23 @@ class Course(db.Model):
             CourseRole(name=name, course=self, _permissions=perms)
 
     def __to_json__(self):
-        return {'id': self.id, 'name': self.name}
+        return {
+            'id': self.id,
+            'name': self.name,
+        }
+
+    def ensure_default_roles(self):
+        """Ensures that the default roles for this course exist.
+
+        All changes to the object are not committed to the database.
+
+        :rtype: None
+        """
+        for name, perms in CourseRole.get_default_course_roles().items():
+            if not db.session.query(
+                    CourseRole.query.filter_by(name=name, course_id=self.id)
+                    .exists()).scalar():
+                CourseRole(name=name, course=self, _permissions=perms)
 
 
 class Work(db.Model):
@@ -519,6 +543,7 @@ class Work(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     assigned_to = db.Column('assigned_to', db.Integer,
                             db.ForeignKey('User.id'))
+    selected_items = db.relationship('RubricItem', secondary=work_rubric_item)
 
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
     user = db.relationship('User', single_parent=True, foreign_keys=user_id)
@@ -652,6 +677,30 @@ class Work(db.Model):
                         is_directory=False,
                         parent=new_top))
 
+    def remove_selected_rubric_item(self, row_id):
+        """Deselect selected rubric item on row.
+
+        Deselects the selected rubric item on the given row with _row_id_  (if
+        there are any selected).
+
+        :param int row_id: The id of the RubricRow from which to deselect
+                           rubric items
+        :rtype: None
+        """
+        rubricitem = db.session.query(RubricItem).join(
+            work_rubric_item,
+            RubricItem.id == work_rubric_item.c.rubricitem_id).filter(
+                work_rubric_item.c.work_id == self.id,
+                RubricItem.rubricrow_id == row_id).first()
+        if rubricitem is not None:
+            self.selected_items.remove(rubricitem)
+
+    def select_rubric_item(self, rubricitem):
+        """
+        Selects the given rubric item.
+        """
+        self.selected_items.append(rubricitem)
+
 
 class File(db.Model):
     """
@@ -677,9 +726,8 @@ class File(db.Model):
 
     work = db.relationship('Work', foreign_keys=work_id)
 
-    __table_args__ = (
-        db.CheckConstraint(or_(is_directory == false(), extension == null())),
-    )
+    __table_args__ = (db.CheckConstraint(
+        or_(is_directory == false(), extension == null())), )
 
     def get_filename(self):
         """
@@ -938,8 +986,7 @@ class Assignment(db.Model):
             'created_at': self.created_at.isoformat(),
             'deadline': self.deadline.isoformat(),
             'name': self.name,
-            'course_name': self.course.name,
-            'course_id': self.course_id,
+            'course': self.course,
         }
 
     def set_state(self, state):
@@ -971,6 +1018,27 @@ class Assignment(db.Model):
                  sub.c.max_date == Work.created_at)).filter(
                      Work.assignment_id == self.id).all()
 
+    def get_rubric(self):
+        """Get rubric.
+
+        Returns the rubric corresponding to the current assignment.
+
+        :rtype: [dict[str, str, [RubricItem, ...]], ...]
+        """
+        rubric_rows = db.session.query(RubricRow).filter_by(
+            assignment_id=self.id).all()
+        full_rubric = []
+        for rubric_row in rubric_rows:
+            rubric_items = db.session.query(RubricItem).filter_by(
+                rubricrow=rubric_row).all()
+            full_rubric.append({
+                'header': rubric_row.header,
+                'description': rubric_row.description,
+                'items': rubric_items
+            })
+
+        return full_rubric
+
 
 class Snippet(db.Model):
     __tablename__ = 'Snippet'
@@ -987,3 +1055,42 @@ class Snippet(db.Model):
 
     def __to_json__(self):
         return {'key': self.key, 'value': self.value, 'id': self.id}
+
+
+class RubricRow(db.Model):
+    __tablename__ = 'RubricRow'
+    id = db.Column('id', db.Integer, primary_key=True)
+    assignment_id = db.Column('Assignment_id', db.Integer,
+                              db.ForeignKey('Assignment.id'))
+    header = db.Column('header', db.Unicode)
+    description = db.Column('description', db.Unicode, default='')
+
+    assignment = db.relationship('Assignment', foreign_keys=assignment_id)
+
+    def __to_json__(self):
+        return {
+            'id': self.id,
+            'assignment': self.assignment,
+            'header': self.header,
+            'description': self.description
+        }
+
+
+class RubricItem(db.Model):
+    __tablename__ = 'RubricItem'
+    id = db.Column('id', db.Integer, primary_key=True)
+    rubricrow_id = db.Column('Rubricrow_id', db.Integer,
+                             db.ForeignKey('RubricRow.id'))
+    col = db.Column('col', db.Integer)
+    description = db.Column('description', db.Unicode, default='')
+    points = db.Column('points', db.Float)
+
+    rubricrow = db.relationship('RubricRow', foreign_keys=rubricrow_id)
+
+    def __to_json__(self):
+        return {
+            'id': self.id,
+            'col': self.col,
+            'description': self.description,
+            'points': self.points,
+        }
