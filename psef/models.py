@@ -38,13 +38,12 @@ user_course = db.Table('users-courses',
                        db.Column('user_id', db.Integer,
                                  db.ForeignKey('User.id', ondelete='CASCADE')))
 
-work_rubric_item = db.Table('work_rubric_item',
-                           db.Column('work_id', db.Integer,
-                                     db.ForeignKey(
-                                         'Work.id', ondelete='CASCADE')),
-                           db.Column('rubricitem_id', db.Integer,
-                                     db.ForeignKey(
-                                         'RubricItem.id', ondelete='CASCADE')))
+work_rubric_item = db.Table(
+    'work_rubric_item',
+    db.Column('work_id', db.Integer,
+              db.ForeignKey('Work.id', ondelete='CASCADE')),
+    db.Column('rubricitem_id', db.Integer,
+              db.ForeignKey('RubricItem.id', ondelete='CASCADE')))
 
 
 class LTIProvider(db.Model):
@@ -413,6 +412,10 @@ class Work(db.Model):
 
     @property
     def grade(self):
+        if self._grade is None:
+            if not self.selected_items:
+                return None
+            return sum(item.points for item in self.selected_items)
         return self._grade
 
     def passback_grade(self):
@@ -543,8 +546,9 @@ class File(db.Model):
 
     work = db.relationship('Work', foreign_keys=work_id)
 
-    __table_args__ = (db.CheckConstraint(
-        or_(is_directory == false(), extension == null())), )
+    __table_args__ = (
+        db.CheckConstraint(or_(is_directory == false(), extension == null())),
+    )
 
     def get_filename(self):
         if self.extension is not None and self.extension != "":
@@ -732,6 +736,9 @@ class Assignment(db.Model):
     course = db.relationship(
         'Course', foreign_keys=course_id, back_populates='assignments')
 
+    rubric_rows = db.relationship(
+        'RubricRow', backref=db.backref('assignment'))
+
     def _submit_grades(self):
         with futures.ThreadPoolExecutor() as pool:
             for sub in self.get_all_latest_submissions():
@@ -808,27 +815,6 @@ class Assignment(db.Model):
                  sub.c.max_date == Work.created_at)).filter(
                      Work.assignment_id == self.id).all()
 
-    def get_rubric(self):
-        """Get rubric.
-
-        Returns the rubric corresponding to the current assignment.
-
-        :rtype: [dict[str, str, [RubricItem, ...]], ...]
-        """
-        rubric_rows = db.session.query(RubricRow).filter_by(
-            assignment_id=self.id).all()
-        full_rubric = []
-        for rubric_row in rubric_rows:
-            rubric_items = db.session.query(RubricItem).filter_by(
-                rubricrow=rubric_row).all()
-            full_rubric.append({
-                'header': rubric_row.header,
-                'description': rubric_row.description,
-                'items': rubric_items
-            })
-
-        return full_rubric
-
 
 class Snippet(db.Model):
     __tablename__ = 'Snippet'
@@ -854,15 +840,14 @@ class RubricRow(db.Model):
                               db.ForeignKey('Assignment.id'))
     header = db.Column('header', db.Unicode)
     description = db.Column('description', db.Unicode, default='')
-
-    assignment = db.relationship('Assignment', foreign_keys=assignment_id)
+    items = db.relationship("RubricItem", backref="rubricrow")
 
     def __to_json__(self):
         return {
             'id': self.id,
-            'assignment': self.assignment,
             'header': self.header,
-            'description': self.description
+            'description': self.description,
+            'items': self.items,
         }
 
 
@@ -874,8 +859,6 @@ class RubricItem(db.Model):
     col = db.Column('col', db.Integer)
     description = db.Column('description', db.Unicode, default='')
     points = db.Column('points', db.Float)
-
-    rubricrow = db.relationship('RubricRow', foreign_keys=rubricrow_id)
 
     def __to_json__(self):
         return {
