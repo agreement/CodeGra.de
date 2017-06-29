@@ -93,7 +93,7 @@ const actions = {
     },
     logout({ commit }) {
         return new Promise((resolve, reject) => {
-            axios.delete('/api/v1/login').then(() => {
+            axios.delete('/api/v1/login?type=extended').then(() => {
                 commit(types.LOGOUT);
                 resolve();
             }).catch(() => {

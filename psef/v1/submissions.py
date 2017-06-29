@@ -146,7 +146,7 @@ def select_rubric_item(submission_id, rubricitem_id):
             'The rubric item with id {} was not found'.format(rubricitem_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    auth.ensure_permission('can_grade_work', work.assignment.course.id)
+    auth.ensure_permission('can_grade_work', work.assignment.course_id)
     if rubric_item.rubricrow.assignment_id != work.assignment_id:
         raise APIException(
             'Rubric item selected does not match assignment',
@@ -221,8 +221,8 @@ def get_zip(work):
                                  user and the user can not view files in the
                                  attached course. (INCORRECT_PERMISSION)
     """
-    if (work.user.id != current_user.id):
-        auth.ensure_permission('can_view_files', work.assignment.course.id)
+    if (work.user_id != current_user.id):
+        auth.ensure_permission('can_view_files', work.assignment.course_id)
 
     code = models.File.query.filter(models.File.work_id == work.id,
                                     models.File.parent_id == None).one()
@@ -275,7 +275,7 @@ def patch_submission(submission_id):
             'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    auth.ensure_permission('can_grade_work', work.assignment.course.id)
+    auth.ensure_permission('can_grade_work', work.assignment.course_id)
     if 'grade' not in content or 'feedback' not in content:
         raise APIException('Grade or feedback not provided',
                            'Grade and or feedback fields missing in sent JSON',
@@ -336,8 +336,8 @@ def get_dir_contents(submission_id):
             'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    if (work.user.id != current_user.id):
-        auth.ensure_permission('can_view_files', work.assignment.course.id)
+    if (work.user_id != current_user.id):
+        auth.ensure_permission('can_view_files', work.assignment.course_id)
 
     file_id = request.args.get('file_id')
     if file_id:
@@ -347,7 +347,7 @@ def get_dir_contents(submission_id):
                 'File not found',
                 'The file with code {} was not found'.format(file_id),
                 APICodes.OBJECT_ID_NOT_FOUND, 404)
-        if (file.work.id != submission_id):
+        if (file.work_id != submission_id):
             raise APIException(
                 'Incorrect URL',
                 'The identifiers in the URL do no match those related to the '
