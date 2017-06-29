@@ -73,7 +73,7 @@ const router = new Router({
             component: UsersManager,
         },
         {
-            path: '/edit-rubric',
+            path: '/edit-rubric/:assignmentId',
             name: 'edit-rubric',
             component: RubricEditor,
         },

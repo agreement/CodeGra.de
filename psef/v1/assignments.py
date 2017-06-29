@@ -152,7 +152,7 @@ def add_assignment_rubric(assignment_id):
         if ('header' not in row or 'description' not in row or
                 'items' not in row or not isinstance(row['items'], list)):
             raise APIException('The provided row is invalid',
-                               'The provided row "{}" is invaled'.format(row),
+                               'The provided row "{}" is invalid'.format(row),
                                APICodes.INVALID_PARAM, 400)
         if 'id' in row:
             patch_rubric_row(assig, row)
@@ -168,17 +168,19 @@ def add_new_rubric_row(assig, row):
         assignment_id=assig.id,
         header=row['header'],
         description=row['description'])
-    for item in items:
+    db.session.add(rubric_row)
+    for item in row['items']:
         if 'description' not in item or 'points' not in item:
             raise APIException(
                 'The provided item is invalid',
-                'The provided item "{}" is invaled'.format(item),
+                'The provided item "{}" is invalid'.format(item),
                 APICodes.INVALID_PARAM, 400)
         rubric_row.items.append(
             models.RubricItem(
                 rubricrow_id=rubric_row.id,
                 description=item['description'],
                 points=item['points']))
+
 
 
 def patch_rubric_row(assig, row):
@@ -188,11 +190,11 @@ def patch_rubric_row(assig, row):
             'Rubric row not found',
             'The Rubric row with id "{}" was not found'.format(row['id']),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
-    for item in items:
+    for item in row['items']:
         if 'description' not in item or 'points' not in item:
             raise APIException(
                 'The provided item is invalid',
-                'The provided item "{}" is invaled'.format(item),
+                'The provided item "{}" is invalid'.format(item),
                 APICodes.INVALID_PARAM, 400)
         if 'id' not in item:
             rubric_row.items.append(
@@ -201,7 +203,7 @@ def patch_rubric_row(assig, row):
                     description=item['description'],
                     points=item['points']))
         else:
-            rubric_item = db.RubricItem.query.get(item['id'])
+            rubric_item = models.RubricItem.query.get(item['id'])
             if rubric_item is None:
                 raise APIException(
                     'Rubric item not found',
@@ -211,12 +213,13 @@ def patch_rubric_row(assig, row):
             rubric_item.points = item['points']
 
 
+
 def add_rubric_items(rubric_row, items):
     for item in items:
         if 'description' not in item or 'points' not in item:
             raise APIException(
                 'The provided item is invalid',
-                'The provided item "{}" is invaled'.format(item),
+                'The provided item "{}" is invalid'.format(item),
                 APICodes.INVALID_PARAM, 400)
         rubric_row.items.append(
             models.RubricItem(
