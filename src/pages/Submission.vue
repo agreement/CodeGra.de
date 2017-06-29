@@ -182,15 +182,18 @@ export default {
 
         gradeChange(grade) {
             this.$set(this.submission, 'grade', Number(grade));
-            let i = 0;
-            for (const len = this.submissions.length; i < len; i += 1) {
-                if (this.submissions[i].id === this.submission.id) {
-                    break;
+
+            if (this.submissions) {
+                let i = 0;
+                for (const len = this.submissions.length; i < len; i += 1) {
+                    if (this.submissions[i].id === this.submission.id) {
+                        break;
+                    }
                 }
+                const sub = this.submissions[i];
+                this.$set(sub, 'grade', Number(grade));
+                this.$set(this.submissions, i, sub);
             }
-            const sub = this.submissions[i];
-            this.$set(sub, 'grade', Number(grade));
-            this.$set(this.submissions, i, sub);
         },
 
         submitAllFeedback(event) {

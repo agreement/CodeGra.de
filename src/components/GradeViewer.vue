@@ -4,7 +4,7 @@
             id="rubric-collapse"
             v-if="showRubric">
             <rubric-viewer
-                v-model="rubricScore"
+                v-model="rubricPoints"
                 :editable="editable"
                 :submission="submission"
                 :rubric="rubric"
@@ -35,8 +35,7 @@
                     </b-form-input>
                     <b-form-input
                         class="text-right"
-                        :disabled="true"
-                        :value="`${this.grade.toFixed(2)} ( ${this.rubricScore.total} / ${this.rubricScore.max} )`"
+                        v-model="gradeAndRubricPoints"
                         v-else>
                     </b-form-input>
 
@@ -96,7 +95,7 @@ export default {
         },
         rubric: {
             type: Object,
-            default: null,
+            default: {},
         },
     },
 
@@ -106,25 +105,40 @@ export default {
             submitted: false,
             feedback: '',
             grade: 0,
-            rubricScore: {},
+            rubricPoints: {},
+            gradeAndRubricPoints: '',
         };
     },
 
     computed: {
         showRubric() {
-            return this.rubric && this.rubric.rubrics.length;
+            return this.rubric.rubrics.length;
         },
     },
 
     watch: {
-        rubricScore({ total, max }) {
-            this.grade = 10 * (total / max);
+        grade(grade) {
+            this.$emit('gradeChange', grade);
+        },
+
+        rubricPoints({ selected, max, grade }) {
+            if (grade) this.grade = grade;
+            this.gradeAndRubricPoints = `${this.grade} ( ${selected} / ${max} )`;
+        },
+
+        gradeAndRubricPoints(value) {
+            console.log(value, parseFloat(value));
+            this.grade = parseFloat(value);
         },
     },
 
     mounted() {
         this.feedback = this.submission.feedback || '';
         this.grade = this.submission.grade || 0;
+
+        if (this.showRubric) {
+            this.rubric.points.grade = this.grade;
+        }
     },
 
     methods: {
@@ -146,6 +160,8 @@ export default {
         },
 
         putFeedback() {
+            console.log(this.grade);
+
             this.submitting = true;
             this.$http.patch(`/api/v1/submissions/${this.submission.id}`,
                 {
@@ -162,7 +178,6 @@ export default {
                 this.$nextTick(() => setTimeout(() => {
                     this.submitted = false;
                 }, 1000));
-                this.$emit('gradeChange', this.grade);
             });
         },
 

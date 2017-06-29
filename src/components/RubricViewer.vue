@@ -82,8 +82,6 @@ export default {
             rubrics: [],
             selected: [],
             current: 0,
-            totalPoints: 0,
-            maxPoints: 0,
         };
     },
 
@@ -95,22 +93,21 @@ export default {
 
     mounted() {
         this.rubricUpdated(this.rubric);
+        console.log(this.rubric.points);
     },
 
     methods: {
-        emitInputEvent() {
-            this.$emit('input', {
-                total: this.getTotalPoints(),
-                max: this.getMaxPoints(),
-            });
-        },
-
-        rubricUpdated({ rubrics, selected }) {
+        rubricUpdated({ rubrics, selected, points }) {
             this.rubrics = rubrics;
-            const allItems = rubrics.reduce((arr, { items }) => arr.concat(items), []);
-            this.selected = selected.map(({ id }) => allItems.find(item => item.id === id));
 
-            this.emitInputEvent();
+            if (selected) {
+                const allItems = rubrics.reduce((arr, { items }) => arr.concat(items), []);
+                this.selected = selected.map(({ id }) => allItems.find(item => item.id === id));
+            }
+
+            if (points) {
+                this.$emit('input', points);
+            }
 
             this.$refs.rubricContainer.style.width = `${rubrics.length * 100}%`;
         },
@@ -118,24 +115,15 @@ export default {
         select(row, item) {
             if (!this.editable) return;
             this.$set(this.selected, row, item);
-            this.emitInputEvent();
 
             this.$http.patch(
                 `/api/v1/submissions/${this.submission.id}/rubricitems/${item.id}`,
-            ).catch((err) => {
+            ).then(({ data }) => {
+                this.$emit('input', data);
+            }, (err) => {
                 // eslint-disable-next-line
                 console.dir(err);
             });
-        },
-
-        getTotalPoints() {
-            return this.selected.filter(x => x).reduce(
-                (sum, item) => sum + item.points, 0);
-        },
-
-        getMaxPoints() {
-            return this.rubrics.reduce((sum, rubric) =>
-                sum + rubric.items[rubric.items.length - 1].points, 0);
         },
 
         goToPrev() {
