@@ -42,13 +42,12 @@ user_course = db.Table('users-courses',
                        db.Column('user_id', db.Integer,
                                  db.ForeignKey('User.id', ondelete='CASCADE')))
 
-work_rubric_item = db.Table('work_rubric_item',
-                           db.Column('work_id', db.Integer,
-                                     db.ForeignKey(
-                                         'Work.id', ondelete='CASCADE')),
-                           db.Column('rubricitem_id', db.Integer,
-                                     db.ForeignKey(
-                                         'RubricItem.id', ondelete='CASCADE')))
+work_rubric_item = db.Table(
+    'work_rubric_item',
+    db.Column('work_id', db.Integer,
+              db.ForeignKey('Work.id', ondelete='CASCADE')),
+    db.Column('rubricitem_id', db.Integer,
+              db.ForeignKey('RubricItem.id', ondelete='CASCADE')))
 
 
 class LTIProvider(db.Model):
@@ -552,7 +551,16 @@ class Work(db.Model):
 
     @property
     def grade(self):
+        if self._grade is None:
+            if not self.selected_items:
+                return None
+            selected = sum(item.points for item in self.selected_items)
+            return (selected / self.assignment.max_rubric_points) * 10
         return self._grade
+
+    @property
+    def selected_rubric_points(self):
+        return sum(item.points for item in self.selected_items)
 
     def passback_grade(self):
         """Initiates a passback of the grade to the LTI consumer via the
@@ -576,21 +584,35 @@ class Work(db.Model):
                               self.assignment.course_id, self.assignment_id,
                               self.id))
 
+    def select_rubric_item(self, item):
+        """ Selects the given :class:`RubricItem`.
+
+        .. note:: This also passes back the grade to LTI if this is necessary.
+
+        .. note:: This also sets the actual grade field to `None`.
+
+        :param RubricItem item: The item to add.
+        :returns: Nothing
+        :rtype: None
+        """
+        self.selected_items.append(item)
+        self._grade = None
+        if self.assignment.should_passback:
+            self.passback_grade()
+
     @grade.setter
     def grade(self, new_grade):
-        """Set the grade of this work.
+        """Set the grade to the new grade
 
-        If the :class:`Assignment` is an LTI assignment and the assignment is
-        done, the grade is passbacked to the LTI consumer (see
-        :py:func:`passback_grade`).
+        .. note:: This also passes back the grade to LTI if this is necessary
+            (see :py:func:`passback_grade`).
 
-        :param float new_grade: A number between 0 and 10
-
+        :param Number new_grade: The new grade to set
         :returns: Nothing
         :rtype: None
         """
         self._grade = new_grade
-        if self.assignment.is_done:
+        if self.assignment.should_passback:
             self.passback_grade()
 
     def __to_json__(self):
@@ -698,15 +720,6 @@ class Work(db.Model):
         if rubricitem is not None:
             self.selected_items.remove(rubricitem)
 
-    def select_rubric_item(self, rubricitem):
-        """Selects the given :class:`RubricItem`.
-
-        :param RubricItem rubricitem: The rubric item to select
-        :returns: Nothing
-        :rtype: None
-        """
-        self.selected_items.append(rubricitem)
-
 
 class File(db.Model):
     """
@@ -732,8 +745,9 @@ class File(db.Model):
 
     work = db.relationship('Work', foreign_keys=work_id)
 
-    __table_args__ = (db.CheckConstraint(
-        or_(is_directory == false(), extension == null())), )
+    __table_args__ = (
+        db.CheckConstraint(or_(is_directory == false(), extension == null())),
+    )
 
     def get_filename(self):
         """Get the real filename of the file.
@@ -1005,10 +1019,18 @@ class Assignment(db.Model):
     course = db.relationship(
         'Course', foreign_keys=course_id, back_populates='assignments')
 
+    rubric_rows = db.relationship(
+        'RubricRow', backref=db.backref('assignment'))
+
     def _submit_grades(self):
         with futures.ThreadPoolExecutor() as pool:
             for sub in self.get_all_latest_submissions():
                 pool.submit(sub.passback_grade)
+
+    @property
+    def max_rubric_points(self):
+        return sum(
+            max(item.points for item in row.items) for row in self.rubric_rows)
 
     @property
     def is_open(self):
@@ -1028,6 +1050,10 @@ class Assignment(db.Model):
     @property
     def is_done(self):
         return self.state == _AssignmentStateEnum.done
+
+    @property
+    def should_passback(self):
+        return self.is_done
 
     @property
     def state_name(self):
@@ -1089,28 +1115,6 @@ class Assignment(db.Model):
                  sub.c.max_date == Work.created_at)).filter(
                      Work.assignment_id == self.id).all()
 
-    def get_rubric(self):
-        """Get rubric.
-
-        Returns the rubric corresponding to the this assignment.
-
-        :returns: A list of rubric rows
-        :rtype: [dict[str, str, [RubricItem, ...]], ...]
-        """
-        rubric_rows = db.session.query(RubricRow).filter_by(
-            assignment_id=self.id).all()
-        full_rubric = []
-        for rubric_row in rubric_rows:
-            rubric_items = db.session.query(RubricItem).filter_by(
-                rubricrow=rubric_row).all()
-            full_rubric.append({
-                'header': rubric_row.header,
-                'description': rubric_row.description,
-                'items': rubric_items
-            })
-
-        return full_rubric
-
 
 class Snippet(db.Model):
     """Describes a :class:`User` specified mapping from a keyword to some
@@ -1152,17 +1156,16 @@ class RubricRow(db.Model):
                               db.ForeignKey('Assignment.id'))
     header = db.Column('header', db.Unicode)
     description = db.Column('description', db.Unicode, default='')
-
-    assignment = db.relationship('Assignment', foreign_keys=assignment_id)
+    items = db.relationship("RubricItem", backref="rubricrow")
 
     def __to_json__(self):
         """Creates a JSON serializable representation of this object.
         """
         return {
             'id': self.id,
-            'assignment': self.assignment,
             'header': self.header,
-            'description': self.description
+            'description': self.description,
+            'items': self.items,
         }
 
 
@@ -1177,8 +1180,6 @@ class RubricItem(db.Model):
     col = db.Column('col', db.Integer)
     description = db.Column('description', db.Unicode, default='')
     points = db.Column('points', db.Float)
-
-    rubricrow = db.relationship('RubricRow', foreign_keys=rubricrow_id)
 
     def __to_json__(self):
         """Creates a JSON serializable representation of this object.
