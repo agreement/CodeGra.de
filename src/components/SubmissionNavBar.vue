@@ -59,7 +59,6 @@ export default {
 
     methods: {
         scrollToItem() {
-            console.dir('scroll');
             let el = document.getElementById('selectedItem').parentNode;
             for (let i = 0, end = 6; i < end; i += 1) {
                 el = el.previousSibling || el;
