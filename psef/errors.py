@@ -7,6 +7,9 @@ from psef import app
 
 @unique
 class APICodes(IntEnum):
+    """
+    Internal API codes that are used in APIExceptions.
+    """
     INCORRECT_PERMISSION = 0
     NOT_LOGGED_IN = 1
     OBJECT_ID_NOT_FOUND = 2
@@ -56,6 +59,9 @@ class APIException(Exception):
 @app.errorhandler(APIException)
 def handle_api_error(error):
     """Handle the an API exception by converting the error to a JSON object.
+
+    :param ApiException error: The error that occured
+    :rtype: Response
     """
     response = jsonify(error)
     response.status_code = error.status_code

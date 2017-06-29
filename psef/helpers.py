@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""
+This module implements generic helpers and convenience functions.
+"""
 import os
 import json
 
@@ -20,4 +23,10 @@ def get_all_subclasses(cls):
 
 
 def get_request_start_time():
+    """
+    Return the start time of the current request.
+
+    :returns: The time as returned by the python time module.
+    :rtype: float
+    """
     return g.request_start_time
