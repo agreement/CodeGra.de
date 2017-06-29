@@ -97,10 +97,10 @@ class Flake8(Linter):
                     pass
 
 
-# BERENLINTERS
-
 # generic linter
-# unused, pass linterInterface model en doe je ding
+# Will be used to replace all the XlintBears
+# Needs to receive the requested linter from the front end
+# Implementation: todo
 class GenericLinter(Linter):
     NAME = "req_linter"
     DESCRIPTION = 'req_linter'
@@ -112,7 +112,7 @@ class GenericLinter(Linter):
             key=self.req['name']).first()
 
     def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.flake8')
+        cfg = os.path.join(tempdir, '.linterconfig')
         with open(cfg, 'w') as f:
             f.write(self.config)
 
@@ -140,11 +140,11 @@ class PyLintBear(Linter):
         self.config = config
 
     def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.flake8')
+        cfg = os.path.join(tempdir, '.linterconfig')
         with open(cfg, 'w') as f:
             f.write(self.config)
 
-        sourcedir = tempdir + "/**/*.*"
+        sourcedir = tempdir + "/**/*.py"
         out = subprocess.run(
             [
                 'coala', '--format', '{file} {line} {severity_str} {message}',
@@ -170,11 +170,11 @@ class HtmlLintBear(Linter):
         self.config = config
 
     def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.flake8')
+        cfg = os.path.join(tempdir, '.linterconfig')
         with open(cfg, 'w') as f:
             f.write(self.config)
 
-        sourcedir = tempdir + "/**/*.*"
+        sourcedir = tempdir + "/**/*.html"
         out = subprocess.run(
             [
                 'coala', '--format', '{file} {line} {severity_str} {message}',
@@ -199,11 +199,11 @@ class ShellCheckBear(Linter):
         self.config = config
 
     def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.flake8')
+        cfg = os.path.join(tempdir, '.linterconfig')
         with open(cfg, 'w') as f:
             f.write(self.config)
 
-        sourcedir = tempdir + "/**/*.*"
+        sourcedir = tempdir + "/**/*.sh"
         out = subprocess.run(
             [
                 'coala', '--format', '{file} {line} {severity_str} {message}',
@@ -227,11 +227,11 @@ class HaskellCheckBear(Linter):
         self.config = config
 
     def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.flake8')
+        cfg = os.path.join(tempdir, '.linterconfig')
         with open(cfg, 'w') as f:
             f.write(self.config)
 
-        sourcedir = tempdir + "/**/*.*"
+        sourcedir = tempdir + "/**/*.hs"
         out = subprocess.run(
             [
                 'coala', '--format', '{file} {line} {severity_str} {message}',
@@ -255,11 +255,11 @@ class JavaCheckBear(Linter):
         self.config = config
 
     def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.flake8')
+        cfg = os.path.join(tempdir, '.linterconfig')
         with open(cfg, 'w') as f:
             f.write(self.config)
 
-        sourcedir = tempdir + "/**/*.*"
+        sourcedir = tempdir + "/**/*.java"
         out = subprocess.run(
             [
                 'coala', '--format', '{file} {line} {severity_str} {message}',
@@ -284,10 +284,13 @@ class ClangCheckBear(Linter):
         self.config = config
 
     def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.flake8')
+        cfg = os.path.join(tempdir, '.linterconfig')
         with open(cfg, 'w') as f:
             f.write(self.config)
 
+        # Note: we want to use clang on (c, c++, c#)
+        # Either multiple database instances or add the
+        # (.c | .c# | etc.) to /*.
         sourcedir = tempdir + "/**/*.*"
         out = subprocess.run(
             [
@@ -313,11 +316,11 @@ class GoLintCheckBear(Linter):
         self.config = config
 
     def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.flake8')
+        cfg = os.path.join(tempdir, '.linterconfig')
         with open(cfg, 'w') as f:
             f.write(self.config)
 
-        sourcedir = tempdir + "/**/*.*"
+        sourcedir = tempdir + "/**/*.go"
         out = subprocess.run(
             [
                 'coala', '--format', '{file} {line} {severity_str} {message}',
@@ -342,11 +345,11 @@ class GoFmtCheckBear(Linter):
         self.config = config
 
     def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.flake8')
+        cfg = os.path.join(tempdir, '.linterconfig')
         with open(cfg, 'w') as f:
             f.write(self.config)
 
-        sourcedir = tempdir + "/**/*.*"
+        sourcedir = tempdir + "/**/*.go"
         out = subprocess.run(
             [
                 'coala', '--format', '{file} {line} {severity_str} {message}',
@@ -371,11 +374,11 @@ class PHPCodeCheckBear(Linter):
         self.config = config
 
     def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.flake8')
+        cfg = os.path.join(tempdir, '.linterconfig')
         with open(cfg, 'w') as f:
             f.write(self.config)
 
-        sourcedir = tempdir + "/**/*.*"
+        sourcedir = tempdir + "/**/*.php"
         out = subprocess.run(
             [
                 'coala', '--format', '{file} {line} {severity_str} {message}',
@@ -400,11 +403,11 @@ class ESLintCheckBear(Linter):
         self.config = config
 
     def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.flake8')
+        cfg = os.path.join(tempdir, '.linterconfig')
         with open(cfg, 'w') as f:
             f.write(self.config)
 
-        sourcedir = tempdir + "/**/*.*"
+        sourcedir = tempdir + "/**/*.js"
         out = subprocess.run(
             [
                 'coala', '--format', '{file} {line} {severity_str} {message}',
@@ -429,11 +432,11 @@ class SCSSCheckBear(Linter):
         self.config = config
 
     def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.flake8')
+        cfg = os.path.join(tempdir, '.linterconfig')
         with open(cfg, 'w') as f:
             f.write(self.config)
 
-        sourcedir = tempdir + "/**/*.*"
+        sourcedir = tempdir + "/**/*.css"
         out = subprocess.run(
             [
                 'coala', '--format', '{file} {line} {severity_str} {message}',
@@ -458,11 +461,11 @@ class LatexCheckBear(Linter):
         self.config = config
 
     def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.flake8')
+        cfg = os.path.join(tempdir, '.linterconfig')
         with open(cfg, 'w') as f:
             f.write(self.config)
 
-        sourcedir = tempdir + "/**/*.*"
+        sourcedir = tempdir + "/**/*.tex"
         out = subprocess.run(
             [
                 'coala', '--format', '{file} {line} {severity_str} {message}',

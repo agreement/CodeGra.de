@@ -30,4 +30,4 @@ oauth2==1.9.0.post1
 click==6.6
 lxml==3.6.0
 pyflakes==1.4.0
-coala-bears==0.12.0.dev20170628141613
+coala-bears==0.11.1
