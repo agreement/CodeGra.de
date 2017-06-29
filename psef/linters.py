@@ -27,6 +27,7 @@ class Linter:
     DEFAULT_OPTIONS = {}
 
 
+# Python linters
 class Pylint(Linter):
     NAME = 'Pylint'
     DESCRIPTION = 'The pylint checker, this checker only works on modules!'
@@ -97,40 +98,6 @@ class Flake8(Linter):
                     pass
 
 
-# generic linter
-# Will be used to replace all the XlintBears
-# Needs to receive the requested linter from the front end
-# Implementation: todo
-class GenericLinter(Linter):
-    NAME = "req_linter"
-    DESCRIPTION = 'req_linter'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-
-    def __init__(self, config, req):
-        self.config = config
-        self.req_linter = models.LinterInterface.query.filter_by(
-            key=self.req['name']).first()
-
-    def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.linterconfig')
-        with open(cfg, 'w') as f:
-            f.write(self.config)
-
-        sourcedir = tempdir + "/**/*.*"
-        out = subprocess.run(
-            [
-                'coala', '--format', '{file} {line} {severity_str} {message}',
-                '--files', sourcedir, '--bears', 'PyLintBear', '-I'
-            ],
-            stdout=subprocess.PIPE).stdout.decode('utf8')
-        for line in out.split('\n'):
-            if len(line) > 0:
-                line2 = line.split(None, 3)
-                try:
-                    emit(line2[0], int(line2[1]), line2[2], line2[3])
-                except ValueError:
-                    pass
-# pylint
 class PyLintBear(Linter):
     NAME = 'PyLint'
     DESCRIPTION = 'The pylint checker'
@@ -160,10 +127,9 @@ class PyLintBear(Linter):
                     pass
 
  
-# html lint
-class HtmlLintBear(Linter):
-    NAME = 'HTML Linter'
-    DESCRIPTION = 'The HTML lint checker'
+class PEP8Bear(Linter):
+    NAME = 'PEP8 Linter'
+    DESCRIPTION = 'The pylint checker'
     DEFAULT_OPTIONS = {'Empty config file': ''}
 
     def __init__(self, config):
@@ -174,138 +140,22 @@ class HtmlLintBear(Linter):
         with open(cfg, 'w') as f:
             f.write(self.config)
 
-        sourcedir = tempdir + "/**/*.html"
+        sourcedir = tempdir + "/**/*.py"
         out = subprocess.run(
             [
                 'coala', '--format', '{file} {line} {severity_str} {message}',
-                '--files', sourcedir, '--bears', 'HTMLLintBear', '-I'
+                '--files', sourcedir, '--bears', 'PEP8Bear', '-I'
             ],
             stdout=subprocess.PIPE).stdout.decode('utf8')
         for line in out.split('\n'):
             if len(line) > 0:
-                args = line.split(None, 3)
+                line2 = line.split(None, 3)
                 try:
-                    emit(args[0], int(args[1]), args[2], args[3])
+                    emit(line2[0], int(line2[1]), line2[2], line2[3])
                 except ValueError:
                     pass
 
-
-class ShellCheckBear(Linter):
-    NAME = 'Shell Linter'
-    DESCRIPTION = 'The Shell cheker'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-
-    def __init__(self, config):
-        self.config = config
-
-    def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.linterconfig')
-        with open(cfg, 'w') as f:
-            f.write(self.config)
-
-        sourcedir = tempdir + "/**/*.sh"
-        out = subprocess.run(
-            [
-                'coala', '--format', '{file} {line} {severity_str} {message}',
-                '--files', sourcedir, '--bears', 'ShellCheckBear', '-I'
-            ],
-            stdout=subprocess.PIPE).stdout.decode('utf8')
-        for line in out.split('\n'):
-            if len(line) > 0:
-                args = line.split(None, 3)
-                try:
-                    emit(args[0], int(args[1]), args[2], args[3])
-                except ValueError:
-                    pass
-
-class HaskellCheckBear(Linter):
-    NAME = 'Haskell Linter'
-    DESCRIPTION = 'Haskell ghc mod package'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-
-    def __init__(self, config):
-        self.config = config
-
-    def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.linterconfig')
-        with open(cfg, 'w') as f:
-            f.write(self.config)
-
-        sourcedir = tempdir + "/**/*.hs"
-        out = subprocess.run(
-            [
-                'coala', '--format', '{file} {line} {severity_str} {message}',
-                '--files', sourcedir, '--bears', 'GhcModBear', '-I'
-            ],
-            stdout=subprocess.PIPE).stdout.decode('utf8')
-        for line in out.split('\n'):
-            if len(line) > 0:
-                args = line.split(None, 3)
-                try:
-                    emit(args[0], int(args[1]), args[2], args[3])
-                except ValueError:
-                    pass
-
-class JavaCheckBear(Linter):
-    NAME = 'Java Linter'
-    DESCRIPTION = 'Java Checkstyle'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-
-    def __init__(self, config):
-        self.config = config
-
-    def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.linterconfig')
-        with open(cfg, 'w') as f:
-            f.write(self.config)
-
-        sourcedir = tempdir + "/**/*.java"
-        out = subprocess.run(
-            [
-                'coala', '--format', '{file} {line} {severity_str} {message}',
-                '--files', sourcedir, '--bears', 'CheckstyleBear', '-I'
-            ],
-            stdout=subprocess.PIPE).stdout.decode('utf8')
-        for line in out.split('\n'):
-            if len(line) > 0:
-                args = line.split(None, 3)
-                try:
-                    emit(args[0], int(args[1]), args[2], args[3])
-                except ValueError:
-                    pass
-
-
-class ClangCheckBear(Linter):
-    NAME = 'Clang'
-    DESCRIPTION = 'syntax and semantical problems'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-
-    def __init__(self, config):
-        self.config = config
-
-    def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.linterconfig')
-        with open(cfg, 'w') as f:
-            f.write(self.config)
-
-        # Note: we want to use clang on (c, c++, c#)
-        # Either multiple database instances or add the
-        # (.c | .c# | etc.) to /*.
-        sourcedir = tempdir + "/**/*.*"
-        out = subprocess.run(
-            [
-                'coala', '--format', '{file} {line} {severity_str} {message}',
-                '--files', sourcedir, '--bears', 'ClangBear', '-I'
-            ],
-            stdout=subprocess.PIPE).stdout.decode('utf8')
-        for line in out.split('\n'):
-            if len(line) > 0:
-                args = line.split(None, 3)
-                try:
-                    emit(args[0], int(args[1]), args[2], args[3])
-                except ValueError:
-                    pass
-
+# Go linters
 
 class GoLintCheckBear(Linter):
     NAME = 'golint'
@@ -364,35 +214,7 @@ class GoFmtCheckBear(Linter):
                 except ValueError:
                     pass
 
-
-class PHPCodeCheckBear(Linter):
-    NAME = 'PHP Codesniffer'
-    DESCRIPTION = 'PHP syntax en formatting'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-
-    def __init__(self, config):
-        self.config = config
-
-    def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.linterconfig')
-        with open(cfg, 'w') as f:
-            f.write(self.config)
-
-        sourcedir = tempdir + "/**/*.php"
-        out = subprocess.run(
-            [
-                'coala', '--format', '{file} {line} {severity_str} {message}',
-                '--files', sourcedir, '--bears', 'PHPCodeSnifferBear', '-I'
-            ],
-            stdout=subprocess.PIPE).stdout.decode('utf8')
-        for line in out.split('\n'):
-            if len(line) > 0:
-                args = line.split(None, 3)
-                try:
-                    emit(args[0], int(args[1]), args[2], args[3])
-                except ValueError:
-                    pass
-
+# javascript linters
 
 class ESLintCheckBear(Linter):
     NAME = 'Eslint'
@@ -423,9 +245,9 @@ class ESLintCheckBear(Linter):
                     pass
 
 
-class SCSSCheckBear(Linter):
-    NAME = 'SCSSLint'
-    DESCRIPTION = 'Check CSS for formatting and syntax errors'
+class JSHintBearI(Linter):
+    NAME = 'JSHint'
+    DESCRIPTION = 'Detect errors and potential problems in JavaScript code.'
     DEFAULT_OPTIONS = {'Empty config file': ''}
 
     def __init__(self, config):
@@ -436,11 +258,11 @@ class SCSSCheckBear(Linter):
         with open(cfg, 'w') as f:
             f.write(self.config)
 
-        sourcedir = tempdir + "/**/*.css"
+        sourcedir = tempdir + "/**/*.js"
         out = subprocess.run(
             [
                 'coala', '--format', '{file} {line} {severity_str} {message}',
-                '--files', sourcedir, '--bears', 'SCSSLintBear', '-I'
+                '--files', sourcedir, '--bears', 'JSHintBear', '-I'
             ],
             stdout=subprocess.PIPE).stdout.decode('utf8')
         for line in out.split('\n'):
@@ -449,36 +271,8 @@ class SCSSCheckBear(Linter):
                 try:
                     emit(args[0], int(args[1]), args[2], args[3])
                 except ValueError:
-                    pass
+                    pass    
 
-
-class LatexCheckBear(Linter):
-    NAME = 'chktex'
-    DESCRIPTION = 'Check Latex for formatting and syntax errors'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-
-    def __init__(self, config):
-        self.config = config
-
-    def run(self, tempdir, emit):
-        cfg = os.path.join(tempdir, '.linterconfig')
-        with open(cfg, 'w') as f:
-            f.write(self.config)
-
-        sourcedir = tempdir + "/**/*.tex"
-        out = subprocess.run(
-            [
-                'coala', '--format', '{file} {line} {severity_str} {message}',
-                '--files', sourcedir, '--bears', 'LatexLintBear', '-I'
-            ],
-            stdout=subprocess.PIPE).stdout.decode('utf8')
-        for line in out.split('\n'):
-            if len(line) > 0:
-                args = line.split(None, 3)
-                try:
-                    emit(args[0], int(args[1]), args[2], args[3])
-                except ValueError:
-                    pass
 
 class LinterRunner():
     def __init__(self, cls, cfg):

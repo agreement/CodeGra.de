@@ -56,25 +56,6 @@ def seed():
                 r._permissions = r_perms
             else:
                 db.session.add(m.Role(name=name, _permissions=r_perms))
-
-    with open('./seed_data/linters.json', 'r') as c:
-        cs = json.load(c)
-        for c in cs:
-            lints = m.LinterInterface.query.filter_by(name=c['name']).first()
-            if lints is None:
-                db.session.add(
-                    m.LinterInterface(
-                        name=c['name'],
-                        code=c['code'],
-                        extension=c['extension'],
-                        description=c['description'],
-                        executable=c['executable']))
-            else:
-                extension=c['extension']
-                description=c['description']
-                executable=c['executable']
-        
-    
     db.session.commit()
 
 

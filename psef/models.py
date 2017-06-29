@@ -885,11 +885,3 @@ class RubricItem(db.Model):
             'points': self.points,
         }
 
-class LinterInterface(db.Model):
-    __tablename__ = 'LinterInterface'
-    id = db.Column('id', db.Integer, primary_key=True)
-    name = db.Column('name', db.Unicode, default='')
-    code = db.Column('code', db.Unicode, default='')
-    extension = db.Column('extension', db.Unicode, default='')
-    description = db.Column('description', db.Unicode, default='')
-    executable = db.Column('executable', db.Unicode, default='')
