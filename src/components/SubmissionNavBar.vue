@@ -8,10 +8,13 @@
                 <icon name="angle-left"></icon>
             </b-button>
             <b-dropdown class=""
-                        :text="selectedOption"
+                        :text="selectedOption.text"
                         size="lg">
                 <b-dropdown-header>Studentnaam...</b-dropdown-header>
-                <b-dropdown-item v-for="x in options" v-on:click="clicked(x.value)">{{ x.text }}</b-dropdown-item>
+                <b-dropdown-item v-for="x in options" v-on:click="clicked(x.value)">
+                    <b v-if="x.item.id == selectedOption.id">{{ x.item.text }}</b>
+                    <span v-else>{{ x.item.text }}</span>
+                </b-dropdown-item>
             </b-dropdown>
             <b-button :disabled="!next" @click="selected = next" class="angle-btn">
                 <icon name="angle-right"></icon>
@@ -34,7 +37,7 @@ export default {
 
     data() {
         return {
-            selectedOption: '',
+            selectedOption: { id: 0, text: '' },
             selected: this.submission.id,
             options: {},
             next: null,
@@ -46,6 +49,7 @@ export default {
         this.options = this.filterAll();
         this.findNextPrev();
         this.selectedOption = this.getItemText(this.submission);
+        console.dir(this.submission);
     },
 
     methods: {
@@ -54,7 +58,10 @@ export default {
             if (submission.assignee) {
                 text += ` (${submission.assignee.name})`;
             }
-            return text;
+            return {
+                text,
+                id: submission.user.id,
+            };
         },
 
         filterAll() {
@@ -70,7 +77,7 @@ export default {
                 const sub = submissions[i];
                 if (seen[sub.user.id] !== true) {
                     latestSubs.push({
-                        text: this.getItemText(sub),
+                        item: this.getItemText(sub),
                         value: sub.id,
                         assignee: sub.assignee,
                     });
@@ -139,7 +146,9 @@ export default {
         },
 
         submissions() {
+            console.log('w');
             this.options = this.filterAll();
+            this.selectedOption = this.getItemText(this.submission);
         },
 
         submission() {
