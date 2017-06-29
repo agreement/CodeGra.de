@@ -9,11 +9,13 @@ if [[ -z "$VIRTUAL_ENV" ]]; then
     exit 1
 fi
 
-echo "Migrating and upgrading database"
-./manage.py db migrate
-./manage.py db upgrade
-./manage.py seed
-./manage.py test_data
+if [[ "$1" != 'skip' ]]; then
+    echo "Migrating and upgrading database"
+    ./manage.py db migrate
+    ./manage.py db upgrade
+    ./manage.py seed
+    ./manage.py test_data
+fi
 
 if [[ "${1:-true}" = "migrate" ]]; then
     exit 0

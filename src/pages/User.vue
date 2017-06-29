@@ -19,12 +19,18 @@
 import { mapGetters } from 'vuex';
 import { UserInfo, SnippetManager } from '@/components';
 
+import { setTitle } from './title';
+
 export default {
     name: 'user-page',
 
     components: {
         UserInfo,
         SnippetManager,
+    },
+
+    mounted() {
+        setTitle('User info');
     },
 
     computed: {
