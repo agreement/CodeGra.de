@@ -790,6 +790,11 @@ class File(db.Model):
 
 
 class LinterComment(db.Model):
+    """
+    Describes a comment created by a :class: LinterInstance.
+
+    Like a :class: Comment it is attached to a specific line in a :class: File.
+    """
     __tablename__ = "LinterComment"
     file_id = db.Column(
         'File_id', db.Integer, db.ForeignKey('File.id'), index=True)
@@ -812,6 +817,12 @@ class LinterComment(db.Model):
 
 
 class Comment(db.Model):
+    """
+    Describes a comment placed in a :class: File by a :class: User with the
+    ability to grade.
+
+    A comment is always linked to a specific line in a file.
+    """
     __tablename__ = "Comment"
     file_id = db.Column('File_id', db.Integer, db.ForeignKey('File.id'))
     user_id = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
@@ -831,12 +842,22 @@ class Comment(db.Model):
 
 @enum.unique
 class LinterState(enum.IntEnum):
+    """
+    Describes in what state a :class: LinterInstance is.
+    """
     running = 1
     done = 2
     crashed = 3
 
 
 class AssignmentLinter(db.Model):
+    """
+    The class is used when a linter is used on a :class: Assignment.
+
+    Every :class: Work that is tested is attached by a :class: LinterInstance.
+
+    The name identifies which linter in :py:psef.linters: is used.
+    """
     __tablename__ = 'AssignmentLinter'
     id = db.Column('id', db.Unicode, nullable=False, primary_key=True)
     name = db.Column('name', db.Unicode)
@@ -851,6 +872,16 @@ class AssignmentLinter(db.Model):
     assignment = db.relationship('Assignment', foreign_keys=assignment_id)
 
     def __to_json__(self):
+        """
+        Returns the JSON serializable representation of this class.
+
+        This representation also returns a count of the :class: LinterState of
+        the attached :class: LinterInstance objects.
+
+        :returns: A dict containing JSON serializable representations of the
+            attributes and the test state counts of this LinterAssignment.
+        :rtype: dict
+        """
         working = 0
         crashed = 0
         done = 0
@@ -873,6 +904,17 @@ class AssignmentLinter(db.Model):
 
     @classmethod
     def create_tester(cls, assignment_id, name):
+        """
+        Create a new instance of this class for a given :class: Assignment with
+        a given :class: linters.Linter.
+
+        :param assignment_id: The id of the assignment
+        :type assignment_id: int
+        :param name: Name of the linter
+        :type name: str
+        :returns: The created AssignmentLinter
+        :rtype: AssignmentLinter
+        """
         id = str(uuid.uuid4())
         while db.session.query(
                 AssignmentLinter.query.filter(cls.id == id).exists()).scalar():
@@ -886,6 +928,10 @@ class AssignmentLinter(db.Model):
 
 
 class LinterInstance(db.Model):
+    """
+    Describes the connection between a :class: AssignmentLinter and a :class:
+    Work.
+    """
     __tablename__ = 'LinterInstance'
     id = db.Column('id', db.Unicode, nullable=False, primary_key=True)
     state = db.Column(
@@ -921,12 +967,18 @@ class LinterInstance(db.Model):
 
 @enum.unique
 class _AssignmentStateEnum(enum.IntEnum):
+    """
+    Describes in what state an :class: Assignment is.
+    """
     hidden = 0
     open = 1
     done = 2
 
 
 class Assignment(db.Model):
+    """
+    This class describes a :class: Course specific assignment.
+    """
     __tablename__ = "Assignment"
     id = db.Column('id', db.Integer, primary_key=True)
     name = db.Column('name', db.Unicode)
@@ -1008,6 +1060,13 @@ class Assignment(db.Model):
             raise TypeError()
 
     def get_all_latest_submissions(self):
+        """
+        Get a list of all the latest submitted :class: Work by each :class:
+        User who has submitted at least one work for this assignment.
+
+        :returns: The latest submissions
+        :rtype: list of Work
+        """
         sub = db.session.query(
             Work.user_id.label('user_id'),
             func.max(Work.created_at).label('max_date')).filter_by(
@@ -1041,6 +1100,9 @@ class Assignment(db.Model):
 
 
 class Snippet(db.Model):
+    """
+    Describes a :class: User specified mapping from a keyword to some string.
+    """
     __tablename__ = 'Snippet'
     id = db.Column('id', db.Integer, primary_key=True)
     key = db.Column('key', db.Unicode, nullable=False)
@@ -1058,6 +1120,12 @@ class Snippet(db.Model):
 
 
 class RubricRow(db.Model):
+    """
+    Describes a row of some rubric.
+
+    This class forms the link between :class: Assignment and :class: RubricItem
+    and holds information about the row.
+    """
     __tablename__ = 'RubricRow'
     id = db.Column('id', db.Integer, primary_key=True)
     assignment_id = db.Column('Assignment_id', db.Integer,
@@ -1077,6 +1145,10 @@ class RubricRow(db.Model):
 
 
 class RubricItem(db.Model):
+    """
+    This class holds the information about a single option/item in a :class:
+    RubricRow.
+    """
     __tablename__ = 'RubricItem'
     id = db.Column('id', db.Integer, primary_key=True)
     rubricrow_id = db.Column('Rubricrow_id', db.Integer,
