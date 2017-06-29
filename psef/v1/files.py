@@ -21,7 +21,7 @@ from . import api
 @login_required
 def post_file():
     """Temporarily store some data on the server.
-    
+
     The posted data will be removed after 60 seconds.
 
     :returns: A response with the JSON serialized name of the file as content

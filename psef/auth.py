@@ -34,15 +34,14 @@ def _user_active():
 def ensure_can_see_grade(work):
     """Ensure the current user can see the grade of the given work.
 
-    :param work: The work
-    :type work: models.Work
+    :param models.Work work: The work
 
     :returns: Nothing
     :rtype: None
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the user can not see the grade.
-        (INCORRECT_PERMISSION)
+                                 (INCORRECT_PERMISSION)
     """
     if _user_active():
         if work.user.id != current_user.id:

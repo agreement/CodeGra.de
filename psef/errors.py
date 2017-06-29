@@ -7,8 +7,7 @@ from psef import app
 
 @unique
 class APICodes(IntEnum):
-    """
-    Internal API codes that are used in APIExceptions.
+    """Internal API codes that are used by :class:`APIException` objects.
     """
     INCORRECT_PERMISSION = 0
     NOT_LOGGED_IN = 1
@@ -48,7 +47,11 @@ class APIException(Exception):
         self.rest = rest
 
     def __to_json__(self):
-        "Convert this APIException instance to a dictionary."
+        """Creates a JSON serializable representation of this object.
+
+        :returns: This APIException instance as a dictionary.
+        :rtype: dict
+        """
         ret = self.rest
         ret['message'] = self.message
         ret['description'] = self.description
@@ -58,10 +61,12 @@ class APIException(Exception):
 
 @app.errorhandler(APIException)
 def handle_api_error(error):
-    """Handle the an API exception by converting the error to a JSON object.
+    """Handle an :class:`APIException` by converting it to a
+    :class:`flask.Response`.
 
-    :param ApiException error: The error that occured
-    :rtype: Response
+    :param ApiException error: The error that occurred
+    :returns: A response with the JSON serialized error as content.
+    :rtype: flask.Response
     """
     response = jsonify(error)
     response.status_code = error.status_code
