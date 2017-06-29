@@ -20,6 +20,7 @@ Key Features
   ![](https://i.imgur.com/3yPRL3u.gif)
 * linters
   ![](manual_data/linter.ogv)
+  ![](manual_data/linters.webm)
 * integration with LTI (Canvas/Blackboard)
 * feedback snippets
   ![](manual_data/snippet.webm)
