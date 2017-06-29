@@ -1,30 +1,24 @@
 <template>
     <b-alert variant="danger" show v-if="error">
-        <center><span>Cannot display file!</span></center>
+        <center>
+            <span>Cannot display file!</span>
+        </center>
     </b-alert>
     <loader class="text-center" v-else-if="loading"></loader>
-    <ol class="code-viewer form-control" v-else :class="{ editable: editable }"
-        @click="onClick">
+    <ol class="code-viewer form-control" v-else :class="{ editable: editable }" @click="onClick">
         <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
-            :class="{ 'linter-feedback-outer': linterFeedback[i] }">
+            :class="{ 'linter-feedback-outer': linterFeedback[i] }" v-bind:key="i">
 
             <linter-feedback-area :feedback="linterFeedback[i]"></linter-feedback-area>
 
-            <code  v-html="line"></code>
+            <code v-html="line"></code>
 
-
-            <feedback-area :editing="editing[i] === true"
-                            :feedback='feedback[i].msg'
-                            :editable='editable'
-                            :line='i'
-                            :fileId='fileId'
-                            v-on:feedbackChange="val => { feedbackChange(i, val); }"
-                            v-on:cancel='onChildCancel'
-                            v-if="feedback[i] != null">
+            <feedback-area :editing="editing[i] === true" :feedback='feedback[i].msg' :editable='editable'
+                :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }"
+                v-on:cancel='onChildCancel' v-if="feedback[i] != null">
             </feedback-area>
 
-            <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null"
-                    v-on:click="addFeedback($event, value)"></icon>
+            <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null" v-on:click="addFeedback($event, value)"></icon>
         </li>
     </ol>
 </template>
@@ -140,14 +134,25 @@ export default {
         highlightCode(lang) {
             if (getLanguage(lang) === undefined) {
                 this.codeLines = this.codeLines.map(escape);
+                this.codeLines = this.codeLines.map(this.visualizeWhitespace);
                 return;
             }
+
             let state = null;
             this.codeLines = this.codeLines.map((line) => {
                 const { top, value } = highlight(lang, line, true, state);
+
                 state = top;
-                return value;
+                return this.visualizeWhitespace(value);
             });
+        },
+
+        visualizeWhitespace(line) {
+            const replacer = match =>
+                `<span class="whitespace">${match.replace(/ /g, '&middot;').replace(/\t/g, '&#10230;   ')}</span>`;
+
+            // Replace line start and line end
+            return line.replace(/^[ \t]*/g, replacer).replace(/[ \t]*$/g, replacer);
         },
 
         // Given a file-tree object as returned by the API, generate an
@@ -190,11 +195,11 @@ export default {
                 return;
             }
             // Use a regex to match each file at most once.
-            const filesRegex = new RegExp(`\\b(${filePaths.join('|')})\\b`, 'g');
+            const filesRegex = new RegExp(`\\b(${filePaths.join('|')}) \\b`, 'g');
             this.codeLines = this.codeLines.map(line =>
                 line.replace(filesRegex, (fileName) => {
                     const fileId = fileIds[fileName];
-                    return `<a href="${fileId}" data-file-id="${fileId}" style="text-decoration: underline;">${fileName}</a>`;
+                    return `< a href="${fileId}" data-file - id="${fileId}" style= "text-decoration: underline;" > ${fileName}</a > `;
                 }),
             );
         },
@@ -239,7 +244,7 @@ export default {
             }
         },
         // eslint-disable-next-line
-        submitAllFeedback(event) {},
+        submitAllFeedback(event) { },
     },
 
     components: {
