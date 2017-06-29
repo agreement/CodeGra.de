@@ -129,10 +129,6 @@ class Flake8(Linter):
                     pass
 
 
-# BERENLINTERS
-
-
-# pylint
 class PyFlakes(BearLinter):
     NAME = 'PyFlakes'
     DESCRIPTION = 'The pyflake checker'
@@ -147,7 +143,6 @@ class Pycodestyle(BearLinter):
     BEAR_NAME = 'PycodestyleBear'
 
 
-# html lint
 class HtmlLintBear(BearLinter):
     NAME = 'HTML Linter'
     DESCRIPTION = 'The HTML lint checker'

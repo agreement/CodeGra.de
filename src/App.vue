@@ -3,7 +3,7 @@
         <nav-bar></nav-bar>
         <main class="container-fluid">
             <div class="row justify-content-center">
-                <router-view class="col-10"></router-view>
+                <router-view class="col-md-10"></router-view>
             </div>
         </main>
         <footer-bar></footer-bar>

@@ -1,5 +1,5 @@
 <template>
-    <b-card v-if="(done && !editing)">
+    <b-card class="non-editable" v-if="(done && !editing)">
         <div v-on:click="changeFeedback()" :style="{'min-height': '1em'}">
             <div v-html="newlines(escape(serverFeedback))"></div>
         </div>
@@ -223,6 +223,11 @@ export default {
 </script>
 
 <style lang="less" scoped>
+.non-editable {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 .minor-buttons:hover {
     z-index: 0;
 }
