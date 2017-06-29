@@ -24,11 +24,14 @@ def get_student_assignments():
     """
     Get all the student assignments that the current user can see.
     """
-    perm = models.Permission.query.filter_by(
+    perm_can_see = models.Permission.query.filter_by(
         name='can_see_assignments').first()
+    perm_can_grade = models.Permission.query.filter_by(
+        name='can_grade_work').first()
     courses = []
+
     for course_role in current_user.courses.values():
-        if course_role.has_permission(perm):
+        if course_role.has_permission(perm_can_see):
             courses.append(course_role.course_id)
 
     res = []
@@ -39,7 +42,6 @@ def get_student_assignments():
             if ((not assignment.is_hidden) or current_user.has_permission(
                     'can_see_hidden_assignments', assignment.course_id)):
                 res.append(assignment)
-
     return jsonify(res)
 
 
@@ -60,7 +62,6 @@ def get_assignment(assignment_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
     else:
         return jsonify(assignment)
-
 
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
 def update_assignment(assignment_id):
@@ -124,10 +125,11 @@ def upload_work(assignment_id):
 
     if (request.content_length and
             request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException('Uploaded files are too big.', (
-            'Request is bigger than maximum ' +
-            'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-                           APICodes.REQUEST_TOO_LARGE, 400)
+        raise APIException(
+            'Uploaded files are too big.',
+            ('Request is bigger than maximum ' +
+             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
+            APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",

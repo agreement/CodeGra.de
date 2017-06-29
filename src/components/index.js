@@ -17,6 +17,8 @@ import AssignmentList from './AssignmentList';
 import CodeUploader from './CodeUploader';
 import SubmissionList from './SubmissionList';
 import DivideSubmissions from './DivideSubmissions';
+import UsersManager from './UsersManager';
+import PermissionsManager from './PermissionsManager';
 import SubmissionsExporter from './SubmissionsExporter';
 import SnippetManager from './SnippetManager';
 import PdfViewer from './PdfViewer';
@@ -47,6 +49,8 @@ export {
     SubmissionList,
     DivideSubmissions,
     SubmissionsExporter,
+    UsersManager,
+    PermissionsManager,
     SnippetManager,
     PdfViewer,
     SubmissionNavBar,

@@ -7,7 +7,7 @@
     <loader class="text-center" v-else-if="loading"></loader>
     <ol class="code-viewer form-control" v-else :class="{ editable: editable }" @click="onClick">
         <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
-            :class="{ 'linter-feedback-outer': linterFeedback[i] }">
+            :class="{ 'linter-feedback-outer': linterFeedback[i] }" v-bind:key="i">
 
             <linter-feedback-area :feedback="linterFeedback[i]"></linter-feedback-area>
 
@@ -148,8 +148,11 @@ export default {
         },
 
         visualizeWhitespace(line) {
-            return line.replace(/^[ \t]*/g, match =>
-                `<span style="opacity:0.2;color:#000;">${match.replace(/ /g, '&middot;').replace(/\t/g, '--->')}</span>`);
+            const replacer = match =>
+                `<span class="whitespace">${match.replace(/ /g, '&middot;').replace(/\t/g, '&#8213;&#8213;&#8213;&#10230;')}</span>`;
+
+            // Replace line start and line end
+            return line.replace(/^[ \t]*/g, replacer).replace(/[ \t]*$/g, replacer);
         },
 
         // Given a file-tree object as returned by the API, generate an

@@ -866,6 +866,10 @@ babylon@^6.11.0, babylon@^6.13.0, babylon@^6.15.0, babylon@^6.17.0:
   version "6.17.2"
   resolved "https://registry.yarnpkg.com/babylon/-/babylon-6.17.2.tgz#201d25ef5f892c41bae49488b08db0dd476e9f5c"
 
+babyparse@^0.4.6:
+  version "0.4.6"
+  resolved "https://registry.yarnpkg.com/babyparse/-/babyparse-0.4.6.tgz#8ff29b62d1e600c0654afd63457f97fa2c36e9c1"
+
 backo2@1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/backo2/-/backo2-1.0.2.tgz#31ab1ac8b129363463e35b3ebb69f4dfcfba7947"
@@ -1932,10 +1936,6 @@ domutils@1.5.1, domutils@^1.5.1:
   dependencies:
     dom-serializer "0"
     domelementtype "1"
-
-dropzone@^5.0.1:
-  version "5.1.0"
-  resolved "https://registry.yarnpkg.com/dropzone/-/dropzone-5.1.0.tgz#541edc6a3f0f4f54c854e10336ad6d218da3e31f"
 
 duplexer@^0.1.1:
   version "0.1.1"
@@ -4150,6 +4150,10 @@ mocha@^3.2.0:
     mkdirp "0.5.1"
     supports-color "3.1.2"
 
+moment@^2.18.1:
+  version "2.18.1"
+  resolved "https://registry.yarnpkg.com/moment/-/moment-2.18.1.tgz#c36193dd3ce1c2eed2adb7c802dbbc77a81b1c0f"
+
 ms@0.7.1:
   version "0.7.1"
   resolved "https://registry.yarnpkg.com/ms/-/ms-0.7.1.tgz#9cd13c03adbff25b65effde7ce864ee952017098"
@@ -6325,6 +6329,10 @@ vue-awesome@^2.3.1:
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/vue-awesome/-/vue-awesome-2.3.1.tgz#edd8f54a62af322df81f06ddf25c1ec2ae995b05"
 
+vue-datetime-picker@^0.2.1:
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/vue-datetime-picker/-/vue-datetime-picker-0.2.1.tgz#7b724dde3b72d531645a27d6597589d6d882ad3b"
+
 vue-hot-reload-api@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/vue-hot-reload-api/-/vue-hot-reload-api-2.1.0.tgz#9ca58a6e0df9078554ce1708688b6578754d86de"
@@ -6377,14 +6385,7 @@ vue-toasted@^1.0.28:
   version "1.0.28"
   resolved "https://registry.yarnpkg.com/vue-toasted/-/vue-toasted-1.0.28.tgz#37cdd767b69119d7a63fa88700abc2925b7cdef2"
 
-vue2-dropzone@^2.2.8:
-  version "2.3.1"
-  resolved "https://registry.yarnpkg.com/vue2-dropzone/-/vue2-dropzone-2.3.1.tgz#cf7244e03d3cd67d1b229dc16d0cb907e4b247dc"
-  dependencies:
-    dropzone "^5.0.1"
-    vue "^2.0.0"
-
-vue@2.*.*, vue@^2.0.0, vue@^2.3.3:
+vue@2.*.*, vue@^2.3.3:
   version "2.3.4"
   resolved "https://registry.yarnpkg.com/vue/-/vue-2.3.4.tgz#5ec3b87a191da8090bbef56b7cfabd4158038171"
 
