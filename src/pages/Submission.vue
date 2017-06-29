@@ -102,7 +102,7 @@ export default {
             this.getRubric(),
             this.getAssignment(),
             this.getAllSubmissions(),
-        ]).then(([submission, fileTree, rubric, assignment, allSubmissions]) => {
+        ]).then(([submission, fileTree, rubric, assignment, submissions]) => {
             this.loading = false;
 
             Object.assign(this, {
@@ -110,7 +110,7 @@ export default {
                 fileTree,
                 rubric,
                 assignment,
-                allSubmissions,
+                submissions,
             });
 
             this.setPageCSS();
