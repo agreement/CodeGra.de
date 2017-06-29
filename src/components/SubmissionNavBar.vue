@@ -1,25 +1,28 @@
 <template>
     <b-form-fieldset class="submission-nav-bar">
-        <b-button-group>
-            <b-button class="angle-btn" @click="backToSubmissions">
-                <icon name="angle-double-left"></icon>
-            </b-button>
-            <b-button :disabled="!prev" @click="selected = prev" class="angle-btn">
-                <icon name="angle-left"></icon>
-            </b-button>
-            <b-dropdown class=""
-                        :text="selectedOption.text"
-                        size="lg">
-                <b-dropdown-header>Studentnaam...</b-dropdown-header>
-                <b-dropdown-item v-for="x in options" v-on:click="clicked(x.value)">
-                    <b v-if="x.item.id == selectedOption.id">{{ x.item.text }}</b>
-                    <span v-else>{{ x.item.text }}</span>
-                </b-dropdown-item>
-            </b-dropdown>
-            <b-button :disabled="!next" @click="selected = next" class="angle-btn">
-                <icon name="angle-right"></icon>
-            </b-button>
-        </b-button-group>
+        <b-input-group>
+            <b-input-group-button>
+                <b-button class="angle-btn" @click="backToSubmissions">
+                    <icon name="angle-double-left"></icon>
+                </b-button>
+            </b-input-group-button>
+            <b-input-group-button>
+                <b-button :disabled="!prev" @click="selected = prev" class="angle-btn">
+                    <icon name="angle-left"></icon>
+                </b-button>
+            </b-input-group-button>
+            <b-input-group-button style="flex-grow: 1;">
+                <b-form-select :options="options.map(item => item.item)"
+                               v-model="selectedOption"
+                               id="student-selector">
+                </b-form-select>
+            </b-input-group-button>
+            <b-input-group-button>
+                <b-button :disabled="!next" @click="selected = next" class="angle-btn">
+                    <icon name="angle-right"></icon>
+                </b-button>
+            </b-input-group-button>
+        </b-input-group>
     </b-form-fieldset>
 </template>
 
@@ -37,7 +40,7 @@ export default {
 
     data() {
         return {
-            selectedOption: { id: 0, text: '' },
+            selectedOption: 0,
             selected: this.submission.id,
             options: {},
             next: null,
@@ -48,10 +51,22 @@ export default {
     mounted() {
         this.options = this.filterAll();
         this.findNextPrev();
-        this.selectedOption = this.getItemText(this.submission);
+        this.selectedOption = this.submission.user.id;
+        this.$root.$on('shown::dropdown', () => {
+            this.$nextTick(this.scrollToItem);
+        });
     },
 
     methods: {
+        scrollToItem() {
+            console.dir('scroll');
+            let el = document.getElementById('selectedItem').parentNode;
+            for (let i = 0, end = 6; i < end; i += 1) {
+                el = el.previousSibling || el;
+            }
+            el.scrollIntoView(true);
+        },
+
         getItemText(submission) {
             let text = submission.user.name;
             if (submission.assignee) {
@@ -59,7 +74,7 @@ export default {
             }
             return {
                 text,
-                id: submission.user.id,
+                value: submission.user.id,
             };
         },
 
@@ -132,6 +147,13 @@ export default {
     },
 
     watch: {
+        selectedOption() {
+            for (let i = 0, len = this.options.length; i < len; i += 1) {
+                if (this.options[i].item.value === this.selectedOption) {
+                    this.clicked(this.options[i].value);
+                }
+            }
+        },
         selected(val) {
             this.$router.push({
                 name: 'submission',
@@ -150,7 +172,6 @@ export default {
 
         submission() {
             this.findNextPrev();
-            this.selectedOption = this.getItemText(this.submission);
         },
     },
 
@@ -207,5 +228,13 @@ export default {
         font-size: 1rem;
         padding: 0.5rem;
     }
+}
+.dropdown-header .dropdown-item:active {
+    background-color: inherit;
+}
+
+#student-selector {
+    border-radius: 0;
+    width: 100%;
 }
 </style>
