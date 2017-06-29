@@ -56,17 +56,15 @@ def get_rubric(submission_id):
             'The submission with code {} was not found'.format(submission_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    auth.ensure_permission('can_see_assignments', work.assignment.course.id)
+    auth.ensure_can_see_grade(work)
 
     rubrics = work.assignment.rubric_rows
-    selected_items = work.selected_items
-    selected = sum(item.points for item in selected_items)
     return jsonify({
         'rubrics': rubrics,
-        'selected': selected_items,
+        'selected': work.selected_items,
         'points': {
             'max': work.assignment.max_rubric_points,
-            'selected': selected,
+            'selected': work.selected_rubric_points,
         },
     })
 
@@ -101,9 +99,14 @@ def select_rubric_item(submission_id, rubricitem_id):
 
     work.remove_selected_rubric_item(rubric_item.rubricrow_id)
     work.select_rubric_item(rubric_item)
+    work.grade = None
     db.session.commit()
 
-    return ('', 204)
+    return ({
+        'selected': work.selected_rubric_points,
+        'max': work.assignment.max_rubric_points,
+        'grade': work.grade,
+    }, 201)
 
 
 def get_feedback(work):

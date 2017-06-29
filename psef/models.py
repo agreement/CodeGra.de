@@ -419,6 +419,10 @@ class Work(db.Model):
             return (selected / self.assignment.max_rubric_points) * 10
         return self._grade
 
+    @property
+    def selected_rubric_points(self):
+        return sum(item.points for item in self.selected_items)
+
     def passback_grade(self):
         from psef.lti import LTI
         if self.assignment.lti_outcome_service_url is not None:
