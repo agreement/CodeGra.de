@@ -1,33 +1,72 @@
 <template>
     <div class="grade-viewer">
+        <b-collapse
+            id="rubric-collapse"
+            v-if="showRubric">
+            <rubric-viewer
+                v-model="rubricPoints"
+                :editable="editable"
+                :submission="submission"
+                :rubric="rubric"
+                ref="rubricViewer">
+            </rubric-viewer>
+        </b-collapse>
         <div class="row">
             <div class="col-6">
                 <b-input-group>
                     <b-input-group-button v-if="editable">
-                        <b-button :variant="submitted ? 'success' : 'primary'" v-on:click="putFeedback()">
-                            <icon name="refresh" spin v-if="submitting"></icon>
-                            <span v-else>Submit all</span>
-                        </b-button>
+                        <b-popover :show="!!(grade < 0 || grade > 10 || error)"
+                                   :content="error || 'Grade have to be between 0 and 10'">
+                            <b-button
+                                :variant="submitted ? 'success' : 'primary'"
+                                class="grade-submit"
+                                @click="putFeedback">
+                                <loader :scale="1" v-if="submitting"/>
+                                <span v-else>Submit all</span>
+                            </b-button>
+                        </b-popover>
                     </b-input-group-button>
 
                     <b-form-input type="number"
-                                step="any"
-                                min="0"
-                                max="10"
-                                :disabled="!editable"
-                                placeholder="Grade"
-                                v-model="grade">
+                                  step="any"
+                                  min="0"
+                                  max="10"
+                                  :disabled="!editable"
+                                  placeholder="Grade"
+                                  v-model="grade"
+                                  v-on:change="() => { this.error = false; }"
+                                  v-if="!showRubric">
                     </b-form-input>
+                    <b-form-input
+                        class="text-right"
+                        :disabled="!editable"
+                        v-model="gradeAndRubricPoints"
+                        v-else>
+                    </b-form-input>
+
+                    <b-input-group-button v-if="showRubric">
+                        <b-popover
+                            placement="top"
+                            triggers="hover"
+                            content="Rubric">
+                            <b-button
+                                variant="secondary"
+                                v-b-toggle.rubric-collapse>
+                                <icon name="bars"></icon>
+                            </b-button>
+                        </b-popover>
+                    </b-input-group-button>
                 </b-input-group>
             </div>
             <div class="col-6">
                 <b-input-group>
-                    <b-form-input :textarea="true"
+                    <b-form-input
+                        :textarea="true"
                         :placeholder="editable ? 'Feedback' : 'No feedback given :('"
                         :rows="3"
                         ref="field"
                         v-model="feedback"
-                        v-on:keydown.native.tab.capture="expandSnippet"
+                        @keydown.native.tab.capture="expandSnippet"
                         :disabled="!editable">
                     </b-form-input>
                 </b-input-group>
@@ -38,8 +77,12 @@
 
 <script>
 import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/bars';
 import 'vue-awesome/icons/refresh';
 import { mapActions, mapGetters } from 'vuex';
+import RubricViewer from './RubricViewer';
+
+import Loader from './Loader';
 
 export default {
     name: 'grade-viewer',
@@ -49,7 +92,15 @@ export default {
             type: Boolean,
             default: false,
         },
+        assignment: {
+            type: Object,
+            default: {},
+        },
         submission: {
+            type: Object,
+            default: {},
+        },
+        rubric: {
             type: Object,
             default: {},
         },
@@ -57,17 +108,45 @@ export default {
 
     data() {
         return {
-            submission: null,
             submitting: false,
             submitted: false,
             feedback: '',
-            grade: '',
+            grade: 0,
+            rubricPoints: {},
+            gradeAndRubricPoints: '',
+            error: false,
         };
     },
 
+    computed: {
+        showRubric() {
+            return this.rubric.rubrics.length;
+        },
+    },
+
+    watch: {
+        grade(grade) {
+            this.$emit('gradeChange', grade);
+        },
+
+        rubricPoints({ selected, max, grade }) {
+            if (grade) this.grade = grade;
+            this.gradeAndRubricPoints = `${this.grade} ( ${selected} / ${max} )`;
+        },
+
+        gradeAndRubricPoints(value) {
+            console.log(value, parseFloat(value));
+            this.grade = parseFloat(value);
+        },
+    },
+
     mounted() {
-        this.grade = this.submission.grade ? this.submission.grade : '';
-        this.feedback = this.submission.comment ? this.submission.comment : '';
+        this.feedback = this.submission.feedback || '';
+        this.grade = this.submission.grade || 0;
+
+        if (this.showRubric) {
+            this.rubric.points.grade = this.grade;
+        }
     },
 
     methods: {
@@ -89,10 +168,19 @@ export default {
         },
 
         putFeedback() {
+            const grade = parseFloat(this.grade);
+            if (!(grade >= 0 && grade <= 10)) {
+                this.error = `The given grade '${this.grade}' is not a number between 0 and 10`;
+                this.$nextTick(() => setTimeout(() => {
+                    this.error = false;
+                }, 3000));
+                return;
+            }
+            this.error = false;
             this.submitting = true;
             this.$http.patch(`/api/v1/submissions/${this.submission.id}`,
                 {
-                    grade: this.grade,
+                    grade,
                     feedback: this.feedback,
                 },
                 {
@@ -105,12 +193,13 @@ export default {
                 this.$nextTick(() => setTimeout(() => {
                     this.submitted = false;
                 }, 1000));
-                this.$emit('gradeChange', this.grade);
             });
         },
+
         ...mapActions({
             refreshSnippets: 'user/refreshSnippets',
         }),
+
         ...mapGetters({
             snippets: 'user/snippets',
         }),
@@ -118,6 +207,14 @@ export default {
 
     components: {
         Icon,
+        RubricViewer,
+        Loader,
     },
 };
 </script>
+
+<style lang="less">
+.grade-viewer .grade-submit .loader {
+    height: 1.25rem;
+}
+</style>
