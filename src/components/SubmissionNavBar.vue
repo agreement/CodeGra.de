@@ -49,7 +49,6 @@ export default {
         this.options = this.filterAll();
         this.findNextPrev();
         this.selectedOption = this.getItemText(this.submission);
-        console.dir(this.submission);
     },
 
     methods: {
@@ -146,13 +145,12 @@ export default {
         },
 
         submissions() {
-            console.log('w');
             this.options = this.filterAll();
-            this.selectedOption = this.getItemText(this.submission);
         },
 
         submission() {
             this.findNextPrev();
+            this.selectedOption = this.getItemText(this.submission);
         },
     },
 

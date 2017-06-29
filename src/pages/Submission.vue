@@ -202,7 +202,7 @@ export default {
         },
 
         getFileMetadata() {
-            if (this.fileId === undefined) {
+            if (this.fileId === undefined || Number.isNaN(this.fileId)) {
                 return null;
             }
 
