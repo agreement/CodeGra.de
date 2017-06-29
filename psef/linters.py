@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""
+This module contains all the linters that are integrated in the service.
+
+Integrated linters are ran by the :class:`LinterRunner` and thus implement run
+method.
+"""
 
 import os
 import uuid
@@ -26,6 +32,8 @@ class Linter:
 
 
 class Pylint(Linter):
+    """Integration of the Pylint linter.
+    """
     NAME = 'Pylint'
     DESCRIPTION = 'The pylint checker, this checker only works on modules!'
     DEFAULT_OPTIONS = {'Empty config file': ''}
@@ -67,6 +75,8 @@ class Pylint(Linter):
 
 
 class Flake8(Linter):
+    """Integration of the Flake8 linter.
+    """
     NAME = 'Flake8'
     DESCRIPTION = 'The flake8 linter with all "noqa"s disabled.'
     DEFAULT_OPTIONS = {'Empty config file': ''}
@@ -98,10 +108,29 @@ class Flake8(Linter):
 
 
 class LinterRunner():
+    """This class is used to run a :class:`Linter` with a specific config on
+    sets of :class:`models.Work`.
+
+    .. py:attribute:: linter
+        The attached :class:`Linter` that will be ran by this class.
+    """
     def __init__(self, cls, cfg):
         self.linter = cls(cfg)
 
     def run(self, works, tokens, urlpath):
+        """Runs the :py:attr:`Linter` on a set of :class:`models.Work`.
+
+        The results will be send to the given URL with are PUT request and are
+        identifiable by the token which will be formatted into the URL.
+
+        :param works: A list of work ids
+        :type works: list of int
+        :param list tokens: The list of tokens
+        :param str urlpath: A URL with a format a slot for one of the given
+                            tokens
+        :returns: Nothing
+        :rtype: None
+        """
         session = sessionmaker(bind=engine, autoflush=False)()
         for work, token in zip(works, tokens):
             code = session.query(models.File).filter_by(
@@ -113,6 +142,14 @@ class LinterRunner():
                 requests.put(urlpath.format(token), json={'crashed': True})
 
     def test(self, code, callback_url):
+        """Test the given code (:class:`models.Work`) and send the results to the
+        given URL.
+
+        :param models.Work code: The work to test
+        :param str callback_url: The URL where to put the result
+        :returns: Nothing
+        :rtype: None
+        """
         temp_res = {}
         res = {}
 
@@ -146,6 +183,24 @@ class LinterRunner():
 
 
 def get_all_linters():
+    """Get an overview of all linters.
+
+    The returned linters are all the subclasses of :class:`Linter`.
+
+    :returns: A mapping of the name of the linter to a dictionary containing
+              the description and the default options of the linter with that
+              name
+    :rtype: dict
+
+    :Example:
+
+    >>> all_linters = get_all_linters()
+    >>> all_linters.keys()
+    dict_keys(['Pylint', 'Flake8'])
+    >>> all_linters['Flake8']
+    {'desc': 'The flake8 linter with all "noqa"s disabled.', 'opts':
+        {'Empty config file': ''}}
+    """
     res = {}
     for cls in get_all_subclasses(Linter):
         res[cls.NAME] = {
@@ -156,6 +211,13 @@ def get_all_linters():
 
 
 def get_linter_by_name(name):
+    """Get the :class:`Linter` with the given name.
+
+    :param str name: The name of the linter
+    :returns: The linter with the given name or nothing if the linter does not
+              exist
+    :rtype: Linter or None
+    """
     for linter in get_all_subclasses(Linter):
         if linter.NAME == name:
             return linter

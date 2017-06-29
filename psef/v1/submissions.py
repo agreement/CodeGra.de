@@ -1,3 +1,9 @@
+"""
+This module defines all API routes with the main directory "submissions". The
+APIs allow the retrieving, and patching of :class: Work objects. Furthermore
+functions are defined to get related objects and information.
+"""
+
 import os
 import zipfile
 import tempfile
@@ -17,11 +23,24 @@ from . import api
 @api.route("/submissions/<int:submission_id>", methods=['GET'])
 @login_required
 def get_submission(submission_id):
-    """
-    Return submission X if the user permission is valid.
+    """Get the given submission (:class:`models.Work`).
 
-    Raises APIException:
-        - If submission X was not found
+    This API has some options based on the 'type' argument in the request
+    - If type == 'zip' see :py:func:`get_zip`
+    - If type == 'feedback' see :py:func:`get_feedback`
+
+    :param int submission_id: The id of the submission
+    :returns: A response with the JSON serialized submission as content unless
+              specified otherwise
+    :rtype: flask.Response
+
+    :raises APIException: If the submission with given id does not exist.
+                          (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If the submission does not belong to the
+                                 current user and the user can not see others
+                                 work in the attached course.
+                                 (INCORRECT_PERMISSION)
     """
 
     # check if feedback is visible
@@ -54,8 +73,18 @@ def get_submission(submission_id):
 
 @api.route("/submissions/<int:submission_id>/rubrics/", methods=['GET'])
 def get_rubric(submission_id):
-    """
-    Return full rubric of assignment X.
+    """Return full rubric of the :class:`models.Assignment` of the given
+    submission (:class:`models.Work`).
+
+    :param int submission_id: The id of the submission
+    :returns: A response containing the JSON serialized rubric
+    :rtype: flask.Response
+
+    :raises APIException: If the submission with the given id does not exist.
+                          (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If the user can not see the assignment of the
+                                 given submission. (INCORRECT_PERMISSION)
     """
     work = models.Work.query.get(submission_id)
     if work is None:
@@ -88,8 +117,20 @@ def get_rubric(submission_id):
     "/submissions/<int:submission_id>/rubricitems/<int:rubricitem_id>",
     methods=['PATCH'])
 def select_rubric_item(submission_id, rubricitem_id):
-    """
-    Select given rubric item of submission X.
+    """Select a rubric item of the given submission (:class:`models.Work`).
+
+    :param int submission_id: The id of the submission
+    :param int rubricitem_id: The id of the rubric item
+    :returns: A response containing the JSON serialized rubric
+    :rtype: flask.Response
+
+    :raises APIException: If either the submission or rubric item with the
+                          given ids does not exist. (OBJECT_ID_NOT_FOUND)
+    :raises APIException: If the assignment of the rubric is not the assignment
+                          of the submission. (INVALID_PARAM)
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If the user can not grade the given submission
+                                 (INCORRECT_PERMISSION)
     """
     work = models.Work.query.get(submission_id)
     if work is None:
@@ -124,8 +165,11 @@ def select_rubric_item(submission_id, rubricitem_id):
 
 
 def get_feedback(work):
-    """
-    Get the feedback of work as a plain text file.
+    """Get the feedback of :class:`models.Work` as a plain text file.
+
+    :param models.Work work: The submission with the required feedback
+    :returns: A response with the plain text feedback as attached file
+    :rtype: flask.Response
     """
     comments = models.Comment.query.filter(
         models.Comment.file.has(work=work)).order_by(
@@ -166,11 +210,16 @@ def get_feedback(work):
 
 
 def get_zip(work):
-    """
-    Return a zip file of a submission.
+    """Return a :class:`models.Work` as a zip file.
 
-    Raises APIException:
-        - If the submission is None.
+    :param models.Work work: The submission which should be returns as zip file
+    :returns: A response with the zip as attached file
+    :rtype: flask.Response
+
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If submission does not belong to the current
+                                 user and the user can not view files in the
+                                 attached course. (INCORRECT_PERMISSION)
     """
     if (work.user.id != current_user.id):
         auth.ensure_permission('can_view_files', work.assignment.course.id)
@@ -201,14 +250,21 @@ def get_zip(work):
 
 @api.route("/submissions/<int:submission_id>", methods=['PATCH'])
 def patch_submission(submission_id):
-    """
-    Update submission X if it already exists and if the user permission is
-    valid.
+    """Update the given submission (:class:`models.Work`) if it already exists.
 
-    Raises APIException:
-        - If submission X was not found
-        - request file does not contain grade and/or feedback
-        - request file grade is not a float
+    :param int submission_id: The id of the submission
+    :returns: Empty response with return code 204
+    :rtype: (str, int)
+
+    :raise APIException: If the submission with the given id does not exist
+        (OBJECT_ID_NOT_FOUND)
+    :raise APIException: If the request does not contain the parameters "grade"
+        and/or "feedback" (MISSING_REQUIRED_PARAM)
+    :raise APIException: If the value of the "grade" parameter is not a float
+        (INVALID_PARAM)
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If user can not grade the submission with the
+        given id (INCORRECT_PERMISSION)
     """
     work = db.session.query(models.Work).get(submission_id)
     content = request.get_json()
@@ -249,13 +305,29 @@ def patch_submission(submission_id):
 
 @api.route("/submissions/<int:submission_id>/files/", methods=['GET'])
 def get_dir_contents(submission_id):
-    """
-    Return the object containing all the files of submission X
+    """Return the file directory info of a file of the given submission
+    (:class:`models.Work`).
 
-    Raises APIException:
-        - If there are no files to be returned
-        - If the submission id does not match the work id
-        - If the file with code {} is not a directory
+    The default file is the root of the submission, but a specific file can be
+    specified with the file_id argument in the request.
+
+    :param int submission_id: The id of the submission
+    :returns: A response with the JSON serialized directory structure as
+              content and return code 200
+    :rtype: (flask.Response, int)
+
+    :raise APIException: If the submission with the given id does not exist or
+                         when a file id was specified no file with this id
+                         exists. (OBJECT_ID_NOT_FOUND)
+    :raises APIException: wWhen a file id is specified and the submission id
+                          does not match the submission id of the file.
+                          (INVALID_URL)
+    :raises APIException: When a file id is specified and the file with that id
+                          is not a directory. (OBJECT_WRONG_TYPE)
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If submission does not belong to the current
+                                 user and the user can not view files in the
+                                 attached course. (INCORRECT_PERMISSION)
     """
     work = models.Work.query.get(submission_id)
     if work is None:
