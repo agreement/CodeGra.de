@@ -48,13 +48,16 @@ class BearLinter(Linter):
     """Implements a generic coala linter.
 
     This class itself is not a functional linter yet, you need to at least
-    define/override `NAME`, `DEFAULT_OPTIONS` and `BEAR_NAME`.
-    The first three are defined in :class:`Linter` and the last is the name of
-    the bear that should be given to the `coala` program.
+    define/override `NAME`, `DEFAULT_OPTIONS`, `FILTER_STR`, `EXTENSION` and `BEAR_NAME`.
+    The first two are defined in :class:`Linter`, the third is the string
+    passed to `coala` as files argument, the fourth is the extension that
+    should be put after the `LINTER_STR`, and the last is the name of the bear
+    that should be given to the `coala` program.
     """
     NAME = '__ignore__'
-    FILTER_STR = '/**/*.*'
+    FILTER_STR = '/**/*.'
     BEAR_NAME = None
+    EXTENSION = '*'
 
     def __init__(self, config):
         """Create a new :class:`BearLinter`.
@@ -75,7 +78,7 @@ class BearLinter(Linter):
 
         sep = str(uuid.uuid4())
 
-        sourcedir = tempdir + self.FILTER_STR
+        sourcedir = tempdir + self.FILTER_STR + self.EXTENSION
         out = subprocess.run(
             [
                 'coala', '--format', '{1}{0}{2}{0}{3}{0}{4}'.format(
@@ -189,6 +192,7 @@ class PyFlakes(BearLinter):
     NAME = 'PyFlakes'
     DEFAULT_OPTIONS = {'Empty config file': ''}
     BEAR_NAME = 'PyFlakesBear'
+    EXTENSION = 'py'
 
 
 class Pycodestyle(BearLinter):
@@ -199,6 +203,7 @@ class Pycodestyle(BearLinter):
     NAME = 'Pycodestyle'
     DEFAULT_OPTIONS = {'Empty config file': ''}
     BEAR_NAME = 'PycodestyleBear'
+    EXTENSION = 'py'
 
 
 class HtmlLintBear(BearLinter):
@@ -207,6 +212,7 @@ class HtmlLintBear(BearLinter):
     NAME = 'HTML Linter'
     DEFAULT_OPTIONS = {'Empty config file': ''}
     BEAR_NAME = 'HTMLLintBear'
+    EXTENSION = '(html|htm)'
 
 
 class ShellCheckBear(BearLinter):
@@ -235,6 +241,7 @@ class JavaCheckBear(BearLinter):
     NAME = 'Checkstyle'
     DEFAULT_OPTIONS = {'Empty config file': ''}
     BEAR_NAME = 'CheckstyleBear'
+    EXTENSION = 'java'
 
 
 class ClangCheckBear(BearLinter):
