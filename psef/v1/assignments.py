@@ -63,6 +63,7 @@ def get_assignment(assignment_id):
     else:
         return jsonify(assignment)
 
+
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
 def update_assignment(assignment_id):
     assig = models.Assignment.query.get(assignment_id)
@@ -93,8 +94,8 @@ def update_assignment(assignment_id):
         if len(content['name']) < 3:
             raise APIException(
                 'The name of an assignment should be longer than 3',
-                'len({}) < 3'.format(content['name']),
-                APICodes.INVALID_PARAM, 400)
+                'len({}) < 3'.format(content['name']), APICodes.INVALID_PARAM,
+                400)
         assig.name = content['name']
 
     if 'deadline' in content:
@@ -125,11 +126,10 @@ def upload_work(assignment_id):
 
     if (request.content_length and
             request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException(
-            'Uploaded files are too big.',
-            ('Request is bigger than maximum ' +
-             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-            APICodes.REQUEST_TOO_LARGE, 400)
+        raise APIException('Uploaded files are too big.', (
+            'Request is bigger than maximum ' + 'upload size of {}.'
+        ).format(app.config['MAX_UPLOAD_SIZE']), APICodes.REQUEST_TOO_LARGE,
+                           400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
@@ -198,8 +198,8 @@ def divide_assignments(assignment_id):
             'No submissions found for assignment {}'.format(assignment_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    users = models.User.query.filter(
-        models.User.id.in_(content['graders'])).all()
+    users = models.User.query.filter(models.User.id.in_(content[
+        'graders'])).all()
     if len(users) != len(content['graders']):
         raise APIException('Invalid grader id given',
                            'Invalid grader (=user) id given',
@@ -239,11 +239,11 @@ def get_all_graders(assignment_id):
             models.user_course,
             models.User.id == models.user_course.c.user_id).subquery('us')
     per = db.session.query(models.course_permissions.c.course_role_id).join(
-        models.CourseRole,
-        models.CourseRole.id == models.course_permissions.c.course_role_id
-    ).filter(
-        models.course_permissions.c.permission_id == permission,
-        models.CourseRole.course_id == assignment.course_id).subquery('per')
+        models.CourseRole, models.CourseRole.id ==
+        models.course_permissions.c.course_role_id).filter(
+            models.course_permissions.c.permission_id == permission,
+            models.CourseRole.course_id ==
+            assignment.course_id).subquery('per')
     result = db.session.query(us.c.name, us.c.id).join(
         per, us.c.course_id == per.c.course_role_id).order_by(us.c.name).all()
 
@@ -314,8 +314,7 @@ def post_submissions(assignment_id):
 
         if user is None:
             perms = {
-                assignment.course.id:
-                models.CourseRole.query.filter_by(
+                assignment.course.id: models.CourseRole.query.filter_by(
                     name='student', course_id=assignment.course.id).first()
             }
             user = models.User(
@@ -390,10 +389,10 @@ def start_linting(assignment_id):
     content = request.get_json()
 
     if not ('cfg' in content and 'name' in content):
-        raise APIException(
-            'Missing required params.',
-            'Missing one ore more of children, cfg or name in the payload',
-            APICodes.MISSING_REQUIRED_PARAM, 400)
+        raise APIException('Missing required params.',
+                           ('Missing one ore more of children, cfg'
+                            ' or name in the payload "{}"').format(content),
+                           APICodes.MISSING_REQUIRED_PARAM, 400)
 
     if db.session.query(
             models.LinterInstance.query.filter(
@@ -418,8 +417,8 @@ def start_linting(assignment_id):
         thread = threading.Thread(
             target=runner.run,
             args=([t.work_id for t in res.tests], [t.id for t in res.tests],
-                  ('{}api/v1/linter' + '_comments/{}').format(
-                      request.url_root, '{}')))
+                  ('{}api/v1/linter' + '_comments/{}').format(request.url_root,
+                                                              '{}')))
 
         thread.start()
     except:

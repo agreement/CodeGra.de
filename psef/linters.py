@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-import sys
-import glob
 import uuid
 import tempfile
 import traceback
@@ -17,7 +15,7 @@ import psef.models as models
 from psef import app
 from psef.helpers import get_all_subclasses
 
-engine = sqlalchemy.create_engine(app.config['SQLALCHEMY_DATABASE_URI'],
+ENGINE = sqlalchemy.create_engine(app.config['SQLALCHEMY_DATABASE_URI'],
                                   **app.config['DATABASE_CONNECT_OPTIONS'])
 
 
@@ -32,7 +30,7 @@ class Linter:
     DEFAULT_OPTIONS = {}
 
     def run(self, tempdir, emit):
-        """Run the bear linter on the code in `tempdir`
+        """Run the bear linter on the code in `tempdir`.
 
         :param str tempdir: The temp directory that should contain the code to
                             run the linter on.
@@ -56,9 +54,10 @@ class BearLinter(Linter):
     """
     NAME = '__ignore__'
     FILTER_STR = '/**/*.*'
+    BEAR_NAME = None
 
     def __init__(self, config):
-        """Create a new :class:`BearLinter`
+        """Create a new :class:`BearLinter`.
 
         :param str config: The config for the bearlinter as a string.
         """
@@ -71,8 +70,8 @@ class BearLinter(Linter):
         function.
         """
         cfg = os.path.join(tempdir, '.coafile')
-        with open(cfg, 'w') as f:
-            f.write(self.config)
+        with open(cfg, 'w') as config_file:
+            config_file.write(self.config)
 
         sep = str(uuid.uuid4())
 
@@ -81,12 +80,13 @@ class BearLinter(Linter):
             [
                 'coala', '--format', '{1}{0}{2}{0}{3}{0}{4}'.format(
                     sep, '{file}', '{line}', '{severity_str}', '{message}'),
-                '--files', sourcedir, '--bears', self.BEAR_NAME, '-I'
+                '--config', os.path.join(tempdir, '.coafile'),
+                '--files', sourcedir, '--bears', self.BEAR_NAME,
             ],
             stdout=subprocess.PIPE).stdout.decode('utf8')
 
         for line in out.split('\n'):
-            if len(line) > 0:
+            if line:
                 line2 = line.split(sep, 3)
                 try:
                     emit(line2[0], int(line2[1]), line2[2], line2[3])
@@ -117,8 +117,8 @@ class Pylint(Linter):
         Arguments are the same as for :py:meth:`Linter.run`.
         """
         cfg = os.path.join(tempdir, '.flake8')
-        with open(cfg, 'w') as f:
-            f.write(self.config)
+        with open(cfg, 'w') as config_file:
+            config_file.write(self.config)
         sep = uuid.uuid4()
         fmt = '{1}{0}{2}{0}{3}{4}{0}{5}'.format(sep, '{path}', '{line}', '{C}',
                                                 '{msg_id}', '{msg}')
@@ -131,10 +131,10 @@ class Pylint(Linter):
             stdout=subprocess.PIPE)
         if out.returncode == 1:
             for dir_name, _, files in os.walk(tempdir):
-                for f in files:
-                    if f.endswith('.py'):
+                for test_file in files:
+                    if test_file.endswith('.py'):
                         emit(
-                            os.path.join(dir_name, f), 1, 'ERR',
+                            os.path.join(dir_name, test_file), 1, 'ERR',
                             'No init file was found, pylint did not run!')
             return
         for line in out.stdout.decode('utf8').split('\n'):
@@ -342,7 +342,7 @@ class LinterRunner():
                             valid url for posting back the result.
         :rtype: None
         """
-        session = sessionmaker(bind=engine, autoflush=False)()
+        session = sessionmaker(bind=ENGINE, autoflush=False)()
         for work, token in zip(works, tokens):
             code = session.query(models.File).filter_by(
                 parent=None, work_id=work).first()
