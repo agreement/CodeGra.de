@@ -122,7 +122,7 @@ def get_assignment_rubric(assignment_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     auth.ensure_permission('can_see_assignments', assig.course_id)
-    if len(assig.rubric_rows) == 0:
+    if not assig.rubric_rows:
         raise APIException(
             'Assignment has no rubric',
             'The assignment with id "{}" has no rubric'.format(assignment_id),
@@ -182,7 +182,6 @@ def add_new_rubric_row(assig, row):
                 points=item['points']))
 
 
-
 def patch_rubric_row(assig, row):
     rubric_row = models.RubricRow.query.get(row['id'])
     if rubric_row is None:
@@ -207,11 +206,10 @@ def patch_rubric_row(assig, row):
             if rubric_item is None:
                 raise APIException(
                     'Rubric item not found',
-                    'The Rubric item with id "{}" was not found'.format(
-                        item['id']), APICodes.OBJECT_ID_NOT_FOUND, 404)
+                    'The Rubric item with id "{}" was not found'.format(item[
+                        'id']), APICodes.OBJECT_ID_NOT_FOUND, 404)
             rubric_item.description = item['description']
             rubric_item.points = item['points']
-
 
 
 def add_rubric_items(rubric_row, items):
@@ -228,10 +226,27 @@ def add_rubric_items(rubric_row, items):
                 points=item['points']))
 
 
+@api.route(
+    '/assignments/<int:assignment_id>/rubrics/<int:rubric_row>',
+    methods=['DELETE'])
+def delete_rubricrow(assignment_id, rubric_row):
+    row = models.RubricRow.query.get(rubric_row)
+    if row is None or row.assignment_id != assignment_id:
+        raise APIException(
+            'The requested rubric row was not found',
+            'There is now rubric row for assignment {} with id {}'.format(
+                assignment_id, rubric_row), APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    db.session.delete(row)
+    db.session.commit()
+
+    return '', 204
+
+
 @api.route("/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id):
     """
-    Saves the work on the server if the request is valid.
+    Save the work on the server if the request is valid.
 
     For a request to be valid there needs to be:
         - at least one file starting with key 'file' in the request files
@@ -242,11 +257,10 @@ def upload_work(assignment_id):
 
     if (request.content_length and
             request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException(
-            'Uploaded files are too big.',
-            ('Request is bigger than maximum ' +
-             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-            APICodes.REQUEST_TOO_LARGE, 400)
+        raise APIException('Uploaded files are too big.', (
+            'Request is bigger than maximum ' + 'upload size of {}.'
+        ).format(app.config['MAX_UPLOAD_SIZE']), APICodes.REQUEST_TOO_LARGE,
+                           400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
@@ -315,8 +329,8 @@ def divide_assignments(assignment_id):
             'No submissions found for assignment {}'.format(assignment_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    users = models.User.query.filter(
-        models.User.id.in_(content['graders'])).all()
+    users = models.User.query.filter(models.User.id.in_(content[
+        'graders'])).all()
     if len(users) != len(content['graders']):
         raise APIException('Invalid grader id given',
                            'Invalid grader (=user) id given',
@@ -356,11 +370,11 @@ def get_all_graders(assignment_id):
             models.user_course,
             models.User.id == models.user_course.c.user_id).subquery('us')
     per = db.session.query(models.course_permissions.c.course_role_id).join(
-        models.CourseRole,
-        models.CourseRole.id == models.course_permissions.c.course_role_id
-    ).filter(
-        models.course_permissions.c.permission_id == permission,
-        models.CourseRole.course_id == assignment.course_id).subquery('per')
+        models.CourseRole, models.CourseRole.id ==
+        models.course_permissions.c.course_role_id).filter(
+            models.course_permissions.c.permission_id == permission,
+            models.CourseRole.course_id ==
+            assignment.course_id).subquery('per')
     result = db.session.query(us.c.name, us.c.id).join(
         per, us.c.course_id == per.c.course_role_id).order_by(us.c.name).all()
 
@@ -431,8 +445,7 @@ def post_submissions(assignment_id):
 
         if user is None:
             perms = {
-                assignment.course.id:
-                models.CourseRole.query.filter_by(
+                assignment.course.id: models.CourseRole.query.filter_by(
                     name='student', course_id=assignment.course.id).first()
             }
             user = models.User(
@@ -535,8 +548,8 @@ def start_linting(assignment_id):
         thread = threading.Thread(
             target=runner.run,
             args=([t.work_id for t in res.tests], [t.id for t in res.tests],
-                  ('{}api/v1/linter' + '_comments/{}').format(
-                      request.url_root, '{}')))
+                  ('{}api/v1/linter' + '_comments/{}').format(request.url_root,
+                                                              '{}')))
 
         thread.start()
     except:
