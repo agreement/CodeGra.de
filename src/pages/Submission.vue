@@ -20,7 +20,8 @@
                               v-on:gradeChange="gradeChange"
                               @submit="submitAllFeedback($event)"/>
             </div>
-            <file-tree-container class="col-lg-3" :fileTree="fileTree"></file-tree-container>
+            <file-tree-container class="col-lg-3" :fileTree="fileTree"
+                                 :canSeeFeedback="assignment.state === assignmentState.DONE"></file-tree-container>
         </div>
     </div>
 </template>

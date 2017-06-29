@@ -23,6 +23,9 @@ def get_submission(submission_id):
     Raises APIException:
         - If submission X was not found
     """
+
+    # check if feedback is visible
+
     work = db.session.query(models.Work).get(submission_id)
 
     if work.user_id != current_user.id:
@@ -39,6 +42,11 @@ def get_submission(submission_id):
         return get_zip(work)
 
     if request.args.get('type') == 'feedback':
+        if work.assignment.state != models._AssignmentStateEnum.done:
+            raise APIException(
+                'Feedback not visible',
+                'The assignment state was not set to done',
+                APICodes.INVALID_STATE, 405)
         return get_feedback(work)
 
     return jsonify(work)
