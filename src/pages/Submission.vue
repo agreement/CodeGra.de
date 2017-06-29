@@ -113,8 +113,6 @@ export default {
                 allSubmissions,
             });
 
-            this.setPageCSS();
-
             let title = assignment.name;
             if (submission.grade) {
                 title += ` (${submission.grade})`;
@@ -133,6 +131,8 @@ export default {
             // eslint-disable-next-line
             console.dir(err);
         });
+
+        this.setPageCSS();
     },
 
     destroyed() {

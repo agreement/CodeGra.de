@@ -64,6 +64,8 @@
                     content="Create new row">
                     <b-button
                         variant="success"
+                        size="sm"
+                        style="height: 100%"
                         class="row-button"
                         @click.native="createRow">
                         +
@@ -87,24 +89,38 @@ export default {
         };
     },
 
-    computed: {
+    props: {
+        assignmentId: {
+            type: Number,
+            default: undefined,
+        },
+    },
+
+    watch: {
         assignmentId() {
-            return this.$route.params.assignmentId;
+            this.getRubrics();
         },
     },
 
     mounted() {
-        this.$http.get(
-            `/api/v1/assignments/${this.assignmentId}/rubrics/`,
-        ).then(({ data: rubrics }) => {
-            this.rubrics = rubrics;
-        }, (err) => {
-            // eslint-disable-next-line
-            console.dir(err);
-        });
+        this.getRubrics();
     },
 
     methods: {
+        getRubrics() {
+            if (!this.assignmentId) return;
+
+            this.$http.get(
+                `/api/v1/assignments/${this.assignmentId}/rubrics/`,
+            ).then(({ data: rubrics }) => {
+                this.rubrics = rubrics;
+            }, (err) => {
+                // eslint-disable-next-line
+                console.dir(err);
+                this.rubrics = [];
+            });
+        },
+
         createRow() {
             this.rubrics.push({
                 header: '',
@@ -201,7 +217,10 @@ export default {
 .col-button {
     border-top-right-radius: 0;
     border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
+
+    &:not(:first-child) {
+        border-bottom-left-radius: 0;
+    }
 }
 
 input,
