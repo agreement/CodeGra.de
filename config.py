@@ -44,6 +44,6 @@ LTI_CONSUMER_KEY_SECRETS = {
 with open(os.path.join('seed_data', 'course_roles.json'), 'r') as f:
     DEFAULT_COURSE_ROLES = json.load(f)
 
-DEFAULT_ROLE = 'student'
+DEFAULT_ROLE = 'Student'
 
 EXTERNAL_URL = 'http://localhost:8080'
