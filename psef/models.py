@@ -886,7 +886,7 @@ class RubricItem(db.Model):
     id = db.Column('id', db.Integer, primary_key=True)
     rubricrow_id = db.Column('Rubricrow_id', db.Integer,
                              db.ForeignKey('RubricRow.id'))
-    col = db.Column('col', db.Integer)
+    col = db.Column('col', db.Integer, default=0)
     description = db.Column('description', db.Unicode, default='')
     points = db.Column('points', db.Float)
 
