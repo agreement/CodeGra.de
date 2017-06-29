@@ -154,10 +154,10 @@ def add_assignment_rubric(assignment_id):
             raise APIException('The provided row is invalid',
                                'The provided row "{}" is invaled'.format(row),
                                APICodes.INVALID_PARAM, 400)
-            if 'id' in row:
-                patch_rubric_row(assig, row)
-            else:
-                add_new_rubric_row(assig, row)
+        if 'id' in row:
+            patch_rubric_row(assig, row)
+        else:
+            add_new_rubric_row(assig, row)
 
     db.session.commit()
     return ('', 204)
@@ -168,7 +168,18 @@ def add_new_rubric_row(assig, row):
         assignment_id=assig.id,
         header=row['header'],
         description=row['description'])
-    add_rubric_items(rubric_row, row['items'])
+    for item in items:
+        if 'description' not in item or 'points' not in item:
+            raise APIException(
+                'The provided item is invalid',
+                'The provided item "{}" is invaled'.format(item),
+                APICodes.INVALID_PARAM, 400)
+        rubric_row.items.append(
+            models.RubricItem(
+                rubricrow_id=rubric_row.id,
+                description=item['description'],
+                points=item['points']))
+
 
 def patch_rubric_row(assig, row):
     rubric_row = models.RubricRow.query.get(row['id'])
@@ -177,7 +188,28 @@ def patch_rubric_row(assig, row):
             'Rubric row not found',
             'The Rubric row with id "{}" was not found'.format(row['id']),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
-    add_rubric_items(rubric_row, row['items'])
+    for item in items:
+        if 'description' not in item or 'points' not in item:
+            raise APIException(
+                'The provided item is invalid',
+                'The provided item "{}" is invaled'.format(item),
+                APICodes.INVALID_PARAM, 400)
+        if 'id' not in item:
+            rubric_row.items.append(
+                models.RubricItem(
+                    rubricrow_id=rubric_row.id,
+                    description=item['description'],
+                    points=item['points']))
+        else:
+            rubric_item = db.RubricItem.query.get(item['id'])
+            if rubric_item is None:
+                raise APIException(
+                    'Rubric item not found',
+                    'The Rubric item with id "{}" was not found'.format(
+                        item['id']), APICodes.OBJECT_ID_NOT_FOUND, 404)
+            rubric_item.description = item['description']
+            rubric_item.points = item['points']
+
 
 def add_rubric_items(rubric_row, items):
     for item in items:
@@ -191,6 +223,7 @@ def add_rubric_items(rubric_row, items):
                 rubricrow_id=rubric_row.id,
                 description=item['description'],
                 points=item['points']))
+
 
 @api.route("/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id):
