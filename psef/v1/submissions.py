@@ -69,7 +69,8 @@ def get_rubric(submission_id):
                 'selected': work.selected_rubric_points,
             },
         })
-    except PermissionError:
+    except auth.PermissionException:
+        print('salkdjfas')
         return jsonify({
             'rubrics': work.assignment.rubric_rows,
         })
