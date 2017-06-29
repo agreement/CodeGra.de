@@ -5,7 +5,7 @@
                 <icon name="download"></icon>
                 <span>Archive</span>
             </b-button>
-            <b-button @click="downloadFeedback()" variant="primary" title="Download feedback">
+            <b-button @click="downloadFeedback()" v-if="canSeeFeedback" variant="primary" title="Download feedback">
                 <icon name="download"></icon>
                 <span>Feedback</span>
             </b-button>
@@ -28,6 +28,9 @@ export default {
     props: {
         fileTree: {
             type: Object,
+        },
+        canSeeFeedback: {
+            type: Boolean,
         },
     },
 
