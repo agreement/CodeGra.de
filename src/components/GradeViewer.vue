@@ -35,6 +35,7 @@
                     </b-form-input>
                     <b-form-input
                         class="text-right"
+                        :disabled="!editable"
                         v-model="gradeAndRubricPoints"
                         v-else>
                     </b-form-input>
