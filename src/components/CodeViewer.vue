@@ -297,6 +297,7 @@ code {
 }
 
 .loader {
-    margin-top: 5em;
+    margin-top: 2.5em;
+    margin-bottom: 3em;
 }
 </style>
