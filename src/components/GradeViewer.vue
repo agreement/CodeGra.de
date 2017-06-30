@@ -129,6 +129,17 @@ export default {
             this.$emit('gradeChange', grade);
         },
 
+        submission() {
+            this.feedback = this.submission.comment || '';
+            this.grade = this.submission.grade || 0;
+        },
+
+        rubric() {
+            if (this.showRubric) {
+                this.rubric.points.grade = this.grade;
+            }
+        },
+
         rubricPoints({ selected, max, grade }) {
             if (grade) this.grade = Number(grade.toFixed(2));
             this.gradeAndRubricPoints = `${this.grade} ( ${selected} / ${max} )`;

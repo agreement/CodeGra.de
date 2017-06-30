@@ -7,7 +7,7 @@
                 </b-button>
             </b-input-group-button>
             <b-input-group-button>
-                <b-button :disabled="!prev" @click="selected = prev" class="angle-btn">
+                <b-button :disabled="!prev" @click="gotoSubmission(prev)" class="angle-btn">
                     <icon name="angle-left"></icon>
                 </b-button>
             </b-input-group-button>
@@ -18,7 +18,7 @@
                 </b-form-select>
             </b-input-group-button>
             <b-input-group-button>
-                <b-button :disabled="!next" @click="selected = next" class="angle-btn">
+                <b-button :disabled="!next" @click="gotoSubmission(next)" class="angle-btn">
                     <icon name="angle-right"></icon>
                 </b-button>
             </b-input-group-button>
@@ -41,8 +41,7 @@ export default {
     data() {
         return {
             selectedOption: 0,
-            selected: this.submission.id,
-            options: {},
+            options: [],
             next: null,
             prev: null,
         };
@@ -58,6 +57,9 @@ export default {
     },
 
     methods: {
+        gotoSubmission(next) {
+            this.selectedOption = next;
+        },
         scrollToItem() {
             let el = document.getElementById('selectedItem').parentNode;
             for (let i = 0, end = 6; i < end; i += 1) {
@@ -68,6 +70,9 @@ export default {
 
         getItemText(submission) {
             let text = submission.user.name;
+            if (submission.grade) {
+                text += ` [${submission.grade}]`;
+            }
             if (submission.assignee) {
                 text += ` (${submission.assignee.name})`;
             }
@@ -119,10 +124,10 @@ export default {
             this.prev = null;
             const index = this.options.findIndex(x => x.value === this.submission.id);
             if (index >= 1) {
-                this.prev = this.options[index - 1].value;
+                this.prev = this.options[index - 1].item.value;
             }
             if (index < this.options.length - 1) {
-                this.next = this.options[index + 1].value;
+                this.next = this.options[index + 1].item.value;
             }
         },
 
@@ -152,17 +157,6 @@ export default {
                     this.clicked(this.options[i].value);
                 }
             }
-        },
-        selected(val) {
-            this.$router.push({
-                name: 'submission',
-                params: {
-                    assignmentId: this.assignmentId,
-                    submissionId: val,
-                },
-            });
-            this.$emit('subChange');
-            this.options = this.filterMineOnly(this.options);
         },
 
         submissions() {

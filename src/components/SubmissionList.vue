@@ -46,7 +46,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from 'vuex';
+import { mapGetters } from 'vuex';
 import SubmissionsExporter from './SubmissionsExporter';
 
 export default {
@@ -114,9 +114,8 @@ export default {
     },
 
     mounted() {
-        this.hasPermission('can_submit_own_work').then((perm) => {
-            this.assigneeFilter = !perm && this.submissions.some(s => s.assignee);
-        });
+        this.assigneeFilter = this.submissions.some(s => s.assignee &&
+                                                    s.assignee.id === this.userId);
     },
 
     methods: {
@@ -176,14 +175,6 @@ export default {
                 Object.keys(terms).some(key =>
                     terms[key].indexOf(word) >= 0));
         },
-
-        hasPermission(perm) {
-            return this.u_hasPermission({ name: perm, course_id: this.assignment.course_id });
-        },
-
-        ...mapActions({
-            u_hasPermission: 'user/hasPermission',
-        }),
     },
 
     components: {
