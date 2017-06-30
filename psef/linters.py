@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""
+This module contains all the linters that are integrated in the service.
+
+Integrated linters are ran by the :class:`LinterRunner` and thus implement run
+method.
+"""
 
 import os
 import uuid
@@ -255,7 +261,7 @@ class ClangCheckBear(BearLinter):
 
 
 class GoLintCheckBear(BearLinter):
-    """Run the GoLint checer.
+    """Run the GoLint checker.
 
     This checker checks for common errors in Go code.
     """
@@ -316,9 +322,12 @@ class LatexCheckBear(BearLinter):
 
 
 class LinterRunner():
-    """The class that controls running a subclass of :class:`Linter`
-    """
+    """This class is used to run a :class:`Linter` with a specific config on
+    sets of :class:`models.Work`.
 
+    .. py:attribute:: linter
+        The attached :class:`Linter` that will be ran by this class.
+    """
     def __init__(self, cls, cfg):
         """Create a new instance of :class:`LinterRunner`
 
@@ -336,6 +345,9 @@ class LinterRunner():
         .. note:: The `tokens` and `works` should match item for item. So
                   `token[i]` should be valid only for `work[i]`.
 
+        The results will be send to the given URL with are PUT request and are
+        identifiable by the token which will be formatted into the URL.
+
         :param works: A list of ids of :class:`psef.models.Work` items that
                       will be fetched and where the linters will run on.
         :type works: list[int]
@@ -348,6 +360,7 @@ class LinterRunner():
                             `urlpath.format(token)` which should result in a
                             valid url for posting back the result.
         :rtype: None
+        :returns: Nothing
         """
         session = sessionmaker(bind=ENGINE, autoflush=False)()
         for work, token in zip(works, tokens):
@@ -360,7 +373,8 @@ class LinterRunner():
                 requests.put(urlpath.format(token), json={'crashed': True})
 
     def test(self, code, callback_url):
-        """Actually run the linter for the given code object.
+        """Test the given code (:class:`models.Work`) and send the results to the
+        given URL.
 
         :param code: The file that the linter should be run on, this file and
                      all its children will be restored to a directory and the
@@ -368,6 +382,7 @@ class LinterRunner():
         :type code: psef.models.File
         :param str callback_url: The url that should be used to give back the
                      result of the linter.
+        :returns: Nothing
         :rtype: None
         """
         temp_res = {}
@@ -403,14 +418,23 @@ class LinterRunner():
 
 
 def get_all_linters():
-    """Get all classes that are linters.
+    """Get an overview of all linters.
 
-    :rtype: dict[str, dict[str, *]]
-    :returns: A dictionary that that maps the name of the linter to a
-              dictionary with two keys, `desc` and `opts`, that respectively
-              are the documentation for the linter and possible default
-              options, which is a dictionary mapping a descriptive name of the
-              default option to the config string.
+    The returned linters are all the subclasses of :class:`Linter`.
+
+    :returns: A mapping of the name of the linter to a dictionary containing
+              the description and the default options of the linter with that
+              name
+    :rtype: dict
+
+    :Example:
+
+    >>> all_linters = get_all_linters()
+    >>> all_linters.keys()
+    dict_keys(['Pylint', 'Flake8'])
+    >>> all_linters['Flake8']
+    {'desc': 'The flake8 linter with all "noqa"s disabled.', 'opts':
+        {'Empty config file': ''}}
     """
     res = {}
     for cls in get_all_subclasses(Linter):
@@ -427,10 +451,11 @@ def get_linter_by_name(name):
     """Get the linter class associated with the given name.
 
     :param str name: The name of the linter wanted.
-    :rtype: Linter
+    :rtype: Linter or None
     :returns: The linter with the attribute `NAME` equal to `name`. If there
               are multiple linters with the name `name` the result can be any
-              one of these linters.
+              one of these linters. If no linter can be found `None` is
+              returned
     """
     for linter in get_all_subclasses(Linter):
         if linter.NAME == name:

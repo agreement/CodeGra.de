@@ -14,24 +14,24 @@
         <b-collapse is-nav id="nav_collapse">
             <div v-if="loggedIn" class="nav-container justify-content-md-between">
                 <b-nav is-nav-bar>
-                    <b-nav-item>
+                    <b-nav-item @click.stop>
                         <router-link :to="{ name: 'me', params: { userId: this.userid, }, }" active-class="active">
                             {{username}}
                         </router-link>
                     </b-nav-item>
-                    <b-nav-item>
+                    <b-nav-item @click.stop>
                         <router-link :to="{ name: 'assignments', }"  active-class="active">
                             Assignments
                         </router-link>
                     </b-nav-item>
-                    <b-nav-item>
+                    <b-nav-item @click.stop>
                         <router-link :to="{ name: 'courses', }"  active-class="active">
                             Courses
                         </router-link>
                     </b-nav-item>
                 </b-nav>
                 <b-nav is-nav-bar>
-                    <b-nav-item>
+                    <b-nav-item @click.stop>
                         <router-link :to="{ name: 'logout', }" @click.native.capture="logoutAndRedirect"  active-class="active">
                             Logout
                         </router-link>
@@ -40,7 +40,7 @@
             </div>
             <div v-else class="nav-container justify-content-md-end">
                 <b-nav is-nav-bar>
-                    <b-nav-item>
+                    <b-nav-item @click.stop>
                         <router-link :to="{ name: 'login', }"  active-class="active">
                             Login
                         </router-link>

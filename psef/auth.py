@@ -4,11 +4,13 @@ import flask
 import oauth2
 from flask_login import current_user
 
-from psef import login_manager
+from psef import app, login_manager
 from psef.errors import APICodes, APIException
 
 
 class PermissionException(APIException):
+    """The exception used when a permission check fails.
+    """
     def __init__(self, *args, **kwargs):
         super(PermissionException, self).__init__(*args, **kwargs)
 
@@ -20,23 +22,51 @@ def _raise_login_exception(desc='No user was logged in.'):
 
 
 def _user_active():
+    """Check if there is a current user who is authenticated and active.
+
+    :returns: True if there is an active logged in user
+    :rtype: bool
+    """
     return (current_user and current_user.is_authenticated and
             current_user.is_active)
 
 
 def ensure_can_see_grade(work):
+    """Ensure the current user can see the grade of the given work.
+
+    :param models.Work work: The work
+
+    :returns: Nothing
+    :rtype: None
+
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If the user can not see the grade.
+                                 (INCORRECT_PERMISSION)
+    """
     if _user_active():
-        if work.user.id != current_user.id:
-            ensure_permission('can_see_others_work', work.assignment.course.id)
+        if work.user_id != current_user.id:
+            ensure_permission('can_see_others_work', work.assignment.course_id)
 
         if not work.assignment.is_done:
             ensure_permission('can_see_grade_before_open',
-                              work.assignment.course.id)
+                              work.assignment.course_id)
         return
     _raise_login_exception()
 
 
 def ensure_enrolled(course_id):
+    """Ensure the current user is enrolled in the given course.
+
+    :param course_id: The course id of the course.
+    :type course_id: int
+
+    :returns: Nothing
+    :rtype: None
+
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If the user is not enrolled in the given
+                                 course. (INCORRECT_PERMISSION)
+    """
     if _user_active():
         if course_id not in current_user.courses:
             raise PermissionException(
@@ -46,6 +76,15 @@ def ensure_enrolled(course_id):
                     course_id), APICodes.INCORRECT_PERMISSION, 403)
         return
     _raise_login_exception()
+
+
+_PERM_CACHE = {}
+
+
+@app.before_request
+def reset_perm_cache():
+    global _PERM_CACHE
+    _PERM_CACHE = {}
 
 
 def ensure_permission(permission_name, course_id=None):
@@ -58,14 +97,24 @@ def ensure_permission(permission_name, course_id=None):
                       permission is not a course permission (but a role
                       permission) this function will NEVER grant the
                       permission.
-    :vartype course_id: None or int
+    :type course_id: None or int
+
+    :returns: Nothing
     :rtype: None
+
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the permission is not enabled for the
-                                 current
-                          user.
+                                 current user. (INCORRECT_PERMISSION)
     """
     if _user_active():
-        if current_user.has_permission(permission_name, course_id=course_id):
+        val = None
+        if (permission_name, course_id) in _PERM_CACHE:
+            val = _PERM_CACHE[(permission_name, course_id)]
+        else:
+            val = current_user.has_permission(
+                permission_name, course_id=course_id)
+            _PERM_CACHE[(permission_name, course_id)] = val
+        if val:
             return
         else:
             raise PermissionException(
@@ -181,10 +230,7 @@ class _FlaskOAuthValidator(_RequestValidatorMixin):
         return (req.method, req.url, dict(req.headers), req.form.copy())
 
 
-def ensure_valid_oauth(key,
-                       secret,
-                       request,
-                       parser_cls=_FlaskOAuthValidator):
+def ensure_valid_oauth(key, secret, request, parser_cls=_FlaskOAuthValidator):
     validator = parser_cls(key, secret)
     if not validator.is_valid_request(request):
         raise PermissionException(
