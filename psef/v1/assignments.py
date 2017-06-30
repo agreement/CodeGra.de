@@ -334,10 +334,10 @@ def upload_work(assignment_id):
             'The assignment with code {} was not found'.format(assignment_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    auth.ensure_permission('can_submit_own_work', assignment.course.id)
+    auth.ensure_permission('can_submit_own_work', assignment.course_id)
     if not assignment.is_open:
         auth.ensure_permission('can_upload_after_deadline',
-                               assignment.course.id)
+                               assignment.course_id)
 
     work = models.Work(assignment_id=assignment_id, user_id=current_user.id)
     db.session.add(work)
@@ -372,7 +372,7 @@ def divide_assignments(assignment_id):
                                  (INCORRECT_PERMISSION)
     """
     assignment = models.Assignment.query.get(assignment_id)
-    auth.ensure_permission('can_manage_course', assignment.course.id)
+    auth.ensure_permission('can_manage_course', assignment.course_id)
     if not assignment:
         raise APIException(
             'Assignment not found',
@@ -403,7 +403,7 @@ def divide_assignments(assignment_id):
                            APICodes.INVALID_PARAM, 400)
 
     for grader in users:
-        if not grader.has_permission('can_grade_work', assignment.course.id):
+        if not grader.has_permission('can_grade_work', assignment.course_id):
             raise APIException('Selected grader has no permission to grade',
                                'Selected grader has no permission to grade',
                                APICodes.INVALID_PARAM, 400)
@@ -433,7 +433,7 @@ def get_all_graders(assignment_id):
                                  this assignment. (INCORRECT_PERMISSION)
     """
     assignment = models.Assignment.query.get(assignment_id)
-    auth.ensure_permission('can_manage_course', assignment.course.id)
+    auth.ensure_permission('can_manage_course', assignment.course_id)
 
     if not assignment:
         raise APIException(
@@ -526,7 +526,7 @@ def post_submissions(assignment_id):
             'Assignment not found',
             'The assignment with code {} was not found'.format(assignment_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
-    auth.ensure_permission('can_manage_course', assignment.course.id)
+    auth.ensure_permission('can_manage_course', assignment.course_id)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
@@ -553,9 +553,9 @@ def post_submissions(assignment_id):
 
             if user is None:
                 perms = {
-                    assignment.course.id:
+                    assignment.course_id:
                     models.CourseRole.query.filter_by(
-                        name='Student', course_id=assignment.course.id).first()
+                        name='Student', course_id=assignment.course_id).first()
                 }
                 user = models.User(
                     name=submission_info.student_name,

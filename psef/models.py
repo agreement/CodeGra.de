@@ -4,7 +4,6 @@ This module defines all the objects in the database in their relation.
 
 import os
 import enum
-import json
 import uuid
 import datetime
 from concurrent import futures
@@ -313,10 +312,8 @@ class User(db.Model, UserMixin):
     assignment_results = db.relationship(
         'AssignmentResult',
         collection_class=attribute_mapped_collection('assignment_id'),
-        backref=db.backref(
-            'user', lazy='select'))
-
-    role = db.relationship('Role', foreign_keys=role_id)
+        backref=db.backref('user', lazy='select'))
+    role = db.relationship('Role', foreign_keys=role_id, lazy='select')
 
     def has_permission(self, permission, course_id=None):
         """Check whether this user has the specified global or course
@@ -384,6 +381,13 @@ class User(db.Model, UserMixin):
     def __to_json__(self):
         """Creates a JSON serializable representation of this object.
         """
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+        }
+
+    def __extended_to_json__(self):
         return {
             "id": self.id,
             "name": self.name,
@@ -559,9 +563,11 @@ class Work(db.Model):
                             db.ForeignKey('User.id'))
     selected_items = db.relationship('RubricItem', secondary=work_rubric_item)
 
-    assignment = db.relationship('Assignment', foreign_keys=assignment_id)
-    user = db.relationship('User', single_parent=True, foreign_keys=user_id)
-    assignee = db.relationship('User', foreign_keys=assigned_to)
+    assignment = db.relationship(
+        'Assignment', foreign_keys=assignment_id, lazy='joined')
+    user = db.relationship(
+        'User', single_parent=True, foreign_keys=user_id, lazy='joined')
+    assignee = db.relationship('User', foreign_keys=assigned_to, lazy='joined')
 
     @property
     def is_graded(self):
@@ -1036,7 +1042,10 @@ class Assignment(db.Model):
             'assignment', lazy='select'))
 
     course = db.relationship(
-        'Course', foreign_keys=course_id, back_populates='assignments')
+        'Course',
+        foreign_keys=course_id,
+        back_populates='assignments',
+        lazy='joined')
 
     rubric_rows = db.relationship(
         'RubricRow', backref=db.backref('assignment'))
