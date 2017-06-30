@@ -659,10 +659,10 @@ def start_linting(assignment_id):
     content = request.get_json()
 
     if not ('cfg' in content and 'name' in content):
-        raise APIException(
-            'Missing required params.',
-            'Missing one ore more of children, cfg or name in the payload',
-            APICodes.MISSING_REQUIRED_PARAM, 400)
+        raise APIException('Missing required params.',
+                           ('Missing one ore more of children, cfg'
+                            ' or name in the payload "{}"').format(content),
+                           APICodes.MISSING_REQUIRED_PARAM, 400)
 
     if db.session.query(
             models.LinterInstance.query.filter(

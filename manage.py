@@ -56,7 +56,6 @@ def seed():
                 r._permissions = r_perms
             else:
                 db.session.add(m.Role(name=name, _permissions=r_perms))
-
     db.session.commit()
 
 

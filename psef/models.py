@@ -1221,3 +1221,4 @@ class RubricItem(db.Model):
             'description': self.description,
             'points': self.points,
         }
+

@@ -152,11 +152,12 @@ export default {
 
         run() {
             let cfg;
-            if (this.selected === 'Custom config') {
+            if (this.selectedOption === 'Custom config') {
                 cfg = this.config === undefined ? '' : this.config;
             } else {
                 cfg = this.options[this.selectedOption];
             }
+            console.dir(this.selected);
 
             this.done = 0;
             this.working = 0;
