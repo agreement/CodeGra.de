@@ -4,6 +4,7 @@
             <h5 class="assignment-title" @click="toggleRow">
                 {{ assignment.name }}
             </h5>
+
             <b-button-group @click.native="updateState">
                 <b-popover placement="top" triggers="hover" content="Hidden or open, managed by LTI" v-if="assignment.is_lti">
                     <b-button class="larger" size="sm" value="hidden"
@@ -39,6 +40,7 @@
                 </b-popover>
             </b-button-group>
         </div>
+
         <b-collapse :id="`assignment-${assignment.id}`">
             <b-popover placement="top" :triggers="assignment.is_lti ? ['hover'] : []" content="Not available for LTI assignments">
                 <b-form-fieldset>
@@ -50,6 +52,7 @@
                     </b-input-group>
                 </b-form-fieldset>
             </b-popover>
+
             <b-popover placement="top" :triggers="assignment.is_lti ? ['hover'] : []" content="Not available for LTI assignments">
                 <b-form-fieldset>
                     <b-input-group left="Deadline">
@@ -62,15 +65,31 @@
             </b-popover>
 
             <div class="row">
-                <divide-submissions class="col-6" :assignment="assignment"></divide-submissions>
-                <linters class="col-6" :assignment="assignment"></linters>
+                <divide-submissions class="col-md-6" :assignment="assignment"></divide-submissions>
+                <linters class="col-md-6" :assignment="assignment"></linters>
             </div>
 
-            <b-form-fieldset label="Upload blackboard zip">
-                <b-popover placement="top" :triggers="assignment.is_lti ? ['hover'] : []" content="Not available for LTI assignments">
-                    <blackboard-uploader :disabled="assignment.is_lti" :assignment="assignment"></blackboard-uploader>
-                </b-popover>
-            </b-form-fieldset>
+            <div class="row">
+                <div class="col-md-6">
+                    <b-form-fieldset label="Upload blackboard zip">
+                        <b-popover placement="top" :triggers="assignment.is_lti ? ['hover'] : []" content="Not available for LTI assignments">
+                            <blackboard-uploader :disabled="assignment.is_lti" :assignment="assignment"></blackboard-uploader>
+                        </b-popover>
+                    </b-form-fieldset>
+                </div>
+
+                <div class="col-md-6">
+                    <b-form-fieldset label="Misc.">
+                        <b-button-toolbar>
+                            <b-button
+                                variant="primary"
+                                @click="$emit('showRubric', assignment.id)">
+                                Rubric
+                            </b-button>
+                        </b-button-toolbar>
+                    </b-form-fieldset>
+                </div>
+            </div>
         </b-collapse>
     </div>
 </template>

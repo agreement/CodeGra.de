@@ -83,6 +83,7 @@ def get_assignment(assignment_id):
     else:
         return jsonify(assignment)
 
+
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
 def update_assignment(assignment_id):
     """Update the given :class:`models.Assignment` with new values.
@@ -126,8 +127,8 @@ def update_assignment(assignment_id):
         if len(content['name']) < 3:
             raise APIException(
                 'The name of an assignment should be longer than 3',
-                'len({}) < 3'.format(content['name']),
-                APICodes.INVALID_PARAM, 400)
+                'len({}) < 3'.format(content['name']), APICodes.INVALID_PARAM,
+                400)
         assig.name = content['name']
 
     if 'deadline' in content:
@@ -139,6 +140,139 @@ def update_assignment(assignment_id):
                 '{} cannot be parsed by dateutil'.format(content['deadline']),
                 APICodes.INVALID_PARAM, 400)
 
+    db.session.commit()
+
+    return '', 204
+
+
+@api.route('/assignments/<int:assignment_id>/rubrics/', methods=['GET'])
+def get_assignment_rubric(assignment_id):
+    assig = models.Assignment.query.get(assignment_id)
+    if assig is None:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with id "{}" was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('can_see_assignments', assig.course_id)
+    if not assig.rubric_rows:
+        raise APIException(
+            'Assignment has no rubric',
+            'The assignment with id "{}" has no rubric'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    return jsonify(assig.rubric_rows)
+
+
+@api.route('/assignments/<int:assignment_id>/rubrics/', methods=['PUT'])
+def add_assignment_rubric(assignment_id):
+    assig = models.Assignment.query.get(assignment_id)
+    if assig is None:
+        raise APIException(
+            'Assignment not found',
+            'The assignment with id "{}" was not found'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('manage_rubrics', assig.course_id)
+    content = request.get_json()
+
+    if 'rows' not in content or not isinstance(content['rows'], list):
+        raise APIException('The rows are invalid',
+                           'The rows provied are not valid',
+                           APICodes.INVALID_PARAM, 400)
+
+    for row in content['rows']:
+        if ('header' not in row or 'description' not in row or
+                'items' not in row or not isinstance(row['items'], list)):
+            raise APIException('The provided row is invalid',
+                               'The provided row "{}" is invalid'.format(row),
+                               APICodes.INVALID_PARAM, 400)
+        if 'id' in row:
+            patch_rubric_row(assig, row)
+        else:
+            add_new_rubric_row(assig, row)
+
+    db.session.commit()
+    return ('', 204)
+
+
+def add_new_rubric_row(assig, row):
+    rubric_row = models.RubricRow(
+        assignment_id=assig.id,
+        header=row['header'],
+        description=row['description'])
+    db.session.add(rubric_row)
+    for item in row['items']:
+        if 'description' not in item or 'points' not in item:
+            raise APIException(
+                'The provided item is invalid',
+                'The provided item "{}" is invalid'.format(item),
+                APICodes.INVALID_PARAM, 400)
+        rubric_row.items.append(
+            models.RubricItem(
+                rubricrow_id=rubric_row.id,
+                description=item['description'],
+                points=item['points']))
+
+
+def patch_rubric_row(assig, row):
+    rubric_row = models.RubricRow.query.get(row['id'])
+    if rubric_row is None:
+        raise APIException(
+            'Rubric row not found',
+            'The Rubric row with id "{}" was not found'.format(row['id']),
+            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    for item in row['items']:
+        if 'description' not in item or 'points' not in item:
+            raise APIException(
+                'The provided item is invalid',
+                'The provided item "{}" is invalid'.format(item),
+                APICodes.INVALID_PARAM, 400)
+        if 'id' not in item:
+            rubric_row.items.append(
+                models.RubricItem(
+                    rubricrow_id=rubric_row.id,
+                    description=item['description'],
+                    points=item['points']))
+        else:
+            rubric_item = models.RubricItem.query.get(item['id'])
+            if rubric_item is None:
+                raise APIException(
+                    'Rubric item not found',
+                    'The Rubric item with id "{}" was not found'.format(item[
+                        'id']), APICodes.OBJECT_ID_NOT_FOUND, 404)
+            rubric_item.description = item['description']
+            rubric_item.points = item['points']
+
+
+def add_rubric_items(rubric_row, items):
+    for item in items:
+        if 'description' not in item or 'points' not in item:
+            raise APIException(
+                'The provided item is invalid',
+                'The provided item "{}" is invalid'.format(item),
+                APICodes.INVALID_PARAM, 400)
+        rubric_row.items.append(
+            models.RubricItem(
+                rubricrow_id=rubric_row.id,
+                description=item['description'],
+                points=item['points']))
+
+
+@api.route(
+    '/assignments/<int:assignment_id>/rubrics/<int:rubric_row>',
+    methods=['DELETE'])
+def delete_rubricrow(assignment_id, rubric_row):
+    row = models.RubricRow.query.get(rubric_row)
+    if row is None or row.assignment_id != assignment_id:
+        raise APIException(
+            'The requested rubric row was not found',
+            'There is now rubric row for assignment {} with id {}'.format(
+                assignment_id, rubric_row), APICodes.OBJECT_ID_NOT_FOUND, 404)
+
+    auth.ensure_permission('manage_rubrics', row.assignment.course_id)
+
+    db.session.delete(row)
     db.session.commit()
 
     return '', 204
@@ -170,11 +304,10 @@ def upload_work(assignment_id):
 
     if (request.content_length and
             request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException(
-            'Uploaded files are too big.',
-            ('Request is bigger than maximum ' +
-             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-            APICodes.REQUEST_TOO_LARGE, 400)
+        raise APIException('Uploaded files are too big.', (
+            'Request is bigger than maximum ' + 'upload size of {}.'
+        ).format(app.config['MAX_UPLOAD_SIZE']), APICodes.REQUEST_TOO_LARGE,
+                           400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
@@ -262,8 +395,8 @@ def divide_assignments(assignment_id):
             'No submissions found for assignment {}'.format(assignment_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    users = models.User.query.filter(
-        models.User.id.in_(content['graders'])).all()
+    users = models.User.query.filter(models.User.id.in_(content[
+        'graders'])).all()
     if len(users) != len(content['graders']):
         raise APIException('Invalid grader id given',
                            'Invalid grader (=user) id given',
@@ -316,11 +449,11 @@ def get_all_graders(assignment_id):
             models.user_course,
             models.User.id == models.user_course.c.user_id).subquery('us')
     per = db.session.query(models.course_permissions.c.course_role_id).join(
-        models.CourseRole,
-        models.CourseRole.id == models.course_permissions.c.course_role_id
-    ).filter(
-        models.course_permissions.c.permission_id == permission,
-        models.CourseRole.course_id == assignment.course_id).subquery('per')
+        models.CourseRole, models.CourseRole.id ==
+        models.course_permissions.c.course_role_id).filter(
+            models.course_permissions.c.permission_id == permission,
+            models.CourseRole.course_id ==
+            assignment.course_id).subquery('per')
     result = db.session.query(us.c.name, us.c.id).join(
         per, us.c.course_id == per.c.course_role_id).order_by(us.c.name).all()
 
@@ -554,8 +687,8 @@ def start_linting(assignment_id):
         thread = threading.Thread(
             target=runner.run,
             args=([t.work_id for t in res.tests], [t.id for t in res.tests],
-                  ('{}api/v1/linter' + '_comments/{}').format(
-                      request.url_root, '{}')))
+                  ('{}api/v1/linter' + '_comments/{}').format(request.url_root,
+                                                              '{}')))
 
         thread.start()
     except:

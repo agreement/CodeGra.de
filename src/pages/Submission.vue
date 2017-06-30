@@ -96,6 +96,43 @@ export default {
         }).then((val) => {
             this.editable = val;
         });
+
+        Promise.all([
+            this.getSubmission(),
+            this.getFileTree(),
+            this.getRubric(),
+            this.getAssignment(),
+            this.getAllSubmissions(),
+        ]).then(([submission, fileTree, rubric, assignment, allSubmissions]) => {
+            this.loading = false;
+
+            Object.assign(this, {
+                submission,
+                fileTree,
+                rubric,
+                assignment,
+                allSubmissions,
+            });
+
+            let title = assignment.name;
+            if (submission.grade) {
+                title += ` (${submission.grade})`;
+            }
+            setTitle(`${title} ${titleSep} ${submission.created_at}`);
+
+            if (!this.fileId) {
+                this.$router.replace({
+                    name: 'submission_file',
+                    params: {
+                        fileId: getFirstFile(fileTree).id,
+                    },
+                });
+            }
+        }, (err) => {
+            // eslint-disable-next-line
+            console.dir(err);
+        });
+
         this.loadData().then(() => {
             this.setPageCSS();
         });

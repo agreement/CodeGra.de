@@ -17,7 +17,7 @@
                     <div
                         class="rubric"
                         v-for="(rubric, i) in rubrics"
-                        :key="`rubric-${i}`">
+                        :key="`rubric-${rubric.id}`">
                         <b-card no-block>
                             <div class="card-header rubric-header">
                                 <span class="title">
@@ -31,7 +31,7 @@
                                 <b-card
                                     class="rubric-item"
                                     v-for="item in rubric.items"
-                                    :key="`rubric-${i}-${item.id}`"
+                                    :key="`rubric-${rubric.id}-${item.id}`"
                                     @click.native="select(i, item)"
                                     :class="{ selected: selected[i] === item }">
                                     <span>

@@ -58,5 +58,9 @@
   "can_see_assignee": {
     "default_value": false,
     "course_permission": true
+  },
+  "manage_rubrics": {
+    "default_value": false,
+    "course_permission": true
   }
 }

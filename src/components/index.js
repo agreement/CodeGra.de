@@ -26,6 +26,7 @@ import BlackboardUploader from './BlackboardUploader';
 import SubmissionNavBar from './SubmissionNavBar';
 import NewCourse from './NewCourse';
 import CourseList from './CourseList';
+import RubricEditor from './RubricEditor';
 
 export {
     Linters,
@@ -56,4 +57,5 @@ export {
     SubmissionNavBar,
     NewCourse,
     CourseList,
+    RubricEditor,
 };
