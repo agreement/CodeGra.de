@@ -30,7 +30,7 @@ export default {
         getFeedback() {
             const body = Object.keys(this.feedback).map((key) => {
                 const val = this.feedback[key];
-                let res = `<tr><td><b>${e(key)}</b></td><td>`;
+                let res = `<tr><td><b>${e(key)}</b></td><td style="text-align: left;">`;
                 if (val.code) {
                     res = `${res}[${e(val.code)}] `;
                 }
