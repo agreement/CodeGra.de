@@ -147,6 +147,20 @@ def update_assignment(assignment_id):
 
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['GET'])
 def get_assignment_rubric(assignment_id):
+    """Return the rubric corresponding to the given `assignment_id`.
+
+    :param int assignment_id: The id of the assignment
+    :returns: A list of JSON of :class:`models.RubricRows` items
+    :rtype: flask.Response
+
+    :raises APIException: If no assignment with given id exists.
+                          (OBJECT_ID_NOT_FOUND)
+    :raises APIException: If the assignment has no rubric.
+                          (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If the user is not allowed to see this is
+                                 assignment. (INCORRECT_PERMISSION)
+    """
     assig = models.Assignment.query.get(assignment_id)
     if assig is None:
         raise APIException(
@@ -166,6 +180,22 @@ def get_assignment_rubric(assignment_id):
 
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['PUT'])
 def add_assignment_rubric(assignment_id):
+    """Add or update rubric of an assignment.
+
+    :param int assignment_id: The id of the assignment
+    :returns: An empty response with return code 204
+    :rtype: (str, int)
+
+    :raises APIException: If no assignment with given id exists.
+                          (OBJECT_ID_NOT_FOUND)
+    :raises APIException: If there is no `rows` (list) item in the provided
+                          content. (INVALID_PARAM)
+    :raises APIException: If a `row` does not contain `header`, `description`
+                          or `items` (list).(INVALID_PARAM)
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If the user is not allowed to manage rubrics.
+                                 (INCORRECT_PERMISSION)
+    """
     assig = models.Assignment.query.get(assignment_id)
     if assig is None:
         raise APIException(
@@ -197,6 +227,15 @@ def add_assignment_rubric(assignment_id):
 
 
 def add_new_rubric_row(assig, row):
+    """Add new rubric row to the assignment.
+
+    :param models.Assignment assig: The assignment to add the rubric row to
+    :param dict row: The row from content containing items and row information
+    :returns: None
+
+    :raises APIException: If `description` or `points` fields are not in
+                          `item`. (INVALID_PARAM)
+    """
     rubric_row = models.RubricRow(
         assignment_id=assig.id,
         header=row['header'],
@@ -216,6 +255,19 @@ def add_new_rubric_row(assig, row):
 
 
 def patch_rubric_row(assig, row):
+    """Update a rubric row of the assignment.
+
+    :param models.Assignment assig: The assignment to add the rubric row to
+    :param dict row: The row from content containing items and row information
+    :returns: None
+
+    :raises APIException: If no rubric row with given id exists.
+                          (OBJECT_ID_NOT_FOUND)
+    :raises APIException: If `description` or `points` fields are not in
+                          `item`. (INVALID_PARAM)
+    :raises APIException: If no rubric item with given id exists.
+                          (OBJECT_ID_NOT_FOUND)
+    """
     rubric_row = models.RubricRow.query.get(row['id'])
     if rubric_row is None:
         raise APIException(
@@ -245,24 +297,23 @@ def patch_rubric_row(assig, row):
             rubric_item.points = item['points']
 
 
-def add_rubric_items(rubric_row, items):
-    for item in items:
-        if 'description' not in item or 'points' not in item:
-            raise APIException(
-                'The provided item is invalid',
-                'The provided item "{}" is invalid'.format(item),
-                APICodes.INVALID_PARAM, 400)
-        rubric_row.items.append(
-            models.RubricItem(
-                rubricrow_id=rubric_row.id,
-                description=item['description'],
-                points=item['points']))
-
-
 @api.route(
     '/assignments/<int:assignment_id>/rubrics/<int:rubric_row>',
     methods=['DELETE'])
 def delete_rubricrow(assignment_id, rubric_row):
+    """Delete rubric row of the assignment.
+
+    :param int assignment_id: The id of the assignment
+    :param int rubric_row: The id of the rubric row
+    :returns: An empty response with return code 204
+    :rtype: (str, int)
+
+    :raises APIException: If no rubric row with given id exists.
+                          (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If the user is not allowed to manage rubrics.
+                                 (INCORRECT_PERMISSION)
+    """
     row = models.RubricRow.query.get(rubric_row)
     if row is None or row.assignment_id != assignment_id:
         raise APIException(
