@@ -18,7 +18,7 @@ from . import api
 
 @api.route("/login", methods=["POST"])
 def login():
-    """Login a :class:`models.User` if the request is valid.
+    """Login a :class:`.models.User` if the request is valid.
 
     :returns: A response containing the JSON serialized user
     :rtype: flask.Response
@@ -59,7 +59,7 @@ def login():
 @api.route("/login", methods=["GET"])
 @login_required
 def me():
-    """Get the info of the currently logged in :class:`models.User`.
+    """Get the info of the currently logged in :class:`.models.User`.
 
     :returns: A response containing the JSON serialized user
     :rtype: flask.Response
@@ -78,7 +78,7 @@ def me():
 @api.route('/login', methods=['PATCH'])
 @login_required
 def get_user_update():
-    """Change data of the current :class:`models.User`.
+    """Change data of the current :class:`.models.User`.
 
     :returns: An empty response with return code 204
     :rtype: (str, int)
@@ -137,7 +137,7 @@ def get_user_update():
 
 @api.route("/login", methods=["DELETE"])
 def logout():
-    """Logout the currently logged in :class:`models.User`.
+    """Logout the currently logged in :class:`.models.User`.
 
     :returns: An empty response with return code 204
     :rtype: (str, int)

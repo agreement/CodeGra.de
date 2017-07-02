@@ -1,0 +1,348 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>psef.auth &#8212; CodeGra.de 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for psef.auth</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;This module implements all authorization functions used by :py:mod:`psef`.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">wraps</span>
+
+<span class="kn">import</span> <span class="nn">flask</span>
+<span class="kn">import</span> <span class="nn">oauth2</span>
+<span class="kn">from</span> <span class="nn">flask_login</span> <span class="k">import</span> <span class="n">current_user</span>
+
+<span class="kn">from</span> <span class="nn">psef</span> <span class="k">import</span> <span class="n">app</span><span class="p">,</span> <span class="n">login_manager</span>
+<span class="kn">from</span> <span class="nn">psef.errors</span> <span class="k">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span>
+
+
+<div class="viewcode-block" id="PermissionException"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.PermissionException">[docs]</a><span class="k">class</span> <span class="nc">PermissionException</span><span class="p">(</span><span class="n">APIException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The exception used when a permission check fails.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PermissionException</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<span class="nd">@login_manager</span><span class="o">.</span><span class="n">unauthorized_handler</span>
+<span class="k">def</span> <span class="nf">_raise_login_exception</span><span class="p">(</span><span class="n">desc</span><span class="o">=</span><span class="s1">&#39;No user was logged in.&#39;</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="n">PermissionException</span><span class="p">(</span><span class="s1">&#39;You need to be logged in to do this.&#39;</span><span class="p">,</span> <span class="n">desc</span><span class="p">,</span>
+                              <span class="n">APICodes</span><span class="o">.</span><span class="n">NOT_LOGGED_IN</span><span class="p">,</span> <span class="mi">401</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_user_active</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Check if there is a current user who is authenticated and active.</span>
+
+<span class="sd">    :returns: True if there is an active logged in user</span>
+<span class="sd">    :rtype: bool</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">current_user</span> <span class="ow">and</span> <span class="n">current_user</span><span class="o">.</span><span class="n">is_authenticated</span> <span class="ow">and</span>
+            <span class="n">current_user</span><span class="o">.</span><span class="n">is_active</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ensure_can_see_grade"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.ensure_can_see_grade">[docs]</a><span class="k">def</span> <span class="nf">ensure_can_see_grade</span><span class="p">(</span><span class="n">work</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Ensure the current user can see the grade of the given work.</span>
+
+<span class="sd">    :param models.Work work: The work</span>
+
+<span class="sd">    :returns: Nothing</span>
+<span class="sd">    :rtype: None</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not see the grade.</span>
+<span class="sd">                                 (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">_user_active</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">work</span><span class="o">.</span><span class="n">user_id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+            <span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_see_others_work&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">is_done</span><span class="p">:</span>
+            <span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_see_grade_before_open&#39;</span><span class="p">,</span>
+                              <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="n">_raise_login_exception</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="ensure_enrolled"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.ensure_enrolled">[docs]</a><span class="k">def</span> <span class="nf">ensure_enrolled</span><span class="p">(</span><span class="n">course_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Ensure the current user is enrolled in the given course.</span>
+
+<span class="sd">    :param course_id: The course id of the course.</span>
+<span class="sd">    :type course_id: int</span>
+
+<span class="sd">    :returns: Nothing</span>
+<span class="sd">    :rtype: None</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user is not enrolled in the given</span>
+<span class="sd">                                 course. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">_user_active</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">course_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">current_user</span><span class="o">.</span><span class="n">courses</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PermissionException</span><span class="p">(</span>
+                <span class="s1">&#39;You are not enrolled in this course&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;The user &quot;</span><span class="si">{}</span><span class="s1">&quot; is not enrolled in course &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                    <span class="n">course_id</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span> <span class="mi">403</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="n">_raise_login_exception</span><span class="p">()</span></div>
+
+
+<span class="n">_PERM_CACHE</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<div class="viewcode-block" id="reset_perm_cache"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.reset_perm_cache">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">before_request</span>
+<span class="k">def</span> <span class="nf">reset_perm_cache</span><span class="p">():</span>
+    <span class="k">global</span> <span class="n">_PERM_CACHE</span>
+    <span class="n">_PERM_CACHE</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+
+<div class="viewcode-block" id="ensure_permission"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.ensure_permission">[docs]</a><span class="k">def</span> <span class="nf">ensure_permission</span><span class="p">(</span><span class="n">permission_name</span><span class="p">,</span> <span class="n">course_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Ensure that the current user is logged and has the given permission.</span>
+
+<span class="sd">    :param str permission_name: The name of the permission to check for.</span>
+<span class="sd">    :param course_id: The course id of the course that should be used for the</span>
+<span class="sd">                      course permission, if it is None a role permission is</span>
+<span class="sd">                      implied. If a course_id is supplied but the given</span>
+<span class="sd">                      permission is not a course permission (but a role</span>
+<span class="sd">                      permission) this function will **NEVER** grant the</span>
+<span class="sd">                      permission.</span>
+<span class="sd">    :type course_id: None or int</span>
+
+<span class="sd">    :returns: Nothing</span>
+<span class="sd">    :rtype: None</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the permission is not enabled for the</span>
+<span class="sd">                                 current user. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">_user_active</span><span class="p">():</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">permission_name</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span> <span class="ow">in</span> <span class="n">_PERM_CACHE</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">_PERM_CACHE</span><span class="p">[(</span><span class="n">permission_name</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">has_permission</span><span class="p">(</span>
+                <span class="n">permission_name</span><span class="p">,</span> <span class="n">course_id</span><span class="o">=</span><span class="n">course_id</span><span class="p">)</span>
+            <span class="n">_PERM_CACHE</span><span class="p">[(</span><span class="n">permission_name</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">if</span> <span class="n">val</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PermissionException</span><span class="p">(</span>
+                <span class="s1">&#39;You do not have permission to do this.&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;The permission &quot;</span><span class="si">{}</span><span class="s1">&quot; is not enabled for user &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">permission_name</span><span class="p">,</span>
+                    <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span> <span class="mi">403</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">_raise_login_exception</span><span class="p">(</span>
+            <span class="p">(</span><span class="s1">&#39;The user was not logged in, &#39;</span> <span class="o">+</span>
+             <span class="s1">&#39;so it did not have the permission &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">permission_name</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="permission_required"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.permission_required">[docs]</a><span class="k">def</span> <span class="nf">permission_required</span><span class="p">(</span><span class="n">permission_name</span><span class="p">,</span> <span class="n">course_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+        <span class="nd">@wraps</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">decorated_function</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">ensure_permission</span><span class="p">(</span><span class="n">permission_name</span><span class="p">,</span> <span class="n">course_id</span><span class="o">=</span><span class="n">course_id</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">decorated_function</span>
+
+    <span class="k">return</span> <span class="n">decorator</span></div>
+
+
+<span class="n">permission_required</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">ensure_permission</span><span class="o">.</span><span class="vm">__doc__</span>
+
+<span class="c1"># The code below is copied for a large part from here:</span>
+<span class="c1"># https://github.com/tophatmonocle/ims_lti_py</span>
+
+
+<div class="viewcode-block" id="RequestValidatorMixin"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.RequestValidatorMixin">[docs]</a><span class="k">class</span> <span class="nc">RequestValidatorMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    A &#39;mixin&#39; for OAuth request validation.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">RequestValidatorMixin</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">oauth_server</span> <span class="o">=</span> <span class="n">oauth2</span><span class="o">.</span><span class="n">Server</span><span class="p">()</span>
+        <span class="n">signature_method</span> <span class="o">=</span> <span class="n">oauth2</span><span class="o">.</span><span class="n">SignatureMethod_HMAC_SHA1</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">oauth_server</span><span class="o">.</span><span class="n">add_signature_method</span><span class="p">(</span><span class="n">signature_method</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">oauth_consumer</span> <span class="o">=</span> <span class="n">oauth2</span><span class="o">.</span><span class="n">Consumer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">consumer_key</span><span class="p">,</span>
+                                              <span class="bp">self</span><span class="o">.</span><span class="n">consumer_secret</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RequestValidatorMixin.is_valid_request"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.RequestValidatorMixin.is_valid_request">[docs]</a>    <span class="k">def</span> <span class="nf">is_valid_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                         <span class="n">request</span><span class="p">,</span>
+                         <span class="n">parameters</span><span class="o">=</span><span class="p">{},</span>
+                         <span class="n">fake_method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">handle_error</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Validates an OAuth request using the python-oauth2 library:</span>
+<span class="sd">            https://github.com/simplegeo/python-oauth2</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">def</span> <span class="nf">handle</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">handle_error</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">e</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Set the parameters to be what we were passed earlier</span>
+            <span class="c1"># if we didn&#39;t get any passed to us now</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">parameters</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;params&#39;</span><span class="p">):</span>
+                <span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+            <span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_request</span><span class="p">(</span>
+                <span class="n">request</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">fake_method</span><span class="p">)</span>
+
+            <span class="n">oauth_request</span> <span class="o">=</span> <span class="n">oauth2</span><span class="o">.</span><span class="n">Request</span><span class="o">.</span><span class="n">from_request</span><span class="p">(</span>
+                <span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">)</span>
+
+            <span class="n">oauth2</span><span class="o">.</span><span class="n">Token</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">oauth_server</span><span class="o">.</span><span class="n">verify_request</span><span class="p">(</span><span class="n">oauth_request</span><span class="p">,</span>
+                                             <span class="bp">self</span><span class="o">.</span><span class="n">oauth_consumer</span><span class="p">,</span> <span class="p">{})</span>
+
+        <span class="k">except</span> <span class="n">oauth2</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">handle</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">handle</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="c1"># Signature was valid</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="RequestValidatorMixin.parse_request"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.RequestValidatorMixin.parse_request">[docs]</a>    <span class="k">def</span> <span class="nf">parse_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">fake_method</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        This must be implemented for the framework you&#39;re using</span>
+<span class="sd">        Returns a tuple: (method, url, headers, parameters)</span>
+<span class="sd">        method is the HTTP method: (GET, POST)</span>
+<span class="sd">        url is the full absolute URL of the request</span>
+<span class="sd">        headers is a dictionary of any headers sent in the request</span>
+<span class="sd">        parameters are the parameters sent from the LMS</span>
+
+<span class="sd">        :param object request: The request to be parsed.</span>
+<span class="sd">        :param dict parameters: Extra parameters for the given request.</span>
+<span class="sd">        :param object fake_method: The fake method to be used.</span>
+<span class="sd">        :rtype: tuple[str, str, dict[str, str], dict[str, str]]</span>
+<span class="sd">        :returns: A tuple of, respectively, the requets method, url, headers</span>
+<span class="sd">            and form, where the last two are a key value mapping.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="RequestValidatorMixin.valid_request"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.RequestValidatorMixin.valid_request">[docs]</a>    <span class="k">def</span> <span class="nf">valid_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Check whether the OAuth-signed request is valid and throw error if not.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_valid_request</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{},</span> <span class="n">handle_error</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">_FlaskOAuthValidator</span><span class="p">(</span><span class="n">RequestValidatorMixin</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">secret</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">consumer_key</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">consumer_secret</span> <span class="o">=</span> <span class="n">secret</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">_FlaskOAuthValidator</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">parse_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fake_method</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Parse Flask request</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">req</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">req</span><span class="o">.</span><span class="n">headers</span><span class="p">),</span> <span class="n">req</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+
+
+<div class="viewcode-block" id="ensure_valid_oauth"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.ensure_valid_oauth">[docs]</a><span class="k">def</span> <span class="nf">ensure_valid_oauth</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">secret</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">parser_cls</span><span class="o">=</span><span class="n">_FlaskOAuthValidator</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Make sure the given oauth key and secret is valid for the given request.</span>
+
+<span class="sd">    :param str key: The oauth key to be used for validating.</span>
+<span class="sd">    :param str secret: The oauth secret to be used for validating.</span>
+<span class="sd">    :param object request: The request that should be validated.</span>
+<span class="sd">    :param RequestValidatorMixin parser_cls: The class used to parse the given</span>
+<span class="sd">        ``request`` it should subclass :py:class:`RequestValidatorMixin` and</span>
+<span class="sd">        should at least override the</span>
+<span class="sd">        :func:`RequestValidatorMixin.parse_request` method.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">validator</span> <span class="o">=</span> <span class="n">parser_cls</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">secret</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">validator</span><span class="o">.</span><span class="n">is_valid_request</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">PermissionException</span><span class="p">(</span>
+            <span class="s1">&#39;No valid oauth request could be found.&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The given request is not a valid oauth request.&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_OAUTH_REQUEST</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  <li><a href="../psef.html">psef</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Thomas Schaper.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

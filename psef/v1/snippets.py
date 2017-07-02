@@ -18,7 +18,7 @@ from . import api
 @api.route('/snippet', methods=['PUT'])
 @auth.permission_required('can_use_snippets')
 def add_snippet():
-    """Add or modify a :class:`models.Snippet` by key.
+    """Add or modify a :class:`.models.Snippet` by key.
 
     :returns: A response containing the JSON serialized snippet and return
               code 201
@@ -53,8 +53,8 @@ def add_snippet():
 @api.route('/snippets/', methods=['GET'])
 @auth.permission_required('can_use_snippets')
 def get_snippets():
-    """Get all snippets (:class:`models.Snippet`) of the curren
-    :class:`models.User`.
+    """Get all snippets (:class:`.models.Snippet`) of the curren
+    :class:`.models.User`.
 
     :returns: The JSON serialized snippets or an empty response with return
               code 204
@@ -74,7 +74,7 @@ def get_snippets():
 @api.route('/snippets/<int:snippet_id>', methods=['PATCH'])
 @auth.permission_required('can_use_snippets')
 def patch_snippet(snippet_id):
-    """Modify the :class:`models.Snippet` with the given id.
+    """Modify the :class:`.models.Snippet` with the given id.
 
     :param int snippet_id: The id of the snippet
     :returns: An empty response with return code 204
@@ -115,7 +115,7 @@ def patch_snippet(snippet_id):
 @api.route('/snippets/<int:snippet_id>', methods=['DELETE'])
 @auth.permission_required('can_use_snippets')
 def delete_snippets(snippet_id):
-    """Delete the :class:`models.Snippet` with the given id.
+    """Delete the :class:`.models.Snippet` with the given id.
 
     :param int snippet_id: The id of the snippet
     :returns: An empty response with return code 204

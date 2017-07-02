@@ -17,8 +17,8 @@ from . import api
 
 @api.route("/code/<int:id>/comments/<int:line>", methods=['PUT'])
 def put_comment(id, line):
-    """Create or change a single :class:`models.Comment` of a code
-    :class:`models.File`.
+    """Create or change a single :class:`.models.Comment` of a code
+    :class:`.models.File`.
 
     :param int id: The id of the code file
     :param int line: The line number of the comment
@@ -57,7 +57,8 @@ def put_comment(id, line):
 
 @api.route("/code/<int:id>/comments/<int:line>", methods=['DELETE'])
 def remove_comment(id, line):
-    """Removes the given :class:`models.Comment` in the given :class:`models.File`
+    """Removes the given :class:`.models.Comment` in the given
+    :class:`.models.File`
 
     :param int id: The id of the code file
     :param int line: The line number of the comment
@@ -89,15 +90,16 @@ def remove_comment(id, line):
 @api.route("/code/<int:file_id>", methods=['GET'])
 @login_required
 def get_code(file_id):
-    """Get data from the :class:`models.File` with the given id.
+    """Get data from the :class:`.models.File` with the given id.
 
     The are several options to change the data that is returned. Based on the
     argument type in the request different functions are called.
-    - If type == 'metadata' the JSON serialized :class:`models.File` is
-        returned.
-    - If type == 'binary' see :py:func:`get_binary_file`
-    - If type == 'feedback' or type == 'linter-feedback' see
-        :py:func:`get_feedback`
+
+    - If ``type == 'metadata'`` the JSON serialized :class:`.models.File` is
+      returned.
+    - If ``type == 'binary'`` see :py:func:`get_binary_file`
+    - If ``type == 'feedback'`` or ``type == 'linter-feedback'`` see
+      :py:func:`get_feedback`
 
     :param int file_id: The id of the file
     :returns: A response containing a plain text file unless specified
@@ -139,8 +141,8 @@ def get_code(file_id):
 
 
 def get_binary_file(file):
-    """Creates a response with the content of the given :class:`models.File` as
-    inline pdf.
+    """Creates a response with the content of the given :class:`.models.File`
+    as inline pdf.
 
     :param models.File file: The file object
     :returns: A response containing a pdf file
@@ -155,8 +157,8 @@ def get_binary_file(file):
 
 
 def get_feedback(file, linter=False):
-    """Returns the :class:`models.Comment` objects attached to the given
-    :class:`models.File` if the user can see them, else returns an empty dict.
+    """Returns the :class:`.models.Comment` objects attached to the given
+    :class:`.models.File` if the user can see them, else returns an empty dict.
 
     :param models.File file: The file object
     :param bool linter: If true returns linter comments instead

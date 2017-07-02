@@ -22,7 +22,7 @@ DATABASE_CONNECT_OPTIONS = {}
 THREADS_PER_PAGE = 2
 
 # Enable protection agains *Cross-site Request Forgery (CSRF)*
-CSRF_ENABLED     = True
+CSRF_ENABLED = True
 
 # Use a secure, unique and absolutely secret key for
 # signing the data.
@@ -37,11 +37,12 @@ UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
 # Maximum size in bytes for single upload request
 MAX_UPLOAD_SIZE = 64 * 2**20  # 64 megabytes
 
-LTI_CONSUMER_KEY_SECRETS = {
-    'my_lti': '12345678',
-}
+LTI_CONSUMER_KEY_SECRETS = {'my_lti': '12345678', }
 
-with open(os.path.join('seed_data', 'course_roles.json'), 'r') as f:
+with open(
+        os.path.join(
+            os.path.dirname(__file__), 'seed_data', 'course_roles.json'),
+        'r') as f:
     DEFAULT_COURSE_ROLES = json.load(f)
 
 DEFAULT_ROLE = 'Student'

@@ -82,11 +82,14 @@ class AssignmentResult(db.Model):
     """
     __tablename__ = 'AssignmentResult'
     sourcedid = db.Column('sourcedid', db.Unicode)
-    user_id = db.Column('User_id', db.Integer,
-                        db.ForeignKey('User.id', ondelete='CASCADE'))
-    assignment_id = db.Column('Assignment_id', db.Integer,
-                              db.ForeignKey(
-                                  'Assignment.id', ondelete='CASCADE'))
+    user_id = db.Column(
+        'User_id', db.Integer, db.ForeignKey(
+            'User.id', ondelete='CASCADE'))
+    assignment_id = db.Column(
+        'Assignment_id',
+        db.Integer,
+        db.ForeignKey(
+            'Assignment.id', ondelete='CASCADE'))
 
     __table_args__ = (db.PrimaryKeyConstraint(assignment_id, user_id), )
 
@@ -312,7 +315,8 @@ class User(db.Model, UserMixin):
     assignment_results = db.relationship(
         'AssignmentResult',
         collection_class=attribute_mapped_collection('assignment_id'),
-        backref=db.backref('user', lazy='select'))
+        backref=db.backref(
+            'user', lazy='select'))
     role = db.relationship('Role', foreign_keys=role_id, lazy='select')
 
     def has_permission(self, permission, course_id=None):
@@ -343,7 +347,7 @@ class User(db.Model, UserMixin):
 
     def get_permission_in_courses(self, permission):
         """Check for a specific course :class:`Permission` in all courses
-        (:class:`Course) the user is enrolled in.
+        (:class:`Course`) the user is enrolled in.
 
         :param permission: The permission or its name
         :type permission: Permission or str
@@ -698,6 +702,7 @@ class Work(db.Model):
         :returns: Nothing
         :rtype: None
         """
+
         def ensure_list(item):
             return item if isinstance(item, list) else [item]
 
@@ -788,27 +793,29 @@ class File(db.Model):
         """List the basic file info and the info of its children.
 
         If the file is a directory it will return a tree like this:
-        ```
-        {
-            'name': 'dir_1',
-            'id': 1,
-            'entries': [
-                {
-                    'name': 'file_1',
-                    'id': 2
-                },
-                {
-                    'name': 'file_2',
-                    'id': 3
-                },
-                {
-                    'name': 'dir_2',
-                    'id': 4,
-                    'entries': []
-                }
-            ]
-        }
-        ```
+
+        .. code:: python
+
+            {
+                'name': 'dir_1',
+                'id': 1,
+                'entries': [
+                    {
+                        'name': 'file_1',
+                        'id': 2
+                    },
+                    {
+                        'name': 'file_2',
+                        'id': 3
+                    },
+                    {
+                        'name': 'dir_2',
+                        'id': 4,
+                        'entries': []
+                    }
+                ]
+            }
+
         Otherwise it will formatted like one of the file children of the above
         tree.
 
@@ -897,12 +904,13 @@ class LinterState(enum.IntEnum):
 
 
 class AssignmentLinter(db.Model):
-    """The class is used when a linter (see :py:module:`psef.linters`) is used on
+    """The class is used when a linter (see :py:mod:`psef.linters`) is used on
     a :class:`Assignment`.
 
-    Every :class:`Work` that is tested is attached by a :class:`LinterInstance`.
+    Every :class:`Work` that is tested is attached by a
+    :class:`LinterInstance`.
 
-    The name identifies which :class:`psef.linters.Linter` is used.
+    The name identifies which :class:`.linters.Linter` is used.
     """
     __tablename__ = 'AssignmentLinter'
     id = db.Column('id', db.Unicode, nullable=False, primary_key=True)
@@ -924,7 +932,8 @@ class AssignmentLinter(db.Model):
         the attached :class:`LinterInstance` objects.
 
         :returns: A dict containing JSON serializable representations of the
-                  attributes and the test state counts of this LinterAssignment.
+                  attributes and the test state counts of this
+                  LinterAssignment.
         :rtype: dict
         """
         working = 0
@@ -950,12 +959,12 @@ class AssignmentLinter(db.Model):
     @classmethod
     def create_tester(cls, assignment_id, name):
         """Create a new instance of this class for a given :class:`Assignment`
-        with a given :class:psef.linters.Linter.
+        with a given :py:class:`.linters.Linter`
 
         :param int assignment_id: The id of the assignment
         :param str name: Name of the linter
         :returns: The created AssignmentLinter
-        :rtype: AssignmentLinter
+        :rtype: :class:`AssignmentLinter`
         """
         id = str(uuid.uuid4())
         while db.session.query(
@@ -1113,6 +1122,7 @@ class Assignment(db.Model):
         current time.
 
         :param str state: The new state, can be 'hidden', 'done' or 'open'
+        :returns: Nothing
         :rtype: None
         """
         if state == 'open':
@@ -1131,7 +1141,7 @@ class Assignment(db.Model):
         :class:`User` who has submitted at least one work for this assignment.
 
         :returns: The latest submissions
-        :rtype: list of Work
+        :rtype: list[Work]
         """
         sub = db.session.query(
             Work.user_id.label('user_id'),
@@ -1221,4 +1231,3 @@ class RubricItem(db.Model):
             'description': self.description,
             'points': self.points,
         }
-

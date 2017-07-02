@@ -1,0 +1,1711 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>psef.v1 package &#8212; CodeGra.de 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="psef package" href="psef.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="psef-v1-package">
+<h1>psef.v1 package<a class="headerlink" href="#psef-v1-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-psef.v1.assignments">
+<span id="psef-v1-assignments-module"></span><h2>psef.v1.assignments module<a class="headerlink" href="#module-psef.v1.assignments" title="Permalink to this headline">¶</a></h2>
+<p>This module defines all API routes with the main directory “assignments”. Thus
+the APIs in this module are mostly used to manipulate
+<a class="reference internal" href="psef.html#psef.models.Assignment" title="psef.models.Assignment"><code class="xref py py-class docutils literal"><span class="pre">models.Assignment</span></code></a> objects and their relations.</p>
+<dl class="function">
+<dt id="psef.v1.assignments.add_assignment_rubric">
+<code class="descclassname">psef.v1.assignments.</code><code class="descname">add_assignment_rubric</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/assignments.html#add_assignment_rubric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.assignments.add_assignment_rubric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add or update rubric of an assignment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>assignment_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the assignment</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If no assignment with given id exists.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If there is no <cite>rows</cite> (list) item in the provided
+content. (INVALID_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If a <cite>row</cite> does not contain <cite>header</cite>, <cite>description</cite>
+or <cite>items</cite> (list).(INVALID_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user is not allowed to manage rubrics.
+(INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.assignments.add_new_rubric_row">
+<code class="descclassname">psef.v1.assignments.</code><code class="descname">add_new_rubric_row</code><span class="sig-paren">(</span><em>assig</em>, <em>row</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/assignments.html#add_new_rubric_row"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.assignments.add_new_rubric_row" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add new rubric row to the assignment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>assig</strong> (<a class="reference internal" href="psef.html#psef.models.Assignment" title="psef.models.Assignment"><em>models.Assignment</em></a>) – The assignment to add the rubric row to</li>
+<li><strong>row</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.6)"><em>dict</em></a>) – The row from content containing items and row information</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">None</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If <cite>description</cite> or <cite>points</cite> fields are not in
+<cite>item</cite>. (INVALID_PARAM)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.assignments.delete_rubricrow">
+<code class="descclassname">psef.v1.assignments.</code><code class="descname">delete_rubricrow</code><span class="sig-paren">(</span><em>assignment_id</em>, <em>rubric_row</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/assignments.html#delete_rubricrow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.assignments.delete_rubricrow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete rubric row of the assignment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>assignment_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the assignment</li>
+<li><strong>rubric_row</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the rubric row</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If no rubric row with given id exists.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user is not allowed to manage rubrics.
+(INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.assignments.divide_assignments">
+<code class="descclassname">psef.v1.assignments.</code><code class="descname">divide_assignments</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/assignments.html#divide_assignments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.assignments.divide_assignments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Assign graders to all the latest <a class="reference internal" href="psef.html#psef.models.Work" title="psef.models.Work"><code class="xref py py-class docutils literal"><span class="pre">models.Work</span></code></a> objects of
+the given <a class="reference internal" href="psef.html#psef.models.Assignment" title="psef.models.Assignment"><code class="xref py py-class docutils literal"><span class="pre">models.Assignment</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>assignment_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the assignment</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If no assignment with given id exists or the
+assignment has no submissions. (OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If there was no grader in the request.
+(MISSING_REQUIRED_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If some grader id is invalid or some grader does not
+have the permission to grade the assignment.
+(INVALID_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user is not allowed to divide
+submissions for this assignment.
+(INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.assignments.get_all_graders">
+<code class="descclassname">psef.v1.assignments.</code><code class="descname">get_all_graders</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/assignments.html#get_all_graders"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.assignments.get_all_graders" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets a list of all <a class="reference internal" href="psef.html#psef.models.User" title="psef.models.User"><code class="xref py py-class docutils literal"><span class="pre">models.User</span></code></a> objects who can grade the given
+<a class="reference internal" href="psef.html#psef.models.Assignment" title="psef.models.Assignment"><code class="xref py py-class docutils literal"><span class="pre">models.Assignment</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>assignment_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the assignment</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the JSON serialized graders.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If no assignment with given id exists.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user is not allowed to view graders of
+this assignment. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.assignments.get_all_works_for_assignment">
+<code class="descclassname">psef.v1.assignments.</code><code class="descname">get_all_works_for_assignment</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/assignments.html#get_all_works_for_assignment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.assignments.get_all_works_for_assignment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all <a class="reference internal" href="psef.html#psef.models.Work" title="psef.models.Work"><code class="xref py py-class docutils literal"><span class="pre">models.Work</span></code></a> objects for the given
+<a class="reference internal" href="psef.html#psef.models.Assignment" title="psef.models.Assignment"><code class="xref py py-class docutils literal"><span class="pre">models.Assignment</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>assignment_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the assignment</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the JSON serialized submissions.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the assignment is hidden and the user is
+not allowed to view it. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.assignments.get_assignment">
+<code class="descclassname">psef.v1.assignments.</code><code class="descname">get_assignment</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/assignments.html#get_assignment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.assignments.get_assignment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the given <a class="reference internal" href="psef.html#psef.models.Assignment" title="psef.models.Assignment"><code class="xref py py-class docutils literal"><span class="pre">models.Assignment</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>assignment_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the assignment</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the JSON serialized assignment</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If no assignment with given id exists.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user is not allowed to view this
+assignment. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.assignments.get_assignment_rubric">
+<code class="descclassname">psef.v1.assignments.</code><code class="descname">get_assignment_rubric</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/assignments.html#get_assignment_rubric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.assignments.get_assignment_rubric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the rubric corresponding to the given <cite>assignment_id</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>assignment_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the assignment</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A list of JSON of <code class="xref py py-class docutils literal"><span class="pre">models.RubricRows</span></code> items</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If no assignment with given id exists.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the assignment has no rubric.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user is not allowed to see this is
+assignment. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.assignments.get_linters">
+<code class="descclassname">psef.v1.assignments.</code><code class="descname">get_linters</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/assignments.html#get_linters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.assignments.get_linters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get all possible linters for the given <a class="reference internal" href="psef.html#psef.models.Assignment" title="psef.models.Assignment"><code class="xref py py-class docutils literal"><span class="pre">models.Assignment</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>assignment_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the assignment</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the JSON serialized linters</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If no assignment with given id exists.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not user linters in this
+course. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.assignments.get_student_assignments">
+<code class="descclassname">psef.v1.assignments.</code><code class="descname">get_student_assignments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/assignments.html#get_student_assignments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.assignments.get_student_assignments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get all the <a class="reference internal" href="psef.html#psef.models.Assignment" title="psef.models.Assignment"><code class="xref py py-class docutils literal"><span class="pre">models.Assignment</span></code></a> objects that the current user can
+see.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A response containing the JSON serialized assignments</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.assignments.patch_rubric_row">
+<code class="descclassname">psef.v1.assignments.</code><code class="descname">patch_rubric_row</code><span class="sig-paren">(</span><em>assig</em>, <em>row</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/assignments.html#patch_rubric_row"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.assignments.patch_rubric_row" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update a rubric row of the assignment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>assig</strong> (<a class="reference internal" href="psef.html#psef.models.Assignment" title="psef.models.Assignment"><em>models.Assignment</em></a>) – The assignment to add the rubric row to</li>
+<li><strong>row</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.6)"><em>dict</em></a>) – The row from content containing items and row information</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">None</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If no rubric row with given id exists.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If <cite>description</cite> or <cite>points</cite> fields are not in
+<cite>item</cite>. (INVALID_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If no rubric item with given id exists.
+(OBJECT_ID_NOT_FOUND)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.assignments.post_submissions">
+<code class="descclassname">psef.v1.assignments.</code><code class="descname">post_submissions</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/assignments.html#post_submissions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.assignments.post_submissions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add submissions to the  given:class:<cite>.models.Assignment</cite> from a
+blackboard zip file as <a class="reference internal" href="psef.html#psef.models.Work" title="psef.models.Work"><code class="xref py py-class docutils literal"><span class="pre">models.Work</span></code></a> objects.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>assignment_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the assignment</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If no assignment with given id exists.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If there was no file in the request.
+(MISSING_REQUIRED_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the file parameter name is incorrect.
+(INVALID_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user is not allowed to manage the
+course attached to the assignment.
+(INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.assignments.start_linting">
+<code class="descclassname">psef.v1.assignments.</code><code class="descname">start_linting</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/assignments.html#start_linting"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.assignments.start_linting" title="Permalink to this definition">¶</a></dt>
+<dd><p>Starts running a specific linter on all the latest submissions
+(<a class="reference internal" href="psef.html#psef.models.Work" title="psef.models.Work"><code class="xref py py-class docutils literal"><span class="pre">models.Work</span></code></a>) of the given <a class="reference internal" href="psef.html#psef.models.Assignment" title="psef.models.Assignment"><code class="xref py py-class docutils literal"><span class="pre">models.Assignment</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>assignment_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the assignment</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the serialized linter that is started by
+the request</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If a required parameter is missing.
+(MISSING_REQUIRED_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If a linter of the same name is already running on
+the assignment. (INVALID_STATE)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not user linters in this
+course. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.assignments.update_assignment">
+<code class="descclassname">psef.v1.assignments.</code><code class="descname">update_assignment</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/assignments.html#update_assignment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.assignments.update_assignment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the given <a class="reference internal" href="psef.html#psef.models.Assignment" title="psef.models.Assignment"><code class="xref py py-class docutils literal"><span class="pre">models.Assignment</span></code></a> with new values.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>assignment_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the assignment</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If no assignment with given id exists.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If an invalid value is submitted. (INVALID_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user is not allowed to edit this is
+assignment. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.assignments.upload_work">
+<code class="descclassname">psef.v1.assignments.</code><code class="descname">upload_work</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/assignments.html#upload_work"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.assignments.upload_work" title="Permalink to this definition">¶</a></dt>
+<dd><p>Upload one or more files as <a class="reference internal" href="psef.html#psef.models.Work" title="psef.models.Work"><code class="xref py py-class docutils literal"><span class="pre">models.Work</span></code></a> to the given
+<a class="reference internal" href="psef.html#psef.models.Assignment" title="psef.models.Assignment"><code class="xref py py-class docutils literal"><span class="pre">models.Assignment</span></code></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>assignment_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the assignment</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A the JSON serialized submission and return code 201.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the request is bigger than the maximum upload
+size. (REQUEST_TOO_LARGE)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If there was no file in the request.
+(MISSING_REQUIRED_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If some file was under the wrong key or some filename
+is empty. (INVALID_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If no assignment with given id exists.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user is not allowed to upload for this
+assignment. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-psef.v1.code">
+<span id="psef-v1-code-module"></span><h2>psef.v1.code module<a class="headerlink" href="#module-psef.v1.code" title="Permalink to this headline">¶</a></h2>
+<p>This module defines all API routes with the main directory “code”. Thus the
+APIs are used to manipulate student submitted code and the related feedback.</p>
+<dl class="function">
+<dt id="psef.v1.code.get_binary_file">
+<code class="descclassname">psef.v1.code.</code><code class="descname">get_binary_file</code><span class="sig-paren">(</span><em>file</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/code.html#get_binary_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.code.get_binary_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a response with the content of the given <a class="reference internal" href="psef.html#psef.models.File" title="psef.models.File"><code class="xref py py-class docutils literal"><span class="pre">models.File</span></code></a>
+as inline pdf.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file</strong> (<a class="reference internal" href="psef.html#psef.models.File" title="psef.models.File"><em>models.File</em></a>) – The file object</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A response containing a pdf file</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.code.get_code">
+<code class="descclassname">psef.v1.code.</code><code class="descname">get_code</code><span class="sig-paren">(</span><em>file_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/code.html#get_code"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.code.get_code" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get data from the <a class="reference internal" href="psef.html#psef.models.File" title="psef.models.File"><code class="xref py py-class docutils literal"><span class="pre">models.File</span></code></a> with the given id.</p>
+<p>The are several options to change the data that is returned. Based on the
+argument type in the request different functions are called.</p>
+<ul class="simple">
+<li>If <code class="docutils literal"><span class="pre">type</span> <span class="pre">==</span> <span class="pre">'metadata'</span></code> the JSON serialized <a class="reference internal" href="psef.html#psef.models.File" title="psef.models.File"><code class="xref py py-class docutils literal"><span class="pre">models.File</span></code></a> is
+returned.</li>
+<li>If <code class="docutils literal"><span class="pre">type</span> <span class="pre">==</span> <span class="pre">'binary'</span></code> see <a class="reference internal" href="#psef.v1.code.get_binary_file" title="psef.v1.code.get_binary_file"><code class="xref py py-func docutils literal"><span class="pre">get_binary_file()</span></code></a></li>
+<li>If <code class="docutils literal"><span class="pre">type</span> <span class="pre">==</span> <span class="pre">'feedback'</span></code> or <code class="docutils literal"><span class="pre">type</span> <span class="pre">==</span> <span class="pre">'linter-feedback'</span></code> see
+<a class="reference internal" href="#psef.v1.code.get_feedback" title="psef.v1.code.get_feedback"><code class="xref py py-func docutils literal"><span class="pre">get_feedback()</span></code></a></li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>file_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the file</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing a plain text file unless specified
+otherwise</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If there is not file with the given id.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the file does not belong to user and the
+user can not view files in the attached
+course. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.code.get_feedback">
+<code class="descclassname">psef.v1.code.</code><code class="descname">get_feedback</code><span class="sig-paren">(</span><em>file</em>, <em>linter=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/code.html#get_feedback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.code.get_feedback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the <a class="reference internal" href="psef.html#psef.models.Comment" title="psef.models.Comment"><code class="xref py py-class docutils literal"><span class="pre">models.Comment</span></code></a> objects attached to the given
+<a class="reference internal" href="psef.html#psef.models.File" title="psef.models.File"><code class="xref py py-class docutils literal"><span class="pre">models.File</span></code></a> if the user can see them, else returns an empty dict.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>file</strong> (<a class="reference internal" href="psef.html#psef.models.File" title="psef.models.File"><em>models.File</em></a>) – The file object</li>
+<li><strong>linter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – If true returns linter comments instead</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the JSON serialized comments</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.code.put_comment">
+<code class="descclassname">psef.v1.code.</code><code class="descname">put_comment</code><span class="sig-paren">(</span><em>id</em>, <em>line</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/code.html#put_comment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.code.put_comment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create or change a single <a class="reference internal" href="psef.html#psef.models.Comment" title="psef.models.Comment"><code class="xref py py-class docutils literal"><span class="pre">models.Comment</span></code></a> of a code
+<a class="reference internal" href="psef.html#psef.models.File" title="psef.models.File"><code class="xref py py-class docutils literal"><span class="pre">models.File</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the code file</li>
+<li><strong>line</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The line number of the comment</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not can grade work in the
+attached course. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.code.remove_comment">
+<code class="descclassname">psef.v1.code.</code><code class="descname">remove_comment</code><span class="sig-paren">(</span><em>id</em>, <em>line</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/code.html#remove_comment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.code.remove_comment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes the given <a class="reference internal" href="psef.html#psef.models.Comment" title="psef.models.Comment"><code class="xref py py-class docutils literal"><span class="pre">models.Comment</span></code></a> in the given
+<a class="reference internal" href="psef.html#psef.models.File" title="psef.models.File"><code class="xref py py-class docutils literal"><span class="pre">models.File</span></code></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the code file</li>
+<li><strong>line</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The line number of the comment</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If there is no comment at the given line number.
+(OBJECT_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not can grade work in the
+attached course. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-psef.v1.courses">
+<span id="psef-v1-courses-module"></span><h2>psef.v1.courses module<a class="headerlink" href="#module-psef.v1.courses" title="Permalink to this headline">¶</a></h2>
+<p>This module defines all API routes with the main directory “courses”. The APIs
+are used to create courses and return information about courses.</p>
+<dl class="function">
+<dt id="psef.v1.courses.add_course">
+<code class="descclassname">psef.v1.courses.</code><code class="descname">add_course</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/courses.html#add_course"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.courses.add_course" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a new <a class="reference internal" href="psef.html#psef.models.Course" title="psef.models.Course"><code class="xref py py-class docutils literal"><span class="pre">models.Course</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the JSON serialization of the new course</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not create courses.
+(INCORRECT_PERMISSION)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the parameter “name” is not in the request.
+(MISSING_REQUIRED_PARAM)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.courses.add_role">
+<code class="descclassname">psef.v1.courses.</code><code class="descname">add_role</code><span class="sig-paren">(</span><em>course_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/courses.html#add_role"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.courses.add_role" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a new <a class="reference internal" href="psef.html#psef.models.CourseRole" title="psef.models.CourseRole"><code class="xref py py-class docutils literal"><span class="pre">models.CourseRole</span></code></a> to the given
+<a class="reference internal" href="psef.html#psef.models.Course" title="psef.models.Course"><code class="xref py py-class docutils literal"><span class="pre">models.Course</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>course_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the course</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the name parameter was not in the request.
+(MISSING_REQUIRED_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the course with the given id was not found.
+(OBJECT_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the course already has a role with the submitted
+name. (INVALID_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not manage the course with the
+given id. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.courses.delete_role">
+<code class="descclassname">psef.v1.courses.</code><code class="descname">delete_role</code><span class="sig-paren">(</span><em>course_id</em>, <em>role_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/courses.html#delete_role"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.courses.delete_role" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a <a class="reference internal" href="psef.html#psef.models.CourseRole" title="psef.models.CourseRole"><code class="xref py py-class docutils literal"><span class="pre">models.CourseRole</span></code></a> from the given
+<a class="reference internal" href="psef.html#psef.models.Course" title="psef.models.Course"><code class="xref py py-class docutils literal"><span class="pre">models.Course</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>course_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the course</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the role with the given ids does not exist.
+(OBJECT_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If there are still users with this role.
+(INVALID_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not manage the course with the
+given id. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.courses.get_all_course_assignments">
+<code class="descclassname">psef.v1.courses.</code><code class="descname">get_all_course_assignments</code><span class="sig-paren">(</span><em>course_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/courses.html#get_all_course_assignments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.courses.get_all_course_assignments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get all <a class="reference internal" href="psef.html#psef.models.Assignment" title="psef.models.Assignment"><code class="xref py py-class docutils literal"><span class="pre">models.Assignment</span></code></a> objects of the given
+<a class="reference internal" href="psef.html#psef.models.Course" title="psef.models.Course"><code class="xref py py-class docutils literal"><span class="pre">models.Course</span></code></a>.</p>
+<p>The returned assignments are sorted by deadline.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>course_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the course</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the JSON serialized assignments</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If there is no course with the given id.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not see assignments in the
+given course. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.courses.get_all_course_roles">
+<code class="descclassname">psef.v1.courses.</code><code class="descname">get_all_course_roles</code><span class="sig-paren">(</span><em>course_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/courses.html#get_all_course_roles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.courses.get_all_course_roles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a list of all <a class="reference internal" href="psef.html#psef.models.CourseRole" title="psef.models.CourseRole"><code class="xref py py-class docutils literal"><span class="pre">models.CourseRole</span></code></a> objects of a given
+<a class="reference internal" href="psef.html#psef.models.Course" title="psef.models.Course"><code class="xref py py-class docutils literal"><span class="pre">models.Course</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>course_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the course</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the JSON serialized course roles.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not manage the course with the
+given id. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.courses.get_all_course_users">
+<code class="descclassname">psef.v1.courses.</code><code class="descname">get_all_course_users</code><span class="sig-paren">(</span><em>course_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/courses.html#get_all_course_users"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.courses.get_all_course_users" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of all <a class="reference internal" href="psef.html#psef.models.User" title="psef.models.User"><code class="xref py py-class docutils literal"><span class="pre">models.User</span></code></a> objects and their
+<a class="reference internal" href="psef.html#psef.models.CourseRole" title="psef.models.CourseRole"><code class="xref py py-class docutils literal"><span class="pre">models.CourseRole</span></code></a> in the given <a class="reference internal" href="psef.html#psef.models.Course" title="psef.models.Course"><code class="xref py py-class docutils literal"><span class="pre">models.Course</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>course_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the course</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the JSON serialized users and course roles</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If there is no course with the given id.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not manage the course with the
+given id. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.courses.get_course_data">
+<code class="descclassname">psef.v1.courses.</code><code class="descname">get_course_data</code><span class="sig-paren">(</span><em>course_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/courses.html#get_course_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.courses.get_course_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return course data for a given <a class="reference internal" href="psef.html#psef.models.Course" title="psef.models.Course"><code class="xref py py-class docutils literal"><span class="pre">models.Course</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>course_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the course</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the JSON serialized course</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If there is no course with the given id.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.courses.get_courses">
+<code class="descclassname">psef.v1.courses.</code><code class="descname">get_courses</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/courses.html#get_courses"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.courses.get_courses" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all <a class="reference internal" href="psef.html#psef.models.Course" title="psef.models.Course"><code class="xref py py-class docutils literal"><span class="pre">models.Course</span></code></a> objects the current user is a member
+of.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A response containing the JSON serialized courses</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.courses.set_course_permission_user">
+<code class="descclassname">psef.v1.courses.</code><code class="descname">set_course_permission_user</code><span class="sig-paren">(</span><em>course_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/courses.html#set_course_permission_user"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.courses.set_course_permission_user" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the <a class="reference internal" href="psef.html#psef.models.CourseRole" title="psef.models.CourseRole"><code class="xref py py-class docutils literal"><span class="pre">models.CourseRole</span></code></a> of a <a class="reference internal" href="psef.html#psef.models.User" title="psef.models.User"><code class="xref py py-class docutils literal"><span class="pre">models.User</span></code></a> in the
+given <a class="reference internal" href="psef.html#psef.models.Course" title="psef.models.Course"><code class="xref py py-class docutils literal"><span class="pre">models.Course</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>course_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the course</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">If the user_id parameter is set in the request the response will
+be empty with return code 204. Otherwise the response will
+contain the JSON serialized user and course role with return code
+201</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>) or (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the parameter role_id or not at least one of
+user_id and user_email are in the request.
+(MISSING_REQUIRED_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If no role with the given role_id or no user
+with the supplied parameters exists.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the user was selected by email and the user is
+already in the course. (INVALID_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not manage the course with the
+given id. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.courses.update_role">
+<code class="descclassname">psef.v1.courses.</code><code class="descname">update_role</code><span class="sig-paren">(</span><em>course_id</em>, <em>role_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/courses.html#update_role"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.courses.update_role" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the <a class="reference internal" href="psef.html#psef.models.Permission" title="psef.models.Permission"><code class="xref py py-class docutils literal"><span class="pre">models.Permission</span></code></a> of a given
+<a class="reference internal" href="psef.html#psef.models.CourseRole" title="psef.models.CourseRole"><code class="xref py py-class docutils literal"><span class="pre">models.CourseRole</span></code></a> in the given <a class="reference internal" href="psef.html#psef.models.Course" title="psef.models.Course"><code class="xref py py-class docutils literal"><span class="pre">models.Course</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>course_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the course</li>
+<li><strong>role_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the role</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the value or permission parameter are not in the
+request. (MISSING_REQUIRED_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the role with the given id does not exist or the
+permission with the given name does not exist.
+(OBJECT_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not manage the course with the
+given id. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-psef.v1.files">
+<span id="psef-v1-files-module"></span><h2>psef.v1.files module<a class="headerlink" href="#module-psef.v1.files" title="Permalink to this headline">¶</a></h2>
+<p>This module defines all API routes with the main directory “files”. These APIs
+serve to upload and download temporary files which are not stored explicitly in
+the database.</p>
+<dl class="function">
+<dt id="psef.v1.files.get_file">
+<code class="descclassname">psef.v1.files.</code><code class="descname">get_file</code><span class="sig-paren">(</span><em>file_name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/files.html#get_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.files.get_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Serve some specific file in the uploads folder.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.files.post_file">
+<code class="descclassname">psef.v1.files.</code><code class="descname">post_file</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/files.html#post_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.files.post_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Temporarily store some data on the server.</p>
+<p>The posted data will be removed after 60 seconds.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response with the JSON serialized name of the file as content
+and return code 201</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the request is bigger than the maximum upload
+size. (REQUEST_TOO_LARGE)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-psef.v1.linters">
+<span id="psef-v1-linters-module"></span><h2>psef.v1.linters module<a class="headerlink" href="#module-psef.v1.linters" title="Permalink to this headline">¶</a></h2>
+<p>This module defines all API routes with the main directory “linters” and
+“linter_comments”. These APIs are used to directly communicate about the  state
+of linters and their output.</p>
+<dl class="function">
+<dt id="psef.v1.linters.delete_linter_output">
+<code class="descclassname">psef.v1.linters.</code><code class="descname">delete_linter_output</code><span class="sig-paren">(</span><em>linter_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/linters.html#delete_linter_output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.linters.delete_linter_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete the all the output created by the
+<a class="reference internal" href="psef.html#psef.models.AssignmentLinter" title="psef.models.AssignmentLinter"><code class="xref py py-class docutils literal"><span class="pre">models.AssignmentLinter</span></code></a> with the given id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>linter_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the linter</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the linter with the given id does not exist.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not use the linters in the
+course attached to the linter with the given
+id. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.linters.get_linter_state">
+<code class="descclassname">psef.v1.linters.</code><code class="descname">get_linter_state</code><span class="sig-paren">(</span><em>linter_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/linters.html#get_linter_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.linters.get_linter_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the state of the <a class="reference internal" href="psef.html#psef.models.AssignmentLinter" title="psef.models.AssignmentLinter"><code class="xref py py-class docutils literal"><span class="pre">models.AssignmentLinter</span></code></a> with the given
+id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>linter_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the linter</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the JSON serialized linter</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not use the linters in the
+course attached to the linter with the given
+id. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.linters.put_linter_comment">
+<code class="descclassname">psef.v1.linters.</code><code class="descname">put_linter_comment</code><span class="sig-paren">(</span><em>token</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/linters.html#put_linter_comment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.linters.put_linter_comment" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a <a class="reference internal" href="psef.html#psef.models.LinterComment" title="psef.models.LinterComment"><code class="xref py py-class docutils literal"><span class="pre">models.LinterComment</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>token</strong> – The token of the <a class="reference internal" href="psef.html#psef.models.LinterInstance" title="psef.models.LinterInstance"><code class="xref py py-class docutils literal"><span class="pre">models.LinterInstance</span></code></a>.</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the linter with the given token was not found.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><strong>APIExcpetion</strong> – If the “file” parameter was missing from the request.
+(MISSING_REQUIRED_PARAM)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-psef.v1.login">
+<span id="psef-v1-login-module"></span><h2>psef.v1.login module<a class="headerlink" href="#module-psef.v1.login" title="Permalink to this headline">¶</a></h2>
+<p>This module defines all API routes with the main directory “login”. This APIs
+are used to handle starting and closing the user session and update the :class:
+User object of the logged in user.</p>
+<dl class="function">
+<dt id="psef.v1.login.get_user_update">
+<code class="descclassname">psef.v1.login.</code><code class="descname">get_user_update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/login.html#get_user_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.login.get_user_update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Change data of the current <a class="reference internal" href="psef.html#psef.models.User" title="psef.models.User"><code class="xref py py-class docutils literal"><span class="pre">models.User</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If not all required parameters (‘email’,
+‘o_password’, ‘username’, ‘n_password’) were in the
+request. (MISSING_REQUIRED_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the old password was not correct.
+(INVALID_CREDENTIALS)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the new password or username is not valid.
+(INVALID_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not edit his own info.
+(INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.login.login">
+<code class="descclassname">psef.v1.login.</code><code class="descname">login</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/login.html#login"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.login.login" title="Permalink to this definition">¶</a></dt>
+<dd><p>Login a <a class="reference internal" href="psef.html#psef.models.User" title="psef.models.User"><code class="xref py py-class docutils literal"><span class="pre">models.User</span></code></a> if the request is valid.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the JSON serialized user</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the request does not contain email and/or password
+parameter. (MISSING_REQUIRED_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If no user with email exists or the password is
+wrong. (LOGIN_FAILURE)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the user with the given email and password is
+inactive. (INACTIVE_USER)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.login.logout">
+<code class="descclassname">psef.v1.login.</code><code class="descname">logout</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/login.html#logout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.login.logout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logout the currently logged in <a class="reference internal" href="psef.html#psef.models.User" title="psef.models.User"><code class="xref py py-class docutils literal"><span class="pre">models.User</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An empty response with return code 204</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.login.me">
+<code class="descclassname">psef.v1.login.</code><code class="descname">me</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/login.html#me"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.login.me" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the info of the currently logged in <a class="reference internal" href="psef.html#psef.models.User" title="psef.models.User"><code class="xref py py-class docutils literal"><span class="pre">models.User</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A response containing the JSON serialized user</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-psef.v1.permissions">
+<span id="psef-v1-permissions-module"></span><h2>psef.v1.permissions module<a class="headerlink" href="#module-psef.v1.permissions" title="Permalink to this headline">¶</a></h2>
+<p>This module defines all API routes with the main directory “permissions”. These
+APIs are used communicate the permissions users.</p>
+<dl class="function">
+<dt id="psef.v1.permissions.get_permissions">
+<code class="descclassname">psef.v1.permissions.</code><code class="descname">get_permissions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/permissions.html#get_permissions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.permissions.get_permissions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the permissions (<a class="reference internal" href="psef.html#psef.models.Permission" title="psef.models.Permission"><code class="xref py py-class docutils literal"><span class="pre">models.Permission</span></code></a>) of the currently
+logged in <a class="reference internal" href="psef.html#psef.models.User" title="psef.models.User"><code class="xref py py-class docutils literal"><span class="pre">models.User</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the JSON serialized permissions and return
+code 200</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the supplied course id was not a number.
+(INVALID_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If specified permission does not exist.
+(OBJECT_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-psef.v1.snippets">
+<span id="psef-v1-snippets-module"></span><h2>psef.v1.snippets module<a class="headerlink" href="#module-psef.v1.snippets" title="Permalink to this headline">¶</a></h2>
+<p>This module defines all API routes with the main directory “snippet” or
+“snippets. These APIs can be used to add, modify, delete and retrieve the
+snippets of the current user.</p>
+<dl class="function">
+<dt id="psef.v1.snippets.add_snippet">
+<code class="descclassname">psef.v1.snippets.</code><code class="descname">add_snippet</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/snippets.html#add_snippet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.snippets.add_snippet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add or modify a <a class="reference internal" href="psef.html#psef.models.Snippet" title="psef.models.Snippet"><code class="xref py py-class docutils literal"><span class="pre">models.Snippet</span></code></a> by key.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the JSON serialized snippet and return
+code 201</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the parameters “key” and/or “value” were not in
+the request. (MISSING_REQUIRED_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not user snippets
+(INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.snippets.delete_snippets">
+<code class="descclassname">psef.v1.snippets.</code><code class="descname">delete_snippets</code><span class="sig-paren">(</span><em>snippet_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/snippets.html#delete_snippets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.snippets.delete_snippets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete the <a class="reference internal" href="psef.html#psef.models.Snippet" title="psef.models.Snippet"><code class="xref py py-class docutils literal"><span class="pre">models.Snippet</span></code></a> with the given id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>snippet_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the snippet</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the snippet with the given id does not exist.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the snippet does not belong the current user.
+(INCORRECT_PERMISSION)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not use snippets.
+(INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.snippets.get_snippets">
+<code class="descclassname">psef.v1.snippets.</code><code class="descname">get_snippets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/snippets.html#get_snippets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.snippets.get_snippets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get all snippets (<a class="reference internal" href="psef.html#psef.models.Snippet" title="psef.models.Snippet"><code class="xref py py-class docutils literal"><span class="pre">models.Snippet</span></code></a>) of the curren
+<a class="reference internal" href="psef.html#psef.models.User" title="psef.models.User"><code class="xref py py-class docutils literal"><span class="pre">models.User</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The JSON serialized snippets or an empty response with return
+code 204</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a> or (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not user snippets.
+(INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.snippets.patch_snippet">
+<code class="descclassname">psef.v1.snippets.</code><code class="descname">patch_snippet</code><span class="sig-paren">(</span><em>snippet_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/snippets.html#patch_snippet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.snippets.patch_snippet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Modify the <a class="reference internal" href="psef.html#psef.models.Snippet" title="psef.models.Snippet"><code class="xref py py-class docutils literal"><span class="pre">models.Snippet</span></code></a> with the given id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>snippet_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the snippet</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the parameters “key” and/or “value” were not in
+the request. (MISSING_REQUIRED_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the snippet does not belong to the current user.
+(INCORRECT_PERMISSION)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not use snippets.
+(INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-psef.v1.submissions">
+<span id="psef-v1-submissions-module"></span><h2>psef.v1.submissions module<a class="headerlink" href="#module-psef.v1.submissions" title="Permalink to this headline">¶</a></h2>
+<p>This module defines all API routes with the main directory “submissions”. The
+APIs allow the retrieving, and patching of :class: Work objects. Furthermore
+functions are defined to get related objects and information.</p>
+<dl class="function">
+<dt id="psef.v1.submissions.get_dir_contents">
+<code class="descclassname">psef.v1.submissions.</code><code class="descname">get_dir_contents</code><span class="sig-paren">(</span><em>submission_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/submissions.html#get_dir_contents"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.submissions.get_dir_contents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the file directory info of a file of the given submission
+(<a class="reference internal" href="psef.html#psef.models.Work" title="psef.models.Work"><code class="xref py py-class docutils literal"><span class="pre">models.Work</span></code></a>).</p>
+<p>The default file is the root of the submission, but a specific file can be
+specified with the file_id argument in the request.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>submission_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the submission</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response with the JSON serialized directory structure as
+content and return code 200</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the submission with the given id does not exist or
+when a file id was specified no file with this id
+exists. (OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – wWhen a file id is specified and the submission id
+does not match the submission id of the file.
+(INVALID_URL)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – When a file id is specified and the file with that id
+is not a directory. (OBJECT_WRONG_TYPE)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If submission does not belong to the current
+user and the user can not view files in the
+attached course. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.submissions.get_feedback">
+<code class="descclassname">psef.v1.submissions.</code><code class="descname">get_feedback</code><span class="sig-paren">(</span><em>work</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/submissions.html#get_feedback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.submissions.get_feedback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the feedback of <a class="reference internal" href="psef.html#psef.models.Work" title="psef.models.Work"><code class="xref py py-class docutils literal"><span class="pre">models.Work</span></code></a> as a plain text file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>work</strong> (<a class="reference internal" href="psef.html#psef.models.Work" title="psef.models.Work"><em>models.Work</em></a>) – The submission with the required feedback</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A response with the plain text feedback as attached file</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.submissions.get_rubric">
+<code class="descclassname">psef.v1.submissions.</code><code class="descname">get_rubric</code><span class="sig-paren">(</span><em>submission_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/submissions.html#get_rubric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.submissions.get_rubric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return full rubric of the <a class="reference internal" href="psef.html#psef.models.Assignment" title="psef.models.Assignment"><code class="xref py py-class docutils literal"><span class="pre">models.Assignment</span></code></a> of the given
+submission (<a class="reference internal" href="psef.html#psef.models.Work" title="psef.models.Work"><code class="xref py py-class docutils literal"><span class="pre">models.Work</span></code></a>).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>submission_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the submission</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the JSON serialized rubric</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the submission with the given id does not exist.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not see the assignment of the
+given submission. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.submissions.get_submission">
+<code class="descclassname">psef.v1.submissions.</code><code class="descname">get_submission</code><span class="sig-paren">(</span><em>submission_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/submissions.html#get_submission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.submissions.get_submission" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the given submission (<a class="reference internal" href="psef.html#psef.models.Work" title="psef.models.Work"><code class="xref py py-class docutils literal"><span class="pre">models.Work</span></code></a>).</p>
+<p>This API has some options based on the ‘type’ argument in the request</p>
+<ul class="simple">
+<li>If <code class="docutils literal"><span class="pre">type</span> <span class="pre">==</span> <span class="pre">'zip'</span></code> see <a class="reference internal" href="#psef.v1.submissions.get_zip" title="psef.v1.submissions.get_zip"><code class="xref py py-func docutils literal"><span class="pre">get_zip()</span></code></a></li>
+<li>If <code class="docutils literal"><span class="pre">type</span> <span class="pre">==</span> <span class="pre">'feedback'</span></code> see <a class="reference internal" href="#psef.v1.submissions.get_feedback" title="psef.v1.submissions.get_feedback"><code class="xref py py-func docutils literal"><span class="pre">get_feedback()</span></code></a></li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>submission_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the submission</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response with the JSON serialized submission as content unless
+specified otherwise</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the submission with given id does not exist.
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the submission does not belong to the
+current user and the user can not see others
+work in the attached course.
+(INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.submissions.get_zip">
+<code class="descclassname">psef.v1.submissions.</code><code class="descname">get_zip</code><span class="sig-paren">(</span><em>work</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/submissions.html#get_zip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.submissions.get_zip" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a <a class="reference internal" href="psef.html#psef.models.Work" title="psef.models.Work"><code class="xref py py-class docutils literal"><span class="pre">models.Work</span></code></a> as a zip file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>work</strong> (<a class="reference internal" href="psef.html#psef.models.Work" title="psef.models.Work"><em>models.Work</em></a>) – The submission which should be returns as zip file</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response with the zip as attached file</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If submission does not belong to the current
+user and the user can not view files in the
+attached course. (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.submissions.patch_submission">
+<code class="descclassname">psef.v1.submissions.</code><code class="descname">patch_submission</code><span class="sig-paren">(</span><em>submission_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/submissions.html#patch_submission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.submissions.patch_submission" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the given submission (<a class="reference internal" href="psef.html#psef.models.Work" title="psef.models.Work"><code class="xref py py-class docutils literal"><span class="pre">models.Work</span></code></a>) if it already exists.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>submission_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the submission</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)">str</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)">int</a>)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the submission with the given id does not exist
+(OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the request does not contain the parameters “grade”
+and/or “feedback” (MISSING_REQUIRED_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the value of the “grade” parameter is not a float
+(INVALID_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If user can not grade the submission with the
+given id (INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.v1.submissions.select_rubric_item">
+<code class="descclassname">psef.v1.submissions.</code><code class="descname">select_rubric_item</code><span class="sig-paren">(</span><em>submission_id</em>, <em>rubricitem_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/v1/submissions.html#select_rubric_item"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.v1.submissions.select_rubric_item" title="Permalink to this definition">¶</a></dt>
+<dd><p>Select a rubric item of the given submission (<a class="reference internal" href="psef.html#psef.models.Work" title="psef.models.Work"><code class="xref py py-class docutils literal"><span class="pre">models.Work</span></code></a>).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>submission_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the submission</li>
+<li><strong>rubricitem_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a>) – The id of the rubric item</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A response containing the JSON serialized rubric</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="http://flask.pocoo.org/docs/latest/api/#flask.Response" title="(in Flask v0.13-dev)">flask.Response</a></p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If either the submission or rubric item with the
+given ids does not exist. (OBJECT_ID_NOT_FOUND)</li>
+<li><a class="reference internal" href="psef.html#psef.errors.APIException" title="psef.errors.APIException"><strong>APIException</strong></a> – If the assignment of the rubric is not the assignment
+of the submission. (INVALID_PARAM)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If there is no logged in user. (NOT_LOGGED_IN)</li>
+<li><a class="reference internal" href="psef.html#psef.auth.PermissionException" title="psef.auth.PermissionException"><strong>PermissionException</strong></a> – If the user can not grade the given submission
+(INCORRECT_PERMISSION)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-psef.v1">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-psef.v1" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">psef.v1 package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-psef.v1.assignments">psef.v1.assignments module</a></li>
+<li><a class="reference internal" href="#module-psef.v1.code">psef.v1.code module</a></li>
+<li><a class="reference internal" href="#module-psef.v1.courses">psef.v1.courses module</a></li>
+<li><a class="reference internal" href="#module-psef.v1.files">psef.v1.files module</a></li>
+<li><a class="reference internal" href="#module-psef.v1.linters">psef.v1.linters module</a></li>
+<li><a class="reference internal" href="#module-psef.v1.login">psef.v1.login module</a></li>
+<li><a class="reference internal" href="#module-psef.v1.permissions">psef.v1.permissions module</a></li>
+<li><a class="reference internal" href="#module-psef.v1.snippets">psef.v1.snippets module</a></li>
+<li><a class="reference internal" href="#module-psef.v1.submissions">psef.v1.submissions module</a></li>
+<li><a class="reference internal" href="#module-psef.v1">Module contents</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="../code.html">Code documentation of psef</a><ul>
+  <li><a href="modules.html">Source code documentation of psef</a><ul>
+  <li><a href="psef.html">psef package</a><ul>
+      <li>Previous: <a href="psef.html" title="previous chapter">psef package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/psef_api/psef.v1.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Thomas Schaper.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="../_sources/psef_api/psef.v1.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

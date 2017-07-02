@@ -54,11 +54,11 @@ class BearLinter(Linter):
     """Implements a generic coala linter.
 
     This class itself is not a functional linter yet, you need to at least
-    define/override `NAME`, `DEFAULT_OPTIONS`, `FILTER_STR`, `EXTENSION` and `BEAR_NAME`.
-    The first two are defined in :class:`Linter`, the third is the string
-    passed to `coala` as files argument, the fourth is the extension that
-    should be put after the `LINTER_STR`, and the last is the name of the bear
-    that should be given to the `coala` program.
+    define/override `NAME`, `DEFAULT_OPTIONS`, `FILTER_STR`, `EXTENSION` and
+    `BEAR_NAME`. The first two are defined in :class:`Linter`, the third is the
+    string passed to `coala` as files argument, the fourth is the extension
+    that should be put after the `LINTER_STR`, and the last is the name of the
+    bear that should be given to the `coala` program.
     """
     NAME = '__ignore__'
     FILTER_STR = '/**/*.'

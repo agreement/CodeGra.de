@@ -16,9 +16,9 @@ from . import api
 
 @api.route('/linter_comments/<token>', methods=['PUT'])
 def put_linter_comment(token):
-    """Add a :class:`models.LinterComment`.
+    """Add a :class:`.models.LinterComment`.
 
-    :param token: The token of the :class:`models.LinterInstance`.
+    :param token: The token of the :class:`.models.LinterInstance`.
     :returns: An empty response with return code 204
     :rtype: (str, int)
 
@@ -82,7 +82,7 @@ def put_linter_comment(token):
 @api.route('/linters/<linter_id>', methods=['DELETE'])
 def delete_linter_output(linter_id):
     """Delete the all the output created by the
-    :class:`models.AssignmentLinter` with the given id.
+    :class:`.models.AssignmentLinter` with the given id.
 
     :param int linter_id: The id of the linter
     :returns: An empty response with return code 204
@@ -112,7 +112,8 @@ def delete_linter_output(linter_id):
 
 @api.route('/linters/<linter_id>', methods=['GET'])
 def get_linter_state(linter_id):
-    """Get the state of the :class:`models.AssignmentLinter` with the given id.
+    """Get the state of the :class:`.models.AssignmentLinter` with the given
+    id.
 
     :param int linter_id: The id of the linter
     :returns: A response containing the JSON serialized linter

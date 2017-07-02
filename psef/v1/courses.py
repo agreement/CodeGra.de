@@ -16,8 +16,8 @@ from . import api
 
 @api.route('/courses/<int:course_id>/roles/<int:role_id>', methods=['DELETE'])
 def delete_role(course_id, role_id):
-    """Remove a :class:`models.CourseRole` from the given
-    :class:`models.Course`.
+    """Remove a :class:`.models.CourseRole` from the given
+    :class:`.models.Course`.
 
     :param int course_id: The id of the course
     :returns: An empty response with return code 204
@@ -66,8 +66,8 @@ def delete_role(course_id, role_id):
 
 @api.route('/courses/<int:course_id>/roles/', methods=['POST'])
 def add_role(course_id):
-    """Add a new :class:`models.CourseRole` to the given
-    :class:`models.Course`.
+    """Add a new :class:`.models.CourseRole` to the given
+    :class:`.models.Course`.
 
     :param int course_id: The id of the course
     :returns: An empty response with return code 204
@@ -116,8 +116,8 @@ def add_role(course_id):
 
 @api.route('/courses/<int:course_id>/roles/<int:role_id>', methods=['PATCH'])
 def update_role(course_id, role_id):
-    """Update the :class:`models.Permission` of a given
-    :class:`models.CourseRole` in the given :class:`models.Course`.
+    """Update the :class:`.models.Permission` of a given
+    :class:`.models.CourseRole` in the given :class:`.models.Course`.
 
     :param int course_id: The id of the course
     :param int role_id: The id of the role
@@ -175,8 +175,8 @@ def update_role(course_id, role_id):
 
 @api.route('/courses/<int:course_id>/roles/', methods=['GET'])
 def get_all_course_roles(course_id):
-    """Get a list of all :class:`models.CourseRole` objects of a given
-    :class:`models.Course`.
+    """Get a list of all :class:`.models.CourseRole` objects of a given
+    :class:`.models.Course`.
 
     :param int course_id: The id of the course
     :returns: A response containing the JSON serialized course roles.
@@ -205,8 +205,8 @@ def get_all_course_roles(course_id):
 
 @api.route('/courses/<int:course_id>/users/', methods=['PUT'])
 def set_course_permission_user(course_id):
-    """Set the :class:`models.CourseRole` of a :class:`models.User` in the
-    given :class:`models.Course`.
+    """Set the :class:`.models.CourseRole` of a :class:`.models.User` in the
+    given :class:`.models.Course`.
 
     :param int course_id: The id of the course
     :returns: If the user_id parameter is set in the request the response will
@@ -293,8 +293,8 @@ def set_course_permission_user(course_id):
 
 @api.route('/courses/<int:course_id>/users/', methods=['GET'])
 def get_all_course_users(course_id):
-    """Return a list of all :class:`models.User` objects and their
-    :class:`models.CourseRole` in the given :class:`models.Course`.
+    """Return a list of all :class:`.models.User` objects and their
+    :class:`.models.CourseRole` in the given :class:`.models.Course`.
 
     :param int course_id: The id of the course
     :returns: A response containing the JSON serialized users and course roles
@@ -321,8 +321,8 @@ def get_all_course_users(course_id):
 
 @api.route('/courses/<int:course_id>/assignments/', methods=['GET'])
 def get_all_course_assignments(course_id):
-    """Get all :class:`models.Assignment` objects of the given
-    :class:`models.Course`.
+    """Get all :class:`.models.Assignment` objects of the given
+    :class:`.models.Course`.
 
     The returned assignments are sorted by deadline.
 
@@ -350,7 +350,7 @@ def get_all_course_assignments(course_id):
 @api.route('/courses/', methods=['POST'])
 @auth.permission_required('can_create_courses')
 def add_course():
-    """Add a new :class:`models.Course`.
+    """Add a new :class:`.models.Course`.
 
     :returns: A response containing the JSON serialization of the new course
     :rtype: flask.Response
@@ -378,7 +378,7 @@ def add_course():
 @api.route('/courses/', methods=['GET'])
 @login_required
 def get_courses():
-    """Return all :class:`models.Course` objects the current user is a member
+    """Return all :class:`.models.Course` objects the current user is a member
     of.
 
     :returns: A response containing the JSON serialized courses
@@ -396,7 +396,7 @@ def get_courses():
 @api.route('/courses/<int:course_id>', methods=['GET'])
 @login_required
 def get_course_data(course_id):
-    """Return course data for a given :class:`models.Course`.
+    """Return course data for a given :class:`.models.Course`.
 
     :param int course_id: The id of the course
 
