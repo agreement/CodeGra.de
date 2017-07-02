@@ -93,11 +93,16 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;UPLOAD_DIR&#39;</span><span class="p">],</span> <span class="n">code</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">islink</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;This file is a symlink to `</span><span class="si">{}</span><span class="s1">`.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">readlink</span><span class="p">(</span><span class="n">filename</span><span class="p">))),</span>
+                               <span class="s1">&#39;The file </span><span class="si">{}</span><span class="s1"> is a symlink&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">code</span><span class="o">.</span><span class="n">id</span><span class="p">),</span>
+                               <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">410</span><span class="p">)</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">codefile</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">codefile</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
-            <span class="s1">&#39;File was not readable&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Cannot display this file!&#39;</span><span class="p">,</span>
             <span class="s1">&#39;The selected file with id </span><span class="si">{}</span><span class="s1"> was not UTF-8&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">code</span><span class="o">.</span><span class="n">id</span><span class="p">),</span>
             <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_WRONG_TYPE</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span></div>
 
@@ -144,10 +149,8 @@
     <span class="k">if</span> <span class="n">code</span><span class="o">.</span><span class="n">is_directory</span><span class="p">:</span>
         <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;name&quot;</span><span class="p">:</span>
-            <span class="n">code</span><span class="o">.</span><span class="n">get_filename</span><span class="p">(),</span>
-            <span class="s2">&quot;id&quot;</span><span class="p">:</span>
-            <span class="n">code</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">code</span><span class="o">.</span><span class="n">get_filename</span><span class="p">(),</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">code</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
             <span class="s2">&quot;entries&quot;</span><span class="p">:</span> <span class="p">[</span>
                 <span class="n">restore_directory_structure</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">code</span><span class="o">.</span><span class="n">children</span>
@@ -155,7 +158,7 @@
         <span class="p">}</span>
     <span class="k">else</span><span class="p">:</span>  <span class="c1"># this is a file</span>
         <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;UPLOAD_DIR&#39;</span><span class="p">],</span> <span class="n">code</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
-        <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">follow_symlinks</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">code</span><span class="o">.</span><span class="n">get_filename</span><span class="p">(),</span> <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">code</span><span class="o">.</span><span class="n">id</span><span class="p">}</span></div>
 
 
@@ -213,8 +216,7 @@
                 <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">filename</span><span class="p">))</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
-                    <span class="n">key</span><span class="p">:</span>
-                    <span class="n">convert_to_lists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="n">value</span><span class="p">)</span>
+                    <span class="n">key</span><span class="p">:</span> <span class="n">convert_to_lists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="n">value</span><span class="p">)</span>
                 <span class="p">})</span>
         <span class="k">return</span> <span class="n">res</span>
 
@@ -352,16 +354,19 @@
 <span class="sd">    :rtype: list[tuple[psef.blackboard.Info, tree]]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">tmpdir</span> <span class="o">=</span> <span class="n">extract_to_temp</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-    <span class="n">info_files</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="p">[</span><span class="n">_bb_txt_format</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-                               <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)])</span>
+    <span class="n">info_files</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="p">[</span><span class="n">_bb_txt_format</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)])</span>
     <span class="n">submissions</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">info_file</span> <span class="ow">in</span> <span class="n">info_files</span><span class="p">:</span>
         <span class="n">files</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">info</span> <span class="o">=</span> <span class="n">blackboard</span><span class="o">.</span><span class="n">parse_info_file</span><span class="p">(</span>
             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="n">info_file</span><span class="o">.</span><span class="n">string</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">info</span><span class="o">.</span><span class="n">files</span><span class="p">:</span>
-            <span class="n">files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FileStorage</span><span class="p">(</span><span class="n">stream</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="n">tmpdir</span><span class="p">,</span> <span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;rb&#39;</span><span class="p">),</span> <span class="n">filename</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">original_name</span><span class="p">))</span>
+            <span class="n">files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">FileStorage</span><span class="p">(</span>
+                    <span class="n">stream</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;rb&#39;</span><span class="p">),</span>
+                    <span class="n">filename</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">original_name</span><span class="p">))</span>
         <span class="n">tree</span> <span class="o">=</span> <span class="n">process_files</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
         <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">(),</span> <span class="n">files</span><span class="p">)</span>
         <span class="n">submissions</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">info</span><span class="p">,</span> <span class="n">tree</span><span class="p">))</span>
@@ -405,6 +410,26 @@
         <span class="n">csv_writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">csv_output</span><span class="p">)</span>
         <span class="n">csv_writer</span><span class="o">.</span><span class="n">writerows</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">csv_file</span></div>
+
+
+<div class="viewcode-block" id="remove_tree"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.remove_tree">[docs]</a><span class="k">def</span> <span class="nf">remove_tree</span><span class="p">(</span><span class="n">tree</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Removes all files in the tree.</span>
+
+<span class="sd">    This removes all files in a tree as described by</span>
+<span class="sd">    :py:func`rename_directory_structure`</span>
+
+<span class="sd">    :param dict tree: Tree of files</span>
+<span class="sd">    :returns: Nothing</span>
+<span class="sd">    :rtype None:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tree</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">tree</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">remove_tree</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tree</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">tree</span><span class="p">:</span>
+            <span class="n">remove_tree</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;UPLOAD_DIR&#39;</span><span class="p">],</span> <span class="n">tree</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span></div>
 </pre></div>
 
           </div>

@@ -96,6 +96,7 @@ export default {
         }).then((val) => {
             this.editable = val;
         });
+
         Promise.all([
             this.getSubmission(),
             this.getFileTree(),
@@ -112,8 +113,6 @@ export default {
                 assignment,
                 allSubmissions,
             });
-
-            this.setPageCSS();
 
             let title = assignment.name;
             if (submission.grade) {
@@ -133,6 +132,10 @@ export default {
             // eslint-disable-next-line
             console.dir(err);
         });
+
+        this.loadData().then(() => {
+            this.setPageCSS();
+        });
     },
 
     destroyed() {
@@ -140,10 +143,51 @@ export default {
     },
 
     methods: {
+        loadData() {
+            return Promise.all([
+                this.getSubmission(),
+                this.getFileTree(),
+                this.getRubric(),
+                this.getAssignment(),
+                this.getAllSubmissions(),
+            ]).then(([submission, fileTree, rubric, assignment, submissions]) => {
+                this.loading = false;
+
+                Object.assign(this, {
+                    submission,
+                    fileTree,
+                    rubric,
+                    assignment,
+                    submissions,
+                });
+
+                let title = assignment.name;
+                if (submission.grade) {
+                    title += ` (${submission.grade})`;
+                }
+                setTitle(`${title} ${titleSep} ${submission.created_at}`);
+
+                if (!this.fileId) {
+                    this.$router.replace({
+                        name: 'submission_file',
+                        params: {
+                            fileId: getFirstFile(fileTree).id,
+                        },
+                    });
+                }
+            }, (err) => {
+                // eslint-disable-next-line
+                console.dir(err);
+            });
+        },
         getSubmission() {
             return this.$http.get(
                 `/api/v1/submissions/${this.submissionId}`,
-            ).then(({ data }) => data, () => ({}));
+            ).then(
+                ({ data }) => data,
+            ).catch(
+                () => ({}),
+            );
         },
 
         getFileTree() {
@@ -171,7 +215,7 @@ export default {
         },
 
         getFileMetadata() {
-            if (this.fileId === undefined) {
+            if (this.fileId === undefined || Number.isNaN(this.fileId)) {
                 return Promise.resolve(null);
             }
 
@@ -197,14 +241,24 @@ export default {
             }
         },
 
+        getSubmissionFiles() {
+            return this.$http.get(`/api/v1/submissions/${this.submissionId}/files/`).then((data) => {
+                this.fileTree = data.data;
+                this.$router.replace({
+                    name: 'submission_file',
+                    params: {
+                        fileId: this.fileId ? this.fileId : getFirstFile(this.fileTree).id,
+                    },
+                });
+            });
+        },
+
         submitAllFeedback(event) {
             this.$refs.codeViewer.submitAllFeedback(event);
         },
 
         reloadSubmission() {
-            this.getSubmission();
-            this.getSubmissionFiles();
-            this.getFileMetadata();
+            this.loadData();
         },
 
         ...mapActions({
@@ -249,8 +303,9 @@ export default {
         },
 
         restorePageCSS() {
-            const elements = Array.from(document.querySelectorAll('html, body, #app, nav, footer'));
-            const [html, body, app, nav, footer] = elements;
+            console.log('resotre');
+            const els = Array.from(document.querySelectorAll('html, body, #app, nav, footer'));
+            const [html, body, app, nav, footer] = els;
 
             html.style.height = this.oldCSS.html.height;
             body.style.height = this.oldCSS.body.height;

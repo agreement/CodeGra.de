@@ -127,6 +127,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">assignment</span><span class="p">)</span></div>
 
+
 <div class="viewcode-block" id="update_assignment"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.update_assignment">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/assignments/&lt;int:assignment_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PATCH&#39;</span><span class="p">])</span>
 <span class="k">def</span> <span class="nf">update_assignment</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update the given :class:`.models.Assignment` with new values.</span>
@@ -170,8 +171,8 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
                 <span class="s1">&#39;The name of an assignment should be longer than 3&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;len(</span><span class="si">{}</span><span class="s1">) &lt; 3&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]),</span>
-                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+                <span class="s1">&#39;len(</span><span class="si">{}</span><span class="s1">) &lt; 3&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span>
+                <span class="mi">400</span><span class="p">)</span>
         <span class="n">assig</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="s1">&#39;deadline&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
@@ -183,6 +184,190 @@
                 <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> cannot be parsed by dateutil&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;deadline&#39;</span><span class="p">]),</span>
                 <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
 
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">204</span></div>
+
+
+<div class="viewcode-block" id="get_assignment_rubric"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.get_assignment_rubric">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/assignments/&lt;int:assignment_id&gt;/rubrics/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">get_assignment_rubric</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the rubric corresponding to the given `assignment_id`.</span>
+
+<span class="sd">    :param int assignment_id: The id of the assignment</span>
+<span class="sd">    :returns: A list of JSON of :class:`models.RubricRows` items</span>
+<span class="sd">    :rtype: flask.Response</span>
+
+<span class="sd">    :raises APIException: If no assignment with given id exists.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: If the assignment has no rubric.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user is not allowed to see this is</span>
+<span class="sd">                                 assignment. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">assig</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">assig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;Assignment not found&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The assignment with id &quot;</span><span class="si">{}</span><span class="s1">&quot; was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_see_assignments&#39;</span><span class="p">,</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">assig</span><span class="o">.</span><span class="n">rubric_rows</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;Assignment has no rubric&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The assignment with id &quot;</span><span class="si">{}</span><span class="s1">&quot; has no rubric&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">assig</span><span class="o">.</span><span class="n">rubric_rows</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="add_assignment_rubric"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.add_assignment_rubric">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/assignments/&lt;int:assignment_id&gt;/rubrics/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PUT&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">add_assignment_rubric</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add or update rubric of an assignment.</span>
+
+<span class="sd">    :param int assignment_id: The id of the assignment</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+<span class="sd">    :rtype: (str, int)</span>
+
+<span class="sd">    :raises APIException: If no assignment with given id exists.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: If there is no `rows` (list) item in the provided</span>
+<span class="sd">                          content. (INVALID_PARAM)</span>
+<span class="sd">    :raises APIException: If a `row` does not contain `header`, `description`</span>
+<span class="sd">                          or `items` (list).(INVALID_PARAM)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user is not allowed to manage rubrics.</span>
+<span class="sd">                                 (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">assig</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">assig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;Assignment not found&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The assignment with id &quot;</span><span class="si">{}</span><span class="s1">&quot; was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;manage_rubrics&#39;</span><span class="p">,</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="s1">&#39;rows&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">content</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;rows&#39;</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;The rows are invalid&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;The rows provied are not valid&#39;</span><span class="p">,</span>
+                           <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;rows&#39;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;header&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">row</span> <span class="ow">or</span> <span class="s1">&#39;description&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">row</span> <span class="ow">or</span>
+                <span class="s1">&#39;items&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">row</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;items&#39;</span><span class="p">],</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;The provided row is invalid&#39;</span><span class="p">,</span>
+                               <span class="s1">&#39;The provided row &quot;</span><span class="si">{}</span><span class="s1">&quot; is invalid&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">row</span><span class="p">),</span>
+                               <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;id&#39;</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+            <span class="n">patch_rubric_row</span><span class="p">(</span><span class="n">assig</span><span class="p">,</span> <span class="n">row</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">add_new_rubric_row</span><span class="p">(</span><span class="n">assig</span><span class="p">,</span> <span class="n">row</span><span class="p">)</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">return</span> <span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">204</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="add_new_rubric_row"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.add_new_rubric_row">[docs]</a><span class="k">def</span> <span class="nf">add_new_rubric_row</span><span class="p">(</span><span class="n">assig</span><span class="p">,</span> <span class="n">row</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add new rubric row to the assignment.</span>
+
+<span class="sd">    :param models.Assignment assig: The assignment to add the rubric row to</span>
+<span class="sd">    :param dict row: The row from content containing items and row information</span>
+<span class="sd">    :returns: None</span>
+
+<span class="sd">    :raises APIException: If `description` or `points` fields are not in</span>
+<span class="sd">                          `item`. (INVALID_PARAM)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rubric_row</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">RubricRow</span><span class="p">(</span>
+        <span class="n">assignment_id</span><span class="o">=</span><span class="n">assig</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+        <span class="n">header</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">],</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;description&#39;</span><span class="p">])</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">rubric_row</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;items&#39;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="s1">&#39;description&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">item</span> <span class="ow">or</span> <span class="s1">&#39;points&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;The provided item is invalid&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;The provided item &quot;</span><span class="si">{}</span><span class="s1">&quot; is invalid&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">item</span><span class="p">),</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+        <span class="n">rubric_row</span><span class="o">.</span><span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">RubricItem</span><span class="p">(</span>
+                <span class="n">rubricrow_id</span><span class="o">=</span><span class="n">rubric_row</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="n">description</span><span class="o">=</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;description&#39;</span><span class="p">],</span>
+                <span class="n">points</span><span class="o">=</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;points&#39;</span><span class="p">]))</span></div>
+
+
+<div class="viewcode-block" id="patch_rubric_row"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.patch_rubric_row">[docs]</a><span class="k">def</span> <span class="nf">patch_rubric_row</span><span class="p">(</span><span class="n">assig</span><span class="p">,</span> <span class="n">row</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Update a rubric row of the assignment.</span>
+
+<span class="sd">    :param models.Assignment assig: The assignment to add the rubric row to</span>
+<span class="sd">    :param dict row: The row from content containing items and row information</span>
+<span class="sd">    :returns: None</span>
+
+<span class="sd">    :raises APIException: If no rubric row with given id exists.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: If `description` or `points` fields are not in</span>
+<span class="sd">                          `item`. (INVALID_PARAM)</span>
+<span class="sd">    :raises APIException: If no rubric item with given id exists.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rubric_row</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">RubricRow</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">rubric_row</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;Rubric row not found&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The Rubric row with id &quot;</span><span class="si">{}</span><span class="s1">&quot; was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;items&#39;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="s1">&#39;description&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">item</span> <span class="ow">or</span> <span class="s1">&#39;points&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;The provided item is invalid&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;The provided item &quot;</span><span class="si">{}</span><span class="s1">&quot; is invalid&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">item</span><span class="p">),</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
+            <span class="n">rubric_row</span><span class="o">.</span><span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">models</span><span class="o">.</span><span class="n">RubricItem</span><span class="p">(</span>
+                    <span class="n">rubricrow_id</span><span class="o">=</span><span class="n">rubric_row</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                    <span class="n">description</span><span class="o">=</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;description&#39;</span><span class="p">],</span>
+                    <span class="n">points</span><span class="o">=</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;points&#39;</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rubric_item</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">RubricItem</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">rubric_item</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                    <span class="s1">&#39;Rubric item not found&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;The Rubric item with id &quot;</span><span class="si">{}</span><span class="s1">&quot; was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">item</span><span class="p">[</span>
+                        <span class="s1">&#39;id&#39;</span><span class="p">]),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
+            <span class="n">rubric_item</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;description&#39;</span><span class="p">]</span>
+            <span class="n">rubric_item</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;points&#39;</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="delete_rubricrow"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.delete_rubricrow">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span>
+    <span class="s1">&#39;/assignments/&lt;int:assignment_id&gt;/rubrics/&lt;int:rubric_row&gt;&#39;</span><span class="p">,</span>
+    <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;DELETE&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">delete_rubricrow</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">,</span> <span class="n">rubric_row</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Delete rubric row of the assignment.</span>
+
+<span class="sd">    :param int assignment_id: The id of the assignment</span>
+<span class="sd">    :param int rubric_row: The id of the rubric row</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+<span class="sd">    :rtype: (str, int)</span>
+
+<span class="sd">    :raises APIException: If no rubric row with given id exists.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user is not allowed to manage rubrics.</span>
+<span class="sd">                                 (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">row</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">RubricRow</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">rubric_row</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">row</span><span class="o">.</span><span class="n">assignment_id</span> <span class="o">!=</span> <span class="n">assignment_id</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;The requested rubric row was not found&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;There is now rubric row for assignment </span><span class="si">{}</span><span class="s1"> with id </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">assignment_id</span><span class="p">,</span> <span class="n">rubric_row</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;manage_rubrics&#39;</span><span class="p">,</span> <span class="n">row</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
     <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">204</span></div>
@@ -214,11 +399,10 @@
 
     <span class="k">if</span> <span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">content_length</span> <span class="ow">and</span>
             <span class="n">request</span><span class="o">.</span><span class="n">content_length</span> <span class="o">&gt;</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;MAX_UPLOAD_SIZE&#39;</span><span class="p">]):</span>
-        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
-            <span class="s1">&#39;Uploaded files are too big.&#39;</span><span class="p">,</span>
-            <span class="p">(</span><span class="s1">&#39;Request is bigger than maximum &#39;</span> <span class="o">+</span>
-             <span class="s1">&#39;upload size of </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;MAX_UPLOAD_SIZE&#39;</span><span class="p">]),</span>
-            <span class="n">APICodes</span><span class="o">.</span><span class="n">REQUEST_TOO_LARGE</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;Uploaded files are too big.&#39;</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s1">&#39;Request is bigger than maximum &#39;</span> <span class="o">+</span> <span class="s1">&#39;upload size of </span><span class="si">{}</span><span class="s1">.&#39;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;MAX_UPLOAD_SIZE&#39;</span><span class="p">]),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">REQUEST_TOO_LARGE</span><span class="p">,</span>
+                           <span class="mi">400</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s2">&quot;No file in HTTP request.&quot;</span><span class="p">,</span>
@@ -245,10 +429,10 @@
             <span class="s1">&#39;The assignment with code </span><span class="si">{}</span><span class="s1"> was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">),</span>
             <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
 
-    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_submit_own_work&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_submit_own_work&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">assignment</span><span class="o">.</span><span class="n">is_open</span><span class="p">:</span>
         <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_upload_after_deadline&#39;</span><span class="p">,</span>
-                               <span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+                               <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
 
     <span class="n">work</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">(</span><span class="n">assignment_id</span><span class="o">=</span><span class="n">assignment_id</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
     <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">work</span><span class="p">)</span>
@@ -283,7 +467,7 @@
 <span class="sd">                                 (INCORRECT_PERMISSION)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">assignment</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">)</span>
-    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_manage_course&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_manage_course&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">assignment</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
             <span class="s1">&#39;Assignment not found&#39;</span><span class="p">,</span>
@@ -306,15 +490,15 @@
             <span class="s1">&#39;No submissions found for assignment </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">),</span>
             <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
 
-    <span class="n">users</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-        <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;graders&#39;</span><span class="p">]))</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="n">users</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">content</span><span class="p">[</span>
+        <span class="s1">&#39;graders&#39;</span><span class="p">]))</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">users</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;graders&#39;</span><span class="p">]):</span>
         <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;Invalid grader id given&#39;</span><span class="p">,</span>
                            <span class="s1">&#39;Invalid grader (=user) id given&#39;</span><span class="p">,</span>
                            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">grader</span> <span class="ow">in</span> <span class="n">users</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">grader</span><span class="o">.</span><span class="n">has_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">grader</span><span class="o">.</span><span class="n">has_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;Selected grader has no permission to grade&#39;</span><span class="p">,</span>
                                <span class="s1">&#39;Selected grader has no permission to grade&#39;</span><span class="p">,</span>
                                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
@@ -344,7 +528,7 @@
 <span class="sd">                                 this assignment. (INCORRECT_PERMISSION)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">assignment</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">)</span>
-    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_manage_course&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_manage_course&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">assignment</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
@@ -360,11 +544,11 @@
             <span class="n">models</span><span class="o">.</span><span class="n">user_course</span><span class="p">,</span>
             <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">models</span><span class="o">.</span><span class="n">user_course</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">user_id</span><span class="p">)</span><span class="o">.</span><span class="n">subquery</span><span class="p">(</span><span class="s1">&#39;us&#39;</span><span class="p">)</span>
     <span class="n">per</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">course_permissions</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_role_id</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">,</span>
-        <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">models</span><span class="o">.</span><span class="n">course_permissions</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_role_id</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-        <span class="n">models</span><span class="o">.</span><span class="n">course_permissions</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">permission_id</span> <span class="o">==</span> <span class="n">permission</span><span class="p">,</span>
-        <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">course_id</span> <span class="o">==</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span><span class="o">.</span><span class="n">subquery</span><span class="p">(</span><span class="s1">&#39;per&#39;</span><span class="p">)</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">course_permissions</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_role_id</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">course_permissions</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">permission_id</span> <span class="o">==</span> <span class="n">permission</span><span class="p">,</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">course_id</span> <span class="o">==</span>
+            <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span><span class="o">.</span><span class="n">subquery</span><span class="p">(</span><span class="s1">&#39;per&#39;</span><span class="p">)</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">us</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">us</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
         <span class="n">per</span><span class="p">,</span> <span class="n">us</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_id</span> <span class="o">==</span> <span class="n">per</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_role_id</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">us</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
 
@@ -437,7 +621,7 @@
             <span class="s1">&#39;Assignment not found&#39;</span><span class="p">,</span>
             <span class="s1">&#39;The assignment with code </span><span class="si">{}</span><span class="s1"> was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">),</span>
             <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
-    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_manage_course&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_manage_course&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s2">&quot;No file in HTTP request.&quot;</span><span class="p">,</span>
@@ -451,33 +635,42 @@
                            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
 
     <span class="n">file</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]</span>
-    <span class="n">submissions</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">process_blackboard_zip</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">submissions</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">process_blackboard_zip</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s2">&quot;The blackboard zip could not imported.&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;The blackboard zip could not be parsed.&quot;</span><span class="p">,</span>
+                           <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">submission_info</span><span class="p">,</span> <span class="n">submission_tree</span> <span class="ow">in</span> <span class="n">submissions</span><span class="p">:</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">submission_info</span><span class="o">.</span><span class="n">student_name</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
 
-    <span class="k">for</span> <span class="n">submission_info</span><span class="p">,</span> <span class="n">submission_tree</span> <span class="ow">in</span> <span class="n">submissions</span><span class="p">:</span>
-        <span class="n">user</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="n">submission_info</span><span class="o">.</span><span class="n">student_name</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">perms</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">:</span>
+                    <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Student&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="o">=</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+                <span class="p">}</span>
+                <span class="n">user</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">submission_info</span><span class="o">.</span><span class="n">student_name</span><span class="p">,</span>
+                    <span class="n">courses</span><span class="o">=</span><span class="n">perms</span><span class="p">,</span>
+                    <span class="n">email</span><span class="o">=</span><span class="n">submission_info</span><span class="o">.</span><span class="n">student_name</span> <span class="o">+</span> <span class="s1">&#39;@example.com&#39;</span><span class="p">,</span>
+                    <span class="n">password</span><span class="o">=</span><span class="s1">&#39;password&#39;</span><span class="p">,</span>
+                    <span class="n">role</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">Role</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;Student&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">())</span>
 
-        <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">perms</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
-                <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;student&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="o">=</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
-            <span class="p">}</span>
-            <span class="n">user</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">(</span>
-                <span class="n">name</span><span class="o">=</span><span class="n">submission_info</span><span class="o">.</span><span class="n">student_name</span><span class="p">,</span>
-                <span class="n">courses</span><span class="o">=</span><span class="n">perms</span><span class="p">,</span>
-                <span class="n">email</span><span class="o">=</span><span class="n">submission_info</span><span class="o">.</span><span class="n">student_name</span> <span class="o">+</span> <span class="s1">&#39;@example.com&#39;</span><span class="p">,</span>
-                <span class="n">password</span><span class="o">=</span><span class="s1">&#39;password&#39;</span><span class="p">,</span>
-                <span class="n">role</span><span class="o">=</span><span class="n">models</span><span class="o">.</span><span class="n">Role</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;student&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">())</span>
-
-            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
-        <span class="n">work</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">(</span>
-            <span class="n">assignment_id</span><span class="o">=</span><span class="n">assignment</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-            <span class="n">user</span><span class="o">=</span><span class="n">user</span><span class="p">,</span>
-            <span class="n">created_at</span><span class="o">=</span><span class="n">submission_info</span><span class="o">.</span><span class="n">created_at</span><span class="p">,</span>
-            <span class="n">grade</span><span class="o">=</span><span class="n">submission_info</span><span class="o">.</span><span class="n">grade</span><span class="p">)</span>
-        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">work</span><span class="p">)</span>
-        <span class="n">work</span><span class="o">.</span><span class="n">add_file_tree</span><span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="n">submission_tree</span><span class="p">)</span>
+                <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+            <span class="n">work</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">(</span>
+                <span class="n">assignment_id</span><span class="o">=</span><span class="n">assignment</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="n">user</span><span class="o">=</span><span class="n">user</span><span class="p">,</span>
+                <span class="n">created_at</span><span class="o">=</span><span class="n">submission_info</span><span class="o">.</span><span class="n">created_at</span><span class="p">,</span>
+                <span class="n">grade</span><span class="o">=</span><span class="n">submission_info</span><span class="o">.</span><span class="n">grade</span><span class="p">)</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">work</span><span class="p">)</span>
+            <span class="n">work</span><span class="o">.</span><span class="n">add_file_tree</span><span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="n">submission_tree</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">tree</span> <span class="ow">in</span> <span class="n">submissions</span><span class="p">:</span>
+            <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">remove_tree</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
+        <span class="k">raise</span>
 
     <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 
@@ -561,10 +754,10 @@
     <span class="n">content</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="s1">&#39;cfg&#39;</span> <span class="ow">in</span> <span class="n">content</span> <span class="ow">and</span> <span class="s1">&#39;name&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
-            <span class="s1">&#39;Missing required params.&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;Missing one ore more of children, cfg or name in the payload&#39;</span><span class="p">,</span>
-            <span class="n">APICodes</span><span class="o">.</span><span class="n">MISSING_REQUIRED_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;Missing required params.&#39;</span><span class="p">,</span>
+                           <span class="p">(</span><span class="s1">&#39;Missing one ore more of children, cfg&#39;</span>
+                            <span class="s1">&#39; or name in the payload &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">content</span><span class="p">),</span>
+                           <span class="n">APICodes</span><span class="o">.</span><span class="n">MISSING_REQUIRED_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
             <span class="n">models</span><span class="o">.</span><span class="n">LinterInstance</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
@@ -589,8 +782,8 @@
         <span class="n">thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span>
             <span class="n">target</span><span class="o">=</span><span class="n">runner</span><span class="o">.</span><span class="n">run</span><span class="p">,</span>
             <span class="n">args</span><span class="o">=</span><span class="p">([</span><span class="n">t</span><span class="o">.</span><span class="n">work_id</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">tests</span><span class="p">],</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">tests</span><span class="p">],</span>
-                  <span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">api/v1/linter&#39;</span> <span class="o">+</span> <span class="s1">&#39;_comments/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                      <span class="n">request</span><span class="o">.</span><span class="n">url_root</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="p">)))</span>
+                  <span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">api/v1/linter&#39;</span> <span class="o">+</span> <span class="s1">&#39;_comments/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">url_root</span><span class="p">,</span>
+                                                              <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="p">)))</span>
 
         <span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
     <span class="k">except</span><span class="p">:</span>

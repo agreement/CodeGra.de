@@ -122,7 +122,7 @@ working.
 
 
 API documentation of PSEF
--------------
+-----------------------------
 
 .. autoflask:: psef:app
    :undoc-static:

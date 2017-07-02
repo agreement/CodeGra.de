@@ -4,7 +4,6 @@ This module defines all the objects in the database in their relation.
 
 import os
 import enum
-import json
 import uuid
 import datetime
 from concurrent import futures
@@ -18,36 +17,51 @@ import psef.auth as auth
 from psef import db, app, login_manager
 from psef.helpers import get_request_start_time
 
-permissions = db.Table('roles-permissions',
-                       db.Column('permission_id', db.Integer,
-                                 db.ForeignKey(
-                                     'Permission.id', ondelete='CASCADE')),
-                       db.Column('role_id', db.Integer,
-                                 db.ForeignKey('Role.id', ondelete='CASCADE')))
+permissions = db.Table(
+    'roles-permissions',
+    db.Column(
+        'permission_id',
+        db.Integer,
+        db.ForeignKey(
+            'Permission.id', ondelete='CASCADE')),
+    db.Column(
+        'role_id', db.Integer, db.ForeignKey(
+            'Role.id', ondelete='CASCADE')))
 
-course_permissions = db.Table('course_roles-permissions',
-                              db.Column('permission_id', db.Integer,
-                                        db.ForeignKey(
-                                            'Permission.id',
-                                            ondelete='CASCADE')),
-                              db.Column('course_role_id', db.Integer,
-                                        db.ForeignKey(
-                                            'Course_Role.id',
-                                            ondelete='CASCADE')))
+course_permissions = db.Table(
+    'course_roles-permissions',
+    db.Column(
+        'permission_id',
+        db.Integer,
+        db.ForeignKey(
+            'Permission.id', ondelete='CASCADE')),
+    db.Column(
+        'course_role_id',
+        db.Integer,
+        db.ForeignKey(
+            'Course_Role.id', ondelete='CASCADE')))
 
-user_course = db.Table('users-courses',
-                       db.Column('course_id', db.Integer,
-                                 db.ForeignKey(
-                                     'Course_Role.id', ondelete='CASCADE')),
-                       db.Column('user_id', db.Integer,
-                                 db.ForeignKey('User.id', ondelete='CASCADE')))
+user_course = db.Table(
+    'users-courses',
+    db.Column(
+        'course_id',
+        db.Integer,
+        db.ForeignKey(
+            'Course_Role.id', ondelete='CASCADE')),
+    db.Column(
+        'user_id', db.Integer, db.ForeignKey(
+            'User.id', ondelete='CASCADE')))
 
 work_rubric_item = db.Table(
     'work_rubric_item',
-    db.Column('work_id', db.Integer,
-              db.ForeignKey('Work.id', ondelete='CASCADE')),
-    db.Column('rubricitem_id', db.Integer,
-              db.ForeignKey('RubricItem.id', ondelete='CASCADE')))
+    db.Column(
+        'work_id', db.Integer, db.ForeignKey(
+            'Work.id', ondelete='CASCADE')),
+    db.Column(
+        'rubricitem_id',
+        db.Integer,
+        db.ForeignKey(
+            'RubricItem.id', ondelete='CASCADE')))
 
 
 class LTIProvider(db.Model):
@@ -68,11 +82,14 @@ class AssignmentResult(db.Model):
     """
     __tablename__ = 'AssignmentResult'
     sourcedid = db.Column('sourcedid', db.Unicode)
-    user_id = db.Column('User_id', db.Integer,
-                        db.ForeignKey('User.id', ondelete='CASCADE'))
-    assignment_id = db.Column('Assignment_id', db.Integer,
-                              db.ForeignKey(
-                                  'Assignment.id', ondelete='CASCADE'))
+    user_id = db.Column(
+        'User_id', db.Integer, db.ForeignKey(
+            'User.id', ondelete='CASCADE'))
+    assignment_id = db.Column(
+        'Assignment_id',
+        db.Integer,
+        db.ForeignKey(
+            'Assignment.id', ondelete='CASCADE'))
 
     __table_args__ = (db.PrimaryKeyConstraint(assignment_id, user_id), )
 
@@ -226,7 +243,8 @@ class Role(db.Model):
         'Permission',
         collection_class=attribute_mapped_collection('name'),
         secondary=permissions,
-        backref=db.backref('roles', lazy='dynamic'))
+        backref=db.backref(
+            'roles', lazy='dynamic'))
 
     def has_permission(self, permission):
         """Check whether this role has the specified :class:`Permission`.
@@ -245,8 +263,8 @@ class Role(db.Model):
         else:
             permission = Permission.query.filter_by(name=permission).first()
             if permission is None:
-                raise KeyError(
-                    'The permission "{}" does not exist'.format(permission))
+                raise KeyError('The permission "{}" does not exist'.format(
+                    permission))
             else:
                 return (permission.default_value and
                         not permission.course_permission)
@@ -285,21 +303,21 @@ class User(db.Model, UserMixin):
         'CourseRole',
         collection_class=attribute_mapped_collection('course_id'),
         secondary=user_course,
-        backref=db.backref('users', lazy='dynamic'))
+        backref=db.backref(
+            'users', lazy='dynamic'))
     email = db.Column('email', db.Unicode(collation='NOCASE'), unique=True)
     password = db.Column(
         'password',
-        PasswordType(schemes=[
-            'pbkdf2_sha512',
-        ], deprecated=[]),
+        PasswordType(
+            schemes=['pbkdf2_sha512', ], deprecated=[]),
         nullable=True)
 
     assignment_results = db.relationship(
         'AssignmentResult',
         collection_class=attribute_mapped_collection('assignment_id'),
-        backref=db.backref('user', lazy='select'))
-
-    role = db.relationship('Role', foreign_keys=role_id)
+        backref=db.backref(
+            'user', lazy='select'))
+    role = db.relationship('Role', foreign_keys=role_id, lazy='select')
 
     def has_permission(self, permission, course_id=None):
         """Check whether this user has the specified global or course
@@ -367,6 +385,13 @@ class User(db.Model, UserMixin):
     def __to_json__(self):
         """Creates a JSON serializable representation of this object.
         """
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+        }
+
+    def __extended_to_json__(self):
         return {
             "id": self.id,
             "name": self.name,
@@ -518,8 +543,8 @@ class Course(db.Model):
         """
         for name, perms in CourseRole.get_default_course_roles().items():
             if not db.session.query(
-                    CourseRole.query.filter_by(name=name, course_id=self.id)
-                    .exists()).scalar():
+                    CourseRole.query.filter_by(
+                        name=name, course_id=self.id).exists()).scalar():
                 CourseRole(name=name, course=self, _permissions=perms)
 
 
@@ -531,8 +556,9 @@ class Work(db.Model):
     id = db.Column('id', db.Integer, primary_key=True)
     assignment_id = db.Column('Assignment_id', db.Integer,
                               db.ForeignKey('Assignment.id'))
-    user_id = db.Column('User_id', db.Integer,
-                        db.ForeignKey('User.id', ondelete='CASCADE'))
+    user_id = db.Column(
+        'User_id', db.Integer, db.ForeignKey(
+            'User.id', ondelete='CASCADE'))
     edit = db.Column('edit', db.Integer)
     _grade = db.Column('grade', db.Float, default=None)
     comment = db.Column('comment', db.Unicode, default=None)
@@ -541,9 +567,11 @@ class Work(db.Model):
                             db.ForeignKey('User.id'))
     selected_items = db.relationship('RubricItem', secondary=work_rubric_item)
 
-    assignment = db.relationship('Assignment', foreign_keys=assignment_id)
-    user = db.relationship('User', single_parent=True, foreign_keys=user_id)
-    assignee = db.relationship('User', foreign_keys=assigned_to)
+    assignment = db.relationship(
+        'Assignment', foreign_keys=assignment_id, lazy='joined')
+    user = db.relationship(
+        'User', single_parent=True, foreign_keys=user_id, lazy='joined')
+    assignee = db.relationship('User', foreign_keys=assigned_to, lazy='joined')
 
     @property
     def is_graded(self):
@@ -612,7 +640,7 @@ class Work(db.Model):
         :rtype: None
         """
         self._grade = new_grade
-        if self.assignment.should_passback:
+        if self.assignment and self.assignment.should_passback:
             self.passback_grade()
 
     def __to_json__(self):
@@ -674,6 +702,7 @@ class Work(db.Model):
         :returns: Nothing
         :rtype: None
         """
+
         def ensure_list(item):
             return item if isinstance(item, list) else [item]
 
@@ -878,7 +907,8 @@ class AssignmentLinter(db.Model):
     """The class is used when a linter (see :py:mod:`psef.linters`) is used on
     a :class:`Assignment`.
 
-    Every :class:`Work` that is tested is attached by a :class:`LinterInstance`.
+    Every :class:`Work` that is tested is attached by a
+    :class:`LinterInstance`.
 
     The name identifies which :class:`.linters.Linter` is used.
     """
@@ -902,7 +932,8 @@ class AssignmentLinter(db.Model):
         the attached :class:`LinterInstance` objects.
 
         :returns: A dict containing JSON serializable representations of the
-                  attributes and the test state counts of this LinterAssignment.
+                  attributes and the test state counts of this
+                  LinterAssignment.
         :rtype: dict
         """
         working = 0
@@ -1016,10 +1047,14 @@ class Assignment(db.Model):
     assignment_results = db.relationship(
         'AssignmentResult',
         collection_class=attribute_mapped_collection('user_id'),
-        backref=db.backref('assignment', lazy='select'))
+        backref=db.backref(
+            'assignment', lazy='select'))
 
     course = db.relationship(
-        'Course', foreign_keys=course_id, back_populates='assignments')
+        'Course',
+        foreign_keys=course_id,
+        back_populates='assignments',
+        lazy='joined')
 
     rubric_rows = db.relationship(
         'RubricRow', backref=db.backref('assignment'))
@@ -1178,9 +1213,12 @@ class RubricItem(db.Model):
     """
     __tablename__ = 'RubricItem'
     id = db.Column('id', db.Integer, primary_key=True)
-    rubricrow_id = db.Column('Rubricrow_id', db.Integer,
-                             db.ForeignKey('RubricRow.id'))
-    col = db.Column('col', db.Integer)
+    rubricrow_id = db.Column(
+        'Rubricrow_id',
+        db.Integer,
+        db.ForeignKey(
+            'RubricRow.id', ondelete='CASCADE'))
+    col = db.Column('col', db.Integer, default=0)
     description = db.Column('description', db.Unicode, default='')
     points = db.Column('points', db.Float)
 

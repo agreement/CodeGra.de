@@ -38,7 +38,7 @@ def put_comment(id, line):
     if not comment:
         file = db.session.query(models.File).get(id)
         auth.ensure_permission('can_grade_work',
-                               file.work.assignment.course.id)
+                               file.work.assignment.course_id)
         db.session.add(
             models.Comment(
                 file_id=id,
@@ -47,7 +47,7 @@ def put_comment(id, line):
                 comment=content['comment']))
     else:
         auth.ensure_permission('can_grade_work',
-                               comment.file.work.assignment.course.id)
+                               comment.file.work.assignment.course_id)
         comment.comment = content['comment']
 
     db.session.commit()
@@ -77,7 +77,7 @@ def remove_comment(id, line):
 
     if comment:
         auth.ensure_permission('can_grade_work',
-                               comment.file.work.assignment.course.id)
+                               comment.file.work.assignment.course_id)
         db.session.delete(comment)
         db.session.commit()
     else:
@@ -121,16 +121,16 @@ def get_code(file_id):
                            'The file with id {} was not found'.format(file_id),
                            APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    if file.work.user.id != current_user.id:
+    if file.work.user_id != current_user.id:
         auth.ensure_permission('can_view_files',
-                               file.work.assignment.course.id)
+                               file.work.assignment.course_id)
 
     if request.args.get('type') == 'metadata':
         return jsonify(file)
-    elif request.args.get('type') == 'binary':
-        return get_binary_file(file)
     elif request.args.get('type') == 'feedback':
         return get_feedback(file, linter=False)
+    elif request.args.get('type') == 'binary':
+        return get_binary_file(file)
     elif request.args.get('type') == 'linter-feedback':
         return get_feedback(file, linter=True)
     else:

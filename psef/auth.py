@@ -1,16 +1,18 @@
+"""This module implements all authorization functions used by :py:mod:`psef`.
+"""
 from functools import wraps
 
-import flask
 import oauth2
 from flask_login import current_user
 
-from psef import login_manager
+from psef import app, login_manager
 from psef.errors import APICodes, APIException
 
 
 class PermissionException(APIException):
     """The exception used when a permission check fails.
     """
+
     def __init__(self, *args, **kwargs):
         super(PermissionException, self).__init__(*args, **kwargs)
 
@@ -44,12 +46,12 @@ def ensure_can_see_grade(work):
                                  (INCORRECT_PERMISSION)
     """
     if _user_active():
-        if work.user.id != current_user.id:
-            ensure_permission('can_see_others_work', work.assignment.course.id)
+        if work.user_id != current_user.id:
+            ensure_permission('can_see_others_work', work.assignment.course_id)
 
         if not work.assignment.is_done:
             ensure_permission('can_see_grade_before_open',
-                              work.assignment.course.id)
+                              work.assignment.course_id)
         return
     _raise_login_exception()
 
@@ -78,6 +80,15 @@ def ensure_enrolled(course_id):
     _raise_login_exception()
 
 
+_PERM_CACHE = {}
+
+
+@app.before_request
+def reset_perm_cache():
+    global _PERM_CACHE
+    _PERM_CACHE = {}
+
+
 def ensure_permission(permission_name, course_id=None):
     """Ensure that the current user is logged and has the given permission.
 
@@ -98,7 +109,14 @@ def ensure_permission(permission_name, course_id=None):
                                  current user. (INCORRECT_PERMISSION)
     """
     if _user_active():
-        if current_user.has_permission(permission_name, course_id=course_id):
+        val = None
+        if (permission_name, course_id) in _PERM_CACHE:
+            val = _PERM_CACHE[(permission_name, course_id)]
+        else:
+            val = current_user.has_permission(
+                permission_name, course_id=course_id)
+            _PERM_CACHE[(permission_name, course_id)] = val
+        if val:
             return
         else:
             raise PermissionException(
@@ -136,7 +154,7 @@ class RequestValidatorMixin(object):
     '''
 
     def __init__(self):
-        super(_RequestValidatorMixin, self).__init__()
+        super(RequestValidatorMixin, self).__init__()
 
         self.oauth_server = oauth2.Server()
         signature_method = oauth2.SignatureMethod_HMAC_SHA1()
@@ -221,10 +239,7 @@ class _FlaskOAuthValidator(RequestValidatorMixin):
         return (req.method, req.url, dict(req.headers), req.form.copy())
 
 
-def ensure_valid_oauth(key,
-                       secret,
-                       request,
-                       parser_cls=_FlaskOAuthValidator):
+def ensure_valid_oauth(key, secret, request, parser_cls=_FlaskOAuthValidator):
     """Make sure the given oauth key and secret is valid for the given request.
 
     :param str key: The oauth key to be used for validating.

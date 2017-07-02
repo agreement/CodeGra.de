@@ -1,12 +1,13 @@
 psef package
 ============
 
-Subpackages
------------
+Module contents
+---------------
 
-.. toctree::
-
-    psef.v1
+.. automodule:: psef
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 Submodules
 ----------
@@ -79,23 +80,6 @@ psef\.models module
 -------------------
 
 .. automodule:: psef.models
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-psef\.views module
-------------------
-
-.. automodule:: psef.views
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: psef
     :members:
     :undoc-members:
     :show-inheritance:

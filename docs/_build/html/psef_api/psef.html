@@ -26,8 +26,7 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="psef.v1 package" href="psef.v1.html" />
-    <link rel="prev" title="psef" href="modules.html" />
+    <link rel="prev" title="Source code documentation of psef" href="modules.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
   
@@ -45,32 +44,40 @@
             
   <div class="section" id="psef-package">
 <h1>psef package<a class="headerlink" href="#psef-package" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="subpackages">
-<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="psef.v1.html">psef.v1 package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="psef.v1.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="psef.v1.html#module-psef.v1.assignments">psef.v1.assignments module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="psef.v1.html#module-psef.v1.code">psef.v1.code module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="psef.v1.html#module-psef.v1.courses">psef.v1.courses module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="psef.v1.html#module-psef.v1.files">psef.v1.files module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="psef.v1.html#module-psef.v1.linters">psef.v1.linters module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="psef.v1.html#module-psef.v1.login">psef.v1.login module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="psef.v1.html#module-psef.v1.permissions">psef.v1.permissions module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="psef.v1.html#module-psef.v1.snippets">psef.v1.snippets module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="psef.v1.html#module-psef.v1.submissions">psef.v1.submissions module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="psef.v1.html#module-psef.v1">Module contents</a></li>
-</ul>
-</li>
-</ul>
+<div class="section" id="module-psef">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-psef" title="Permalink to this headline">¶</a></h2>
+<dl class="data">
+<dt id="psef.LTI_ROLE_LOOKUPS">
+<code class="descclassname">psef.</code><code class="descname">LTI_ROLE_LOOKUPS</code><em class="property"> = {‘learner’: {‘course_role’: True, ‘role’: ‘Student’}, ‘teachingassistant’: {‘course_role’: True, ‘role’: ‘TA’}, ‘instructor’: {‘course_role’: True, ‘role’: ‘Teacher’}, ‘administrator’: {‘course_role’: False, ‘role’: ‘Admin’}}</em><a class="headerlink" href="#psef.LTI_ROLE_LOOKUPS" title="Permalink to this definition">¶</a></dt>
+<dd><p>A LTI role to psef role lookup dictionary.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The roles are both course and user roles.</p>
 </div>
+</dd></dl>
+
+<dl class="function">
+<dt id="psef.create_app">
+<code class="descclassname">psef.</code><code class="descname">create_app</code><span class="sig-paren">(</span><em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef.html#create_app"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.create_app" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="psef.not_found">
+<code class="descclassname">psef.</code><code class="descname">not_found</code><span class="sig-paren">(</span><em>error</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef.html#not_found"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.not_found" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="psef.set_request_start_time">
+<code class="descclassname">psef.</code><code class="descname">set_request_start_time</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef.html#set_request_start_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.set_request_start_time" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </div>
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-psef.auth">
 <span id="psef-auth-module"></span><h2>psef.auth module<a class="headerlink" href="#module-psef.auth" title="Permalink to this headline">¶</a></h2>
+<p>This module implements all authorization functions used by <a class="reference internal" href="#module-psef" title="psef"><code class="xref py py-mod docutils literal"><span class="pre">psef</span></code></a>.</p>
 <dl class="exception">
 <dt id="psef.auth.PermissionException">
 <em class="property">exception </em><code class="descclassname">psef.auth.</code><code class="descname">PermissionException</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/auth.html#PermissionException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.auth.PermissionException" title="Permalink to this definition">¶</a></dt>
@@ -281,6 +288,11 @@ current user. (INCORRECT_PERMISSION)</li>
 </tbody>
 </table>
 </dd></dl>
+
+<dl class="function">
+<dt id="psef.auth.reset_perm_cache">
+<code class="descclassname">psef.auth.</code><code class="descname">reset_perm_cache</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/auth.html#reset_perm_cache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.auth.reset_perm_cache" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </div>
 <div class="section" id="module-psef.blackboard">
@@ -720,6 +732,26 @@ structure.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="psef.files.remove_tree">
+<code class="descclassname">psef.files.</code><code class="descname">remove_tree</code><span class="sig-paren">(</span><em>tree</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/files.html#remove_tree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.files.remove_tree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes all files in the tree.</p>
+<p>This removes all files in a tree as described by
+:py:func`rename_directory_structure`</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tree</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.6)"><em>dict</em></a>) – Tree of files</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Nothing</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Rtype None:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="psef.files.rename_directory_structure">
 <code class="descclassname">psef.files.</code><code class="descname">rename_directory_structure</code><span class="sig-paren">(</span><em>rootdir</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/files.html#rename_directory_structure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.files.rename_directory_structure" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a nested dictionary that represents the folder structure of
@@ -928,18 +960,102 @@ should return a JSON serializable object.</p>
 <p>Integrated linters are ran by the <a class="reference internal" href="#psef.linters.LinterRunner" title="psef.linters.LinterRunner"><code class="xref py py-class docutils literal"><span class="pre">LinterRunner</span></code></a> and thus implement run
 method.</p>
 <dl class="class">
-<dt id="psef.linters.Flake8">
-<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">Flake8</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#Flake8"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.Flake8" title="Permalink to this definition">¶</a></dt>
+<dt id="psef.linters.BearLinter">
+<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">BearLinter</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#BearLinter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.BearLinter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#psef.linters.Linter" title="psef.linters.Linter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.Linter</span></code></a></p>
-<p>Integration of the Flake8 linter.</p>
+<p>Implements a generic coala linter.</p>
+<p>This class itself is not a functional linter yet, you need to at least
+define/override <cite>NAME</cite>, <cite>DEFAULT_OPTIONS</cite>, <cite>FILTER_STR</cite>, <cite>EXTENSION</cite> and <cite>BEAR_NAME</cite>.
+The first two are defined in <a class="reference internal" href="#psef.linters.Linter" title="psef.linters.Linter"><code class="xref py py-class docutils literal"><span class="pre">Linter</span></code></a>, the third is the string
+passed to <cite>coala</cite> as files argument, the fourth is the extension that
+should be put after the <cite>LINTER_STR</cite>, and the last is the name of the bear
+that should be given to the <cite>coala</cite> program.</p>
 <dl class="attribute">
-<dt id="psef.linters.Flake8.DEFAULT_OPTIONS">
-<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.Flake8.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
+<dt id="psef.linters.BearLinter.BEAR_NAME">
+<code class="descname">BEAR_NAME</code><em class="property"> = None</em><a class="headerlink" href="#psef.linters.BearLinter.BEAR_NAME" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="psef.linters.Flake8.DESCRIPTION">
-<code class="descname">DESCRIPTION</code><em class="property"> = ‘The flake8 linter with all “noqa”s disabled.’</em><a class="headerlink" href="#psef.linters.Flake8.DESCRIPTION" title="Permalink to this definition">¶</a></dt>
+<dt id="psef.linters.BearLinter.EXTENSION">
+<code class="descname">EXTENSION</code><em class="property"> = ‘*’</em><a class="headerlink" href="#psef.linters.BearLinter.EXTENSION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.BearLinter.FILTER_STR">
+<code class="descname">FILTER_STR</code><em class="property"> = ‘/**/*.’</em><a class="headerlink" href="#psef.linters.BearLinter.FILTER_STR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.BearLinter.NAME">
+<code class="descname">NAME</code><em class="property"> = ‘__ignore__’</em><a class="headerlink" href="#psef.linters.BearLinter.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="psef.linters.BearLinter.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>tempdir</em>, <em>emit</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#BearLinter.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.BearLinter.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the bear linter.</p>
+<p>The arguments are the same as for the base <code class="xref py py-meth docutils literal"><span class="pre">Linter.emit()</span></code>
+function.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="psef.linters.ClangCheckBear">
+<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">ClangCheckBear</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#ClangCheckBear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.ClangCheckBear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#psef.linters.BearLinter" title="psef.linters.BearLinter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.BearLinter</span></code></a></p>
+<p>Run the Clang compiler as linter.</p>
+<p>This linter check C and C++ code for syntax errors and semantical problems.</p>
+<dl class="attribute">
+<dt id="psef.linters.ClangCheckBear.BEAR_NAME">
+<code class="descname">BEAR_NAME</code><em class="property"> = ‘ClangBear’</em><a class="headerlink" href="#psef.linters.ClangCheckBear.BEAR_NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.ClangCheckBear.DEFAULT_OPTIONS">
+<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.ClangCheckBear.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.ClangCheckBear.NAME">
+<code class="descname">NAME</code><em class="property"> = ‘Clang’</em><a class="headerlink" href="#psef.linters.ClangCheckBear.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="psef.linters.ESLintCheckBear">
+<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">ESLintCheckBear</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#ESLintCheckBear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.ESLintCheckBear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#psef.linters.BearLinter" title="psef.linters.BearLinter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.BearLinter</span></code></a></p>
+<p>Run the ESLint linter.</p>
+<p>This linter checks JavaScript for style issues and semantic errors.</p>
+<dl class="attribute">
+<dt id="psef.linters.ESLintCheckBear.BEAR_NAME">
+<code class="descname">BEAR_NAME</code><em class="property"> = ‘ESLintCheckBear’</em><a class="headerlink" href="#psef.linters.ESLintCheckBear.BEAR_NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.ESLintCheckBear.DEFAULT_OPTIONS">
+<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.ESLintCheckBear.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.ESLintCheckBear.NAME">
+<code class="descname">NAME</code><em class="property"> = ‘Eslint’</em><a class="headerlink" href="#psef.linters.ESLintCheckBear.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="psef.linters.Flake8">
+<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">Flake8</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#Flake8"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.Flake8" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#psef.linters.Linter" title="psef.linters.Linter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.Linter</span></code></a></p>
+<p>Run the Flake8 linter.</p>
+<p>This linter checks for errors in python code and checks the pep8 python
+coding standard. All “noqa”s are disabled when running.</p>
+<dl class="attribute">
+<dt id="psef.linters.Flake8.DEFAULT_OPTIONS">
+<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.Flake8.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -955,23 +1071,194 @@ method.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="psef.linters.GoFmtCheckBear">
+<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">GoFmtCheckBear</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#GoFmtCheckBear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.GoFmtCheckBear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#psef.linters.BearLinter" title="psef.linters.BearLinter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.BearLinter</span></code></a></p>
+<p>Run gofmt as a linter.</p>
+<p>This checker checks for deviations from the formatting as indicated by the
+<cite>gofmt</cite> program.</p>
+<dl class="attribute">
+<dt id="psef.linters.GoFmtCheckBear.BEAR_NAME">
+<code class="descname">BEAR_NAME</code><em class="property"> = ‘GofmtBear’</em><a class="headerlink" href="#psef.linters.GoFmtCheckBear.BEAR_NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.GoFmtCheckBear.DEFAULT_OPTIONS">
+<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.GoFmtCheckBear.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.GoFmtCheckBear.NAME">
+<code class="descname">NAME</code><em class="property"> = ‘Gofmt’</em><a class="headerlink" href="#psef.linters.GoFmtCheckBear.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="psef.linters.GoLintCheckBear">
+<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">GoLintCheckBear</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#GoLintCheckBear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.GoLintCheckBear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#psef.linters.BearLinter" title="psef.linters.BearLinter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.BearLinter</span></code></a></p>
+<p>Run the GoLint checker.</p>
+<p>This checker checks for common errors in Go code.</p>
+<dl class="attribute">
+<dt id="psef.linters.GoLintCheckBear.BEAR_NAME">
+<code class="descname">BEAR_NAME</code><em class="property"> = ‘GoLintBear’</em><a class="headerlink" href="#psef.linters.GoLintCheckBear.BEAR_NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.GoLintCheckBear.DEFAULT_OPTIONS">
+<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.GoLintCheckBear.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.GoLintCheckBear.NAME">
+<code class="descname">NAME</code><em class="property"> = ‘Golint’</em><a class="headerlink" href="#psef.linters.GoLintCheckBear.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="psef.linters.HaskellCheckBear">
+<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">HaskellCheckBear</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#HaskellCheckBear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.HaskellCheckBear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#psef.linters.BearLinter" title="psef.linters.BearLinter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.BearLinter</span></code></a></p>
+<p>Run the GHCmod package.</p>
+<p>This linter checks Haskell code for style errors.</p>
+<dl class="attribute">
+<dt id="psef.linters.HaskellCheckBear.BEAR_NAME">
+<code class="descname">BEAR_NAME</code><em class="property"> = ‘GhcModBear’</em><a class="headerlink" href="#psef.linters.HaskellCheckBear.BEAR_NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.HaskellCheckBear.DEFAULT_OPTIONS">
+<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.HaskellCheckBear.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.HaskellCheckBear.NAME">
+<code class="descname">NAME</code><em class="property"> = ‘GhcMod’</em><a class="headerlink" href="#psef.linters.HaskellCheckBear.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="psef.linters.HtmlLintBear">
+<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">HtmlLintBear</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#HtmlLintBear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.HtmlLintBear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#psef.linters.BearLinter" title="psef.linters.BearLinter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.BearLinter</span></code></a></p>
+<p>Run the HTMLLint linter.</p>
+<dl class="attribute">
+<dt id="psef.linters.HtmlLintBear.BEAR_NAME">
+<code class="descname">BEAR_NAME</code><em class="property"> = ‘HTMLLintBear’</em><a class="headerlink" href="#psef.linters.HtmlLintBear.BEAR_NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.HtmlLintBear.DEFAULT_OPTIONS">
+<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.HtmlLintBear.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.HtmlLintBear.EXTENSION">
+<code class="descname">EXTENSION</code><em class="property"> = ‘(html|htm)’</em><a class="headerlink" href="#psef.linters.HtmlLintBear.EXTENSION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.HtmlLintBear.NAME">
+<code class="descname">NAME</code><em class="property"> = ‘HTML Linter’</em><a class="headerlink" href="#psef.linters.HtmlLintBear.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="psef.linters.JavaCheckBear">
+<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">JavaCheckBear</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#JavaCheckBear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.JavaCheckBear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#psef.linters.BearLinter" title="psef.linters.BearLinter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.BearLinter</span></code></a></p>
+<p>Run the java Checkstyle linter.</p>
+<dl class="attribute">
+<dt id="psef.linters.JavaCheckBear.BEAR_NAME">
+<code class="descname">BEAR_NAME</code><em class="property"> = ‘CheckstyleBear’</em><a class="headerlink" href="#psef.linters.JavaCheckBear.BEAR_NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.JavaCheckBear.DEFAULT_OPTIONS">
+<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.JavaCheckBear.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.JavaCheckBear.EXTENSION">
+<code class="descname">EXTENSION</code><em class="property"> = ‘java’</em><a class="headerlink" href="#psef.linters.JavaCheckBear.EXTENSION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.JavaCheckBear.NAME">
+<code class="descname">NAME</code><em class="property"> = ‘Checkstyle’</em><a class="headerlink" href="#psef.linters.JavaCheckBear.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="psef.linters.LatexCheckBear">
+<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">LatexCheckBear</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#LatexCheckBear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.LatexCheckBear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#psef.linters.BearLinter" title="psef.linters.BearLinter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.BearLinter</span></code></a></p>
+<p>Run the chktex linter.</p>
+<p>This linter checks Latex for formatting and syntax errors</p>
+<dl class="attribute">
+<dt id="psef.linters.LatexCheckBear.BEAR_NAME">
+<code class="descname">BEAR_NAME</code><em class="property"> = ‘LatexLintBear’</em><a class="headerlink" href="#psef.linters.LatexCheckBear.BEAR_NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.LatexCheckBear.DEFAULT_OPTIONS">
+<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.LatexCheckBear.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.LatexCheckBear.NAME">
+<code class="descname">NAME</code><em class="property"> = ‘Chktex’</em><a class="headerlink" href="#psef.linters.LatexCheckBear.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="psef.linters.Linter">
 <em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">Linter</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#Linter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.Linter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<p>The base class for a linter.</p>
+<p>Every linter should inherit from this class as they are discovered by
+reflecting on subclasses from this class. They should also override all
+methods and variables from this class.</p>
 <dl class="attribute">
 <dt id="psef.linters.Linter.DEFAULT_OPTIONS">
 <code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {}</em><a class="headerlink" href="#psef.linters.Linter.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="psef.linters.Linter.DESCRIPTION">
-<code class="descname">DESCRIPTION</code><em class="property"> = None</em><a class="headerlink" href="#psef.linters.Linter.DESCRIPTION" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
 <dt id="psef.linters.Linter.NAME">
 <code class="descname">NAME</code><em class="property"> = None</em><a class="headerlink" href="#psef.linters.Linter.NAME" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="psef.linters.Linter.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>tempdir</em>, <em>emit</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#Linter.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.Linter.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the bear linter on the code in <cite>tempdir</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>tempdir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The temp directory that should contain the code to
+run the linter on.</li>
+<li><strong>emit</strong> (<em>Callable</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>]</em>) – A callback to emit a line of feedback, where the first
+argument is the filename, the second is the line number,
+the third is the code of the linter error, and the fourth
+and last is the message of the linter.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.6)">None</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
@@ -991,7 +1278,17 @@ sets of <code class="xref py py-class docutils literal"><span class="pre">models
 <dl class="method">
 <dt id="psef.linters.LinterRunner.run">
 <code class="descname">run</code><span class="sig-paren">(</span><em>works</em>, <em>tokens</em>, <em>urlpath</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#LinterRunner.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.LinterRunner.run" title="Permalink to this definition">¶</a></dt>
-<dd><p>Runs the <a class="reference internal" href="#psef.linters.Linter" title="psef.linters.Linter"><code class="xref py py-attr docutils literal"><span class="pre">Linter</span></code></a> on a set of <code class="xref py py-class docutils literal"><span class="pre">models.Work</span></code>.</p>
+<dd><p>Run this linter runner on the given works.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">This method takes a long time to execute, please run it in a
+thread.</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The <cite>tokens</cite> and <cite>works</cite> should match item for item. So
+<cite>token[i]</cite> should be valid only for <cite>work[i]</cite>.</p>
+</div>
 <p>The results will be send to the given URL with are PUT request and are
 identifiable by the token which will be formatted into the URL.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -999,17 +1296,22 @@ identifiable by the token which will be formatted into the URL.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>works</strong> (<em>list of int</em>) – A list of work ids</li>
-<li><strong>tokens</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a>) – The list of tokens</li>
-<li><strong>urlpath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – A URL with a format a slot for one of the given
-tokens</li>
+<li><strong>works</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.6)"><em>int</em></a><em>]</em>) – A list of ids of <a class="reference internal" href="#psef.models.Work" title="psef.models.Work"><code class="xref py py-class docutils literal"><span class="pre">psef.models.Work</span></code></a> items that
+will be fetched and where the linters will run on.</li>
+<li><strong>tokens</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.6)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a><em>]</em>) – A list of tokens that are the ids of
+<a class="reference internal" href="#psef.models.LinterInstance" title="psef.models.LinterInstance"><code class="xref py py-class docutils literal"><span class="pre">psef.models.LinterInstance</span></code></a> that will be used
+when posting back to the given callback url.</li>
+<li><strong>urlpath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The url that should be used to postback the result
+of the linters, it should be possible to do
+<cite>urlpath.format(token)</cite> which should result in a
+valid url for posting back the result.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Nothing</p>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.6)">None</a></p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.6)">None</a></p>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Nothing</p>
 </td>
 </tr>
 </tbody>
@@ -1026,8 +1328,11 @@ given URL.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>code</strong> (<a class="reference internal" href="#psef.models.Work" title="psef.models.Work"><em>models.Work</em></a>) – The work to test</li>
-<li><strong>callback_url</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The URL where to put the result</li>
+<li><strong>code</strong> (<a class="reference internal" href="#psef.models.File" title="psef.models.File"><em>psef.models.File</em></a>) – The file that the linter should be run on, this file and
+all its children will be restored to a directory and the
+linter will run on them.</li>
+<li><strong>callback_url</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The url that should be used to give back the
+result of the linter.</li>
 </ul>
 </td>
 </tr>
@@ -1044,18 +1349,95 @@ given URL.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="psef.linters.Pylint">
-<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">Pylint</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#Pylint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.Pylint" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#psef.linters.Linter" title="psef.linters.Linter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.Linter</span></code></a></p>
-<p>Integration of the Pylint linter.</p>
+<dt id="psef.linters.PHPCodeCheckBear">
+<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">PHPCodeCheckBear</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#PHPCodeCheckBear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.PHPCodeCheckBear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#psef.linters.BearLinter" title="psef.linters.BearLinter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.BearLinter</span></code></a></p>
+<p>Run the PHP CodeSniffer linter.</p>
+<p>This linter checks PHP code for syntax en formatting errors.</p>
 <dl class="attribute">
-<dt id="psef.linters.Pylint.DEFAULT_OPTIONS">
-<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.Pylint.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
+<dt id="psef.linters.PHPCodeCheckBear.BEAR_NAME">
+<code class="descname">BEAR_NAME</code><em class="property"> = ‘PHPCodeSnifferBear’</em><a class="headerlink" href="#psef.linters.PHPCodeCheckBear.BEAR_NAME" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="psef.linters.Pylint.DESCRIPTION">
-<code class="descname">DESCRIPTION</code><em class="property"> = ‘The pylint checker, this checker only works on modules!’</em><a class="headerlink" href="#psef.linters.Pylint.DESCRIPTION" title="Permalink to this definition">¶</a></dt>
+<dt id="psef.linters.PHPCodeCheckBear.DEFAULT_OPTIONS">
+<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.PHPCodeCheckBear.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.PHPCodeCheckBear.NAME">
+<code class="descname">NAME</code><em class="property"> = ‘PHP Codesniffer’</em><a class="headerlink" href="#psef.linters.PHPCodeCheckBear.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="psef.linters.PyFlakes">
+<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">PyFlakes</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#PyFlakes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.PyFlakes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#psef.linters.BearLinter" title="psef.linters.BearLinter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.BearLinter</span></code></a></p>
+<p>Run the pyflake checker.</p>
+<p>This linter checks python code for style error, but not for formatting.</p>
+<dl class="attribute">
+<dt id="psef.linters.PyFlakes.BEAR_NAME">
+<code class="descname">BEAR_NAME</code><em class="property"> = ‘PyFlakesBear’</em><a class="headerlink" href="#psef.linters.PyFlakes.BEAR_NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.PyFlakes.DEFAULT_OPTIONS">
+<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.PyFlakes.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.PyFlakes.EXTENSION">
+<code class="descname">EXTENSION</code><em class="property"> = ‘py’</em><a class="headerlink" href="#psef.linters.PyFlakes.EXTENSION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.PyFlakes.NAME">
+<code class="descname">NAME</code><em class="property"> = ‘PyFlakes’</em><a class="headerlink" href="#psef.linters.PyFlakes.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="psef.linters.Pycodestyle">
+<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">Pycodestyle</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#Pycodestyle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.Pycodestyle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#psef.linters.BearLinter" title="psef.linters.BearLinter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.BearLinter</span></code></a></p>
+<p>Run the Pycodestyle checker.</p>
+<p>This linter checks python code for pep8 compliance.</p>
+<dl class="attribute">
+<dt id="psef.linters.Pycodestyle.BEAR_NAME">
+<code class="descname">BEAR_NAME</code><em class="property"> = ‘PycodestyleBear’</em><a class="headerlink" href="#psef.linters.Pycodestyle.BEAR_NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.Pycodestyle.DEFAULT_OPTIONS">
+<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.Pycodestyle.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.Pycodestyle.EXTENSION">
+<code class="descname">EXTENSION</code><em class="property"> = ‘py’</em><a class="headerlink" href="#psef.linters.Pycodestyle.EXTENSION" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.Pycodestyle.NAME">
+<code class="descname">NAME</code><em class="property"> = ‘Pycodestyle’</em><a class="headerlink" href="#psef.linters.Pycodestyle.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="psef.linters.Pylint">
+<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">Pylint</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#Pylint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.Pylint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#psef.linters.Linter" title="psef.linters.Linter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.Linter</span></code></a></p>
+<p>The pylint checker.</p>
+<p>This checks python modules for many common errors. It only works on proper
+modules and will display an error on the first line of every file if the
+given code was not a proper module.</p>
+<dl class="attribute">
+<dt id="psef.linters.Pylint.DEFAULT_OPTIONS">
+<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.Pylint.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -1066,6 +1448,54 @@ given URL.</p>
 <dl class="method">
 <dt id="psef.linters.Pylint.run">
 <code class="descname">run</code><span class="sig-paren">(</span><em>tempdir</em>, <em>emit</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#Pylint.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.Pylint.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the pylinter.</p>
+<p>Arguments are the same as for <a class="reference internal" href="#psef.linters.Linter.run" title="psef.linters.Linter.run"><code class="xref py py-meth docutils literal"><span class="pre">Linter.run()</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="psef.linters.SCSSCheckBear">
+<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">SCSSCheckBear</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#SCSSCheckBear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.SCSSCheckBear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#psef.linters.BearLinter" title="psef.linters.BearLinter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.BearLinter</span></code></a></p>
+<p>Run the SCSSLint linter.</p>
+<p>This linter checks CSS for formatting and syntax errors.</p>
+<dl class="attribute">
+<dt id="psef.linters.SCSSCheckBear.BEAR_NAME">
+<code class="descname">BEAR_NAME</code><em class="property"> = ‘SCSSLintBear’</em><a class="headerlink" href="#psef.linters.SCSSCheckBear.BEAR_NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.SCSSCheckBear.DEFAULT_OPTIONS">
+<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.SCSSCheckBear.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.SCSSCheckBear.NAME">
+<code class="descname">NAME</code><em class="property"> = ‘SCSSLint’</em><a class="headerlink" href="#psef.linters.SCSSCheckBear.NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="psef.linters.ShellCheckBear">
+<em class="property">class </em><code class="descclassname">psef.linters.</code><code class="descname">ShellCheckBear</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#ShellCheckBear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.ShellCheckBear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#psef.linters.BearLinter" title="psef.linters.BearLinter"><code class="xref py py-class docutils literal"><span class="pre">psef.linters.BearLinter</span></code></a></p>
+<p>Run the shellcheck linter.</p>
+<p>This linter checks shell, bash and languages like them for common errors.</p>
+<dl class="attribute">
+<dt id="psef.linters.ShellCheckBear.BEAR_NAME">
+<code class="descname">BEAR_NAME</code><em class="property"> = ‘ShellCheckBear’</em><a class="headerlink" href="#psef.linters.ShellCheckBear.BEAR_NAME" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.ShellCheckBear.DEFAULT_OPTIONS">
+<code class="descname">DEFAULT_OPTIONS</code><em class="property"> = {‘Empty config file’: ”}</em><a class="headerlink" href="#psef.linters.ShellCheckBear.DEFAULT_OPTIONS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="psef.linters.ShellCheckBear.NAME">
+<code class="descname">NAME</code><em class="property"> = ‘Shell Linter’</em><a class="headerlink" href="#psef.linters.ShellCheckBear.NAME" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1102,17 +1532,19 @@ name</td>
 <dl class="function">
 <dt id="psef.linters.get_linter_by_name">
 <code class="descclassname">psef.linters.</code><code class="descname">get_linter_by_name</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/linters.html#get_linter_by_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.linters.get_linter_by_name" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get the <a class="reference internal" href="#psef.linters.Linter" title="psef.linters.Linter"><code class="xref py py-class docutils literal"><span class="pre">Linter</span></code></a> with the given name.</p>
+<dd><p>Get the linter class associated with the given name.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The name of the linter</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The name of the linter wanted.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The linter with the given name or nothing if the linter does not
-exist</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#psef.linters.Linter" title="psef.linters.Linter">Linter</a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.6)">None</a></td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#psef.linters.Linter" title="psef.linters.Linter">Linter</a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.6)">None</a></td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The linter with the attribute <cite>NAME</cite> equal to <cite>name</cite>. If there
+are multiple linters with the name <cite>name</cite> the result can be any
+one of these linters. If no linter can be found <cite>None</cite> is
+returned</td>
 </tr>
 </tbody>
 </table>
@@ -2837,248 +3269,6 @@ rubric items</td>
 </dd></dl>
 
 </div>
-<div class="section" id="module-psef.views">
-<span id="psef-views-module"></span><h2>psef.views module<a class="headerlink" href="#module-psef.views" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="psef.views.add_snippet">
-<code class="descclassname">psef.views.</code><code class="descname">add_snippet</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#add_snippet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.add_snippet" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.delete_linter_output">
-<code class="descclassname">psef.views.</code><code class="descname">delete_linter_output</code><span class="sig-paren">(</span><em>linter_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#delete_linter_output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.delete_linter_output" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.delete_snippets">
-<code class="descclassname">psef.views.</code><code class="descname">delete_snippets</code><span class="sig-paren">(</span><em>snippet_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#delete_snippets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.delete_snippets" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.divide_assignments">
-<code class="descclassname">psef.views.</code><code class="descname">divide_assignments</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#divide_assignments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.divide_assignments" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.get_all_graders">
-<code class="descclassname">psef.views.</code><code class="descname">get_all_graders</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#get_all_graders"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.get_all_graders" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.get_all_works_for_assignment">
-<code class="descclassname">psef.views.</code><code class="descname">get_all_works_for_assignment</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#get_all_works_for_assignment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.get_all_works_for_assignment" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return all works for assignment X if the user permission is valid.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="psef.views.get_assignment">
-<code class="descclassname">psef.views.</code><code class="descname">get_assignment</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#get_assignment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.get_assignment" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return student assignment X if the user permission is valid.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="psef.views.get_binary">
-<code class="descclassname">psef.views.</code><code class="descname">get_binary</code><span class="sig-paren">(</span><em>file_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#get_binary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.get_binary" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.get_code">
-<code class="descclassname">psef.views.</code><code class="descname">get_code</code><span class="sig-paren">(</span><em>file_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#get_code"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.get_code" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.get_dir_contents">
-<code class="descclassname">psef.views.</code><code class="descname">get_dir_contents</code><span class="sig-paren">(</span><em>submission_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#get_dir_contents"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.get_dir_contents" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the object containing all the files of submission X</p>
-<dl class="docutils">
-<dt>Raises APIException:</dt>
-<dd><ul class="first last simple">
-<li>If there are no files to be returned</li>
-<li>If the submission id does not match the work id</li>
-<li>If the file with code {} is not a directory</li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="psef.views.get_file_metadata">
-<code class="descclassname">psef.views.</code><code class="descname">get_file_metadata</code><span class="sig-paren">(</span><em>file_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#get_file_metadata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.get_file_metadata" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.get_linter_state">
-<code class="descclassname">psef.views.</code><code class="descname">get_linter_state</code><span class="sig-paren">(</span><em>linter_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#get_linter_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.get_linter_state" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.get_linters">
-<code class="descclassname">psef.views.</code><code class="descname">get_linters</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#get_linters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.get_linters" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.get_permissions">
-<code class="descclassname">psef.views.</code><code class="descname">get_permissions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#get_permissions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.get_permissions" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.get_snippets">
-<code class="descclassname">psef.views.</code><code class="descname">get_snippets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#get_snippets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.get_snippets" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.get_student_assignments">
-<code class="descclassname">psef.views.</code><code class="descname">get_student_assignments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#get_student_assignments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.get_student_assignments" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get all the student assignments that the current user can see.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="psef.views.get_submission">
-<code class="descclassname">psef.views.</code><code class="descname">get_submission</code><span class="sig-paren">(</span><em>submission_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#get_submission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.get_submission" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return submission X if the user permission is valid.</p>
-<dl class="docutils">
-<dt>Raises APIException:</dt>
-<dd><ul class="first last simple">
-<li>If submission X was not found</li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="psef.views.get_user_update">
-<code class="descclassname">psef.views.</code><code class="descname">get_user_update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#get_user_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.get_user_update" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.helper">
-<code class="descclassname">psef.views.</code><code class="descname">helper</code><span class="sig-paren">(</span><em>course_roles</em>, <em>course_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#helper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.helper" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.login">
-<code class="descclassname">psef.views.</code><code class="descname">login</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#login"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.login" title="Permalink to this definition">¶</a></dt>
-<dd><p>Login a user if the request is valid.</p>
-<dl class="docutils">
-<dt>Raises APIException:</dt>
-<dd><ul class="first last simple">
-<li>request file does not contain email and/or password</li>
-<li>request file contains invalid login credentials</li>
-<li>request file contains inactive login credentials</li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="psef.views.logout">
-<code class="descclassname">psef.views.</code><code class="descname">logout</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#logout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.logout" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.me">
-<code class="descclassname">psef.views.</code><code class="descname">me</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#me"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.me" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.patch_snippet">
-<code class="descclassname">psef.views.</code><code class="descname">patch_snippet</code><span class="sig-paren">(</span><em>snippet_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#patch_snippet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.patch_snippet" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.patch_submission">
-<code class="descclassname">psef.views.</code><code class="descname">patch_submission</code><span class="sig-paren">(</span><em>submission_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#patch_submission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.patch_submission" title="Permalink to this definition">¶</a></dt>
-<dd><p>Update submission X if it already exists and if the user permission is
-valid.</p>
-<dl class="docutils">
-<dt>Raises APIException:</dt>
-<dd><ul class="first last simple">
-<li>If submission X was not found</li>
-<li>request file does not contain grade and/or feedback</li>
-<li>request file grade is not a float</li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="psef.views.post_submissions">
-<code class="descclassname">psef.views.</code><code class="descname">post_submissions</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#post_submissions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.post_submissions" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add submissions to the server from a blackboard zip file.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="psef.views.put_comment">
-<code class="descclassname">psef.views.</code><code class="descname">put_comment</code><span class="sig-paren">(</span><em>id</em>, <em>line</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#put_comment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.put_comment" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create or change a single line comment of a code file</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="psef.views.put_linter_comment">
-<code class="descclassname">psef.views.</code><code class="descname">put_linter_comment</code><span class="sig-paren">(</span><em>token</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#put_linter_comment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.put_linter_comment" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.remove_comment">
-<code class="descclassname">psef.views.</code><code class="descname">remove_comment</code><span class="sig-paren">(</span><em>id</em>, <em>line</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#remove_comment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.remove_comment" title="Permalink to this definition">¶</a></dt>
-<dd><p>Removes the comment on line X if the request is valid.</p>
-<dl class="docutils">
-<dt>Raises APIException:</dt>
-<dd><ul class="first last simple">
-<li>If no comment on line X was found</li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="function">
-<dt id="psef.views.start_linting">
-<code class="descclassname">psef.views.</code><code class="descname">start_linting</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#start_linting"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.start_linting" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.views.upload_work">
-<code class="descclassname">psef.views.</code><code class="descname">upload_work</code><span class="sig-paren">(</span><em>assignment_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef/views.html#upload_work"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.views.upload_work" title="Permalink to this definition">¶</a></dt>
-<dd><p>Saves the work on the server if the request is valid.</p>
-<dl class="docutils">
-<dt>For a request to be valid there needs to be:</dt>
-<dd><ul class="first last simple">
-<li>at least one file starting with key ‘file’ in the request files</li>
-<li>all files must be named</li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-</div>
-<div class="section" id="module-psef">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-psef" title="Permalink to this headline">¶</a></h2>
-<dl class="data">
-<dt id="psef.LTI_ROLE_LOOKUPS">
-<code class="descclassname">psef.</code><code class="descname">LTI_ROLE_LOOKUPS</code><em class="property"> = {‘learner’: {‘course_role’: True, ‘role’: ‘Student’}, ‘teachingassistant’: {‘course_role’: True, ‘role’: ‘TA’}, ‘instructor’: {‘course_role’: True, ‘role’: ‘Teacher’}, ‘administrator’: {‘course_role’: False, ‘role’: ‘Admin’}}</em><a class="headerlink" href="#psef.LTI_ROLE_LOOKUPS" title="Permalink to this definition">¶</a></dt>
-<dd><p>A LTI role to psef role lookup dictionary.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">The roles are both course and user roles.</p>
-</div>
-</dd></dl>
-
-<dl class="function">
-<dt id="psef.create_app">
-<code class="descclassname">psef.</code><code class="descname">create_app</code><span class="sig-paren">(</span><em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef.html#create_app"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.create_app" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.not_found">
-<code class="descclassname">psef.</code><code class="descname">not_found</code><span class="sig-paren">(</span><em>error</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef.html#not_found"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.not_found" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="psef.set_request_start_time">
-<code class="descclassname">psef.</code><code class="descname">set_request_start_time</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/psef.html#set_request_start_time"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#psef.set_request_start_time" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</div>
 </div>
 
 
@@ -3090,7 +3280,7 @@ valid.</p>
   <h3><a href="../index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">psef package</a><ul>
-<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#module-psef">Module contents</a></li>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
 <li><a class="reference internal" href="#module-psef.auth">psef.auth module</a></li>
 <li><a class="reference internal" href="#module-psef.blackboard">psef.blackboard module</a></li>
@@ -3101,8 +3291,6 @@ valid.</p>
 <li><a class="reference internal" href="#module-psef.linters">psef.linters module</a></li>
 <li><a class="reference internal" href="#module-psef.lti">psef.lti module</a></li>
 <li><a class="reference internal" href="#module-psef.models">psef.models module</a></li>
-<li><a class="reference internal" href="#module-psef.views">psef.views module</a></li>
-<li><a class="reference internal" href="#module-psef">Module contents</a></li>
 </ul>
 </li>
 </ul>
@@ -3110,9 +3298,10 @@ valid.</p>
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../index.html">Documentation overview</a><ul>
-  <li><a href="modules.html">psef</a><ul>
-      <li>Previous: <a href="modules.html" title="previous chapter">psef</a></li>
-      <li>Next: <a href="psef.v1.html" title="next chapter">psef.v1 package</a></li>
+  <li><a href="../code.html">Code documentation of psef</a><ul>
+  <li><a href="modules.html">Source code documentation of psef</a><ul>
+      <li>Previous: <a href="modules.html" title="previous chapter">Source code documentation of psef</a></li>
+  </ul></li>
   </ul></li>
   </ul></li>
 </ul>

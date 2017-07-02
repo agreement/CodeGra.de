@@ -152,7 +152,6 @@
             <span class="p">},</span>
         <span class="p">})</span>
     <span class="k">except</span> <span class="n">auth</span><span class="o">.</span><span class="n">PermissionException</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;salkdjfas&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
             <span class="s1">&#39;rubrics&#39;</span><span class="p">:</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">rubric_rows</span><span class="p">,</span>
         <span class="p">})</span></div>
@@ -191,7 +190,7 @@
             <span class="s1">&#39;The rubric item with id </span><span class="si">{}</span><span class="s1"> was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rubricitem_id</span><span class="p">),</span>
             <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
 
-    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">rubric_item</span><span class="o">.</span><span class="n">rubricrow</span><span class="o">.</span><span class="n">assignment_id</span> <span class="o">!=</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment_id</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
             <span class="s1">&#39;Rubric item selected does not match assignment&#39;</span><span class="p">,</span>
@@ -266,8 +265,8 @@
 <span class="sd">                                 user and the user can not view files in the</span>
 <span class="sd">                                 attached course. (INCORRECT_PERMISSION)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">):</span>
-        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_view_files&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">user_id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">):</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_view_files&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
 
     <span class="n">code</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">work_id</span> <span class="o">==</span> <span class="n">work</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
                                     <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">parent_id</span> <span class="o">==</span> <span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">one</span><span class="p">()</span>
@@ -320,7 +319,7 @@
             <span class="s1">&#39;The submission with code </span><span class="si">{}</span><span class="s1"> was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">submission_id</span><span class="p">),</span>
             <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
 
-    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
     <span class="k">if</span> <span class="s1">&#39;grade&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">content</span> <span class="ow">or</span> <span class="s1">&#39;feedback&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;Grade or feedback not provided&#39;</span><span class="p">,</span>
                            <span class="s1">&#39;Grade and or feedback fields missing in sent JSON&#39;</span><span class="p">,</span>
@@ -381,8 +380,8 @@
             <span class="s1">&#39;The submission with code </span><span class="si">{}</span><span class="s1"> was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">submission_id</span><span class="p">),</span>
             <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">):</span>
-        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_view_files&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">user_id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">):</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_view_files&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
 
     <span class="n">file_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;file_id&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">file_id</span><span class="p">:</span>
@@ -392,7 +391,7 @@
                 <span class="s1">&#39;File not found&#39;</span><span class="p">,</span>
                 <span class="s1">&#39;The file with code </span><span class="si">{}</span><span class="s1"> was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_id</span><span class="p">),</span>
                 <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="n">submission_id</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">work_id</span> <span class="o">!=</span> <span class="n">submission_id</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
                 <span class="s1">&#39;Incorrect URL&#39;</span><span class="p">,</span>
                 <span class="s1">&#39;The identifiers in the URL do no match those related to the &#39;</span>

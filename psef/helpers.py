@@ -2,11 +2,9 @@
 """
 This module implements generic helpers and convenience functions.
 """
-import os
-import json
 from functools import reduce
 
-from flask import Flask, g, render_template
+from flask import g
 
 
 def get_all_subclasses(cls):

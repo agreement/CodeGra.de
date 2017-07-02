@@ -477,6 +477,44 @@ of the submission. (INVALID_PARAM)</p>
 </dd></dl>
 
 <dl class="delete">
+<dt id="delete--api-v1-assignments-(int-assignment_id)-rubrics-(int-rubric_row)">
+<code class="descname">DELETE </code><code class="descname">/api/v1/assignments/</code><span class="sig-paren">(</span><em class="property">int: </em><em>assignment_id</em><span class="sig-paren">)</span><code class="descname">/rubrics/</code><span class="sig-paren">(</span><em class="property">int: </em><em>rubric_row</em><span class="sig-paren">)</span><a class="headerlink" href="#delete--api-v1-assignments-(int-assignment_id)-rubrics-(int-rubric_row)" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete rubric row of the assignment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>assignment_id</strong> (<em>int</em>) – The id of the assignment</li>
+<li><strong>rubric_row</strong> (<em>int</em>) – The id of the rubric row</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Rtype:</th><td class="field-body"><p class="first">(str, int)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises APIException:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first">If no rubric row with given id exists.
+(OBJECT_ID_NOT_FOUND)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Raises PermissionException:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first">If there is no logged in user. (NOT_LOGGED_IN)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises PermissionException:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first last">If the user is not allowed to manage rubrics.
+(INCORRECT_PERMISSION)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="delete">
 <dt id="delete--api-v1-courses-(int-course_id)-roles-(int-role_id)">
 <code class="descname">DELETE </code><code class="descname">/api/v1/courses/</code><span class="sig-paren">(</span><em class="property">int: </em><em>course_id</em><span class="sig-paren">)</span><code class="descname">/roles/</code><span class="sig-paren">(</span><em class="property">int: </em><em>role_id</em><span class="sig-paren">)</span><a class="headerlink" href="#delete--api-v1-courses-(int-course_id)-roles-(int-role_id)" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove a <a class="reference internal" href="psef_api/psef.html#psef.models.CourseRole" title="psef.models.CourseRole"><code class="xref py py-class docutils literal"><span class="pre">models.CourseRole</span></code></a> from the given
@@ -766,6 +804,95 @@ is empty. (INVALID_PARAM)</p>
 <tr class="field-odd field"><th class="field-name" colspan="2">Raises PermissionException:</th></tr>
 <tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first last">If the user is not allowed to upload for this
 assignment. (INCORRECT_PERMISSION)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="get">
+<dt id="get--api-v1-assignments-(int-assignment_id)-rubrics-">
+<code class="descname">GET </code><code class="descname">/api/v1/assignments/</code><span class="sig-paren">(</span><em class="property">int: </em><em>assignment_id</em><span class="sig-paren">)</span><code class="descname">/rubrics/</code><a class="headerlink" href="#get--api-v1-assignments-(int-assignment_id)-rubrics-" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the rubric corresponding to the given <cite>assignment_id</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>assignment_id</strong> (<em>int</em>) – The id of the assignment</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A list of JSON of <code class="xref py py-class docutils literal"><span class="pre">models.RubricRows</span></code> items</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Rtype:</th><td class="field-body"><p class="first">flask.Response</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises APIException:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first">If no assignment with given id exists.
+(OBJECT_ID_NOT_FOUND)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Raises APIException:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first">If the assignment has no rubric.
+(OBJECT_ID_NOT_FOUND)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises PermissionException:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first">If there is no logged in user. (NOT_LOGGED_IN)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Raises PermissionException:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first last">If the user is not allowed to see this is
+assignment. (INCORRECT_PERMISSION)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="put">
+<dt id="put--api-v1-assignments-(int-assignment_id)-rubrics-">
+<code class="descname">PUT </code><code class="descname">/api/v1/assignments/</code><span class="sig-paren">(</span><em class="property">int: </em><em>assignment_id</em><span class="sig-paren">)</span><code class="descname">/rubrics/</code><a class="headerlink" href="#put--api-v1-assignments-(int-assignment_id)-rubrics-" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add or update rubric of an assignment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>assignment_id</strong> (<em>int</em>) – The id of the assignment</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An empty response with return code 204</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Rtype:</th><td class="field-body"><p class="first">(str, int)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises APIException:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first">If no assignment with given id exists.
+(OBJECT_ID_NOT_FOUND)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Raises APIException:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first">If there is no <cite>rows</cite> (list) item in the provided
+content. (INVALID_PARAM)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises APIException:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first">If a <cite>row</cite> does not contain <cite>header</cite>, <cite>description</cite>
+or <cite>items</cite> (list).(INVALID_PARAM)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Raises PermissionException:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><p class="first">If there is no logged in user. (NOT_LOGGED_IN)</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Raises PermissionException:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body"><p class="first last">If the user is not allowed to manage rubrics.
+(INCORRECT_PERMISSION)</p>
 </td>
 </tr>
 </tbody>

@@ -78,6 +78,8 @@ const actions = {
                 axios.get('/api/v1/permissions/', {
                     params: perm.course_id ? { course_id: perm.course_id } : {},
                 }).then((response) => {
+                    console.log(perm);
+                    console.log(state);
                     commit(types.PERMISSIONS, { response: response.data, perm });
                     resolve(checkPermission());
                 }, () => resolve(false));
@@ -93,7 +95,7 @@ const actions = {
     },
     logout({ commit }) {
         return new Promise((resolve, reject) => {
-            axios.delete('/api/v1/login').then(() => {
+            axios.delete('/api/v1/login?type=extended').then(() => {
                 commit(types.LOGOUT);
                 resolve();
             }).catch(() => {
@@ -133,7 +135,12 @@ const mutations = {
             }
             state.permissions[`course_${perm.course_id}`] = response;
         } else {
-            state.permissions = response;
+            if (!state.permissions) {
+                state.permissions = {};
+            }
+            Object.keys(response).forEach((key) => {
+                state.permissions[key] = response[key];
+            });
         }
     },
     [types.LOGOUT](state) {

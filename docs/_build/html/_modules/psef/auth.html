@@ -42,19 +42,22 @@
           <div class="body" role="main">
             
   <h1>Source code for psef.auth</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">wraps</span>
+<span></span><span class="sd">&quot;&quot;&quot;This module implements all authorization functions used by :py:mod:`psef`.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">wraps</span>
 
 <span class="kn">import</span> <span class="nn">flask</span>
 <span class="kn">import</span> <span class="nn">oauth2</span>
 <span class="kn">from</span> <span class="nn">flask_login</span> <span class="k">import</span> <span class="n">current_user</span>
 
-<span class="kn">from</span> <span class="nn">psef</span> <span class="k">import</span> <span class="n">login_manager</span>
+<span class="kn">from</span> <span class="nn">psef</span> <span class="k">import</span> <span class="n">app</span><span class="p">,</span> <span class="n">login_manager</span>
 <span class="kn">from</span> <span class="nn">psef.errors</span> <span class="k">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span>
 
 
 <div class="viewcode-block" id="PermissionException"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.PermissionException">[docs]</a><span class="k">class</span> <span class="nc">PermissionException</span><span class="p">(</span><span class="n">APIException</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The exception used when a permission check fails.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">PermissionException</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
@@ -88,12 +91,12 @@
 <span class="sd">                                 (INCORRECT_PERMISSION)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">_user_active</span><span class="p">():</span>
-        <span class="k">if</span> <span class="n">work</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
-            <span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_see_others_work&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">work</span><span class="o">.</span><span class="n">user_id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+            <span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_see_others_work&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">is_done</span><span class="p">:</span>
             <span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_see_grade_before_open&#39;</span><span class="p">,</span>
-                              <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+                              <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
         <span class="k">return</span>
     <span class="n">_raise_login_exception</span><span class="p">()</span></div>
 
@@ -122,6 +125,15 @@
     <span class="n">_raise_login_exception</span><span class="p">()</span></div>
 
 
+<span class="n">_PERM_CACHE</span> <span class="o">=</span> <span class="p">{}</span>
+
+
+<div class="viewcode-block" id="reset_perm_cache"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.reset_perm_cache">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">before_request</span>
+<span class="k">def</span> <span class="nf">reset_perm_cache</span><span class="p">():</span>
+    <span class="k">global</span> <span class="n">_PERM_CACHE</span>
+    <span class="n">_PERM_CACHE</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+
 <div class="viewcode-block" id="ensure_permission"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.ensure_permission">[docs]</a><span class="k">def</span> <span class="nf">ensure_permission</span><span class="p">(</span><span class="n">permission_name</span><span class="p">,</span> <span class="n">course_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Ensure that the current user is logged and has the given permission.</span>
 
@@ -142,7 +154,14 @@
 <span class="sd">                                 current user. (INCORRECT_PERMISSION)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">_user_active</span><span class="p">():</span>
-        <span class="k">if</span> <span class="n">current_user</span><span class="o">.</span><span class="n">has_permission</span><span class="p">(</span><span class="n">permission_name</span><span class="p">,</span> <span class="n">course_id</span><span class="o">=</span><span class="n">course_id</span><span class="p">):</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">permission_name</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span> <span class="ow">in</span> <span class="n">_PERM_CACHE</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">_PERM_CACHE</span><span class="p">[(</span><span class="n">permission_name</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">has_permission</span><span class="p">(</span>
+                <span class="n">permission_name</span><span class="p">,</span> <span class="n">course_id</span><span class="o">=</span><span class="n">course_id</span><span class="p">)</span>
+            <span class="n">_PERM_CACHE</span><span class="p">[(</span><span class="n">permission_name</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)]</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="k">if</span> <span class="n">val</span><span class="p">:</span>
             <span class="k">return</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">PermissionException</span><span class="p">(</span>
@@ -180,7 +199,7 @@
 <span class="sd">    &#39;&#39;&#39;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">_RequestValidatorMixin</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">RequestValidatorMixin</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">oauth_server</span> <span class="o">=</span> <span class="n">oauth2</span><span class="o">.</span><span class="n">Server</span><span class="p">()</span>
         <span class="n">signature_method</span> <span class="o">=</span> <span class="n">oauth2</span><span class="o">.</span><span class="n">SignatureMethod_HMAC_SHA1</span><span class="p">()</span>
@@ -265,10 +284,7 @@
         <span class="k">return</span> <span class="p">(</span><span class="n">req</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">req</span><span class="o">.</span><span class="n">headers</span><span class="p">),</span> <span class="n">req</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
 
 
-<div class="viewcode-block" id="ensure_valid_oauth"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.ensure_valid_oauth">[docs]</a><span class="k">def</span> <span class="nf">ensure_valid_oauth</span><span class="p">(</span><span class="n">key</span><span class="p">,</span>
-                       <span class="n">secret</span><span class="p">,</span>
-                       <span class="n">request</span><span class="p">,</span>
-                       <span class="n">parser_cls</span><span class="o">=</span><span class="n">_FlaskOAuthValidator</span><span class="p">):</span>
+<div class="viewcode-block" id="ensure_valid_oauth"><a class="viewcode-back" href="../../psef_api/psef.html#psef.auth.ensure_valid_oauth">[docs]</a><span class="k">def</span> <span class="nf">ensure_valid_oauth</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">secret</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">parser_cls</span><span class="o">=</span><span class="n">_FlaskOAuthValidator</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Make sure the given oauth key and secret is valid for the given request.</span>
 
 <span class="sd">    :param str key: The oauth key to be used for validating.</span>

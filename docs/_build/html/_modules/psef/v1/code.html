@@ -82,7 +82,7 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">comment</span><span class="p">:</span>
         <span class="n">file</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
         <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span>
-                               <span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+                               <span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
         <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
             <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="p">(</span>
                 <span class="n">file_id</span><span class="o">=</span><span class="nb">id</span><span class="p">,</span>
@@ -91,7 +91,7 @@
                 <span class="n">comment</span><span class="o">=</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;comment&#39;</span><span class="p">]))</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span>
-                               <span class="n">comment</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+                               <span class="n">comment</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
         <span class="n">comment</span><span class="o">.</span><span class="n">comment</span> <span class="o">=</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;comment&#39;</span><span class="p">]</span>
 
     <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
@@ -121,7 +121,7 @@
 
     <span class="k">if</span> <span class="n">comment</span><span class="p">:</span>
         <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span>
-                               <span class="n">comment</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+                               <span class="n">comment</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
         <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">comment</span><span class="p">)</span>
         <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
@@ -165,16 +165,16 @@
                            <span class="s1">&#39;The file with id </span><span class="si">{}</span><span class="s1"> was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">file_id</span><span class="p">),</span>
                            <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">user_id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
         <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_view_files&#39;</span><span class="p">,</span>
-                               <span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+                               <span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;metadata&#39;</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;binary&#39;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">get_binary_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;feedback&#39;</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">get_feedback</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">linter</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;binary&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">get_binary_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;linter-feedback&#39;</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">get_feedback</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">linter</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>

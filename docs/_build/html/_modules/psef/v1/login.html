@@ -114,6 +114,8 @@
         <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
             <span class="n">role</span><span class="o">.</span><span class="n">course_id</span><span class="p">:</span> <span class="n">role</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">role</span> <span class="ow">in</span> <span class="n">current_user</span><span class="o">.</span><span class="n">courses</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
         <span class="p">})</span>
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;extended&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">__extended_to_json__</span><span class="p">())</span>
     <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">current_user</span><span class="p">)</span></div>
 
 

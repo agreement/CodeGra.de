@@ -49,11 +49,16 @@ def get_file_contents(code):
     """
     filename = os.path.join(app.config['UPLOAD_DIR'], code.filename)
     try:
+        if os.path.islink(filename):
+            raise APIException('This file is a symlink to `{}`.'.format(
+                (os.readlink(filename))),
+                               'The file {} is a symlink'.format(code.id),
+                               APICodes.INVALID_STATE, 410)
         with open(filename, 'r', encoding='utf-8') as codefile:
             return codefile.read()
     except UnicodeDecodeError:
         raise APIException(
-            'File was not readable',
+            'Cannot display this file!',
             'The selected file with id {} was not UTF-8'.format(code.id),
             APICodes.OBJECT_WRONG_TYPE, 400)
 
@@ -100,10 +105,8 @@ def restore_directory_structure(code, parent):
     if code.is_directory:
         os.mkdir(out)
         return {
-            "name":
-            code.get_filename(),
-            "id":
-            code.id,
+            "name": code.get_filename(),
+            "id": code.id,
             "entries": [
                 restore_directory_structure(child, out)
                 for child in code.children
@@ -111,7 +114,7 @@ def restore_directory_structure(code, parent):
         }
     else:  # this is a file
         filename = os.path.join(app.config['UPLOAD_DIR'], code.filename)
-        shutil.copyfile(filename, out)
+        shutil.copyfile(filename, out, follow_symlinks=False)
         return {"name": code.get_filename(), "id": code.id}
 
 
@@ -169,8 +172,7 @@ def rename_directory_structure(rootdir):
                 res.append((key, filename))
             else:
                 res.append({
-                    key:
-                    convert_to_lists(os.path.join(name, key), value)
+                    key: convert_to_lists(os.path.join(name, key), value)
                 })
         return res
 
@@ -308,16 +310,19 @@ def process_blackboard_zip(file):
     :rtype: list[tuple[psef.blackboard.Info, tree]]
     """
     tmpdir = extract_to_temp(file)
-    info_files = filter(None, [_bb_txt_format.match(f)
-                               for f in os.listdir(tmpdir)])
+    info_files = filter(None,
+                        [_bb_txt_format.match(f) for f in os.listdir(tmpdir)])
     submissions = []
     for info_file in info_files:
         files = []
         info = blackboard.parse_info_file(
             os.path.join(tmpdir, info_file.string))
         for file in info.files:
-            files.append(FileStorage(stream=open(os.path.join(
-                tmpdir, file.name), mode='rb'), filename=file.original_name))
+            files.append(
+                FileStorage(
+                    stream=open(
+                        os.path.join(tmpdir, file.name), mode='rb'),
+                    filename=file.original_name))
         tree = process_files(files)
         map(lambda f: f.close(), files)
         submissions.append((info, tree))
@@ -361,3 +366,23 @@ def create_csv_from_rows(rows):
         csv_writer = csv.writer(csv_output)
         csv_writer.writerows(rows)
     return csv_file
+
+
+def remove_tree(tree):
+    """Removes all files in the tree.
+
+    This removes all files in a tree as described by
+    :py:func`rename_directory_structure`
+
+    :param dict tree: Tree of files
+    :returns: Nothing
+    :rtype None:
+    """
+    if isinstance(tree, dict):
+        for key in tree.keys():
+            remove_tree(tree[key])
+    elif isinstance(tree, list):
+        for item in tree:
+            remove_tree(item)
+    else:
+        os.remove(os.path.join(app.config['UPLOAD_DIR'], tree[1]))

@@ -1,21 +1,41 @@
 <template>
-    <b-list-group class="manage-course">
+    <div
+        class="manage-course">
         <b-form-fieldset>
             <b-input-group>
-                <b-form-input v-model="filter"
+                <b-form-input
+                    v-model="filter"
                     placeholder="Type to search"
-                    @keyup.enter="submit"></b-form-input>
+                    @keyup.enter="submit"/>
             </b-input-group>
         </b-form-fieldset>
-        <b-list-group-item v-for="a in assignments" :key="a.id"
-            v-if="shouldShowAssignment(a)">
-            <manage-assignment :assignment="a"></manage-assignment>
-        </b-list-group-item>
-    </b-list-group>
+
+        <b-list-group
+            class="manage-course">
+            <b-list-group-item
+                v-if="shouldShowAssignment(a)"
+                v-for="a in assignments"
+                :key="a.id">
+                <manage-assignment
+                    :assignment="a"
+                    @showRubric="showRubric"/>
+            </b-list-group-item>
+        </b-list-group>
+
+        <b-modal
+            class="rubric-modal"
+            size="lg"
+            :visible="!!this.assignmentId"
+            @hidden="assignmentId = null">
+            <rubric-editor
+                :assignmentId="assignmentId"/>
+        </b-modal>
+    </div>
 </template>
 
 <script>
 import ManageAssignment from './ManageAssignment';
+import RubricEditor from './RubricEditor';
 
 export default {
     name: 'manage-course',
@@ -30,6 +50,7 @@ export default {
     data() {
         return {
             filter: this.$route.query.q,
+            assignmentId: null,
         };
     },
 
@@ -45,10 +66,23 @@ export default {
             if (this.filter) query.q = this.filter;
             this.$router.replace({ query });
         },
+
+        showRubric(assignmentId) {
+            this.assignmentId = assignmentId;
+        },
     },
 
     components: {
+        RubricEditor,
         ManageAssignment,
     },
 };
 </script>
+
+<style lang="less">
+@media (min-width: 992px) {
+    .rubric-modal .modal-lg {
+        max-width: 1280px;
+    }
+}
+</style>

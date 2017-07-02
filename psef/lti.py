@@ -2,7 +2,6 @@
 # https://github.com/ucfopen/lti-template-flask-oauth-tokens
 
 import datetime
-import traceback
 from collections import defaultdict
 
 import flask

@@ -143,7 +143,7 @@
         <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;Snippet not found&#39;</span><span class="p">,</span>
                            <span class="s1">&#39;The snippet with id </span><span class="si">{}</span><span class="s1"> was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">snip</span><span class="p">),</span>
                            <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">snip</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">snip</span><span class="o">.</span><span class="n">user_id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
             <span class="s1">&#39;The given snippet is not your snippet&#39;</span><span class="p">,</span>
             <span class="s1">&#39;The snippet &quot;</span><span class="si">{}</span><span class="s1">&quot; does not belong to user &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
