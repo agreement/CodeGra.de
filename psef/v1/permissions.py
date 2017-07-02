@@ -16,8 +16,8 @@ from . import api
 @api.route('/permissions/', methods=['GET'])
 @login_required
 def get_permissions():
-    """Get the permissions (:class:`models.Permission`) of the currently logged
-    in :class:`models.User`.
+    """Get the permissions (:class:`.models.Permission`) of the currently
+    logged in :class:`.models.User`.
 
     :returns: A response containing the JSON serialized permissions and return
               code 200

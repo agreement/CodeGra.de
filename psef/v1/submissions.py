@@ -23,11 +23,12 @@ from . import api
 @api.route("/submissions/<int:submission_id>", methods=['GET'])
 @login_required
 def get_submission(submission_id):
-    """Get the given submission (:class:`models.Work`).
+    """Get the given submission (:class:`.models.Work`).
 
     This API has some options based on the 'type' argument in the request
-    - If type == 'zip' see :py:func:`get_zip`
-    - If type == 'feedback' see :py:func:`get_feedback`
+
+    - If ``type == 'zip'`` see :py:func:`get_zip`
+    - If ``type == 'feedback'`` see :py:func:`get_feedback`
 
     :param int submission_id: The id of the submission
     :returns: A response with the JSON serialized submission as content unless
@@ -73,8 +74,8 @@ def get_submission(submission_id):
 
 @api.route("/submissions/<int:submission_id>/rubrics/", methods=['GET'])
 def get_rubric(submission_id):
-    """Return full rubric of the :class:`models.Assignment` of the given
-    submission (:class:`models.Work`).
+    """Return full rubric of the :class:`.models.Assignment` of the given
+    submission (:class:`.models.Work`).
 
     :param int submission_id: The id of the submission
     :returns: A response containing the JSON serialized rubric
@@ -117,7 +118,7 @@ def get_rubric(submission_id):
     "/submissions/<int:submission_id>/rubricitems/<int:rubricitem_id>",
     methods=['PATCH'])
 def select_rubric_item(submission_id, rubricitem_id):
-    """Select a rubric item of the given submission (:class:`models.Work`).
+    """Select a rubric item of the given submission (:class:`.models.Work`).
 
     :param int submission_id: The id of the submission
     :param int rubricitem_id: The id of the rubric item
@@ -165,7 +166,7 @@ def select_rubric_item(submission_id, rubricitem_id):
 
 
 def get_feedback(work):
-    """Get the feedback of :class:`models.Work` as a plain text file.
+    """Get the feedback of :class:`.models.Work` as a plain text file.
 
     :param models.Work work: The submission with the required feedback
     :returns: A response with the plain text feedback as attached file
@@ -210,7 +211,7 @@ def get_feedback(work):
 
 
 def get_zip(work):
-    """Return a :class:`models.Work` as a zip file.
+    """Return a :class:`.models.Work` as a zip file.
 
     :param models.Work work: The submission which should be returns as zip file
     :returns: A response with the zip as attached file
@@ -250,7 +251,7 @@ def get_zip(work):
 
 @api.route("/submissions/<int:submission_id>", methods=['PATCH'])
 def patch_submission(submission_id):
-    """Update the given submission (:class:`models.Work`) if it already exists.
+    """Update the given submission (:class:`.models.Work`) if it already exists.
 
     :param int submission_id: The id of the submission
     :returns: Empty response with return code 204
@@ -306,7 +307,7 @@ def patch_submission(submission_id):
 @api.route("/submissions/<int:submission_id>/files/", methods=['GET'])
 def get_dir_contents(submission_id):
     """Return the file directory info of a file of the given submission
-    (:class:`models.Work`).
+    (:class:`.models.Work`).
 
     The default file is the root of the submission, but a specific file can be
     specified with the file_id argument in the request.

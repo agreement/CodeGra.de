@@ -1,0 +1,233 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>User Manual CodeGra.de &#8212; CodeGra.de 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API" href="api.html" />
+    <link rel="prev" title="LTI integration of CodeGra.de" href="integration_lti.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="user-manual-codegra-de">
+<h1>User Manual CodeGra.de<a class="headerlink" href="#user-manual-codegra-de" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="pages">
+<h2>Pages<a class="headerlink" href="#pages" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="assignments">
+<h3>assignments<a class="headerlink" href="#assignments" title="Permalink to this headline">¶</a></h3>
+<p>This is the first page you will see when you login. From here you can
+access all your assignments. <img alt="image4" src="_images/assignments.png" /></p>
+</div>
+</div>
+<div class="section" id="workflows">
+<h2>Workflows<a class="headerlink" href="#workflows" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p class="first rubric" id="student">Student:</p>
+<p>When you log in as a student, you are automatically go to the
+assignments page. Here all the upcomming deadlines can be found.
+Three buttons allow you to toggle filters for the states an
+assignment an be in; submitting, grading, done. After you click on an
+assignment you can submit a file as well as see all previous
+submissions for that assignment. Also on this page you can view the
+rubric that will be used for grading (if a rubric is used). A Student
+can submit his/her assignments by uploading a single
+.tar.gz/.tar/.zip which contains the code, and maybe a PDF. If an
+assignment is labled ‘done’ a student can check his/her grade as well
+as read the given inline and general feedback. From the code viewer a
+student can download the submission and/or all given feedback.</p>
+</li>
+<li><p class="first rubric" id="teacher">Teacher:</p>
+<p>The basic idea for teachers is that they, or teaching assistants can
+add assignments to existing courses and grade them once submitted by
+students. While grading you can click on individual lines of code and
+add direct inline feedback to them. From the courses page CodeGrade
+lets you easily devide submissions ready for grading over all, or
+some, TA’s by clicking on ‘manage course’. From here you can click on
+the assignment and a dropdown menu will apear where you can determine
+which TA’s you want do devinde between Devision is done randomly and
+assigned submissions can always be reassigned. In the previously
+mentioned drop down menu you can also run linters on all submissions.
+Linter errors will show up in the submissions as red linenumbers.
+<img alt="image5" src="http://i.imgur.com/2kU11p2.png" />. Once assigned a TA can switch between viewing all
+submissions and all submissions assigned to him or her. While grading
+an assignment, you switch to next or previous submission!! as well as
+select any submission from a dropdown menu. You can also return to
+the submission page. From here you can export the table with (graded)
+submissions as a csv file. A hand full of extra options are available
+for this feature -insert gif of export menu-.</p>
+</li>
+</ul>
+</div>
+<div class="section" id="lti-integration-of-codegra-de">
+<h2>LTI integration of CodeGra.de<a class="headerlink" href="#lti-integration-of-codegra-de" title="Permalink to this headline">¶</a></h2>
+<p>Integration with LTI is not completely intuitive. In this document we
+try to describe the special cases where the integration doesn’t work as
+you would expect. When LTI is activated these things change:</p>
+<ul class="simple">
+<li>In general LTI takes precedence. Everything get’s created via LTI
+(courses/assignments/TA’s/deadlines etc.). You can only change these
+details via LTI.</li>
+<li>To update/change details of an assignment an LTI launch request needs
+to be fired. This only happens when an assignment is accessed from
+the LTI provider. So when the teacher has updated for example the
+deadline, (s)he should open the assignment to update the details on
+codegra.de</li>
+<li>In our system an assignment has 3 states (hidden/open/done). When LTI
+is integrated the hidden and open state are managed by LTI.</li>
+<li>Only when the assignment is done, all grades are sent back to LTI.</li>
+<li>You can’t upload blackboard .zip files.</li>
+</ul>
+</div>
+<div class="section" id="f-a-q">
+<h2>F.A.Q<a class="headerlink" href="#f-a-q" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="general-questions">
+<h3>General questions<a class="headerlink" href="#general-questions" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="how-can-i-see-all-assignments-for-one-course">
+<h4>How can I see all assignments for one course?<a class="headerlink" href="#how-can-i-see-all-assignments-for-one-course" title="Permalink to this headline">¶</a></h4>
+<p>Search for the course on the <em>assignments</em> page, or click in the top menu on
+<em>courses</em>, and then click on the green list button <img alt="green list" src="https://i.imgur.com/PUKtXtt.png" /> to the right of
+a course.</p>
+</div>
+</div>
+<div class="section" id="student-questions">
+<h3>Student questions<a class="headerlink" href="#student-questions" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="how-can-i-see-my-grade">
+<h4>How can I see my grade?<a class="headerlink" href="#how-can-i-see-my-grade" title="Permalink to this headline">¶</a></h4>
+<p>Find the assignment on the <em>assignments</em> page. Click on the assignment. If the
+assignment is graded one can see their grade now.</p>
+</div>
+</div>
+<div class="section" id="ta-questions">
+<h3>TA questions<a class="headerlink" href="#ta-questions" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="how-do-i-access-a-courses-management-page">
+<h4>How do I access a courses management page?<a class="headerlink" href="#how-do-i-access-a-courses-management-page" title="Permalink to this headline">¶</a></h4>
+<p>Click on in the top menu on <em>courses</em>. From this page one can see all the
+courses they are enrolled in / can manage. To edit a course’s details, click on
+the orange pencil <img alt="orange pencil" src="https://i.imgur.com/WCmqq4N.png" /> on the right of the course name. Now you can
+see all the assignments of this course. Click an assignment to edit it’s
+details. - <strong>How can I divide the submitted submissions for an assignment over
+the TA’s?</strong> Click in the top menu on <em>courses</em>. Click on the orange pencil
+<img alt="orange pencil" src="https://i.imgur.com/WCmqq4N.png" /> to the right of a course. Click on an assignment. Here one can
+edit all the details of an assignment. - <strong>How can I run a linter over all
+submitted submissions for an assignment?</strong> Click in the top menu on _courses.
+Click on the orange pencil <img alt="orange pencil" src="https://i.imgur.com/WCmqq4N.png" /> to the right of a course. Click on an
+assignment. Here one can edit all the details of an assignment.</p>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">User Manual CodeGra.de</a><ul>
+<li><a class="reference internal" href="#pages">Pages</a><ul>
+<li><a class="reference internal" href="#assignments">assignments</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#workflows">Workflows</a></li>
+<li><a class="reference internal" href="#lti-integration-of-codegra-de">LTI integration of CodeGra.de</a></li>
+<li><a class="reference internal" href="#f-a-q">F.A.Q</a><ul>
+<li><a class="reference internal" href="#general-questions">General questions</a><ul>
+<li><a class="reference internal" href="#how-can-i-see-all-assignments-for-one-course">How can I see all assignments for one course?</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#student-questions">Student questions</a><ul>
+<li><a class="reference internal" href="#how-can-i-see-my-grade">How can I see my grade?</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ta-questions">TA questions</a><ul>
+<li><a class="reference internal" href="#how-do-i-access-a-courses-management-page">How do I access a courses management page?</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="integration_lti.html" title="previous chapter">LTI integration of CodeGra.de</a></li>
+      <li>Next: <a href="api.html" title="next chapter">API</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/manual.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Thomas Schaper.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/manual.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -35,6 +35,13 @@ def set_request_start_time():
 login_manager = LoginManager()
 login_manager.init_app(app)
 
+LTI_ROLE_LOOKUPS = {}
+"""A LTI role to psef role lookup dictionary.
+
+.. note::
+    The roles are both course and user roles.
+"""
+
 with open(
         os.path.join(
             os.path.dirname(os.path.realpath(__file__)), '..', 'seed_data',

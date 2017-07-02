@@ -1,0 +1,452 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>psef.files &#8212; CodeGra.de 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for psef.files</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module is used for file IO and handling and provides functions for</span>
+<span class="sd">extracting and abstracting the structures of directories and archives.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">reduce</span>
+
+<span class="kn">import</span> <span class="nn">archive</span>
+<span class="kn">from</span> <span class="nn">werkzeug.utils</span> <span class="k">import</span> <span class="n">secure_filename</span>
+<span class="kn">from</span> <span class="nn">werkzeug.datastructures</span> <span class="k">import</span> <span class="n">FileStorage</span>
+
+<span class="kn">import</span> <span class="nn">psef.helpers</span> <span class="k">as</span> <span class="nn">helpers</span>
+<span class="kn">from</span> <span class="nn">psef</span> <span class="k">import</span> <span class="n">app</span><span class="p">,</span> <span class="n">blackboard</span>
+<span class="kn">from</span> <span class="nn">psef.errors</span> <span class="k">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span>
+
+<span class="n">_known_archive_extensions</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">archive</span><span class="o">.</span><span class="n">extension_map</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+<span class="c1"># Gestolen van Erik Kooistra</span>
+<span class="n">_bb_txt_format</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s2">&quot;(?P&lt;assignment_name&gt;.+)_(?P&lt;student_id&gt;\d+)_attempt_&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;(?P&lt;datetime&gt;\d</span><span class="si">{4}</span><span class="s2">-\d</span><span class="si">{2}</span><span class="s2">-\d</span><span class="si">{2}</span><span class="s2">-\d</span><span class="si">{2}</span><span class="s2">-\d</span><span class="si">{2}</span><span class="s2">-\d</span><span class="si">{2}</span><span class="s2">).txt&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_binary_contents"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.get_binary_contents">[docs]</a><span class="k">def</span> <span class="nf">get_binary_contents</span><span class="p">(</span><span class="n">file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get the binary contents of a given :class:`.models.File`.</span>
+
+<span class="sd">    :param models.File file: The file object to read.</span>
+<span class="sd">    :returns: The contents of the file</span>
+<span class="sd">    :rtype: bytes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;UPLOAD_DIR&#39;</span><span class="p">],</span> <span class="n">file</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">codefile</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">codefile</span><span class="o">.</span><span class="n">read</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="get_file_contents"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.get_file_contents">[docs]</a><span class="k">def</span> <span class="nf">get_file_contents</span><span class="p">(</span><span class="n">code</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get the contents of the given :class:`.models.File`.</span>
+
+<span class="sd">    :param models.File code: The file object to read.</span>
+<span class="sd">    :returns: The contents of the file with newlines.</span>
+<span class="sd">    :rtype: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;UPLOAD_DIR&#39;</span><span class="p">],</span> <span class="n">code</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">codefile</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">codefile</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;File was not readable&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The selected file with id </span><span class="si">{}</span><span class="s1"> was not UTF-8&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">code</span><span class="o">.</span><span class="n">id</span><span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_WRONG_TYPE</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="restore_directory_structure"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.restore_directory_structure">[docs]</a><span class="k">def</span> <span class="nf">restore_directory_structure</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Restores the directory structure recursively for a code submission (a</span>
+<span class="sd">    :class:`.models.Work`).</span>
+
+<span class="sd">    The directory structure is returned like this:</span>
+
+<span class="sd">    .. code:: python</span>
+
+<span class="sd">       {</span>
+<span class="sd">           &quot;id&quot;: 1,</span>
+<span class="sd">           &quot;name&quot;: &quot;rootdir&quot;</span>
+<span class="sd">           &quot;entries&quot;: [</span>
+<span class="sd">               {</span>
+<span class="sd">                   &quot;id&quot;: 2,</span>
+<span class="sd">                   &quot;name&quot;: &quot;file1.txt&quot;</span>
+<span class="sd">               },</span>
+<span class="sd">               {</span>
+<span class="sd">                   &quot;id&quot;: 3,</span>
+<span class="sd">                   &quot;name&quot;: &quot;subdir&quot;</span>
+<span class="sd">                   &quot;entries&quot;: [</span>
+<span class="sd">                       {</span>
+<span class="sd">                           &quot;id&quot;: 4,</span>
+<span class="sd">                           &quot;name&quot;: &quot;file2.txt.&quot;</span>
+<span class="sd">                       },</span>
+<span class="sd">                       {</span>
+<span class="sd">                           &quot;id&quot;: 5,</span>
+<span class="sd">                           &quot;name&quot;: &quot;file3.txt&quot;</span>
+<span class="sd">                       }</span>
+<span class="sd">                   ],</span>
+<span class="sd">               },</span>
+<span class="sd">           ],</span>
+<span class="sd">       }</span>
+
+<span class="sd">    :param models.File code: A file</span>
+<span class="sd">    :param str parent: Path to parent directory</span>
+<span class="sd">    :returns: A tree as described</span>
+<span class="sd">    :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">code</span><span class="o">.</span><span class="n">get_filename</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">code</span><span class="o">.</span><span class="n">is_directory</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span>
+            <span class="n">code</span><span class="o">.</span><span class="n">get_filename</span><span class="p">(),</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">:</span>
+            <span class="n">code</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="s2">&quot;entries&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="n">restore_directory_structure</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">code</span><span class="o">.</span><span class="n">children</span>
+            <span class="p">]</span>
+        <span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># this is a file</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;UPLOAD_DIR&#39;</span><span class="p">],</span> <span class="n">code</span><span class="o">.</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">code</span><span class="o">.</span><span class="n">get_filename</span><span class="p">(),</span> <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">code</span><span class="o">.</span><span class="n">id</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="rename_directory_structure"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.rename_directory_structure">[docs]</a><span class="k">def</span> <span class="nf">rename_directory_structure</span><span class="p">(</span><span class="n">rootdir</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a nested dictionary that represents the folder structure of</span>
+<span class="sd">    rootdir.</span>
+
+<span class="sd">    A tree like:</span>
+
+<span class="sd">    - dir1</span>
+<span class="sd">        - dir 2</span>
+<span class="sd">            - file 1</span>
+<span class="sd">            - file 2</span>
+<span class="sd">        - file 3</span>
+
+<span class="sd">    will be moved to files given by :py:func:`random_file_path` and the object</span>
+<span class="sd">    returned will represent the file structure, which will be something like</span>
+<span class="sd">    this:</span>
+
+<span class="sd">    .. code:: python</span>
+
+<span class="sd">      {</span>
+<span class="sd">          &#39;dir1&#39;: {</span>
+<span class="sd">              [</span>
+<span class="sd">                  &#39;dir 2&#39;:{</span>
+<span class="sd">                      [</span>
+<span class="sd">                          (&#39;file 1&#39;, &#39;new_name&#39;),</span>
+<span class="sd">                          (&#39;file 2&#39;, &#39;new_name2&#39;)</span>
+<span class="sd">                      ]</span>
+<span class="sd">                  },</span>
+<span class="sd">                  (&#39;file 3&#39;, &#39;new_name3&#39;)</span>
+<span class="sd">              ]</span>
+<span class="sd">          }</span>
+<span class="sd">      }</span>
+
+<span class="sd">    :param str rootdir: The root directory to rename, files will not be removed</span>
+<span class="sd">    :returns: The tree as described above</span>
+<span class="sd">    :rtype: dict[str, dict[str, list[dict or tuple[str, str,]]]]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">dir</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">rootdir</span> <span class="o">=</span> <span class="n">rootdir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">)</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">rootdir</span><span class="o">.</span><span class="n">rfind</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">dirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">rootdir</span><span class="p">):</span>
+        <span class="n">folders</span> <span class="o">=</span> <span class="n">path</span><span class="p">[</span><span class="n">start</span><span class="p">:]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">)</span>
+        <span class="n">subdir</span> <span class="o">=</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+        <span class="n">parent</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="nb">dict</span><span class="o">.</span><span class="n">get</span><span class="p">,</span> <span class="n">folders</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="nb">dir</span><span class="p">)</span>
+        <span class="n">parent</span><span class="p">[</span><span class="n">folders</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">subdir</span>
+
+    <span class="k">def</span> <span class="nf">convert_to_lists</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dirs</span><span class="p">):</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">dirs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">new_name</span><span class="p">,</span> <span class="n">filename</span> <span class="o">=</span> <span class="n">random_file_path</span><span class="p">()</span>
+                <span class="n">shutil</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="n">new_name</span><span class="p">)</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">filename</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="n">key</span><span class="p">:</span>
+                    <span class="n">convert_to_lists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">key</span><span class="p">),</span> <span class="n">value</span><span class="p">)</span>
+                <span class="p">})</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">return</span> <span class="n">convert_to_lists</span><span class="p">(</span><span class="n">rootdir</span><span class="p">[:</span><span class="n">start</span><span class="p">],</span> <span class="nb">dir</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="is_archive"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.is_archive">[docs]</a><span class="k">def</span> <span class="nf">is_archive</span><span class="p">(</span><span class="n">file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Checks whether the file ends with a known archive file extension.</span>
+
+<span class="sd">    File extensions are known if they are recognized by the archive module.</span>
+
+<span class="sd">    :param FileStorage file: Some file</span>
+<span class="sd">    :returns: True if the file has a known extension</span>
+<span class="sd">    :rtype: bool</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">file</span><span class="o">.</span><span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">_known_archive_extensions</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="extract_to_temp"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.extract_to_temp">[docs]</a><span class="k">def</span> <span class="nf">extract_to_temp</span><span class="p">(</span><span class="n">file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extracts the contents of file into a temporary directory.</span>
+
+<span class="sd">    :param werkzeug.datastructures.FileStorage file: The archive to extract.</span>
+<span class="sd">    :returns: The pathname of the new temporary directory.</span>
+<span class="sd">    :rtype: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tmpmode</span><span class="p">,</span> <span class="n">tmparchive</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkstemp</span><span class="p">()</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">tmparchive</span><span class="p">)</span>
+    <span class="n">tmparchive</span> <span class="o">+=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">secure_filename</span><span class="p">(</span><span class="s1">&#39;archive_&#39;</span> <span class="o">+</span> <span class="n">file</span><span class="o">.</span><span class="n">filename</span><span class="p">))</span>
+    <span class="n">tmpdir</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">file</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">tmparchive</span><span class="p">)</span>
+        <span class="n">archive</span><span class="o">.</span><span class="n">extract</span><span class="p">(</span><span class="n">tmparchive</span><span class="p">,</span> <span class="n">to_path</span><span class="o">=</span><span class="n">tmpdir</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;safe&#39;</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">tmparchive</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tmpdir</span></div>
+
+
+<div class="viewcode-block" id="extract"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.extract">[docs]</a><span class="k">def</span> <span class="nf">extract</span><span class="p">(</span><span class="n">file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Extracts all files in archive with random name to uploads folder.</span>
+
+<span class="sd">    :param werkzeug.datastructures.FileStorage file: The file to extract.</span>
+<span class="sd">    :returns: A file tree as generated by</span>
+<span class="sd">              :py:func:`rename_directory_structure`.</span>
+<span class="sd">    :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tmpdir</span> <span class="o">=</span> <span class="n">extract_to_temp</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+    <span class="n">rootdir</span> <span class="o">=</span> <span class="n">tmpdir</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">)</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">rootdir</span><span class="o">.</span><span class="n">rfind</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">rename_directory_structure</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)[</span><span class="n">tmpdir</span><span class="p">[</span><span class="n">start</span><span class="p">:]]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;archive&#39;</span><span class="p">:</span> <span class="n">res</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="p">[</span><span class="n">res</span><span class="p">]}</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;archive&#39;</span><span class="p">:</span> <span class="n">res</span><span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="random_file_path"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.random_file_path">[docs]</a><span class="k">def</span> <span class="nf">random_file_path</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Generates a new random file path in the upload directory.</span>
+
+<span class="sd">    :returns: The name of the new file and a path to that file</span>
+<span class="sd">    :rtype: (str, str)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+        <span class="n">candidate</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;UPLOAD_DIR&#39;</span><span class="p">],</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">candidate</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">break</span>
+    <span class="k">return</span> <span class="n">candidate</span><span class="p">,</span> <span class="n">name</span></div>
+
+
+<div class="viewcode-block" id="dehead_filetree"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.dehead_filetree">[docs]</a><span class="k">def</span> <span class="nf">dehead_filetree</span><span class="p">(</span><span class="n">tree</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Remove the head of the given filetree while preserving the old head</span>
+<span class="sd">    name.</span>
+
+<span class="sd">    So a tree ``{1: 2: 3: 4: [f1, f2]}`` will be converted to ``{1: [f1, f2]}``</span>
+
+<span class="sd">    :param dict tree: The file tree as generated by :py:func:`extract`.</span>
+<span class="sd">    :returns: The same tree but deheaded as described.</span>
+<span class="sd">    :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="n">head_node</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">tree</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="n">head_node</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="n">head_node</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">tree</span><span class="p">[</span><span class="n">head_node</span><span class="p">]</span> <span class="o">=</span> <span class="n">tree</span><span class="p">[</span><span class="n">head_node</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="n">head_node</span><span class="p">],</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">tree</span><span class="p">[</span><span class="n">head_node</span><span class="p">]</span> <span class="o">=</span> <span class="n">tree</span><span class="p">[</span><span class="n">head_node</span><span class="p">][</span><span class="nb">list</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="n">head_node</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="n">head_node</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="n">head_node</span><span class="p">],</span> <span class="nb">dict</span><span class="p">)):</span>
+            <span class="n">tree</span><span class="p">[</span><span class="n">head_node</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tree</span><span class="p">[</span><span class="n">head_node</span><span class="p">]]</span>
+            <span class="k">break</span>
+    <span class="k">return</span> <span class="n">tree</span></div>
+
+
+<div class="viewcode-block" id="process_files"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.process_files">[docs]</a><span class="k">def</span> <span class="nf">process_files</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process the given files by extracting, moving and saving their tree</span>
+<span class="sd">    structure.</span>
+
+<span class="sd">    :param files: The files to move and extract</span>
+<span class="sd">    :rtype: list of FileStorage</span>
+<span class="sd">    :returns: The tree of the files as is described by</span>
+<span class="sd">              :py:func:`rename_directory_structure`</span>
+<span class="sd">    :rtype: dict</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">is_archive</span><span class="p">(</span><span class="n">files</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">is_archive</span><span class="p">(</span><span class="n">file</span><span class="p">):</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">extract</span><span class="p">(</span><span class="n">file</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">new_file_name</span><span class="p">,</span> <span class="n">filename</span> <span class="o">=</span> <span class="n">random_file_path</span><span class="p">()</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">file</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">filename</span><span class="p">))</span>
+                <span class="n">file</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">new_file_name</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;top&#39;</span><span class="p">:</span> <span class="n">res</span><span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">extract</span><span class="p">(</span><span class="n">files</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">dehead_filetree</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="process_blackboard_zip"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.process_blackboard_zip">[docs]</a><span class="k">def</span> <span class="nf">process_blackboard_zip</span><span class="p">(</span><span class="n">file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process the given :py:mod:`.blackboard` zip file.</span>
+
+<span class="sd">    This is done by extracting, moving and saving the tree structure of each</span>
+<span class="sd">    submission.</span>
+
+<span class="sd">    :param FileStorage file: The blackboard gradebook to import</span>
+<span class="sd">    :returns: List of tuples (BBInfo, tree)</span>
+<span class="sd">    :rtype: list[tuple[psef.blackboard.Info, tree]]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tmpdir</span> <span class="o">=</span> <span class="n">extract_to_temp</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+    <span class="n">info_files</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="p">[</span><span class="n">_bb_txt_format</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                               <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)])</span>
+    <span class="n">submissions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">info_file</span> <span class="ow">in</span> <span class="n">info_files</span><span class="p">:</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="n">blackboard</span><span class="o">.</span><span class="n">parse_info_file</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="n">info_file</span><span class="o">.</span><span class="n">string</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">info</span><span class="o">.</span><span class="n">files</span><span class="p">:</span>
+            <span class="n">files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FileStorage</span><span class="p">(</span><span class="n">stream</span><span class="o">=</span><span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">tmpdir</span><span class="p">,</span> <span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;rb&#39;</span><span class="p">),</span> <span class="n">filename</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">original_name</span><span class="p">))</span>
+        <span class="n">tree</span> <span class="o">=</span> <span class="n">process_files</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+        <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">f</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">(),</span> <span class="n">files</span><span class="p">)</span>
+        <span class="n">submissions</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">info</span><span class="p">,</span> <span class="n">tree</span><span class="p">))</span>
+    <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">submissions</span></div>
+
+
+<div class="viewcode-block" id="create_csv"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.create_csv">[docs]</a><span class="k">def</span> <span class="nf">create_csv</span><span class="p">(</span><span class="n">objects</span><span class="p">,</span> <span class="n">attributes</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a csv file from the given objects and attributes.</span>
+
+<span class="sd">    :param objects: The objects that will be listed</span>
+<span class="sd">    :type objects: list of object</span>
+<span class="sd">    :param attributes: The attributes of each object that will be listed</span>
+<span class="sd">    :type attributes: list of str</span>
+<span class="sd">    :param headers: Column headers that will be the first row in the csv file</span>
+<span class="sd">    :type headers: list of str</span>
+<span class="sd">    :returns: The path to the csv file</span>
+<span class="sd">    :rtype: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">headers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="n">attributes</span>
+
+    <span class="k">return</span> <span class="n">create_csv_from_rows</span><span class="p">([</span><span class="n">headers</span><span class="p">]</span> <span class="o">+</span> <span class="p">[[</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">helpers</span><span class="o">.</span><span class="n">rgetattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attr</span><span class="p">))</span> <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attributes</span>
+    <span class="p">]</span> <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">objects</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="create_csv_from_rows"><a class="viewcode-back" href="../../psef_api/psef.html#psef.files.create_csv_from_rows">[docs]</a><span class="k">def</span> <span class="nf">create_csv_from_rows</span><span class="p">(</span><span class="n">rows</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a csv file from the given rows.</span>
+
+<span class="sd">    Rows should be a nested list or other similar iterable like this:</span>
+<span class="sd">    [[header_1, header_2], [row_1a, row_1b], [row_2a, row_2b]]</span>
+
+<span class="sd">    :param rows: The rows that will be used to populate the csv</span>
+<span class="sd">    :type rows: list of str</span>
+<span class="sd">    :returns: The path to the csv file</span>
+<span class="sd">    :rtpe: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mode</span><span class="p">,</span> <span class="n">csv_file</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkstemp</span><span class="p">()</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">csv_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csv_output</span><span class="p">:</span>
+        <span class="n">csv_writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">csv_output</span><span class="p">)</span>
+        <span class="n">csv_writer</span><span class="o">.</span><span class="n">writerows</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">csv_file</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  <li><a href="../psef.html">psef</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Thomas Schaper.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -4,6 +4,7 @@ This module implements generic helpers and convenience functions.
 """
 import os
 import json
+from functools import reduce
 
 from flask import Flask, g, render_template
 
@@ -34,3 +35,14 @@ def get_request_start_time():
     :rtype: float
     """
     return g.request_start_time
+
+
+def rgetattr(obj, attr):
+    """Recursive implementation of getattr
+
+    :param object obj: Some object
+    :param str attr: A string identifying some (nested) attribute
+    :returns: The requested attribute
+    :rtype: object
+    """
+    return reduce(getattr, [obj] + attr.split('.'))

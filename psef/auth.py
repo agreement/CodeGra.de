@@ -86,7 +86,7 @@ def ensure_permission(permission_name, course_id=None):
                       course permission, if it is None a role permission is
                       implied. If a course_id is supplied but the given
                       permission is not a course permission (but a role
-                      permission) this function will NEVER grant the
+                      permission) this function will **NEVER** grant the
                       permission.
     :type course_id: None or int
 
@@ -130,7 +130,7 @@ permission_required.__doc__ = ensure_permission.__doc__
 # https://github.com/tophatmonocle/ims_lti_py
 
 
-class _RequestValidatorMixin(object):
+class RequestValidatorMixin(object):
     '''
     A 'mixin' for OAuth request validation.
     '''
@@ -183,7 +183,7 @@ class _RequestValidatorMixin(object):
         # Signature was valid
         return True
 
-    def parse_request(self, request, parameters):
+    def parse_request(self, request, parameters, fake_method):
         '''
         This must be implemented for the framework you're using
         Returns a tuple: (method, url, headers, parameters)
@@ -191,8 +191,15 @@ class _RequestValidatorMixin(object):
         url is the full absolute URL of the request
         headers is a dictionary of any headers sent in the request
         parameters are the parameters sent from the LMS
+
+        :param object request: The request to be parsed.
+        :param dict parameters: Extra parameters for the given request.
+        :param object fake_method: The fake method to be used.
+        :rtype: tuple[str, str, dict[str, str], dict[str, str]]
+        :returns: A tuple of, respectively, the requets method, url, headers
+            and form, where the last two are a key value mapping.
         '''
-        raise NotImplemented
+        raise NotImplementedError()
 
     def valid_request(self, request):
         '''
@@ -201,7 +208,7 @@ class _RequestValidatorMixin(object):
         self.is_valid_request(request, parameters={}, handle_error=False)
 
 
-class _FlaskOAuthValidator(_RequestValidatorMixin):
+class _FlaskOAuthValidator(RequestValidatorMixin):
     def __init__(self, key, secret):
         self.consumer_key = key
         self.consumer_secret = secret
@@ -218,6 +225,16 @@ def ensure_valid_oauth(key,
                        secret,
                        request,
                        parser_cls=_FlaskOAuthValidator):
+    """Make sure the given oauth key and secret is valid for the given request.
+
+    :param str key: The oauth key to be used for validating.
+    :param str secret: The oauth secret to be used for validating.
+    :param object request: The request that should be validated.
+    :param RequestValidatorMixin parser_cls: The class used to parse the given
+        ``request`` it should subclass :py:class:`RequestValidatorMixin` and
+        should at least override the
+        :func:`RequestValidatorMixin.parse_request` method.
+    """
     validator = parser_cls(key, secret)
     if not validator.is_valid_request(request):
         raise PermissionException(

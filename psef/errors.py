@@ -64,7 +64,7 @@ def handle_api_error(error):
     """Handle an :class:`APIException` by converting it to a
     :class:`flask.Response`.
 
-    :param ApiException error: The error that occurred
+    :param APIException error: The error that occurred
     :returns: A response with the JSON serialized error as content.
     :rtype: flask.Response
     """

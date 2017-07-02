@@ -1,7 +1,7 @@
 """
 This module defines all API routes with the main directory "assignments". Thus
 the APIs in this module are mostly used to manipulate
-:class:`models.Assignment` objects and their relations.
+:class:`.models.Assignment` objects and their relations.
 """
 
 import os
@@ -27,7 +27,7 @@ from . import api
 @api.route("/assignments/", methods=['GET'])
 @login_required
 def get_student_assignments():
-    """Get all the :class:`models.Assignment` objects that the current user can
+    """Get all the :class:`.models.Assignment` objects that the current user can
     see.
 
     :returns: A response containing the JSON serialized assignments
@@ -58,7 +58,7 @@ def get_student_assignments():
 
 @api.route("/assignments/<int:assignment_id>", methods=['GET'])
 def get_assignment(assignment_id):
-    """Return the given :class:`models.Assignment`.
+    """Return the given :class:`.models.Assignment`.
 
     :param int assignment_id: The id of the assignment
     :returns: A response containing the JSON serialized assignment
@@ -85,7 +85,7 @@ def get_assignment(assignment_id):
 
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
 def update_assignment(assignment_id):
-    """Update the given :class:`models.Assignment` with new values.
+    """Update the given :class:`.models.Assignment` with new values.
 
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
@@ -146,8 +146,8 @@ def update_assignment(assignment_id):
 
 @api.route("/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id):
-    """Upload one or more files as :class:`models.Work` to the given
-    :class:`models.Assignment`
+    """Upload one or more files as :class:`.models.Work` to the given
+    :class:`.models.Assignment`
 
     :param int assignment_id: The id of the assignment
     :returns: A the JSON serialized submission and return code 201.
@@ -219,8 +219,8 @@ def upload_work(assignment_id):
 
 @api.route('/assignments/<int:assignment_id>/divide', methods=['PATCH'])
 def divide_assignments(assignment_id):
-    """Assign graders to all the latest :class:`models.Submission` objects of
-    the given :class:`models.Assignment`.
+    """Assign graders to all the latest :class:`.models.Work` objects of
+    the given :class:`.models.Assignment`.
 
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
@@ -286,8 +286,8 @@ def divide_assignments(assignment_id):
 
 @api.route('/assignments/<int:assignment_id>/graders', methods=['GET'])
 def get_all_graders(assignment_id):
-    """Gets a list of all :class:`models.User` objects who can grade the given
-    :class:`models.Assignment`.
+    """Gets a list of all :class:`.models.User` objects who can grade the given
+    :class:`.models.Assignment`.
 
     :param int assignment_id: The id of the assignment
     :returns: A response containing the JSON serialized graders.
@@ -338,8 +338,8 @@ def get_all_graders(assignment_id):
 
 @api.route('/assignments/<int:assignment_id>/submissions/', methods=['GET'])
 def get_all_works_for_assignment(assignment_id):
-    """Return all :class:`models.Work` objects for the given
-    :class:`models.Assignment`.
+    """Return all :class:`.models.Work` objects for the given
+    :class:`.models.Assignment`.
 
     :param int assignment_id: The id of the assignment
     :returns: A response containing the JSON serialized submissions.
@@ -368,8 +368,8 @@ def get_all_works_for_assignment(assignment_id):
 
 @api.route("/assignments/<int:assignment_id>/submissions/", methods=['POST'])
 def post_submissions(assignment_id):
-    """Add submissions to the  given:class:`models.Assignment` from a
-    blackboard zip file as :class:`models.Work` objects.
+    """Add submissions to the  given:class:`.models.Assignment` from a
+    blackboard zip file as :class:`.models.Work` objects.
 
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
@@ -442,7 +442,7 @@ def post_submissions(assignment_id):
 
 @api.route('/assignments/<int:assignment_id>/linters/', methods=['GET'])
 def get_linters(assignment_id):
-    """Get all possible linters for the given :class:`models.Assignment`.
+    """Get all possible linters for the given :class:`.models.Assignment`.
 
     :param int assignment_id: The id of the assignment
     :returns: A response containing the JSON serialized linters
@@ -499,7 +499,7 @@ def get_linters(assignment_id):
 @api.route('/assignments/<int:assignment_id>/linter', methods=['POST'])
 def start_linting(assignment_id):
     """Starts running a specific linter on all the latest submissions
-    (:class:`models.Work`) of the given :class:`models.Assignment`.
+    (:class:`.models.Work`) of the given :class:`.models.Assignment`.
 
     :param int assignment_id: The id of the assignment
     :returns: A response containing the serialized linter that is started by

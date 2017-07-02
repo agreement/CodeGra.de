@@ -17,6 +17,9 @@ from psef.auth import ensure_valid_oauth
 
 
 class LTI:
+    """The base LTI class.
+    """
+
     # TODO support more than just flask
     def __init__(self, req):
         self.launch_params = req.form.copy()
@@ -34,14 +37,20 @@ class LTI:
 
     @property
     def user_id(self):
+        """The unique id of the current LTI user.
+        """
         return self.launch_params['user_id']
 
     @property
     def user_email(self):
+        """The email of the current LTI user.
+        """
         return self.launch_params['lis_person_contact_email_primary']
 
     @property
     def user_name(self):
+        """The name or username of the current LTI user.
+        """
         return self.launch_params['lis_person_name_full']
 
     @property
@@ -50,9 +59,23 @@ class LTI:
 
     @property
     def course_name(self):
+        """The name of the current LTI course.
+        """
         return self.launch_params['context_title']
 
-    def ensure_lti_user(self):
+    def ensure_lti_user(self) -> models.User:
+        """Make sure the current LTI user is logged in as a psef user.
+
+        This is done by first checking if we know a user with the current LTI
+        user_id, if this is the case this is the user we log in and return.
+
+        Otherwise we check if a user is logged in and this user has no LTI
+        user_id, if this is the case we link the current LTI user_id to the
+        current logged in user and return this user.
+
+        Otherwise we create a new user and link this user to current LTI
+        user_id.
+        """
         is_logged_in = login_fresh() and current_user.is_authenticated
         if is_logged_in and current_user.lti_user_id == self.user_id:
             # The currently logged in user is now using LTI
@@ -66,7 +89,7 @@ class LTI:
             login_user(lti_user)
             return lti_user
         elif is_logged_in and current_user.lti_user_id is None:
-            # TODO show some sort of screen if this coupling is wanted
+            # TODO show some sort of screen if this linking is wanted
             current_user.lti_user_id = self.user_id
             return current_user
         else:
@@ -84,7 +107,9 @@ class LTI:
             login_user(user)
             return user
 
-    def get_course(self):
+    def get_course(self) -> models.Course:
+        """Get the current LTI course as a psef course.
+        """
         course = models.Course.query.filter_by(
             lti_course_id=self.course_id).first()
         if course is None:
@@ -99,7 +124,9 @@ class LTI:
 
         return course
 
-    def get_assignment(self):
+    def get_assignment(self) -> models.Assignment:
+        """Get the current LTI assignment as a psef assignment.
+        """
         assignment = models.Assignment.query.filter_by(
             lti_assignment_id=self.assignment_id).first()
         if assignment is None:
@@ -135,6 +162,18 @@ class LTI:
         return assignment
 
     def set_user_role(self, user):
+        """Set the role of the given user if the user has no role.
+
+        The role is determined according to :py:data:`.LTI_ROLE_LOOKUPS`.
+
+        .. note::
+            If the role could not be matched the ``DEFAULT_ROLE`` configured
+            in the config of the app is used.
+
+        :param models.User user: The user to set the role for.
+        :returns: Nothing
+        :rtype: None
+        """
         if user.role is None:
             for role in self.roles:
                 if role not in LTI_ROLE_LOOKUPS:
@@ -149,6 +188,17 @@ class LTI:
                 name=app.config['DEFAULT_ROLE']).one()
 
     def set_user_course_role(self, user, course):
+        """Set the course role for the given course and user if there is no
+        such role just yet.
+
+        The mapping is done using :py:data:`.LTI_ROLE_LOOKUPS`
+
+        :param models.User user: The user to set the course role  for.
+        :param models.Course course: The course to connect to user to.
+        :rtype: None
+        :returns: Nothing
+        :raises ValueError: When the LTI role could not be converted.
+        """
         if course.id not in user.courses:
             for role in self.roles:
                 role_lookup = LTI_ROLE_LOOKUPS[role]
@@ -160,21 +210,41 @@ class LTI:
                 return
             raise ValueError('Got an unkown or no course roles')
 
-    def has_result_sourcedid(self):
+    def has_result_sourcedid(self) -> bool:
+        """Check if the current LTI request has a ``sourcedid`` field.
+
+        :returns: A boolean indicating if a ``sourcedid`` field was found.
+        """
         return False
 
     @staticmethod
     def generate_xml():
+        """Generate a config XML for this LTI consumer.
+        """
         raise NotImplementedError()
 
     @staticmethod
-    def passback_grade(key,
-                       secret,
+    def passback_grade(key: str,
+                       secret: str,
                        grade,
-                       service_url,
-                       sourcedid,
+                       service_url: str,
+                       sourcedid: str,
                        text=None,
                        url=None):
+        """Do a LTI grade passback.
+
+        :param key: The oauth key to use.
+        :param secret: The oauth secret to use.
+        :param numbers.Rational grade: The grade to pass back.
+        :param service_url: The url used for grade passback.
+        :param sourcedid: The ``sourcedid`` used in the grade passback.
+        :param text: The text used as general feedback to the student.
+        :type text: None or str
+        :param url: The url used as general feedback to the student which will
+            probably be clickable.
+        :type url: None or str
+        :returns: The response of the LTI consumer.
+        """
         req = OutcomeRequest(opts={
             'consumer_key': key,
             'consumer_secret': secret,
@@ -192,40 +262,64 @@ class LTI:
 
 
 class CanvasLTI(LTI):
+    """The LTI class used for the Canvas LMS.
+    """
+
     def __init__(self, *args, **kwargs):
         super(CanvasLTI, self).__init__(*args, **kwargs)
 
     @property
     def course_name(self):
+        """The name of the current LTI course.
+        """
         return self.launch_params['custom_canvas_course_name']
 
     @property
     def course_id(self):
+        """The id of the current LTI course.
+        """
         return self.launch_params['custom_canvas_course_id']
 
     @property
     def assignment_id(self):
+        """The id of the current LTI assignment.
+        """
         return self.launch_params['custom_canvas_assignment_id']
 
     @property
     def assignment_name(self):
+        """The name of the current LTI assignment.
+        """
         return self.launch_params['custom_canvas_assignment_title']
 
     @property
     def outcome_service_url(self):
+        """The url used to passback grades to Canvas.
+        """
         return self.launch_params['lis_outcome_service_url']
 
     @property
     def result_sourcedid(self):
+        """The sourcedid of the current user for the current assignment.
+        """
         return self.launch_params['lis_result_sourcedid']
 
     def has_result_sourcedid(self):
         return 'lis_result_sourcedid' in self.launch_params
 
     def get_assignment_deadline(self, default=None):
+        """Get the deadline of the current LTI assignment.
+
+        :param default: The value to be returned of the assignment has no
+            deadline. If ``default.__bool__`` is ``False`` the current date
+            plus 365 days is used.
+        :type default: datetime.datetime or None
+        :rtype: datetime.datetime
+        :returns: The deadline of the assignment as a datetime.
+        """
         try:
-            return dateutil.parser.parse(
-                self.launch_params['custom_canvas_assignment_due_at'])
+            return dateutil.parser.parse(self.launch_params[
+                'custom_canvas_assignment_due_at'])
         except:
             if default is None:
                 return (
@@ -235,6 +329,8 @@ class CanvasLTI(LTI):
 
     @property
     def assignment_state(self):
+        """The state of the current LTI assignment.
+        """
         if self.launch_params['custom_canvas_assignment_published'] == 'true':
             return models._AssignmentStateEnum.open
         else:
@@ -242,12 +338,19 @@ class CanvasLTI(LTI):
 
     @property
     def roles(self):
+        """The normalized roles of the current LTI user.
+        """
         for role in self.launch_params['roles'].split(','):
             yield role.split('/')[-1].lower()
 
 
+CanvasLTI.has_result_sourcedid.__doc__ = LTI.has_result_sourcedid.__doc__
+
+
 @app.route('/lti/launch', methods=['POST'])
 def launch_lti():
+    """Do a LTI launch.
+    """
     lti = CanvasLTI(flask.request)
     user = lti.ensure_lti_user()
     course = lti.get_course()
@@ -256,8 +359,8 @@ def launch_lti():
     lti.set_user_course_role(user, course)
     db.session.commit()
     return flask.redirect(
-        '{}/courses/{}/assignments/{}/submissions?lti=true'.format(
-            app.config['EXTERNAL_URL'], course.id, assig.id))
+        '{}/courses/{}/assignments/{}/submissions?lti=true'.format(app.config[
+            'EXTERNAL_URL'], course.id, assig.id))
 
 
 # This part is largely copied from https://github.com/tophatmonocle/ims_lti_py
@@ -316,8 +419,8 @@ class OutcomeRequest():
             Note: ONLY ONE of these values can be in the dict at a time,
             due to the Canvas specification.
 
-            'text' : str text
-            'url' : str url
+        :param str: text: text
+        :param str: url: url
         '''
         self.operation = REPLACE_REQUEST
         self.score = score
@@ -414,8 +517,8 @@ class OutcomeRequest():
             http = httplib2.Http
             http._normalize_headers = monkey_patch_function
 
-        self.outcome_response = OutcomeResponse.from_post_response(
-            response, content)
+        self.outcome_response = OutcomeResponse.from_post_response(response,
+                                                                   content)
         return self.outcome_response
 
     def process_xml(self, xml):

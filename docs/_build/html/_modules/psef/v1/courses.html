@@ -1,0 +1,509 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>psef.v1.courses &#8212; CodeGra.de 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for psef.v1.courses</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module defines all API routes with the main directory &quot;courses&quot;. The APIs</span>
+<span class="sd">are used to create courses and return information about courses.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">flask</span> <span class="k">import</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">request</span>
+<span class="kn">from</span> <span class="nn">flask_login</span> <span class="k">import</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">login_required</span>
+
+<span class="kn">import</span> <span class="nn">psef.auth</span> <span class="k">as</span> <span class="nn">auth</span>
+<span class="kn">import</span> <span class="nn">psef.models</span> <span class="k">as</span> <span class="nn">models</span>
+<span class="kn">from</span> <span class="nn">psef</span> <span class="k">import</span> <span class="n">LTI_ROLE_LOOKUPS</span><span class="p">,</span> <span class="n">db</span>
+<span class="kn">from</span> <span class="nn">psef.errors</span> <span class="k">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">api</span>
+
+
+<div class="viewcode-block" id="delete_role"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.delete_role">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;/roles/&lt;int:role_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;DELETE&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">delete_role</span><span class="p">(</span><span class="n">course_id</span><span class="p">,</span> <span class="n">role_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Remove a :class:`.models.CourseRole` from the given</span>
+<span class="sd">    :class:`.models.Course`.</span>
+
+<span class="sd">    :param int course_id: The id of the course</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+<span class="sd">    :rtype: (str, int)</span>
+
+<span class="sd">    :raises APIException: If the role with the given ids does not exist.</span>
+<span class="sd">                          (OBJECT_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: If there are still users with this role.</span>
+<span class="sd">                          (INVALID_PARAM)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not manage the course with the</span>
+<span class="sd">                                 given id. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_manage_course&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">course</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">role</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+        <span class="n">course_id</span><span class="o">=</span><span class="n">course_id</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="n">role_id</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">role</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;The specified role was not found&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The fole with name &quot;</span><span class="si">{role_id}</span><span class="s1">&quot; was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">role_id</span><span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">course</span><span class="o">.</span><span class="n">lti_provider</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s1">&#39;role&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">role</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">LTI_ROLE_LOOKUPS</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;You cannot delete default LTI roles for a LTI course&#39;</span><span class="p">,</span>
+                <span class="p">(</span><span class="s1">&#39;The course &quot;</span><span class="si">{}</span><span class="s1">&quot; is an LTI course &#39;</span>
+                 <span class="s1">&#39;so it is impossible to delete role </span><span class="si">{}</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                     <span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">role</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span> <span class="mi">403</span><span class="p">)</span>
+
+    <span class="n">sql</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">user_course</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">user_course</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_id</span> <span class="o">==</span> <span class="n">role_id</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span><span class="o">.</span><span class="n">scalar</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;There are still users with this role&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;There are still users with role </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">role_id</span><span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">role</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">204</span></div>
+
+
+<div class="viewcode-block" id="add_role"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.add_role">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;/roles/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">add_role</span><span class="p">(</span><span class="n">course_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add a new :class:`.models.CourseRole` to the given</span>
+<span class="sd">    :class:`.models.Course`.</span>
+
+<span class="sd">    :param int course_id: The id of the course</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+<span class="sd">    :rtype: (str, int)</span>
+
+<span class="sd">    :raises APIException: If the name parameter was not in the request.</span>
+<span class="sd">                          (MISSING_REQUIRED_PARAM)</span>
+<span class="sd">    :raises APIException: If the course with the given id was not found.</span>
+<span class="sd">                          (OBJECT_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: If the course already has a role with the submitted</span>
+<span class="sd">                          name. (INVALID_PARAM)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not manage the course with the</span>
+<span class="sd">                                 given id. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_manage_course&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">content</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="s1">&#39;name&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;Some required keys were not found&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;&quot;name&quot; was not found in </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">content</span><span class="p">),</span>
+                           <span class="n">APICodes</span><span class="o">.</span><span class="n">MISSING_REQUIRED_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+
+    <span class="n">course</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">course_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">course</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;The specified course was not found&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The course with id &quot;</span><span class="si">{}</span><span class="s1">&quot; was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">course_id</span><span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">course_id</span><span class="o">=</span><span class="n">course_id</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;This course already has a role with this name&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The course &quot;</span><span class="si">{}</span><span class="s1">&quot; already has a role named &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">course_id</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+
+    <span class="n">role</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">course</span><span class="o">=</span><span class="n">course</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">role</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">204</span></div>
+
+
+<div class="viewcode-block" id="update_role"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.update_role">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;/roles/&lt;int:role_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PATCH&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">update_role</span><span class="p">(</span><span class="n">course_id</span><span class="p">,</span> <span class="n">role_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Update the :class:`.models.Permission` of a given</span>
+<span class="sd">    :class:`.models.CourseRole` in the given :class:`.models.Course`.</span>
+
+<span class="sd">    :param int course_id: The id of the course</span>
+<span class="sd">    :param int role_id: The id of the role</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+<span class="sd">    :rtype: (str, int)</span>
+
+<span class="sd">    :raises APIException: If the value or permission parameter are not in the</span>
+<span class="sd">                          request. (MISSING_REQUIRED_PARAM)</span>
+<span class="sd">    :raises APIException: If the role with the given id does not exist or the</span>
+<span class="sd">                          permission with the given name does not exist.</span>
+<span class="sd">                          (OBJECT_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not manage the course with the</span>
+<span class="sd">                                 given id. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_manage_course&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;value&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">content</span> <span class="ow">or</span> <span class="s1">&#39;permission&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">content</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;Some required keys were not found&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;&quot;permission&quot; or &quot;value&quot; were not found in </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">content</span><span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">MISSING_REQUIRED_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+
+    <span class="n">role</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+        <span class="n">course_id</span><span class="o">=</span><span class="n">course_id</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="n">role_id</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">role</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;The specified role was not found&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The fole with name &quot;</span><span class="si">{role_id}</span><span class="s1">&quot; was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">role_id</span><span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
+
+    <span class="n">perm</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Permission</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;permission&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">perm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;The specified permission was not found&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The fole with name &quot;</span><span class="si">{permission}</span><span class="s1">&quot; was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="o">**</span><span class="n">content</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">courses</span><span class="p">[</span><span class="n">course_id</span><span class="p">]</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">role</span><span class="o">.</span><span class="n">id</span> <span class="ow">and</span>
+            <span class="n">role</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;can_manage_course&#39;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;You remove this permission from your own role&#39;</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s1">&#39;The current user is in role </span><span class="si">{}</span><span class="s1"> which&#39;</span>
+            <span class="s1">&#39; cannot remove &quot;can_manage_course&quot;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">role</span><span class="o">.</span><span class="n">id</span><span class="p">),</span>
+                           <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span> <span class="mi">403</span><span class="p">)</span>
+
+    <span class="n">role</span><span class="o">.</span><span class="n">set_permission</span><span class="p">(</span><span class="n">perm</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">204</span></div>
+
+
+<div class="viewcode-block" id="get_all_course_roles"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.get_all_course_roles">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;/roles/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">get_all_course_roles</span><span class="p">(</span><span class="n">course_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get a list of all :class:`.models.CourseRole` objects of a given</span>
+<span class="sd">    :class:`.models.Course`.</span>
+
+<span class="sd">    :param int course_id: The id of the course</span>
+<span class="sd">    :returns: A response containing the JSON serialized course roles.</span>
+<span class="sd">    :rtype: flask.Response</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not manage the course with the</span>
+<span class="sd">                                 given id. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_manage_course&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">courses</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">course_id</span><span class="o">=</span><span class="n">course_id</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span>
+        <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;with_roles&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;true&#39;</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">course</span> <span class="ow">in</span> <span class="n">courses</span><span class="p">:</span>
+            <span class="n">json_course</span> <span class="o">=</span> <span class="n">course</span><span class="o">.</span><span class="n">__to_json__</span><span class="p">()</span>
+            <span class="n">json_course</span><span class="p">[</span><span class="s1">&#39;perms&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">course</span><span class="o">.</span><span class="n">get_all_permissions</span><span class="p">()</span>
+            <span class="n">json_course</span><span class="p">[</span><span class="s1">&#39;own&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">courses</span><span class="p">[</span>
+                <span class="n">course</span><span class="o">.</span><span class="n">course_id</span><span class="p">]</span> <span class="o">==</span> <span class="n">course</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">json_course</span><span class="p">)</span>
+        <span class="n">courses</span> <span class="o">=</span> <span class="n">res</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">courses</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="set_course_permission_user"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.set_course_permission_user">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;/users/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PUT&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">set_course_permission_user</span><span class="p">(</span><span class="n">course_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set the :class:`.models.CourseRole` of a :class:`.models.User` in the</span>
+<span class="sd">    given :class:`.models.Course`.</span>
+
+<span class="sd">    :param int course_id: The id of the course</span>
+<span class="sd">    :returns: If the user_id parameter is set in the request the response will</span>
+<span class="sd">              be empty with return code 204. Otherwise the response will</span>
+<span class="sd">              contain the JSON serialized user and course role with return code</span>
+<span class="sd">              201</span>
+<span class="sd">    :rtype: (flask.Response, int) or (str, int)</span>
+
+<span class="sd">    :raises APIException: If the parameter role_id or not at least one of</span>
+<span class="sd">                          user_id and user_email are in the request.</span>
+<span class="sd">                          (MISSING_REQUIRED_PARAM)</span>
+<span class="sd">    :raises APIException: If no role with the given role_id or no user</span>
+<span class="sd">                          with the supplied parameters exists.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: If the user was selected by email and the user is</span>
+<span class="sd">                          already in the course. (INVALID_PARAM)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not manage the course with the</span>
+<span class="sd">                                 given id. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_manage_course&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;role_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;Required parameter &quot;role_id&quot; is missing&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The given content (</span><span class="si">{}</span><span class="s1">) does  not contain &quot;role_id&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">content</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">MISSING_REQUIRED_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;user_id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">content</span> <span class="ow">and</span> <span class="s1">&#39;user_email&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;None of the keys &quot;user_id&quot; or &quot;role_id&quot; were found&#39;</span><span class="p">,</span>
+            <span class="p">(</span><span class="s1">&#39;The given content (</span><span class="si">{}</span><span class="s1">)&#39;</span>
+             <span class="s1">&#39; does  not contain &quot;user_id&quot; or &quot;user_email&quot;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">content</span><span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">MISSING_REQUIRED_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+
+    <span class="n">role</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;role_id&#39;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">role</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;Specified role was not found&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;The role </span><span class="si">{role_id}</span><span class="s1"> was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                               <span class="o">**</span><span class="n">content</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;user_id&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;user_id&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;The specified user was not found&#39;</span><span class="p">,</span>
+                               <span class="s1">&#39;The user </span><span class="si">{user_id}</span><span class="s1"> was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                   <span class="o">**</span><span class="n">content</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span>
+                               <span class="mi">404</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;You cannot change your own role&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;The user requested and the current user are the same&#39;</span><span class="p">,</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span> <span class="mi">403</span><span class="p">)</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">204</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">email</span><span class="o">=</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;user_email&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;The specified user email was not found&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;The user with email &quot;</span><span class="si">{user_email}</span><span class="s1">&quot; was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="o">**</span><span class="n">content</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">role</span><span class="o">.</span><span class="n">course_id</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">courses</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;The specified user is already in this course&#39;</span><span class="p">,</span>
+                               <span class="s1">&#39;The user </span><span class="si">{}</span><span class="s1"> is in course </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                   <span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">role</span><span class="o">.</span><span class="n">course_id</span><span class="p">),</span>
+                               <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="n">jsonify</span><span class="p">({</span>
+            <span class="s1">&#39;User&#39;</span><span class="p">:</span> <span class="n">user</span><span class="p">,</span>
+            <span class="s2">&quot;CourseRole&quot;</span><span class="p">:</span> <span class="n">role</span><span class="p">,</span>
+        <span class="p">}),</span> <span class="mi">201</span>
+
+    <span class="n">user</span><span class="o">.</span><span class="n">courses</span><span class="p">[</span><span class="n">role</span><span class="o">.</span><span class="n">course_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">role</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="get_all_course_users"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.get_all_course_users">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;/users/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">get_all_course_users</span><span class="p">(</span><span class="n">course_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a list of all :class:`.models.User` objects and their</span>
+<span class="sd">    :class:`.models.CourseRole` in the given :class:`.models.Course`.</span>
+
+<span class="sd">    :param int course_id: The id of the course</span>
+<span class="sd">    :returns: A response containing the JSON serialized users and course roles</span>
+<span class="sd">    :rtype: flask.Response</span>
+
+<span class="sd">    :raises APIException: If there is no course with the given id.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not manage the course with the</span>
+<span class="sd">                                 given id. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_manage_course&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">users</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">user_course</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">user_course</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">user_id</span> <span class="o">==</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">,</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">models</span><span class="o">.</span><span class="n">user_course</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">course_id</span> <span class="o">==</span> <span class="n">course_id</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+    <span class="n">users</span> <span class="o">=</span> <span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">row</span><span class="p">))</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">users</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">users</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;User&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="get_all_course_assignments"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.get_all_course_assignments">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;/assignments/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">get_all_course_assignments</span><span class="p">(</span><span class="n">course_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get all :class:`.models.Assignment` objects of the given</span>
+<span class="sd">    :class:`.models.Course`.</span>
+
+<span class="sd">    The returned assignments are sorted by deadline.</span>
+
+<span class="sd">    :param int course_id: The id of the course</span>
+<span class="sd">    :returns: A response containing the JSON serialized assignments</span>
+<span class="sd">    :rtype: flask.Response</span>
+
+<span class="sd">    :raises APIException: If there is no course with the given id.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not see assignments in the</span>
+<span class="sd">                                 given course. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_see_assignments&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">course</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">course_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">course</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;Specified course not found&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;The course </span><span class="si">{}</span><span class="s1"> was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">course_id</span><span class="p">),</span>
+                           <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">course</span><span class="o">.</span><span class="n">assignments</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="o">.</span><span class="n">deadline</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="add_course"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.add_course">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">permission_required</span><span class="p">(</span><span class="s1">&#39;can_create_courses&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">add_course</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Add a new :class:`.models.Course`.</span>
+
+<span class="sd">    :returns: A response containing the JSON serialization of the new course</span>
+<span class="sd">    :rtype: flask.Response</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not create courses.</span>
+<span class="sd">                                 (INCORRECT_PERMISSION)</span>
+<span class="sd">    :raises APIException: If the parameter &quot;name&quot; is not in the request.</span>
+<span class="sd">        (MISSING_REQUIRED_PARAM)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="s1">&#39;name&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;Required parameter &quot;name&quot; is missing&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The given content (</span><span class="si">{}</span><span class="s1">) does  not contain &quot;name&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">content</span><span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">MISSING_REQUIRED_PARAM</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+    <span class="n">new_course</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">new_course</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">new_course</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_courses"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.get_courses">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="nd">@login_required</span>
+<span class="k">def</span> <span class="nf">get_courses</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Return all :class:`.models.Course` objects the current user is a member</span>
+<span class="sd">    of.</span>
+
+<span class="sd">    :returns: A response containing the JSON serialized courses</span>
+<span class="sd">    :rtype: flask.Response</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">([{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+        <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+        <span class="s1">&#39;role&#39;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span>
+    <span class="p">}</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">current_user</span><span class="o">.</span><span class="n">courses</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span></div>
+
+
+<div class="viewcode-block" id="get_course_data"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.get_course_data">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="nd">@login_required</span>
+<span class="k">def</span> <span class="nf">get_course_data</span><span class="p">(</span><span class="n">course_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return course data for a given :class:`.models.Course`.</span>
+
+<span class="sd">    :param int course_id: The id of the course</span>
+
+<span class="sd">    :returns: A response containing the JSON serialized course</span>
+<span class="sd">    :rtype: flask.Response</span>
+
+<span class="sd">    :raises APIException: If there is no course with the given id.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">current_user</span><span class="o">.</span><span class="n">courses</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">course_id</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+                <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="s1">&#39;role&#39;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span>
+            <span class="p">})</span>
+
+    <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span><span class="s1">&#39;Course not found&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;The course with id </span><span class="si">{}</span><span class="s1"> was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">course_id</span><span class="p">),</span>
+                       <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../../psef.html">psef</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Thomas Schaper.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
