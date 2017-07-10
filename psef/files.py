@@ -221,14 +221,16 @@ def extract(file):
     tmpdir = extract_to_temp(file)
     rootdir = tmpdir.rstrip(os.sep)
     start = rootdir.rfind(os.sep) + 1
-    res = rename_directory_structure(tmpdir)[tmpdir[start:]]
-    if len(res) > 1:
-        return {'archive': res if isinstance(res, list) else [res]}
-    elif not isinstance(res[0], dict):
-        return {'archive': res}
-    else:
-        return res[0]
-    shutil.rmtree(tmpdir)
+    try:
+        res = rename_directory_structure(tmpdir)[tmpdir[start:]]
+        if len(res) > 1:
+            return {'archive': res if isinstance(res, list) else [res]}
+        elif not isinstance(res[0], dict):
+            return {'archive': res}
+        else:
+            return res[0]
+    finally:
+        shutil.rmtree(tmpdir)
 
 
 def random_file_path():
