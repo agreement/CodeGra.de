@@ -36,7 +36,7 @@ class Linter:
     DEFAULT_OPTIONS = {}
 
     def run(self, tempdir, emit):
-        """Run the bear linter on the code in `tempdir`.
+        """Run the linter on the code in `tempdir`.
 
         :param str tempdir: The temp directory that should contain the code to
                             run the linter on.
@@ -48,59 +48,6 @@ class Linter:
         :rtype: None
         """
         raise NotImplementedError('A subclass should implement this function!')
-
-
-class BearLinter(Linter):
-    """Implements a generic coala linter.
-
-    This class itself is not a functional linter yet, you need to at least
-    define/override `NAME`, `DEFAULT_OPTIONS`, `FILTER_STR`, `EXTENSION` and
-    `BEAR_NAME`. The first two are defined in :class:`Linter`, the third is the
-    string passed to `coala` as files argument, the fourth is the extension
-    that should be put after the `LINTER_STR`, and the last is the name of the
-    bear that should be given to the `coala` program.
-    """
-    NAME = '__ignore__'
-    FILTER_STR = '/**/*.'
-    BEAR_NAME = None
-    EXTENSION = '*'
-
-    def __init__(self, config):
-        """Create a new :class:`BearLinter`.
-
-        :param str config: The config for the bearlinter as a string.
-        """
-        self.config = config
-
-    def run(self, tempdir, emit):
-        """Run the bear linter.
-
-        The arguments are the same as for the base :py:meth:`Linter.emit`
-        function.
-        """
-        cfg = os.path.join(tempdir, '.coafile')
-        with open(cfg, 'w') as config_file:
-            config_file.write(self.config)
-
-        sep = str(uuid.uuid4())
-
-        sourcedir = tempdir + self.FILTER_STR + self.EXTENSION
-        out = subprocess.run(
-            [
-                'coala', '--format', '{1}{0}{2}{0}{3}{0}{4}'.format(
-                    sep, '{file}', '{line}', '{severity_str}', '{message}'),
-                '--config', os.path.join(tempdir, '.coafile'),
-                '--files', sourcedir, '--bears', self.BEAR_NAME,
-            ],
-            stdout=subprocess.PIPE).stdout.decode('utf8')
-
-        for line in out.split('\n'):
-            if line:
-                line2 = line.split(sep, 3)
-                try:
-                    emit(line2[0], int(line2[1]), line2[2], line2[3])
-                except ValueError:
-                    pass
 
 
 class Pylint(Linter):
@@ -188,137 +135,6 @@ class Flake8(Linter):
                     emit(args[0], int(args[1]), *args[2:])
                 except ValueError:
                     pass
-
-
-class PyFlakes(BearLinter):
-    """Run the pyflake checker.
-
-    This linter checks python code for style error, but not for formatting.
-    """
-    NAME = 'PyFlakes'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-    BEAR_NAME = 'PyFlakesBear'
-    EXTENSION = 'py'
-
-
-class Pycodestyle(BearLinter):
-    """Run the Pycodestyle checker.
-
-    This linter checks python code for pep8 compliance.
-    """
-    NAME = 'Pycodestyle'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-    BEAR_NAME = 'PycodestyleBear'
-    EXTENSION = 'py'
-
-
-class HtmlLintBear(BearLinter):
-    """Run the HTMLLint linter.
-    """
-    NAME = 'HTML Linter'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-    BEAR_NAME = 'HTMLLintBear'
-    EXTENSION = '(html|htm)'
-
-
-class ShellCheckBear(BearLinter):
-    """Run the shellcheck linter.
-
-    This linter checks shell, bash and languages like them for common errors.
-    """
-    NAME = 'Shell Linter'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-    BEAR_NAME = 'ShellCheckBear'
-
-
-class HaskellCheckBear(BearLinter):
-    """Run the GHCmod package.
-
-    This linter checks Haskell code for style errors.
-    """
-    NAME = 'GhcMod'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-    BEAR_NAME = 'GhcModBear'
-
-
-class JavaCheckBear(BearLinter):
-    """Run the java Checkstyle linter.
-    """
-    NAME = 'Checkstyle'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-    BEAR_NAME = 'CheckstyleBear'
-    EXTENSION = 'java'
-
-
-class ClangCheckBear(BearLinter):
-    """Run the Clang compiler as linter.
-
-    This linter check C and C++ code for syntax errors and semantical problems.
-    """
-    NAME = 'Clang'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-    BEAR_NAME = 'ClangBear'
-
-
-class GoLintCheckBear(BearLinter):
-    """Run the GoLint checker.
-
-    This checker checks for common errors in Go code.
-    """
-    NAME = 'Golint'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-    BEAR_NAME = 'GoLintBear'
-
-
-class GoFmtCheckBear(BearLinter):
-    """Run gofmt as a linter.
-
-    This checker checks for deviations from the formatting as indicated by the
-    `gofmt` program.
-    """
-    NAME = 'Gofmt'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-    BEAR_NAME = 'GofmtBear'
-
-
-class PHPCodeCheckBear(BearLinter):
-    """Run the PHP CodeSniffer linter.
-
-    This linter checks PHP code for syntax en formatting errors.
-    """
-    NAME = 'PHP Codesniffer'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-    BEAR_NAME = 'PHPCodeSnifferBear'
-
-
-class ESLintCheckBear(BearLinter):
-    """Run the ESLint linter.
-
-    This linter checks JavaScript for style issues and semantic errors.
-    """
-    NAME = 'Eslint'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-    BEAR_NAME = 'ESLintCheckBear'
-
-
-class SCSSCheckBear(BearLinter):
-    """Run the SCSSLint linter.
-
-    This linter checks CSS for formatting and syntax errors.
-    """
-    NAME = 'SCSSLint'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-    BEAR_NAME = 'SCSSLintBear'
-
-
-class LatexCheckBear(BearLinter):
-    """Run the chktex linter.
-
-    This linter checks Latex for formatting and syntax errors
-    """
-    NAME = 'Chktex'
-    DEFAULT_OPTIONS = {'Empty config file': ''}
-    BEAR_NAME = 'LatexLintBear'
 
 
 class LinterRunner():
