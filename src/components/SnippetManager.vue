@@ -12,33 +12,43 @@
             :response="true">
 
             <template slot="key" scope="item">
-                <b-form-fieldset :state="item.item.edited<2?'':validSnippetKey(item.item)?'success':'danger'" :feedback="item.item.keyError" v-if="item.item.editing">
-                    <b-form-input type="text" placeholder="Key" v-model="item.item.key" @keydown.native.once="item.item.edited += 1"></b-form-input>
+                <b-form-fieldset
+                    :state="!item.item.submitted ? '' : validSnippetKey(item.item) ? 'success' : 'danger'"
+                    :feedback="item.item.keyError"
+                    v-if="item.item.editing">
+                    <b-form-input type="text" placeholder="Key" v-model="item.item.key"></b-form-input>
                 </b-form-fieldset>
-                <span v-else>{{item.item.key ? item.item.key : '-'}}</span>
+                <span v-else>{{ item.item.key ? item.item.key : '-' }}</span>
             </template>
 
             <template slot="text" scope="item">
-                <b-form-fieldset :state="item.item.edited<2?'':validSnippetValue(item.item)?'success':'danger'" :feedback="item.item.valueError" v-if="item.item.editing">
-                    <b-form-input type="text" placeholder="Value" v-model="item.item.value" @keydown.native.once="item.item.edited += 1"></b-form-input>
+                <b-form-fieldset
+                    :state="!item.item.submitted ? '' : validSnippetValue(item.item) ? 'success' : 'danger'"
+                    :feedback="item.item.valueError"
+                    v-if="item.item.editing">
+                    <b-form-input type="text" placeholder="Value" v-model="item.item.value"></b-form-input>
                 </b-form-fieldset>
-                <span v-else>{{item.item.value ? item.item.value : '-'}}</span>
+                <span v-else>{{ item.item.value ? item.item.value : '-' }}</span>
             </template>
 
             <template slot="actions" scope="item">
-                <b-btn size="sm" variant="success" :disabled="item.item.pending" @click="saveSnippet(item.item)" v-if="item.item.editing">
-                    <loader v-if="item.item.pending" :scale="1" ></loader>
-                    <icon name="floppy-o" scale="1" v-else></icon>
-                </b-btn>
-                <b-btn size="sm" variant="primary" @click="editSnippet(item.item)" v-else>
-                    <icon name="pencil" scale="1"></icon>
-                </b-btn>
-                <b-btn size="sm" variant="danger" v-if="item.item.editing" :disabled="item.item.pending" @click="cancelSnippetEdit(item.item)">
-                    <icon name="ban" scale="1"></icon>
-                </b-btn>
-                <b-btn size="sm" variant="danger" :disabled="item.item.pending" @click="deleteSnippet(item.item)" v-else>
-                    <icon name="times" scale="1"></icon>
-                </b-btn>
+                <div v-if="item.item.editing">
+                    <b-btn size="sm" variant="success" :disabled="item.item.pending" @click="saveSnippet(item.item)">
+                        <loader v-if="item.item.pending" :scale="1" ></loader>
+                        <icon name="floppy-o" scale="1" v-else></icon>
+                    </b-btn>
+                    <b-btn size="sm" variant="danger" :disabled="item.item.pending" @click="cancelSnippetEdit(item.item)">
+                        <icon name="ban" scale="1"></icon>
+                    </b-btn>
+                </div>
+                <div v-else>
+                    <b-btn size="sm" variant="primary" @click="editSnippet(item.item)">
+                        <icon name="pencil" scale="1"></icon>
+                    </b-btn>
+                    <b-btn size="sm" variant="danger" :disabled="item.item.pending" @click="deleteSnippet(item.item)">
+                        <icon name="times" scale="1"></icon>
+                    </b-btn>
+                </div>
             </template>
         </b-table>
         <b-button-group>
@@ -116,7 +126,7 @@ export default {
             this.snippets.push({
                 key: '',
                 value: '',
-                edited: 0,
+                submitted: false,
                 editing: true,
                 pending: false,
                 id: null,
@@ -137,6 +147,7 @@ export default {
             snippet.key = snippet.origKey;
         },
         saveSnippet(snippet) {
+            snippet.submitted = true;
             if (!this.validSnippetKey(snippet) || !this.validSnippetValue(snippet)) {
                 return;
             }
@@ -202,7 +213,7 @@ export default {
                     key,
                     value: snips[key].value,
                     editing: false,
-                    edited: 2,
+                    submitted: true,
                     pending: false,
                     id: snips[key].id,
                 };
