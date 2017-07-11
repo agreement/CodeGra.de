@@ -47,7 +47,7 @@
                     <b-input-group left="Name">
                         <b-form-input type="text" v-model="assignment.name" @keyup.native.enter="updateName" :disabled="assignment.is_lti"/>
                         <b-input-group-button>
-                            <submit-button :update="updateName" ref="updateName" :disabled="assignment.is_lti"/>
+                            <submit-button @click="updateName" ref="updateName" :disabled="assignment.is_lti"/>
                         </b-input-group-button>
                     </b-input-group>
                 </b-form-fieldset>
@@ -58,7 +58,7 @@
                     <b-input-group left="Deadline">
                         <b-form-input type="datetime-local" v-model="assignment.deadline" @keyup.native.enter="updateDeadline" :disabled="assignment.is_lti"/>
                         <b-input-group-button>
-                            <submit-button :update="updateDeadline" ref="updateDeadline" :disabled="assignment.is_lti"/>
+                            <submit-button @click="updateDeadline" ref="updateDeadline" :disabled="assignment.is_lti"/>
                         </b-input-group-button>
                     </b-input-group>
                 </b-form-fieldset>
@@ -147,29 +147,32 @@ export default {
             }).then(() => {
                 this.assignment.state = this.pendingState;
                 this.pendingState = '';
-            }, () => {
-                // handle error
+            }, (err) => {
+                // TODO: visual feedback
+                // eslint-disable-next-line
+                console.dir(err);
             });
         },
 
         updateName() {
-            this.$refs.updateName.submit(this.$http.patch(this.assignmentUrl, {
+            const req = this.$http.patch(this.assignmentUrl, {
                 name: this.assignment.name,
-            })).then(() => {
-                // success
-            }, () => {
-                // handle error
             });
+            this.$refs.updateName.submit(req.catch((err) => {
+                throw err.response.data.message;
+            }));
         },
 
         updateDeadline() {
-            this.$refs.updateDeadline.submit(this.$http.patch(this.assignmentUrl, {
+            const req = this.$http.patch(this.assignmentUrl, {
                 deadline: this.assignment.deadline,
-            })).then(() => {
-                // success
-            }, () => {
-                // handle error
             });
+            req.catch(([err]) => {
+                // TODO: visual feedback
+                // eslint-disable-next-line
+                console.dir(err);
+            });
+            this.$refs.updateDeadline.submit(req);
         },
     },
 

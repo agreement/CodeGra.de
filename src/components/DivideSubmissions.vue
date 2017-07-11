@@ -8,10 +8,8 @@
                         {{ grader.name }}
                     </b-form-checkbox>
                 </div>
-                <b-button variant="primary" v-on:click="divideAssignments()" v-if="graders.length">
-                    Divide Submissions
-                </b-button>
-                <span v-else> No possible graders found for this assignment!</span>
+                <submit-button label="Divide submissions" @click="divideAssignments" ref="submitButton" v-if="graders.length"/>
+                <span v-else>No graders found for this assignment</span>
             </div>
         </b-form-fieldset>
     </div>
@@ -19,6 +17,7 @@
 
 <script>
 import Loader from './Loader';
+import SubmitButton from './SubmitButton';
 
 export default {
     name: 'divide-submissions',
@@ -39,37 +38,38 @@ export default {
     },
 
     mounted() {
-        this.getGraders();
+        this.loading = true;
+        this.$http.get(`/api/v1/assignments/${this.assignment.id}/graders`).then((data) => {
+            this.graders = data.data;
+            this.loading = false;
+        });
     },
 
     methods: {
-        getGraders() {
-            this.$http.get(`/api/v1/assignments/${this.assignment.id}/graders`).then((data) => {
-                this.graders = data.data;
-                this.loading = false;
-            });
-        },
-
         divideAssignments() {
-            this.loading = true;
-            const data = {
-                graders: Object.keys(this.graders)
-                    .filter(item => this.graders[item].divided)
-                    .map(item => this.graders[item].id),
-            };
-            this.$http.patch(`/api/v1/assignments/${this.assignment.id}/divide`, data).then(() => {
-                // eslint-disable-next-line
+            const req = this.$http.patch(
+                `/api/v1/assignments/${this.assignment.id}/divide`, {
+                    graders: Object.values(this.graders)
+                        .filter(x => x.divided)
+                        .map(x => x.id),
+                },
+            );
+            req.then(() => {
                 this.$emit('submit');
-                this.loading = false;
-            }).catch(() => {
-                // TODO give feedback!!
-                this.loading = false;
+            }, (err) => {
+                // TODO: give feedback
+                // eslint-disable-next-line
+                console.dir(err);
             });
+            this.$refs.submitButton.submit(req.catch((x) => {
+                throw x.response.data.message;
+            }));
         },
     },
 
     components: {
         Loader,
+        SubmitButton,
     },
 };
 </script>

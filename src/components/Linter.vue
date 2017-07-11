@@ -157,7 +157,6 @@ export default {
             } else {
                 cfg = this.options[this.selectedOption];
             }
-            console.dir(this.selected);
 
             this.done = 0;
             this.working = 0;

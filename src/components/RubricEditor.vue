@@ -26,7 +26,7 @@
                 <div
                     v-for="(item, j) in rubric.items"
                     :key="`rubric-${i}-${j}`"
-                    @click.native="selected = item"
+                    @click="selected = item"
                     :class="{ selected: selected === item, }"
                     class="card rubric-item">
                     <div class="card-block">
@@ -50,7 +50,7 @@
                     variant="success"
                     size="sm"
                     class="add-col-button"
-                    @click.native="createCol(i)">
+                    @click="createCol(i)">
                     <icon name="plus"/>
                 </b-button>
 
@@ -58,7 +58,7 @@
                     variant="danger"
                     size="sm"
                     class="del-row-button"
-                    @click.native="deleteRow(i)">
+                    @click="deleteRow(i)">
                     <icon name="times"/>
                 </b-button>
             </b-card-group>
@@ -67,7 +67,7 @@
         <b-form-fieldset>
             <b-button-toolbar justify>
                 <submit-button
-                    @click.native="submit"
+                    @click="submit"
                     ref="submitButton"/>
 
                 <b-popover placement="bottom" triggers="hover"
@@ -77,7 +77,7 @@
                         size="sm"
                         style="height: 100%"
                         class="row-button"
-                        @click.native="createRow">
+                        @click="createRow">
                         <icon name="plus"/>
                     </b-button>
                 </b-popover>
@@ -151,14 +151,14 @@ export default {
         },
 
         submit() {
-            this.$refs.submitButton.submit(
-                this.$http.put(`/api/v1/assignments/${this.assignmentId}/rubrics/`, {
+            const req = this.$http.put(
+                `/api/v1/assignments/${this.assignmentId}/rubrics/`, {
                     rows: this.rubrics,
-                }),
-            ).catch((err) => {
-                // eslint-disable-next-line
-                console.dir(err);
-            });
+                },
+            );
+            this.$refs.submitButton.submit(req.catch((x) => {
+                throw x.response.data.message;
+            }));
         },
 
         deleteRow(row) {

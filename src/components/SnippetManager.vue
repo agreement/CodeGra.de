@@ -219,10 +219,17 @@ export default {
 };
 </script>
 
+<style lang="less" scoped>
+.form-group {
+    margin-bottom: 0;
+}
+</style>
+
 <style lang="less">
 table.snippets-table tr th:first-child {
     width: 25%;
 }
+
 table.snippets-table tr th:nth-child(2) {
     width: 60%;
 }

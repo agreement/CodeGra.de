@@ -1,19 +1,23 @@
 <template>
-    <form ref="fileInput">
+    <form ref="form">
         <b-popover placement="top" :triggers="disabled ? ['hover'] : []" content="You can only submit this assignment from within your LMS">
-            <b-form-fieldset :feedback="error">
-                <b-input-group>
-                    <b-input-group-button>
-                        <b-button :disabled="!hasFile" :variant="error ? 'danger' : (done ? 'success' : 'primary')" @click.native="submit" >
-                            <icon scale=1 name="exclamation-triangle" v-if="error"></icon>
-                            <loader scale=1 v-else-if="pending"></loader>
-                            <icon scale=1 name="check" v-else-if="done"></icon>
-                            <span v-else>Submit</span>
-                        </b-button>
-                    </b-input-group-button>
-                    <b-form-file name="file" placeholder="click or drop file" v-model="file" @change="change" :disabled="disabled"/>
-                </b-input-group>
-            </b-form-fieldset>
+        <b-form-fieldset :feedback="error">
+            <b-input-group>
+                <b-input-group-button>
+                    <submit-button
+                        :disabled="!hasFile"
+                        @click="submit"
+                        ref="submitButton">
+                    </submit-button>
+                </b-input-group-button>
+                <b-form-file
+                    name="file"
+                    placeholder="click or drop file"
+                    v-model="file"
+                    @change="change">
+                </b-form-file>
+            </b-input-group>
+        </b-form-fieldset>
         </b-popover>
     </form>
 </template>
@@ -24,7 +28,7 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/exclamation-triangle';
 
-import Loader from './Loader';
+import SubmitButton from './SubmitButton';
 
 export default {
     name: 'code-uploader',
@@ -37,7 +41,7 @@ export default {
     },
 
     computed: {
-        action: function action() {
+        action() {
             return this.assignment ? `/api/v1/assignments/${this.assignment.id}/submission` : null;
         },
     },
@@ -60,26 +64,23 @@ export default {
         },
 
         submit: function submit() {
-            this.pending = true;
-            const formData = new FormData(this.$refs.fileInput);
-            this.$http.post(this.action, formData).then((response) => {
-                this.done = true;
-                this.pending = false;
-                this.$router.push({ name: 'submission', params: { submissionId: response.data.id } });
-
-                this.$nextTick(() => setTimeout(() => {
-                    this.done = false;
-                }, 1000));
-            }, () => {
-                this.error = 'Something went wrong';
-                this.pending = false;
+            const fdata = new FormData(this.$refs.form);
+            const req = this.$http.post(this.action, fdata);
+            req.then(({ data }) => {
+                this.$router.push({
+                    name: 'submission',
+                    params: { submissionId: data.id },
+                });
             });
+            this.$refs.submitButton.submit(req.catch((err) => {
+                throw err.response.data.message;
+            }));
         },
     },
 
     components: {
         Icon,
-        Loader,
+        SubmitButton,
     },
 };
 </script>

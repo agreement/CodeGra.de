@@ -16,33 +16,26 @@
                 <b-input-group>
                     <b-input-group-button v-if="editable">
                         <b-popover :show="!!(grade < 0 || grade > 10 || error)"
-                                   :content="error || 'Grade have to be between 0 and 10'">
-                            <b-button
-                                :variant="submitted ? 'success' : 'primary'"
-                                class="grade-submit"
-                                @click="putFeedback">
-                                <loader :scale="1" v-if="submitting"/>
-                                <span v-else>Submit all</span>
-                            </b-button>
+                            :content="error || 'Grade have to be between 0 and 10'">
+                            <submit-button @click="putFeedback" ref="submitButton"/>
                         </b-popover>
                     </b-input-group-button>
 
                     <b-form-input type="number"
-                                  step="any"
-                                  min="0"
-                                  max="10"
-                                  :disabled="!editable"
-                                  placeholder="Grade"
-                                  v-model="grade"
-                                  v-on:change="() => { this.error = false; }"
-                                  v-if="!showRubric">
-                    </b-form-input>
+                                step="any"
+                                min="0"
+                                max="10"
+                                :disabled="!editable"
+                                placeholder="Grade"
+                                @keyup.enter="putFeedback"
+                                v-model="grade"
+                                @change="() => { this.error = false; }"
+                                v-if="!showRubric"/>
                     <b-form-input
                         class="text-right"
                         :disabled="!editable"
                         v-model="gradeAndRubricPoints"
-                        v-else>
-                    </b-form-input>
+                        v-else/>
 
                     <b-input-group-button v-if="showRubric">
                         <b-popover
@@ -82,7 +75,7 @@ import 'vue-awesome/icons/refresh';
 import { mapActions, mapGetters } from 'vuex';
 import RubricViewer from './RubricViewer';
 
-import Loader from './Loader';
+import SubmitButton from './SubmitButton';
 
 export default {
     name: 'grade-viewer',
@@ -98,7 +91,7 @@ export default {
         },
         submission: {
             type: Object,
-            default: {},
+            default: null,
         },
         rubric: {
             type: Object,
@@ -108,8 +101,6 @@ export default {
 
     data() {
         return {
-            submitting: false,
-            submitted: false,
             feedback: '',
             grade: 0,
             rubricPoints: {},
@@ -187,23 +178,22 @@ export default {
                 return;
             }
             this.error = false;
-            this.submitting = true;
-            this.$http.patch(`/api/v1/submissions/${this.submission.id}`,
-                {
+
+            const req = this.$http.patch(
+                `/api/v1/submissions/${this.submission.id}`, {
                     grade,
                     feedback: this.feedback,
                 },
-                {
-                    headers: { 'Content-Type': 'application/json' },
-                },
-            ).then(() => {
-                this.submitting = false;
-                this.submitted = true;
-                this.$emit('submit');
-                this.$nextTick(() => setTimeout(() => {
-                    this.submitted = false;
-                }, 1000));
+            );
+            req.then(() => {
+                this.$emit('gradeChange', this.grade);
+            }, (err) => {
+                // eslint-disable-next-line
+                console.dir(err);
             });
+            this.$refs.submitButton.submit(req.catch((err) => {
+                throw err.response.data.message;
+            }));
         },
 
         ...mapActions({
@@ -217,8 +207,8 @@ export default {
 
     components: {
         Icon,
+        SubmitButton,
         RubricViewer,
-        Loader,
     },
 };
 </script>

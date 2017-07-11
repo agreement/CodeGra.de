@@ -19,8 +19,7 @@
                               :rubric="rubric"
                               :editable="editable"
                               v-if="editable || assignment.state === assignmentState.DONE"
-                              v-on:gradeChange="gradeChange"
-                              @submit="submitAllFeedback($event)"/>
+                              v-on:gradeChange="gradeChange"/>
             </div>
             <file-tree-container class="col-lg-3" :fileTree="fileTree"
                                  :canSeeFeedback="assignment.state === assignmentState.DONE"></file-tree-container>
@@ -253,10 +252,6 @@ export default {
             });
         },
 
-        submitAllFeedback(event) {
-            this.$refs.codeViewer.submitAllFeedback(event);
-        },
-
         reloadSubmission() {
             this.loadData();
         },
@@ -303,7 +298,6 @@ export default {
         },
 
         restorePageCSS() {
-            console.log('resotre');
             const els = Array.from(document.querySelectorAll('html, body, #app, nav, footer'));
             const [html, body, app, nav, footer] = els;
 

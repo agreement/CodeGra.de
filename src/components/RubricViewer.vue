@@ -93,7 +93,6 @@ export default {
 
     mounted() {
         this.rubricUpdated(this.rubric);
-        console.log(this.rubric.points);
     },
 
     methods: {

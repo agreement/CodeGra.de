@@ -10,10 +10,9 @@
                 <b-form-input class="input" v-model="snippetKey" v-on:keydown.native.ctrl.enter="addSnippet"></b-form-input>
                 <b-input-group-button>
                     <b-popover class="popover-btn" :placement="'top'" :show="error !== '' && $parent.show" :content="error">
-                        <b-btn :variant="snippetDone ? 'success' : 'primary'" @click="addSnippet">
-                            <icon name="refresh" scale="1" spin v-if="pending"></icon>
-                            <icon name="check" aria-hidden="true" v-else></icon>
-                        </b-btn>
+                        <submit-button ref="addSnippetButton" label="" @click="addSnippet">
+                            <icon name="check"/>
+                        </submit-button>
                     </b-popover>
                 </b-input-group-button>
             </b-input-group>
@@ -54,6 +53,8 @@ import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/plus';
 
 import { mapActions, mapGetters } from 'vuex';
+
+import SubmitButton from './SubmitButton';
 
 const entityRE = /[&<>]/g;
 const entityMap = {
@@ -163,34 +164,32 @@ export default {
         addSnippet() {
             const val = {
                 key: this.snippetKey,
-                value: { value: this.internalFeedback },
-                id: null,
+                value: this.internalFeedback,
             };
-            if (val.key.indexOf(' ') > -1 || val.key.indexOf('\n') > -1) {
+            if (val.key.match(/\s/)) {
                 this.error = 'No spaces allowed!';
                 return;
             } else if (val.key.length === 0) {
                 this.error = 'Snippet key cannot be empty';
                 return;
-            } else if (val.value.value.length === 0) {
+            } else if (val.value.length === 0) {
                 this.error = 'Snippet value cannot be empty';
                 return;
             }
-            this.error = '';
-            this.pending = true;
-            this.$http.put('/api/v1/snippet', {
-                key: val.key,
-                value: val.value.value,
-            }).then((response) => {
-                val.id = response.data.id;
+
+            const req = this.$http.put('/api/v1/snippet', val);
+            req.then(({ data }) => {
+                val.id = data.id;
                 this.addSnippetToStore(val);
-                this.pending = false;
-                this.snippetDone = true;
-                // Add a small timeout such that the green sign is visible
-                this.$nextTick(() => setTimeout(() => {
-                    this.snippetDone = false;
+            }, (err) => {
+                // TODO: visual feedback
+                // eslint-disable-next-line
+                console.dir(err);
+            });
+            this.$refs.addSnippetButton.submit(req).then((success) => {
+                if (success) {
                     this.$root.$emit('collapse::toggle', `collapse${this.line}`);
-                }, 1000));
+                }
             });
         },
         findSnippet() {
@@ -218,6 +217,7 @@ export default {
     },
     components: {
         Icon,
+        SubmitButton,
     },
 };
 </script>

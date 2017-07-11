@@ -6,7 +6,8 @@
                 <b-form-checkbox class="input-group-addon"
                                  :checked="checkboxRoles[role] === true"
                                  @change="setRoleFilter(role)"
-                                 v-for="role in getUniqueRoles()">
+                                 v-for="role in getUniqueRoles()"
+                                 :key="`role-${role.id}`">
                     {{ role }}
                 </b-form-checkbox>
                 <b-input-group-button class="buttons">

@@ -78,8 +78,6 @@ const actions = {
                 axios.get('/api/v1/permissions/', {
                     params: perm.course_id ? { course_id: perm.course_id } : {},
                 }).then((response) => {
-                    console.log(perm);
-                    console.log(state);
                     commit(types.PERMISSIONS, { response: response.data, perm });
                     resolve(checkPermission());
                 }, () => resolve(false));

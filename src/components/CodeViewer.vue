@@ -240,8 +240,6 @@ export default {
                 this.feedback[line] = feedback;
             }
         },
-        // eslint-disable-next-line
-        submitAllFeedback(event) { },
     },
 
     components: {

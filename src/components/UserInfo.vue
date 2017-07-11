@@ -1,7 +1,7 @@
 <template>
     <div class="userinfo">
         <loader class="col-md-12 text-center" v-if="loading"></loader>
-        <div @keyup.enter="submit()" v-else>
+        <div @keyup.enter="submit" v-else>
             <b-form-fieldset>
                 <b-input-group left="Username">
                     <b-form-input type="text" v-model="username"></b-form-input>
@@ -66,11 +66,8 @@
             </b-form-fieldset>
 
             <b-button-toolbar justify>
-                <b-button :variant="success ? 'success' : failure ? 'danger' : 'primary'" @click="submit()">
-                    <icon name="refresh" spin v-if="submitted"></icon>
-                    <span v-else>Submit</span>
-                </b-button>
-                <b-button variant="danger" @click="resetErrors(); resetParams()">Reset</b-button>
+                <submit-button @click="submit" ref="submitButton" :showError="false"/>
+                <b-button variant="danger" @click="resetAll">Reset</b-button>
             </b-button-toolbar>
         </div>
     </div>
@@ -81,10 +78,10 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/eye';
 import 'vue-awesome/icons/eye-slash';
-import 'vue-awesome/icons/refresh';
 import 'vue-awesome/icons/times';
 
 import Loader from './Loader';
+import SubmitButton from './SubmitButton';
 
 const validator = require('email-validator');
 
@@ -100,9 +97,6 @@ export default {
             newPassword: '',
             confirmPassword: '',
             loading: false,
-            submitted: false,
-            success: false,
-            failure: false,
             o_pw_visible: false,
             n_pw_visible: false,
             c_pw_visible: false,
@@ -116,6 +110,7 @@ export default {
     components: {
         Icon,
         Loader,
+        SubmitButton,
     },
 
     mounted() {
@@ -146,6 +141,11 @@ export default {
             this.c_pw_visible = false;
         },
 
+        resetAll() {
+            this.resetErrors();
+            this.resetParams();
+        },
+
         submit() {
             this.resetErrors();
 
@@ -153,20 +153,16 @@ export default {
                 return;
             }
 
-            this.submitted = true;
-
-            this.$http.patch('/api/v1/login', {
+            const req = this.$http.patch('/api/v1/login', {
                 username: this.username,
                 email: this.email,
                 o_password: this.oldPassword,
                 n_password: this.newPassword,
-            }).then(() => {
+            });
+            req.then(() => {
                 this.original.name = this.username;
                 this.original.email = this.email;
                 this.resetParams();
-                this.success = true;
-                this.$nextTick(() =>
-                    setTimeout(() => { this.success = false; }, 1000));
             }, ({ response }) => {
                 if (response.data.code === 5) {
                     this.invalid_password_error = response.data.rest.password;
@@ -174,11 +170,8 @@ export default {
                 } else if (response.data.code === 12) {
                     this.invalid_credentials_error = response.data.message;
                 }
-                this.failure = true;
-                setTimeout(() => { this.failure = false; }, 1000);
-            }).then(() => {
-                this.submitted = false;
             });
+            this.$refs.submitButton.submit(req);
         },
     },
 };

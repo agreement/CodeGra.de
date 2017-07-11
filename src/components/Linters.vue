@@ -1,31 +1,31 @@
 <template>
-  <!-- TODO: Fix issues with iterations by relying on order !-->
-  <div class="row justify-content-md-center" v-if="loading">
-    <loader/>
-  </div>
-  <div class="" v-else>
-    <div class="col-6">Linters</div>
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Description</th>
-          <th>State</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <linter v-for="linter in linters"
-                :name="linter.name"
-                :options="linter.opts"
-                :description="linter.desc"
-                :initialId="linter.id"
-                :initialState="linter.state"
-                :key="linter.id"
-                :assignment="assignment"/>
-      </tbody>
-    </table>
-  </div>
+    <!-- TODO: Fix issues with iterations by relying on order !-->
+    <div class="row justify-content-md-center" v-if="loading">
+        <loader/>
+    </div>
+    <div class="" v-else>
+        <div class="col-6">Linters</div>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>State</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <linter v-for="linter in linters"
+                    :name="linter.name"
+                    :options="linter.opts"
+                    :description="linter.desc"
+                    :initialId="linter.id"
+                    :initialState="linter.state"
+                    :key="linter.id"
+                    :assignment="assignment"/>
+            </tbody>
+        </table>
+    </div>
 </template>
 
 <script>
