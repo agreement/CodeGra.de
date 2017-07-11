@@ -1,6 +1,7 @@
+import typing as t
 from enum import IntEnum, unique
 
-from flask import jsonify
+from flask import Response, jsonify
 
 from psef import app
 
@@ -28,17 +29,21 @@ class APICodes(IntEnum):
 
 class APIException(Exception):
     """The exception to use if an API call failed.
+
+    :param message: The user friendly message to display.
+    :param description: The description used for debugging.
+    :param api_code: The error code in the API, should be a constant
+                            from this class.
+    :param status_code: The Http status code to use, should not be 2xx.
+    :param rest: All the other fields to return in the JSON object.
     """
 
-    def __init__(self, message, description, api_code, status_code, **rest):
-        """
-        :param str message: The user friendly message to display.
-        :param str description: The description used for debugging.
-        :param int api_code: The error code in the API, should be a constant
-                             from this class.
-        :param int status_code: The Http status code to use, should not be 2xx.
-        :param rest: All the other fields to return in the JSON object.
-        """
+    def __init__(self,
+                 message: str,
+                 description: str,
+                 api_code: APICodes,
+                 status_code: int,
+                 **rest: t.Mapping[t.Any, t.Any]) -> None:
         super(APIException, self).__init__()
         self.status_code = status_code
         self.api_code = api_code
@@ -46,13 +51,12 @@ class APIException(Exception):
         self.message = message
         self.rest = rest
 
-    def __to_json__(self):
+    def __to_json__(self) -> t.Mapping[t.Any, t.Any]:
         """Creates a JSON serializable representation of this object.
 
         :returns: This APIException instance as a dictionary.
-        :rtype: dict
         """
-        ret = self.rest
+        ret = dict(self.rest)  # type: t.MutableMapping[t.Any, t.Any]
         ret['message'] = self.message
         ret['description'] = self.description
         ret['code'] = self.api_code
@@ -60,7 +64,7 @@ class APIException(Exception):
 
 
 @app.errorhandler(APIException)
-def handle_api_error(error):
+def handle_api_error(error: APIException) -> Response:
     """Handle an :class:`APIException` by converting it to a
     :class:`flask.Response`.
 

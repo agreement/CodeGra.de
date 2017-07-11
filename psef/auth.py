@@ -1,10 +1,11 @@
 """This module implements all authorization functions used by :py:mod:`psef`.
 """
+import typing as t
 from functools import wraps
 
 import oauth2
-from flask_login import current_user
 
+import psef
 from psef import app, login_manager
 from psef.errors import APICodes, APIException
 
@@ -23,30 +24,28 @@ def _raise_login_exception(desc='No user was logged in.'):
                               APICodes.NOT_LOGGED_IN, 401)
 
 
-def _user_active():
+def _user_active() -> bool:
     """Check if there is a current user who is authenticated and active.
 
     :returns: True if there is an active logged in user
-    :rtype: bool
     """
-    return (current_user and current_user.is_authenticated and
-            current_user.is_active)
+    return (psef.current_user and psef.current_user.is_authenticated and
+            psef.current_user.is_active)
 
 
-def ensure_can_see_grade(work):
+def ensure_can_see_grade(work: 'psef.models.Work') -> None:
     """Ensure the current user can see the grade of the given work.
 
-    :param models.Work work: The work
+    :param work: The work to check for.
 
     :returns: Nothing
-    :rtype: None
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the user can not see the grade.
-                                 (INCORRECT_PERMISSION)
+        (INCORRECT_PERMISSION)
     """
     if _user_active():
-        if work.user_id != current_user.id:
+        if work.user_id != psef.current_user.id:
             ensure_permission('can_see_others_work', work.assignment.course_id)
 
         if not work.assignment.is_done:
@@ -56,53 +55,48 @@ def ensure_can_see_grade(work):
     _raise_login_exception()
 
 
-def ensure_enrolled(course_id):
+def ensure_enrolled(course_id: int) -> None:
     """Ensure the current user is enrolled in the given course.
 
     :param course_id: The course id of the course.
-    :type course_id: int
 
     :returns: Nothing
-    :rtype: None
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the user is not enrolled in the given
                                  course. (INCORRECT_PERMISSION)
     """
     if _user_active():
-        if course_id not in current_user.courses:
+        if course_id not in psef.current_user.courses:
             raise PermissionException(
                 'You are not enrolled in this course',
                 'The user "{}" is not enrolled in course "{}"'.format(
-                    current_user.id,
+                    psef.current_user.id,
                     course_id), APICodes.INCORRECT_PERMISSION, 403)
         return
     _raise_login_exception()
 
 
-_PERM_CACHE = {}
+_PERM_CACHE = {}  # type: t.MutableMapping[t.Tuple[str, t.Optional[int]], bool]
 
 
 @app.before_request
-def reset_perm_cache():
+def reset_perm_cache() -> None:
     global _PERM_CACHE
     _PERM_CACHE = {}
 
 
-def ensure_permission(permission_name, course_id=None):
+def ensure_permission(permission_name: str, course_id: int=None) -> None:
     """Ensure that the current user is logged and has the given permission.
 
-    :param str permission_name: The name of the permission to check for.
+    :param permission_name: The name of the permission to check for.
     :param course_id: The course id of the course that should be used for the
-                      course permission, if it is None a role permission is
-                      implied. If a course_id is supplied but the given
-                      permission is not a course permission (but a role
-                      permission) this function will **NEVER** grant the
-                      permission.
-    :type course_id: None or int
+        course permission, if it is None a role permission is implied. If a
+        course_id is supplied but the given permission is not a course
+        permission (but a role permission) this function will **NEVER** grant
+        the permission.
 
     :returns: Nothing
-    :rtype: None
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the permission is not enabled for the
@@ -113,7 +107,7 @@ def ensure_permission(permission_name, course_id=None):
         if (permission_name, course_id) in _PERM_CACHE:
             val = _PERM_CACHE[(permission_name, course_id)]
         else:
-            val = current_user.has_permission(
+            val = psef.current_user.has_permission(
                 permission_name, course_id=course_id)
             _PERM_CACHE[(permission_name, course_id)] = val
         if val:
@@ -123,17 +117,33 @@ def ensure_permission(permission_name, course_id=None):
                 'You do not have permission to do this.',
                 'The permission "{}" is not enabled for user "{}"'.format(
                     permission_name,
-                    current_user.id), APICodes.INCORRECT_PERMISSION, 403)
+                    psef.current_user.id), APICodes.INCORRECT_PERMISSION, 403)
     else:
         _raise_login_exception(
             ('The user was not logged in, ' +
              'so it did not have the permission "{}"').format(permission_name))
 
 
-def permission_required(permission_name, course_id=None):
-    def decorator(f):
+def permission_required(permission_name: str,
+                        course_id: int=None) -> t.Callable:
+    """A decorator used to make sure the function decorated is only called with
+    certain permissions.
+
+    :param permission_name: The name of the permission to check for.
+    :param course_id: The id of the course if the permission is a course
+        permission.
+
+    :returns: The value of the decorated function if the current user has the
+        required permission.
+
+    :raises PermissionException: If the current user does not have the required
+        permission, this is done in the same way as
+        :py:func:`ensure_permission` does this.
+    """
+
+    def decorator(f: t.Callable) -> t.Callable:
         @wraps(f)
-        def decorated_function(*args, **kwargs):
+        def decorated_function(*args, **kwargs) -> t.Any:
             ensure_permission(permission_name, course_id=course_id)
             return f(*args, **kwargs)
 
@@ -141,8 +151,6 @@ def permission_required(permission_name, course_id=None):
 
     return decorator
 
-
-permission_required.__doc__ = ensure_permission.__doc__
 
 # The code below is copied for a large part from here:
 # https://github.com/tophatmonocle/ims_lti_py
@@ -153,8 +161,10 @@ class RequestValidatorMixin(object):
     A 'mixin' for OAuth request validation.
     '''
 
-    def __init__(self):
+    def __init__(self, key: str, secret: str) -> None:
         super(RequestValidatorMixin, self).__init__()
+        self.consumer_key = key
+        self.consumer_secret = secret
 
         self.oauth_server = oauth2.Server()
         signature_method = oauth2.SignatureMethod_HMAC_SHA1()
@@ -163,10 +173,10 @@ class RequestValidatorMixin(object):
                                               self.consumer_secret)
 
     def is_valid_request(self,
-                         request,
-                         parameters={},
-                         fake_method=None,
-                         handle_error=True):
+                         request: t.Any,
+                         parameters: t.MutableMapping[str, str]={},
+                         fake_method: t.Any=None,
+                         handle_error: bool=True) -> bool:
         '''
         Validates an OAuth request using the python-oauth2 library:
             https://github.com/simplegeo/python-oauth2
@@ -179,11 +189,6 @@ class RequestValidatorMixin(object):
                 raise e
 
         try:
-            # Set the parameters to be what we were passed earlier
-            # if we didn't get any passed to us now
-            if not parameters and hasattr(self, 'params'):
-                parameters = self.params
-
             method, url, headers, parameters = self.parse_request(
                 request, parameters, fake_method)
 
@@ -201,7 +206,12 @@ class RequestValidatorMixin(object):
         # Signature was valid
         return True
 
-    def parse_request(self, request, parameters, fake_method):
+    def parse_request(self,
+                      request: t.Any,
+                      parameters: t.Optional[t.MutableMapping[str, str]],
+                      fake_method: t.Optional[t.Any]
+                      ) -> t.Tuple[str, str, t.MutableMapping[str, str],
+                                   t.MutableMapping[str, str]]:
         '''
         This must be implemented for the framework you're using
         Returns a tuple: (method, url, headers, parameters)
@@ -227,19 +237,25 @@ class RequestValidatorMixin(object):
 
 
 class _FlaskOAuthValidator(RequestValidatorMixin):
-    def __init__(self, key, secret):
-        self.consumer_key = key
-        self.consumer_secret = secret
-        super(_FlaskOAuthValidator, self).__init__()
+    def __init__(self, key: str, secret: str) -> None:
+        super(_FlaskOAuthValidator, self).__init__(key, secret)
 
-    def parse_request(self, req, parameters=None, fake_method=None):
+    def parse_request(
+            self,
+            req: 'flask.Request',
+            parameters: t.MutableMapping[str, str]=None,
+            fake_method: t.Any=None) -> t.Tuple[str, str, t.MutableMapping[
+                str, str], t.MutableMapping[str, str]]:
         '''
         Parse Flask request
         '''
         return (req.method, req.url, dict(req.headers), req.form.copy())
 
 
-def ensure_valid_oauth(key, secret, request, parser_cls=_FlaskOAuthValidator):
+def ensure_valid_oauth(key: str,
+                       secret: str,
+                       request: t.Any,
+                       parser_cls=_FlaskOAuthValidator) -> None:
     """Make sure the given oauth key and secret is valid for the given request.
 
     :param str key: The oauth key to be used for validating.
@@ -249,6 +265,7 @@ def ensure_valid_oauth(key, secret, request, parser_cls=_FlaskOAuthValidator):
         ``request`` it should subclass :py:class:`RequestValidatorMixin` and
         should at least override the
         :func:`RequestValidatorMixin.parse_request` method.
+    :returns: Nothing
     """
     validator = parser_cls(key, secret)
     if not validator.is_valid_request(request):
@@ -256,3 +273,7 @@ def ensure_valid_oauth(key, secret, request, parser_cls=_FlaskOAuthValidator):
             'No valid oauth request could be found.',
             'The given request is not a valid oauth request.',
             APICodes.INVALID_OAUTH_REQUEST, 400)
+
+
+if t.TYPE_CHECKING:
+    import flask  # NOQA

@@ -124,5 +124,9 @@ working.
 API documentation of PSEF
 -----------------------------
 
-.. autoflask:: psef:app
+.. qrefflask:: psef:app
    :undoc-static:
+
+.. autoflask:: psef:app
+  :endpoints:
+  :order: path

@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """
 This module implements the parsing of blackboard gradebook info files.
+
+:license: AGPLv3, see LICENSE for details.
 """
 import re
 import mmap
-from collections import namedtuple
+import typing as t
+import datetime
 
 from dateutil import parser as dateparser
 
@@ -20,72 +23,70 @@ _txt_fmt = re.compile(r"Name: (?P<name>.+) \((?P<id>[0-9]+)\)\n"
 _txt_files_fmt = re.compile(r"\tOriginal filename: (.+)\n"
                             r"\tFilename: (.+)\n")
 
-Info = namedtuple('SubmissionInfo', [
-    'student_name', 'student_id', 'assignment_name', 'created_at', 'grade',
-    'text', 'comment', 'files'
-])
-"""A namedtuple holding information about a specific file
 
-.. py:attribute:: student_name
-    The name of the student
+class FileInfo(
+        t.NamedTuple('FileInfo', [
+            ('original_name', str),
+            ('name', str),
+        ])):
+    """A NamedTuple holding information about a specific file.
 
-.. py:attribute:: student_id
-    The id of the student in the system of the university
-
-.. py:attribute:: assignment_name
-    Name of the assignment
-
-.. py:attribute:: created_at
-    The datetime when the submission was made
-
-.. py:attribute:: grade
-    The current grade of the submission
-
-.. py:attribute:: text
-    The html text submission of the student
-
-.. py:attribute:: comment
-    Comment included by student
-
-.. py:attribute:: files
-    The files submitted by the user as list of :class: SubmissionFileInfo
-"""
+    :param original_name: The name provided by the user.
+    :param name: The name as stored in the blackboard gradebook.
+    """
 
 
-FileInfo = namedtuple('SubmissionFileInfo', ['original_name', 'name'])
-"""A namedtuple holding information about a specific file.
+class SubmissionInfo(
+        t.NamedTuple('SubmissionInfo', [
+            ('student_name', str),
+            ('student_id', int),
+            ('assignment_name', str),
+            ('created_at', datetime.datetime),
+            ('grade', float),
+            ('text', str),
+            ('comment', str),
+            ('files', t.MutableSequence[FileInfo]),
+        ])):
+    """A NamedTuple holding information about a submission from a blackboard
+    zip.
 
-.. py:attribute:: original_name
-    The name provided by the user
+    :param student_name: The name of the student.
+    :param student_id: The id of the student in the system of the university.
+    :param assignment_name: Name of the assignment.
+    :param created_at: The datetime when the submission was made.
+    :param grade: The current grade of the submission.
+    :param text: The html text submission of the student.
+    :param comment: Comment included by student.
+    :param files: The files submitted by the user.
+    """
 
-.. py:attribute:: name
-    The name as stored in the blackboard gradebook
-"""
 
-
-def parse_info_file(file):
+def parse_info_file(file: str) -> SubmissionInfo:
     """Parses a blackboard gradebook .txt file.
 
-    :param str file: Path to the file
+    :param file: Path to the file
     :returns: The parsed information
     :rtype: SubmissionInfo
     """
+    # _txt_fmt is a object gotten from `re.compile`
     with open(file, 'r+') as f:
-        data = mmap.mmap(f.fileno(), 0)
-        match = _txt_fmt.match(data)
-        info = Info(
-            student_name=match.group('name').decode('utf-8'),
-            student_id=int(match.group('id')),
-            assignment_name=match.group('assignment').decode('utf-8'),
-            created_at=dateparser.parse(
-                match.group('datetime').decode('utf-8').replace(
-                    " o'clock", "")),
-            grade=float(match.group('grade')),
-            text=match.group('text').decode('utf-8').rstrip(),
-            comment=match.group('comment').decode('utf-8').rstrip(),
-            files=[
-                FileInfo(org, cur)
-                for org, cur in _txt_files_fmt.findall(
-                    match.group('files').decode('utf-8'))
-            ])
-        return info
+        with mmap.mmap(f.fileno(), 0) as data:
+            # casting here is wrong, however see
+            # https://github.com/python/typeshed/issues/1467
+            match = _txt_fmt.match(t.cast(bytes, data))
+            info = SubmissionInfo(
+                student_name=match.group('name').decode('utf-8'),
+                student_id=int(match.group('id')),
+                assignment_name=match.group('assignment').decode('utf-8'),
+                created_at=dateparser.parse(
+                    match.group('datetime').decode('utf-8').replace(" o'clock",
+                                                                    "")),
+                grade=float(match.group('grade')),
+                text=match.group('text').decode('utf-8').rstrip(),
+                comment=match.group('comment').decode('utf-8').rstrip(),
+                files=[
+                    FileInfo(org, cur)
+                    for org, cur in _txt_files_fmt.findall(
+                        match.group('files').decode('utf-8'))
+                ])
+            return info

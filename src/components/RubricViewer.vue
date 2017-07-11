@@ -119,7 +119,11 @@ export default {
             this.$http.patch(
                 `/api/v1/submissions/${this.submission.id}/rubricitems/${item.id}`,
             ).then(({ data }) => {
-                this.$emit('input', data);
+                this.$emit('input', {
+                    selected: data.points.selected,
+                    max: data.points.max,
+                    grade: (data.points.selected / data.points.max) * 10,
+                });
             }, (err) => {
                 // eslint-disable-next-line
                 console.dir(err);

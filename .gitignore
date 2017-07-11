@@ -13,4 +13,5 @@ __pycache__/
 migrations/
 uploads/
 package-lock.json
-docs/sphinx/_build
+docs/_build/
+.mypy_cache/

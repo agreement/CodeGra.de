@@ -8,6 +8,7 @@ method.
 
 import os
 import uuid
+import typing as t
 import tempfile
 import traceback
 import subprocess
@@ -32,20 +33,21 @@ class Linter:
     reflecting on subclasses from this class. They should also override all
     methods and variables from this class.
     """
-    NAME = None
-    DEFAULT_OPTIONS = {}
+    DEFAULT_OPTIONS = {}  # type: t.MutableMapping[str, str]
 
-    def run(self, tempdir, emit):
+    def __init__(self, cfg: str) -> None:
+        self.config = cfg
+
+    def run(self, tempdir,
+            emit: t.Callable[[str, int, str, str], None]) -> None:
         """Run the linter on the code in `tempdir`.
 
-        :param str tempdir: The temp directory that should contain the code to
+        :param tempdir: The temp directory that should contain the code to
                             run the linter on.
         :param emit: A callback to emit a line of feedback, where the first
                      argument is the filename, the second is the line number,
                      the third is the code of the linter error, and the fourth
                      and last is the message of the linter.
-        :type emit: Callable[str, str, str, str]
-        :rtype: None
         """
         raise NotImplementedError('A subclass should implement this function!')
 
@@ -57,15 +59,7 @@ class Pylint(Linter):
     modules and will display an error on the first line of every file if the
     given code was not a proper module.
     """
-    NAME = 'Pylint'
     DEFAULT_OPTIONS = {'Empty config file': ''}
-
-    def __init__(self, config):
-        """Create a new :class:`Pylint` instance.
-
-        :param str config: The config for pylint as a string.
-        """
-        self.config = config
 
     def run(self, tempdir, emit):
         """Run the pylinter.
@@ -108,11 +102,7 @@ class Flake8(Linter):
     This linter checks for errors in python code and checks the pep8 python
     coding standard. All "noqa"s are disabled when running.
     """
-    NAME = 'Flake8'
     DEFAULT_OPTIONS = {'Empty config file': ''}
-
-    def __init__(self, config):
-        self.config = config
 
     def run(self, tempdir, emit):
         cfg = os.path.join(tempdir, '.flake8')
@@ -144,15 +134,19 @@ class LinterRunner():
     .. py:attribute:: linter
         The attached :class:`Linter` that will be ran by this class.
     """
-    def __init__(self, cls, cfg):
+
+    def __init__(self, cls: t.Type[Linter], cfg: str) -> None:
         """Create a new instance of :class:`LinterRunner`
 
         :param Linter cls: The linter to run.
         :param str cfg: The config as as `str` to pass to the linter.
         """
-        self.linter = cls(cfg)
+        self.linter = cls(cfg)  # type: Linter
 
-    def run(self, works, tokens, urlpath):
+    def run(self,
+            works: t.Iterable[int],
+            tokens: t.Iterable[str],
+            urlpath: str) -> None:
         """Run this linter runner on the given works.
 
         .. note:: This method takes a long time to execute, please run it in a
@@ -166,16 +160,13 @@ class LinterRunner():
 
         :param works: A list of ids of :class:`psef.models.Work` items that
                       will be fetched and where the linters will run on.
-        :type works: list[int]
         :param tokens: A list of tokens that are the ids of
                        :class:`psef.models.LinterInstance` that will be used
                        when posting back to the given callback url.
-        :type tokens: list[str]
-        :param str urlpath: The url that should be used to postback the result
+        :param urlpath: The url that should be used to postback the result
                             of the linters, it should be possible to do
                             `urlpath.format(token)` which should result in a
                             valid url for posting back the result.
-        :rtype: None
         :returns: Nothing
         """
         session = sessionmaker(bind=ENGINE, autoflush=False)()
@@ -188,23 +179,23 @@ class LinterRunner():
                 traceback.print_exc()
                 requests.put(urlpath.format(token), json={'crashed': True})
 
-    def test(self, code, callback_url):
+    def test(self, code: models.File, callback_url: str) -> None:
         """Test the given code (:class:`models.Work`) and send the results to the
         given URL.
 
         :param code: The file that the linter should be run on, this file and
                      all its children will be restored to a directory and the
                      linter will run on them.
-        :type code: psef.models.File
-        :param str callback_url: The url that should be used to give back the
+        :param callback_url: The url that should be used to give back the
                      result of the linter.
         :returns: Nothing
-        :rtype: None
         """
-        temp_res = {}
-        res = {}
+        temp_res: t.MutableMapping[str, t.MutableSequence[t.Tuple[int, str,
+                                                                  str]]] = {}
+        res: t.MutableMapping[str, t.MutableSequence[t.Tuple[int, str,
+                                                             str]]] = {}
 
-        def emit(f, line, code, msg):
+        def emit(f: str, line: int, code: str, msg: str):
             if f.startswith(tmpdir):
                 f = f[len(tmpdir) + 1:]
             elif f[0] == '/':
@@ -218,7 +209,7 @@ class LinterRunner():
 
             self.linter.run(tmpdir, emit)
 
-        def do(tree, parent):
+        def do(tree: t.MutableMapping[str, t.Any], parent: str) -> None:
             parent = os.path.join(parent, tree['name'])
             if 'entries' in tree:  # this is dir:
                 for entry in tree['entries']:
@@ -229,50 +220,57 @@ class LinterRunner():
 
         do(files, '')
         requests.put(
-            callback_url, json={'files': res,
-                                'name': self.linter.NAME})
+            callback_url,
+            json={'files': res,
+                  'name': self.linter.__class__.__name__})
 
 
-def get_all_linters():
+def get_all_linters(
+) -> t.Dict[str, t.Dict[str, t.Union[str, t.MutableMapping[str, str]]]]:
     """Get an overview of all linters.
 
     The returned linters are all the subclasses of :class:`Linter`.
 
     :returns: A mapping of the name of the linter to a dictionary containing
-              the description and the default options of the linter with that
-              name
-    :rtype: dict
+        the description and the default options of the linter with that name
 
-    :Example:
+    .. testsetup::
 
-    >>> all_linters = get_all_linters()
-    >>> all_linters.keys()
-    dict_keys(['Pylint', 'Flake8'])
-    >>> all_linters['Flake8']
-    {'desc': 'The flake8 linter with all "noqa"s disabled.', 'opts':
-        {'Empty config file': ''}}
+        from psef.linters import get_all_linters, Linter
+
+    .. doctest::
+
+        >>> class MyLinter(Linter): pass
+        >>> MyLinter.__doc__ = "Description"
+        >>> MyLinter.DEFAULT_OPTIONS = {'wow': 'sers'}
+        >>> all_linters = get_all_linters()
+        >>> sorted(all_linters.keys())
+        ['Flake8', 'MyLinter', 'Pylint']
+        >>> linter = all_linters['MyLinter']
+        >>> linter == {'desc': 'Description', 'opts': {'wow': 'sers'} }
+        True
     """
     res = {}
     for cls in get_all_subclasses(Linter):
-        if cls.NAME == '__ignore__':
-            continue
-        res[cls.NAME] = {
+        item: t.Dict[str, t.Union[str, t.MutableMapping[str, str]]]
+        item = {
             'desc': cls.__doc__,
             'opts': cls.DEFAULT_OPTIONS,
         }
+        res[cls.__name__] = item
     return res
 
 
-def get_linter_by_name(name):
+def get_linter_by_name(name: str) -> t.Type[Linter]:
     """Get the linter class associated with the given name.
 
     :param str name: The name of the linter wanted.
-    :rtype: Linter or None
-    :returns: The linter with the attribute `NAME` equal to `name`. If there
-              are multiple linters with the name `name` the result can be any
-              one of these linters. If no linter can be found `None` is
-              returned
+    :returns: The linter with the attribute `__name__` equal to `name`. If
+        there are multiple linters with the name `name` the result can be any
+        one of these linters.
+    :raises ValueError: If the linter with the specified name is not found.
     """
     for linter in get_all_subclasses(Linter):
-        if linter.NAME == name:
+        if linter.__name__ == name:
             return linter
+    raise ValueError('No linter with name {} found.'.format(name))

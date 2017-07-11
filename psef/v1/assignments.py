@@ -2,23 +2,38 @@
 This module defines all API routes with the main directory "assignments". Thus
 the APIs in this module are mostly used to manipulate
 :class:`.models.Assignment` objects and their relations.
-"""
 
+:license: AGPLv3, see LICENSE for details.
+"""
 import os
+import typing as t
+import numbers
 import threading
 from random import shuffle
 from itertools import cycle
 
+import flask
 import dateutil
-from flask import jsonify, request, send_file, after_this_request
-from flask_login import current_user, login_required
+from flask import request, send_file, after_this_request
+from flask_login import login_required
 
+import psef
 import psef.auth as auth
 import psef.files
 import psef.models as models
+import psef.helpers as helpers
 import psef.linters as linters
-from psef import db, app
+from psef import db, app, current_user
 from psef.errors import APICodes, APIException
+from psef.helpers import (
+    JSONType,
+    JSONResponse,
+    EmptyResponse,
+    jsonify,
+    ensure_json_dict,
+    ensure_keys_in_dict,
+    make_empty_response
+)
 
 from . import linters as linters_routes
 from . import api
@@ -26,19 +41,18 @@ from . import api
 
 @api.route("/assignments/", methods=['GET'])
 @login_required
-def get_student_assignments():
+def get_student_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
     """Get all the :class:`.models.Assignment` objects that the current user can
     see.
 
-    :returns: A response containing the JSON serialized assignments
-    :rtype: flask.Response
+    .. :quickref: Assignment; Get all assignments.
+
+    :returns: An array of :py:class:`Assignment` items encoded in JSON.
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
-    perm_can_see = models.Permission.query.filter_by(
+    perm_can_see: models.Permission = models.Permission.query.filter_by(
         name='can_see_assignments').first()
-    perm_can_grade = models.Permission.query.filter_by(
-        name='can_grade_work').first()
     courses = []
 
     for course_role in current_user.courses.values():
@@ -48,8 +62,10 @@ def get_student_assignments():
     res = []
 
     if courses:
+        assignment: models.Assignment
         for assignment in models.Assignment.query.filter(
-                models.Assignment.course_id.in_(courses)).all():
+                models.Assignment.course_id.in_(courses)  # type: ignore
+        ).all():
             if ((not assignment.is_hidden) or current_user.has_permission(
                     'can_see_hidden_assignments', assignment.course_id)):
                 res.append(assignment)
@@ -57,12 +73,13 @@ def get_student_assignments():
 
 
 @api.route("/assignments/<int:assignment_id>", methods=['GET'])
-def get_assignment(assignment_id):
+def get_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
     """Return the given :class:`.models.Assignment`.
+
+    .. :quickref: Assignment; Get a single assignment by id.
 
     :param int assignment_id: The id of the assignment
     :returns: A response containing the JSON serialized assignment
-    :rtype: flask.Response
 
     :raises APIException: If no assignment with given id exists.
                           (OBJECT_ID_NOT_FOUND)
@@ -71,10 +88,13 @@ def get_assignment(assignment_id):
                                  assignment. (INCORRECT_PERMISSION)
     """
     assignment = models.Assignment.query.get(assignment_id)
+
     auth.ensure_permission('can_see_assignments', assignment.course_id)
+
     if assignment.is_hidden:
         auth.ensure_permission('can_see_hidden_assignments',
                                assignment.course_id)
+
     if assignment is None:
         raise APIException(
             'Assignment not found',
@@ -85,12 +105,15 @@ def get_assignment(assignment_id):
 
 
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
-def update_assignment(assignment_id):
+def update_assignment(assignment_id: int) -> EmptyResponse:
     """Update the given :class:`.models.Assignment` with new values.
+
+    :py:func:`psef.helpers.JSONResponse`
+
+    .. :quickref: Assignment; Update assignment information.
 
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
-    :rtype: (str, int)
 
     :raises APIException: If no assignment with given id exists.
                           (OBJECT_ID_NOT_FOUND)
@@ -108,15 +131,17 @@ def update_assignment(assignment_id):
 
     auth.ensure_permission('can_manage_course', assig.course_id)
 
-    content = request.get_json()
+    content = ensure_json_dict(request.get_json())
 
     if 'state' in content:
-        if content['state'] not in ['hidden', 'open', 'done']:
+        if (isinstance(content['state'], str) and
+                content['state'] in ['hidden', 'open', 'done']):
+            assig.set_state(content['state'])
+        else:
             raise APIException(
                 'The selected state is not valid',
                 'The state {} is not a valid state'.format(content['state']),
                 APICodes.INVALID_PARAM, 400)
-        assig.set_state(content['state'])
 
     if 'name' in content:
         if not isinstance(content['name'], str):
@@ -133,7 +158,10 @@ def update_assignment(assignment_id):
 
     if 'deadline' in content:
         try:
-            assig.deadline = dateutil.parser.parse(content['deadline'])
+            if isinstance(content['deadline'], str):
+                assig.deadline = dateutil.parser.parse(content['deadline'])
+            else:
+                raise ValueError
         except ValueError:
             raise APIException(
                 'The given deadline is not valid!',
@@ -142,16 +170,18 @@ def update_assignment(assignment_id):
 
     db.session.commit()
 
-    return '', 204
+    return make_empty_response()
 
 
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['GET'])
-def get_assignment_rubric(assignment_id):
+def get_assignment_rubric(
+        assignment_id: int) -> JSONResponse[t.Sequence[models.RubricRow]]:
     """Return the rubric corresponding to the given `assignment_id`.
+
+    .. :quickref: Assignment; Get the rubric of an assignment.
 
     :param int assignment_id: The id of the assignment
     :returns: A list of JSON of :class:`models.RubricRows` items
-    :rtype: flask.Response
 
     :raises APIException: If no assignment with given id exists.
                           (OBJECT_ID_NOT_FOUND)
@@ -179,12 +209,13 @@ def get_assignment_rubric(assignment_id):
 
 
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['PUT'])
-def add_assignment_rubric(assignment_id):
+def add_assignment_rubric(assignment_id: int) -> EmptyResponse:
     """Add or update rubric of an assignment.
+
+    .. :quickref: Assignment; Add a rubric to an assignment.
 
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
-    :rtype: (str, int)
 
     :raises APIException: If no assignment with given id exists.
                           (OBJECT_ID_NOT_FOUND)
@@ -204,62 +235,83 @@ def add_assignment_rubric(assignment_id):
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
     auth.ensure_permission('manage_rubrics', assig.course_id)
-    content = request.get_json()
+    content = ensure_json_dict(request.get_json())
 
     if 'rows' not in content or not isinstance(content['rows'], list):
         raise APIException('The rows are invalid',
                            'The rows provied are not valid',
                            APICodes.INVALID_PARAM, 400)
 
+    row: JSONType
     for row in content['rows']:
-        if ('header' not in row or 'description' not in row or
-                'items' not in row or not isinstance(row['items'], list)):
-            raise APIException('The provided row is invalid',
-                               'The provided row "{}" is invalid'.format(row),
-                               APICodes.INVALID_PARAM, 400)
+        # Check for object of form:
+        # {
+        #   'description': str,
+        #   'header': str,
+        #   'items': list
+        # }
+        row = ensure_json_dict(row)
+        ensure_keys_in_dict(row, [('description', str), ('header', str),
+                                  ('items', list)])
+        header = t.cast(str, row['header'])
+        description = t.cast(str, row['description'])
+        items = t.cast(list, row['items'])
+
         if 'id' in row:
-            patch_rubric_row(assig, row)
+            patch_rubric_row(assig, row['id'], items)
         else:
-            add_new_rubric_row(assig, row)
+            add_new_rubric_row(assig, header, description, items)
 
     db.session.commit()
-    return ('', 204)
+    return make_empty_response()
 
 
-def add_new_rubric_row(assig, row):
+def add_new_rubric_row(assig: models.Assignment,
+                       header: str,
+                       description: str,
+                       items: t.Sequence[JSONType]) -> None:
     """Add new rubric row to the assignment.
 
-    :param models.Assignment assig: The assignment to add the rubric row to
-    :param dict row: The row from content containing items and row information
-    :returns: None
+    :param assig: The assignment to add the rubric row to
+    :param header: The name of the new rubric row.
+    :param description: The description of the new rubric row.
+    :param items: The items (:py:class:`models.RubricItem`) that should be
+        added to the new rubric row, the JSONType should be a dictionary with
+        the keys ``description`` (:py:class:`str`) and ``points``
+        (:py:class:`float`).
+    :returns: Nothing.
 
     :raises APIException: If `description` or `points` fields are not in
                           `item`. (INVALID_PARAM)
     """
     rubric_row = models.RubricRow(
-        assignment_id=assig.id,
-        header=row['header'],
-        description=row['description'])
+        assignment_id=assig.id, header=header, description=description)
     db.session.add(rubric_row)
-    for item in row['items']:
-        if 'description' not in item or 'points' not in item:
-            raise APIException(
-                'The provided item is invalid',
-                'The provided item "{}" is invalid'.format(item),
-                APICodes.INVALID_PARAM, 400)
+    for item in items:
+        item = ensure_json_dict(item)
+        ensure_keys_in_dict(item, [('description', str),
+                                   ('points', numbers.Rational)])
+        description = t.cast(str, item['description'])
+        points = t.cast(numbers.Rational, item['points'])
         rubric_row.items.append(
             models.RubricItem(
                 rubricrow_id=rubric_row.id,
-                description=item['description'],
-                points=item['points']))
+                description=description,
+                points=points))
 
 
-def patch_rubric_row(assig, row):
+def patch_rubric_row(assig: models.Assignment,
+                     rubric_row_id: t.Any,
+                     items: t.Sequence[JSONType]) -> None:
     """Update a rubric row of the assignment.
 
     :param models.Assignment assig: The assignment to add the rubric row to
-    :param dict row: The row from content containing items and row information
-    :returns: None
+    :param rubric_row_id: The id of the rubric row that should be updated.
+    :param items: The items (:py:class:`models.RubricItem`) that should be
+        added or updated. The format should be the same as in
+        :py:func:`add_new_rubric_row` with the addition that if ``id`` is in
+        the item the item will be updated instead of added.
+    :returns: Nothing.
 
     :raises APIException: If no rubric row with given id exists.
                           (OBJECT_ID_NOT_FOUND)
@@ -268,40 +320,40 @@ def patch_rubric_row(assig, row):
     :raises APIException: If no rubric item with given id exists.
                           (OBJECT_ID_NOT_FOUND)
     """
-    rubric_row = models.RubricRow.query.get(row['id'])
+    rubric_row = models.RubricRow.query.get(rubric_row_id)
     if rubric_row is None:
         raise APIException(
             'Rubric row not found',
-            'The Rubric row with id "{}" was not found'.format(row['id']),
+            'The Rubric row with id "{}" was not found'.format(rubric_row_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
-    for item in row['items']:
-        if 'description' not in item or 'points' not in item:
-            raise APIException(
-                'The provided item is invalid',
-                'The provided item "{}" is invalid'.format(item),
-                APICodes.INVALID_PARAM, 400)
+
+    for item in items:
+        item = ensure_json_dict(item)
+        ensure_keys_in_dict(item, [('description', str), ('points',
+                                                          numbers.Rational)])
+        description = t.cast(str, item['description'])
+        points = t.cast(numbers.Rational, item['points'])
+
         if 'id' not in item:
             rubric_row.items.append(
                 models.RubricItem(
                     rubricrow_id=rubric_row.id,
-                    description=item['description'],
-                    points=item['points']))
+                    description=description,
+                    points=points))
         else:
-            rubric_item = models.RubricItem.query.get(item['id'])
-            if rubric_item is None:
-                raise APIException(
-                    'Rubric item not found',
-                    'The Rubric item with id "{}" was not found'.format(item[
-                        'id']), APICodes.OBJECT_ID_NOT_FOUND, 404)
-            rubric_item.description = item['description']
-            rubric_item.points = item['points']
+            rubric_item = helpers.get_or_404(models.RubricItem, item['id'])
+
+            rubric_item.description = description
+            rubric_item.points = float(points)
 
 
 @api.route(
     '/assignments/<int:assignment_id>/rubrics/<int:rubric_row>',
     methods=['DELETE'])
-def delete_rubricrow(assignment_id, rubric_row):
+def delete_rubricrow(assignment_id: int, rubric_row: int) -> EmptyResponse:
     """Delete rubric row of the assignment.
+
+    .. :quickref: Assignment; Delete a rubric row of an assignment.
 
     :param int assignment_id: The id of the assignment
     :param int rubric_row: The id of the rubric row
@@ -326,17 +378,18 @@ def delete_rubricrow(assignment_id, rubric_row):
     db.session.delete(row)
     db.session.commit()
 
-    return '', 204
+    return make_empty_response()
 
 
 @api.route("/assignments/<int:assignment_id>/submission", methods=['POST'])
-def upload_work(assignment_id):
+def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
     """Upload one or more files as :class:`.models.Work` to the given
     :class:`.models.Assignment`
 
+    .. :quickref: Assignment; Create work by uploading a file.
+
     :param int assignment_id: The id of the assignment
-    :returns: A the JSON serialized submission and return code 201.
-    :rtype: (flask.Response, int)
+    :returns: A JSON serialized work and with the status code 201.
 
     :raises APIException: If the request is bigger than the maximum upload
                           size. (REQUEST_TOO_LARGE)
@@ -355,10 +408,11 @@ def upload_work(assignment_id):
 
     if (request.content_length and
             request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException('Uploaded files are too big.', (
-            'Request is bigger than maximum ' + 'upload size of {}.'
-        ).format(app.config['MAX_UPLOAD_SIZE']), APICodes.REQUEST_TOO_LARGE,
-                           400)
+        raise APIException(
+            'Uploaded files are too big.',
+            ('Request is bigger than maximum ' +
+             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
+            APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
@@ -398,17 +452,18 @@ def upload_work(assignment_id):
 
     db.session.commit()
 
-    return jsonify(work), 201
+    return jsonify(work, status_code=201)
 
 
 @api.route('/assignments/<int:assignment_id>/divide', methods=['PATCH'])
-def divide_assignments(assignment_id):
+def divide_assignments(assignment_id: int) -> EmptyResponse:
     """Assign graders to all the latest :class:`.models.Work` objects of
     the given :class:`.models.Assignment`.
 
+    .. :quickref: Assignment; Divide a submission among given TA's.
+
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
-    :rtype: (str, int)
 
     :raises APIException: If no assignment with given id exists or the
                           assignment has no submissions. (OBJECT_ID_NOT_FOUND)
@@ -430,7 +485,7 @@ def divide_assignments(assignment_id):
             'The assignment with code {} was not found'.format(assignment_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    content = request.get_json()
+    content = ensure_json_dict(request.get_json())
 
     if 'graders' not in content or not isinstance(
             content['graders'], list) or len(content['graders']) == 0:
@@ -446,9 +501,9 @@ def divide_assignments(assignment_id):
             'No submissions found for assignment {}'.format(assignment_id),
             APICodes.OBJECT_ID_NOT_FOUND, 404)
 
-    users = models.User.query.filter(models.User.id.in_(content[
-        'graders'])).all()
-    if len(users) != len(content['graders']):
+    users: t.Optional[models.User] = models.User.query.filter(
+        models.User.id.in_(content['graders'])).all()  # type: ignore
+    if users is None or len(users) != len(content['graders']):
         raise APIException('Invalid grader id given',
                            'Invalid grader (=user) id given',
                            APICodes.INVALID_PARAM, 400)
@@ -465,17 +520,26 @@ def divide_assignments(assignment_id):
         submission.assigned_to = grader
 
     db.session.commit()
-    return ('', 204)
+
+    return make_empty_response()
 
 
 @api.route('/assignments/<int:assignment_id>/graders', methods=['GET'])
-def get_all_graders(assignment_id):
+def get_all_graders(
+        assignment_id: int
+) -> JSONResponse[t.Sequence[t.Mapping[str, t.Union[int, str, bool]]]]:
     """Gets a list of all :class:`.models.User` objects who can grade the given
     :class:`.models.Assignment`.
 
+    .. :quickref: Assignment; Get all graders for an assignment.
+
     :param int assignment_id: The id of the assignment
     :returns: A response containing the JSON serialized graders.
-    :rtype: flask.Response
+
+    :>jsonarr string name: The name of the grader.
+    :>jsonarr int id: The user id of this grader.
+    :>jsonarr bool divided: Is this user assigned to any submission for this
+        assignment.
 
     :raises APIException: If no assignment with given id exists.
                           (OBJECT_ID_NOT_FOUND)
@@ -500,18 +564,21 @@ def get_all_graders(assignment_id):
             models.user_course,
             models.User.id == models.user_course.c.user_id).subquery('us')
     per = db.session.query(models.course_permissions.c.course_role_id).join(
-        models.CourseRole, models.CourseRole.id ==
-        models.course_permissions.c.course_role_id).filter(
-            models.course_permissions.c.permission_id == permission,
-            models.CourseRole.course_id ==
-            assignment.course_id).subquery('per')
-    result = db.session.query(us.c.name, us.c.id).join(
-        per, us.c.course_id == per.c.course_role_id).order_by(us.c.name).all()
+        models.CourseRole,
+        models.CourseRole.id == models.course_permissions.c.course_role_id
+    ).filter(
+        models.course_permissions.c.permission_id == permission,
+        models.CourseRole.course_id == assignment.course_id).subquery('per')
+    result: t.Sequence[t.Tuple[str, int]] = db.session.query(
+        us.c.name, us.c.id).join(
+            per,
+            us.c.course_id == per.c.course_role_id).order_by(us.c.name).all()
 
-    divided = set(r[0]
-                  for r in db.session.query(models.Work.assigned_to).filter(
-                      models.Work.assignment_id == assignment_id).group_by(
-                          models.Work.assigned_to).all())
+    divided: t.Set[str] = set(
+        r[0]
+        for r in db.session.query(models.Work.assigned_to).filter(
+            models.Work.assignment_id == assignment_id).group_by(
+                models.Work.assigned_to).all())
 
     return jsonify([{
         'id': res[1],
@@ -521,13 +588,15 @@ def get_all_graders(assignment_id):
 
 
 @api.route('/assignments/<int:assignment_id>/submissions/', methods=['GET'])
-def get_all_works_for_assignment(assignment_id):
+def get_all_works_for_assignment(
+        assignment_id: int) -> JSONResponse[t.Sequence[models.Work]]:
     """Return all :class:`.models.Work` objects for the given
     :class:`.models.Assignment`.
 
+    .. :quickref: Assignment; Get all works for an assignment.
+
     :param int assignment_id: The id of the assignment
     :returns: A response containing the JSON serialized submissions.
-    :rtype: flask.Response
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the assignment is hidden and the user is
@@ -545,38 +614,35 @@ def get_all_works_for_assignment(assignment_id):
         auth.ensure_permission('can_see_hidden_assignments',
                                assignment.course_id)
 
-    res = obj.order_by(models.Work.created_at.desc()).all()
+    res: t.Sequence[models.Work] = (
+        obj.order_by(models.Work.created_at.desc()).all())  # type: ignore
 
     return jsonify(res)
 
 
 @api.route("/assignments/<int:assignment_id>/submissions/", methods=['POST'])
-def post_submissions(assignment_id):
+def post_submissions(assignment_id: int) -> EmptyResponse:
     """Add submissions to the  given:class:`.models.Assignment` from a
     blackboard zip file as :class:`.models.Work` objects.
 
+    .. :quickref: Assignment; Create works from a blackboard zip.
+
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
-    :rtype: (str, int)
+
+    .. todo:: Merge this endpoint and ``upload_work`` together.
 
     :raises APIException: If no assignment with given id exists.
-                          (OBJECT_ID_NOT_FOUND)
+        (OBJECT_ID_NOT_FOUND)
     :raises APIException: If there was no file in the request.
-                          (MISSING_REQUIRED_PARAM)
+        (MISSING_REQUIRED_PARAM)
     :raises APIException: If the file parameter name is incorrect.
-                          (INVALID_PARAM)
+        (INVALID_PARAM)
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the user is not allowed to manage the
-                                 course attached to the assignment.
-                                 (INCORRECT_PERMISSION)
+        course attached to the assignment. (INCORRECT_PERMISSION)
     """
-    assignment = models.Assignment.query.get(assignment_id)
-
-    if not assignment:
-        raise APIException(
-            'Assignment not found',
-            'The assignment with code {} was not found'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    assignment = helpers.get_or_404(models.Assignment, assignment_id)
     auth.ensure_permission('can_manage_course', assignment.course_id)
 
     if len(request.files) == 0:
@@ -590,7 +656,7 @@ def post_submissions(assignment_id):
                            'Expected ^file$ got [{}].'.format(key_string),
                            APICodes.INVALID_PARAM, 400)
 
-    file = request.files['file']
+    file: 'FileStorage' = request.files['file']
     try:
         submissions = psef.files.process_blackboard_zip(file)
     except:
@@ -603,10 +669,12 @@ def post_submissions(assignment_id):
                 name=submission_info.student_name).first()
 
             if user is None:
+                # TODO: Check if this role still exists
                 perms = {
                     assignment.course_id:
                     models.CourseRole.query.filter_by(
-                        name='Student', course_id=assignment.course_id).first()
+                        name='Student',
+                        course_id=assignment.course_id).first()
                 }
                 user = models.User(
                     name=submission_info.student_name,
@@ -630,16 +698,28 @@ def post_submissions(assignment_id):
 
     db.session.commit()
 
-    return '', 204
+    return make_empty_response()
 
 
 @api.route('/assignments/<int:assignment_id>/linters/', methods=['GET'])
-def get_linters(assignment_id):
-    """Get all possible linters for the given :class:`.models.Assignment`.
+def get_linters(
+        assignment_id) -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
+    """Get all linters for the given :class:`.models.Assignment`.
+
+    .. :quickref: Assignment; Get all linters for a assignment.
 
     :param int assignment_id: The id of the assignment
-    :returns: A response containing the JSON serialized linters
+    :returns: A response containing the JSON serialized linters which is sorted
+        by the name of the linter.
     :rtype: flask.Response
+
+    :>jsonarr str state: The state of the linter, which can be ``new``, or any
+        state from :py:class:`models.LinterState`.
+    :>jsonarr str name: The name of this linter.
+    :>jsonarr str id: The id of the linter, this will only be present when
+        ``state`` is not ``new``.
+    :>jsonarr ``*rest``: All items as described in
+        :py:func:`linters.get_all_linters`
 
     :raises APIException: If no assignment with given id exists.
                           (OBJECT_ID_NOT_FOUND)
@@ -690,14 +770,15 @@ def get_linters(assignment_id):
 
 
 @api.route('/assignments/<int:assignment_id>/linter', methods=['POST'])
-def start_linting(assignment_id):
+def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
     """Starts running a specific linter on all the latest submissions
     (:class:`.models.Work`) of the given :class:`.models.Assignment`.
+
+    .. :quickref: Assignment; Start linting an assignment with a given linter.
 
     :param int assignment_id: The id of the assignment
     :returns: A response containing the serialized linter that is started by
               the request
-    :rtype: flask.Response
 
     :raises APIException: If a required parameter is missing.
                           (MISSING_REQUIRED_PARAM)
@@ -727,6 +808,7 @@ def start_linting(assignment_id):
 
     perm = models.Assignment.query.get(assignment_id)
     auth.ensure_permission('can_use_linter', perm.course_id)
+
     res = models.AssignmentLinter.create_tester(assignment_id, content['name'])
     db.session.add(res)
     db.session.commit()
@@ -738,13 +820,17 @@ def start_linting(assignment_id):
         thread = threading.Thread(
             target=runner.run,
             args=([t.work_id for t in res.tests], [t.id for t in res.tests],
-                  ('{}api/v1/linter' + '_comments/{}').format(request.url_root,
-                                                              '{}')))
+                  ('{}api/v1/linter' + '_comments/{}').format(
+                      request.url_root, '{}')))
 
         thread.start()
     except:
         for test in res.tests:
             test.state = models.LinterState.crashed
         db.session.commit()
-    finally:
-        return linters_routes.get_linter_state(res.id)
+
+    return jsonify(res)
+
+
+if t.TYPE_CHECKING:
+    from werkzeug.datastructures import FileStorage  # noqa

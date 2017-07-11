@@ -146,7 +146,6 @@ export default {
         },
 
         gradeAndRubricPoints(value) {
-            console.log(value, parseFloat(value));
             this.grade = parseFloat(value);
         },
     },

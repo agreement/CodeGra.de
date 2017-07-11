@@ -5,25 +5,44 @@ functions are defined to get related objects and information.
 """
 
 import os
+import typing as t
+import numbers
 import zipfile
 import tempfile
 
-from flask import jsonify, request, send_file, make_response, after_this_request
-from flask_login import current_user, login_required
+from flask import request, send_file, make_response, after_this_request
+from flask_login import login_required
 
 import psef.auth as auth
 import psef.files
 import psef.models as models
-from psef import db
+import psef.helpers as helpers
+from psef import db, current_user
 from psef.errors import APICodes, APIException
+from psef.helpers import (
+    JSONType,
+    JSONResponse,
+    EmptyResponse,
+    jsonify,
+    ensure_json_dict,
+    ensure_keys_in_dict,
+    make_empty_response
+)
 
 from . import api
+
+if t.TYPE_CHECKING:
+    import werkzeug
 
 
 @api.route("/submissions/<int:submission_id>", methods=['GET'])
 @login_required
-def get_submission(submission_id):
+def get_submission(
+        submission_id: int
+) -> t.Union[JSONResponse[models.Work], 'werkzeug.wrappers.Response']:
     """Get the given submission (:class:`.models.Work`).
+
+    .. :quickref: Submission; Get a single submission.
 
     This API has some options based on the 'type' argument in the request
 
@@ -43,145 +62,42 @@ def get_submission(submission_id):
                                  work in the attached course.
                                  (INCORRECT_PERMISSION)
     """
-
-    # check if feedback is visible
-
-    work = db.session.query(models.Work).get(submission_id)
+    work = helpers.get_or_404(models.Work, submission_id)
 
     if work.user_id != current_user.id:
         auth.ensure_permission('can_see_others_work',
                                work.assignment.course_id)
 
-    if work is None:
-        raise APIException(
-            'Work submission not found',
-            'The submission with code {} was not found'.format(submission_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
-
     if request.args.get('type') == 'zip':
         return get_zip(work)
-
-    if request.args.get('type') == 'feedback':
+    elif request.args.get('type') == 'feedback':
         if work.assignment.state != models._AssignmentStateEnum.done:
-            raise APIException(
-                'Feedback not visible',
-                'The assignment state was not set to done',
-                APICodes.INVALID_STATE, 405)
+            raise APIException('Feedback not visible',
+                               'The assignment state was not set to done',
+                               APICodes.INVALID_STATE, 405)
         return get_feedback(work)
-
     return jsonify(work)
 
 
-@api.route("/submissions/<int:submission_id>/rubrics/", methods=['GET'])
-def get_rubric(submission_id):
-    """Return full rubric of the :class:`.models.Assignment` of the given
-    submission (:class:`.models.Work`).
-
-    :param int submission_id: The id of the submission
-    :returns: A response containing the JSON serialized rubric
-    :rtype: flask.Response
-
-    :raises APIException: If the submission with the given id does not exist.
-                          (OBJECT_ID_NOT_FOUND)
-    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
-    :raises PermissionException: If the user can not see the assignment of the
-                                 given submission. (INCORRECT_PERMISSION)
-    """
-    work = models.Work.query.get(submission_id)
-    if work is None:
-        raise APIException(
-            'Work submission not found',
-            'The submission with code {} was not found'.format(submission_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
-
-    auth.ensure_permission('can_see_assignments', work.assignment.course_id)
-
-    try:
-        auth.ensure_can_see_grade(work)
-
-        return jsonify({
-            'rubrics': work.assignment.rubric_rows,
-            'selected': work.selected_items,
-            'points': {
-                'max': work.assignment.max_rubric_points,
-                'selected': work.selected_rubric_points,
-            },
-        })
-    except auth.PermissionException:
-        return jsonify({
-            'rubrics': work.assignment.rubric_rows,
-        })
-
-
-@api.route(
-    "/submissions/<int:submission_id>/rubricitems/<int:rubricitem_id>",
-    methods=['PATCH'])
-def select_rubric_item(submission_id, rubricitem_id):
-    """Select a rubric item of the given submission (:class:`.models.Work`).
-
-    :param int submission_id: The id of the submission
-    :param int rubricitem_id: The id of the rubric item
-    :returns: A response containing the JSON serialized rubric
-    :rtype: flask.Response
-
-    :raises APIException: If either the submission or rubric item with the
-                          given ids does not exist. (OBJECT_ID_NOT_FOUND)
-    :raises APIException: If the assignment of the rubric is not the assignment
-                          of the submission. (INVALID_PARAM)
-    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
-    :raises PermissionException: If the user can not grade the given submission
-                                 (INCORRECT_PERMISSION)
-    """
-    work = models.Work.query.get(submission_id)
-    if work is None:
-        raise APIException(
-            'Work submission not found',
-            'The submission with code {} was not found'.format(submission_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
-
-    rubric_item = models.RubricItem.query.get(rubricitem_id)
-    if rubric_item is None:
-        raise APIException(
-            'Rubric item not found',
-            'The rubric item with id {} was not found'.format(rubricitem_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
-
-    auth.ensure_permission('can_grade_work', work.assignment.course_id)
-    if rubric_item.rubricrow.assignment_id != work.assignment_id:
-        raise APIException(
-            'Rubric item selected does not match assignment',
-            'The rubric item with id {} does not match the assignment'.format(
-                rubricitem_id), APICodes.INVALID_PARAM, 400)
-
-    work.remove_selected_rubric_item(rubric_item.rubricrow_id)
-    work.select_rubric_item(rubric_item)
-    db.session.commit()
-
-    return jsonify({
-        'selected': work.selected_rubric_points,
-        'max': work.assignment.max_rubric_points,
-        'grade': work.grade,
-    }), 201
-
-
-def get_feedback(work):
+def get_feedback(work: models.Work) -> 'werkzeug.wrappers.Response':
     """Get the feedback of :class:`.models.Work` as a plain text file.
 
-    :param models.Work work: The submission with the required feedback
-    :returns: A response with the plain text feedback as attached file
-    :rtype: flask.Response
+    :param work: The submission with the required feedback.
+    :returns: A response with the plain text feedback as attached file.
     """
-    comments = models.Comment.query.filter(
-        models.Comment.file.has(work=work)).order_by(
-            models.Comment.file_id.asc(), models.Comment.line.asc())
+    comments: t.Sequence[models.Comment] = models.Comment.query.filter(
+        models.Comment.file.has(work=work)).order_by(  # type: ignore
+            models.Comment.file_id.asc(),  # type: ignore
+            models.Comment.line.asc())  # type: ignore
 
+    linter_comments: t.Sequence[models.LinterComment]
     linter_comments = models.LinterComment.query.filter(
-        models.LinterComment.file.has(work=work)).order_by(
-            models.LinterComment.file_id.asc(),
-            models.LinterComment.line.asc())
+        models.LinterComment.file.has(  # type: ignore
+            work=work)).order_by(  # type: ignore
+                models.LinterComment.file_id.asc(),  # type: ignore
+                models.LinterComment.line.asc())  # type: ignore
 
-    filename = '{}-{}-feedback.txt'.format(work.assignment.name,
-                                           work.user.name)
+    filename = f'{work.assignment.name}-{work.user.name}-feedback.txt'
 
     fd, file = tempfile.mkstemp()
     with open(file, 'w') as fp:
@@ -209,12 +125,11 @@ def get_feedback(work):
     return send_file(file, attachment_filename=filename, as_attachment=True)
 
 
-def get_zip(work):
+def get_zip(work: models.Work) -> 'werkzeug.wrappers.Response':
     """Return a :class:`.models.Work` as a zip file.
 
-    :param models.Work work: The submission which should be returns as zip file
-    :returns: A response with the zip as attached file
-    :rtype: flask.Response
+    :param work: The submission which should be returns as zip file.
+    :returns: A response with the zip as attached file.
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If submission does not belong to the current
@@ -224,12 +139,14 @@ def get_zip(work):
     if (work.user_id != current_user.id):
         auth.ensure_permission('can_view_files', work.assignment.course_id)
 
-    code = models.File.query.filter(models.File.work_id == work.id,
-                                    models.File.parent_id == None).one() # noqa
+    code = models.File.query.filter(
+        models.File.work_id == work.id,
+        models.File.parent_id == None).one()  # noqa
 
     with tempfile.TemporaryFile(mode='w+b') as fp:
         with tempfile.TemporaryDirectory() as tmpdir:
-            files = psef.files.restore_directory_structure(code, tmpdir)
+            # Restore the files to tmpdir
+            psef.files.restore_directory_structure(code, tmpdir)
 
             zipf = zipfile.ZipFile(fp, 'w', compression=zipfile.ZIP_DEFLATED)
             for root, dirs, files in os.walk(tmpdir):
@@ -248,13 +165,76 @@ def get_zip(work):
         return response
 
 
+@api.route("/submissions/<int:submission_id>/rubrics/", methods=['GET'])
+def get_rubric(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
+    """Return full rubric of the :class:`.models.Assignment` of the given
+    submission (:class:`.models.Work`).
+
+    .. :quickref: Submission; Get a rubric and its selected items.
+
+    :param int submission_id: The id of the submission
+    :returns: A response containing the JSON serialized rubric as described in
+        :py:meth:`.Work.__rubric_to_json__`.
+
+    :raises APIException: If the submission with the given id does not exist.
+                          (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If the user can not see the assignment of the
+                                 given submission. (INCORRECT_PERMISSION)
+    """
+    work = helpers.get_or_404(models.Work, submission_id)
+    auth.ensure_permission('can_see_assignments', work.assignment.course_id)
+    return jsonify(work.__rubric_to_json__())
+
+
+@api.route(
+    "/submissions/<int:submission_id>/rubricitems/<int:rubricitem_id>",
+    methods=['PATCH'])
+def select_rubric_item(submission_id,
+                       rubricitem_id) -> JSONResponse[t.Mapping[str, t.Any]]:
+    """Select a rubric item of the given submission (:class:`.models.Work`).
+
+    .. :quickref: Submission; Select a rubric item.
+
+    :param int submission_id: The id of the submission
+    :param int rubricitem_id: The id of the rubric item
+    :returns: A response containing the JSON serialized rubric and a status
+        code of 201. The rubric is serialized as described in
+        :py:meth:`.Work.__rubric_to_json__()`.
+
+    :raises APIException: If either the submission or rubric item with the
+                          given ids does not exist. (OBJECT_ID_NOT_FOUND)
+    :raises APIException: If the assignment of the rubric is not the assignment
+                          of the submission. (INVALID_PARAM)
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If the user can not grade the given submission
+                                 (INCORRECT_PERMISSION)
+    """
+    work = helpers.get_or_404(models.Work, submission_id)
+    rubric_item = helpers.get_or_404(models.RubricItem, rubricitem_id)
+
+    auth.ensure_permission('can_grade_work', work.assignment.course_id)
+    if rubric_item.rubricrow.assignment_id != work.assignment_id:
+        raise APIException(
+            'Rubric item selected does not match assignment',
+            'The rubric item with id {} does not match the assignment'.format(
+                rubricitem_id), APICodes.INVALID_PARAM, 400)
+
+    work.remove_selected_rubric_item(rubric_item.rubricrow_id)
+    work.select_rubric_item(rubric_item)
+    db.session.commit()
+
+    return jsonify(work.__rubric_to_json__(), status_code=201)
+
+
 @api.route("/submissions/<int:submission_id>", methods=['PATCH'])
-def patch_submission(submission_id):
+def patch_submission(submission_id) -> EmptyResponse:
     """Update the given submission (:class:`.models.Work`) if it already exists.
+
+    .. :quickref: Submission; Update a submissions grade and feedback.
 
     :param int submission_id: The id of the submission
     :returns: Empty response with return code 204
-    :rtype: (str, int)
 
     :raise APIException: If the submission with the given id does not exist
         (OBJECT_ID_NOT_FOUND)
@@ -266,55 +246,47 @@ def patch_submission(submission_id):
     :raises PermissionException: If user can not grade the submission with the
         given id (INCORRECT_PERMISSION)
     """
+    work = helpers.get_or_404(models.Work, submission_id)
     work = db.session.query(models.Work).get(submission_id)
-    content = request.get_json()
-
-    if not work:
-        raise APIException(
-            'Submission not found',
-            'The submission with code {} was not found'.format(submission_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    content = ensure_json_dict(request.get_json())
 
     auth.ensure_permission('can_grade_work', work.assignment.course_id)
-    if 'grade' not in content or 'feedback' not in content:
-        raise APIException('Grade or feedback not provided',
-                           'Grade and or feedback fields missing in sent JSON',
-                           APICodes.MISSING_REQUIRED_PARAM, 400)
 
-    if not isinstance(content['grade'], float):
-        try:
-            content['grade'] = float(content['grade'])
-        except ValueError:
-            raise APIException(
-                'Grade submitted not a number',
-                'Grade for work with id {} not a number'.format(submission_id),
-                APICodes.INVALID_PARAM, 400)
+    ensure_keys_in_dict(content, [('grade', numbers.Rational), ('feedback',
+                                                                str)])
+    feedback = t.cast(str, content['feedback'])
+    grade = float(t.cast(numbers.Rational, content['grade']))
 
-    if content['grade'] < 0 or content['grade'] > 10:
+    if not 0 <= grade <= 10:
         raise APIException(
             'Grade submitted not between 0 and 10',
             'Grade for work with id {} is {} which is not between 0 and 10'.
             format(submission_id,
                    content['grade']), APICodes.INVALID_PARAM, 400)
 
-    work.grade = content['grade']
-    work.comment = content['feedback']
+    work.grade = grade
+    work.comment = feedback
     db.session.commit()
-    return '', 204
+    return make_empty_response()
 
 
 @api.route("/submissions/<int:submission_id>/files/", methods=['GET'])
-def get_dir_contents(submission_id):
+def get_dir_contents(submission_id) -> JSONResponse[psef.files.FileTree]:
     """Return the file directory info of a file of the given submission
     (:class:`.models.Work`).
+
+    .. :quickref: Submission; Get the directory contents for a submission.
 
     The default file is the root of the submission, but a specific file can be
     specified with the file_id argument in the request.
 
     :param int submission_id: The id of the submission
     :returns: A response with the JSON serialized directory structure as
-              content and return code 200
-    :rtype: (flask.Response, int)
+        content and return code 200. For the exact structure see
+        :py:meth:`.File.list_contents`.
+
+    :query int file_id: The file id of the directory to get. If this is not
+        given the parent directory for the specified submission is used.
 
     :raise APIException: If the submission with the given id does not exist or
                          when a file id was specified no file with this id
@@ -329,39 +301,28 @@ def get_dir_contents(submission_id):
                                  user and the user can not view files in the
                                  attached course. (INCORRECT_PERMISSION)
     """
-    work = models.Work.query.get(submission_id)
-    if work is None:
-        raise APIException(
-            'Submission not found',
-            'The submission with code {} was not found'.format(submission_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+    work = helpers.get_or_404(models.Work, submission_id)
 
     if (work.user_id != current_user.id):
         auth.ensure_permission('can_view_files', work.assignment.course_id)
 
     file_id = request.args.get('file_id')
     if file_id:
-        file = models.File.query.get(file_id)
-        if file is None:
-            raise APIException(
-                'File not found',
-                'The file with code {} was not found'.format(file_id),
-                APICodes.OBJECT_ID_NOT_FOUND, 404)
+        file = helpers.get_or_404(models.File, file_id)
+
         if (file.work_id != submission_id):
             raise APIException(
                 'Incorrect URL',
                 'The identifiers in the URL do no match those related to the '
                 'file with code {}'.format(file.id), APICodes.INVALID_URL, 400)
     else:
-        file = models.File.query.filter(models.File.work_id == submission_id,
-                                        models.File.parent_id == None).one() # noqa
+        file = helpers.filter_single_or_404(
+            models.File, models.File.work_id == submission_id,
+            models.File.parent_id == None)  # NOQA
 
     if not file.is_directory:
-        raise APIException(
-            'File is not a directory',
-            'The file with code {} is not a directory'.format(file.id),
-            APICodes.OBJECT_WRONG_TYPE, 400)
+        raise APIException('File is not a directory',
+                           f'The file with code {file.id} is not a directory',
+                           APICodes.OBJECT_WRONG_TYPE, 400)
 
-    dir_contents = jsonify(file.list_contents())
-
-    return dir_contents, 200
+    return jsonify(file.list_contents())

@@ -1,13 +1,15 @@
 # -*- py-isort-options: '("-sg *"); -*-
 # Import flask and template operators
 from flask import Flask, render_template, g
+import typing as t
+import os
+
 import datetime
 import json
-from flask_login import LoginManager
-import os
-import logging
+import flask_login
 
-from logging.handlers import RotatingFileHandler
+from werkzeug.local import LocalProxy
+
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -32,31 +34,46 @@ def set_request_start_time():
     g.request_start_time = datetime.datetime.utcnow()
 
 
-login_manager = LoginManager()
+login_manager = flask_login.LoginManager()
 login_manager.init_app(app)
 
-LTI_ROLE_LOOKUPS = {}
+LTI_ROLE_LOOKUPS = {
+}  # type: t.Mapping[str, t.Mapping[str, t.Union[str, bool]]]
 """A LTI role to psef role lookup dictionary.
 
 .. note::
     The roles are both course and user roles.
 """
 
-with open(
-        os.path.join(
-            os.path.dirname(os.path.realpath(__file__)), '..', 'seed_data',
-            'lti_lookups.json'), 'r') as f:
-    LTI_ROLE_LOOKUPS = json.load(f)
 
-import psef.auth
-import psef.json
-import psef.models
-import psef.errors
-import psef.files
-import psef.lti
+def seed_lti_lookups():
+    global LTI_ROLE_LOOKUPS  # NOQA
+    _seed_data_path = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), '..', 'seed_data',
+        'lti_lookups.json')
+    with open(_seed_data_path, 'r') as f:
+        LTI_ROLE_LOOKUPS = json.load(f)
+
+
+seed_lti_lookups()
+
+import psef.models  # NOQA
+
+if t.TYPE_CHECKING:
+    current_user: 'psef.models.User' = None
+else:
+    current_user = LocalProxy(lambda: flask_login.current_user)
+
+import psef.auth  # NOQA
+import psef.json  # NOQA
+import psef.errors  # NOQA
+import psef.files  # NOQA
+import psef.lti  # NOQA
+import psef.errors  # NOQA
+import psef.helpers  # NOQA
 
 # Register blueprint(s)
-from .v1 import api as api_v1_blueprint
+from .v1 import api as api_v1_blueprint  # NOQA
 app.register_blueprint(api_v1_blueprint, url_prefix='/api/v1')
 
 

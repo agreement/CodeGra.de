@@ -34,6 +34,7 @@
                             type="number"
                             class="item-points"
                             placeholder="Item points"
+                            v-on:change="item.points = parseFloat(item.points)"
                             v-model="item.points">
                         <span class="sep">-</span>
                         <textarea

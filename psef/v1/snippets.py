@@ -3,26 +3,39 @@ This module defines all API routes with the main directory "snippet" or
 "snippets. These APIs can be used to add, modify, delete and retrieve the
 snippets of the current user.
 """
+import typing as t
 
-from flask import jsonify, request
-from flask_login import current_user
+from flask import request
 
 import psef.auth as auth
 import psef.models as models
-from psef import db
+import psef.helpers as helpers
+from psef import db, current_user
 from psef.errors import APICodes, APIException
+from psef.helpers import (
+    JSONType,
+    JSONResponse,
+    EmptyResponse,
+    jsonify,
+    ensure_json_dict,
+    ensure_keys_in_dict,
+    make_empty_response
+)
 
 from . import api
 
 
 @api.route('/snippet', methods=['PUT'])
 @auth.permission_required('can_use_snippets')
-def add_snippet():
+def add_snippet() -> JSONResponse[models.Snippet]:
     """Add or modify a :class:`.models.Snippet` by key.
 
+    .. :quickref: Snippet; Add or modify a snippet.
+
     :returns: A response containing the JSON serialized snippet and return
-              code 201
-    :rtype: (flask.Response, int)
+              code 201.
+    :<json str value: The new value of the snippet.
+    :<json str key: The key of the new or existing snippet.
 
     :raises APIException: If the parameters "key" and/or "value" were not in
                           the request. (MISSING_REQUIRED_PARAM)
@@ -30,55 +43,54 @@ def add_snippet():
     :raises PermissionException: If the user can not user snippets
                                  (INCORRECT_PERMISSION)
     """
-    content = request.get_json()
-    if 'key' not in content or 'value' not in content:
-        raise APIException(
-            'Not all required keys were in content',
-            'The given content ({}) does  not contain "key" and "value"'.
-            format(content), APICodes.MISSING_REQUIRED_PARAM, 400)
+    content = ensure_json_dict(request.get_json())
+    ensure_keys_in_dict(content, [('value', str), ('key', str)])
+    value = t.cast(str, content['value'])
 
-    snippet = models.Snippet.query.filter_by(
+    snippet: models.Snippet = models.Snippet.query.filter_by(
         user_id=current_user.id, key=content['key']).first()
     if snippet is None:
         snippet = models.Snippet(
             key=content['key'], value=content['value'], user=current_user)
         db.session.add(snippet)
     else:
-        snippet.value = content['value']
+        snippet.value = value
+
     db.session.commit()
 
-    return jsonify(snippet), 201
+    return jsonify(snippet, status_code=201)
 
 
 @api.route('/snippets/', methods=['GET'])
 @auth.permission_required('can_use_snippets')
-def get_snippets():
+def get_snippets() -> JSONResponse[t.Sequence[models.Snippet]]:
     """Get all snippets (:class:`.models.Snippet`) of the curren
     :class:`.models.User`.
 
-    :returns: The JSON serialized snippets or an empty response with return
-              code 204
-    :rtype: flask.Response or (str, int)
+    .. :quickref: Snippet; Get all snippets for the currently logged in user.
+
+    :returns: The an array containing all snippets for the currently logged in
+        user.
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the user can not user snippets.
         (INCORRECT_PERMISSION)
     """
-    res = models.Snippet.get_all_snippets(current_user)
-    if res:
-        return jsonify(res)
-    else:
-        return '', 204
+    return jsonify(models.Snippet.get_all_snippets(current_user))
 
 
 @api.route('/snippets/<int:snippet_id>', methods=['PATCH'])
 @auth.permission_required('can_use_snippets')
-def patch_snippet(snippet_id):
+def patch_snippet(snippet_id) -> EmptyResponse:
     """Modify the :class:`.models.Snippet` with the given id.
 
-    :param int snippet_id: The id of the snippet
-    :returns: An empty response with return code 204
-    :rtype: (str, int)
+    .. :quickref: Snippet; Change a snippets key and value.
+
+    :param int snippet_id: The id of the snippet to change.
+    :returns: An empty response with return code 204.
+
+    :<json str key: The new key of the snippet.
+    :<json str value: The new value of the snippet.
 
     :raises APIException: If the parameters "key" and/or "value" were not in
                           the request. (MISSING_REQUIRED_PARAM)
@@ -88,38 +100,36 @@ def patch_snippet(snippet_id):
     :raises PermissionException: If the user can not use snippets.
                                  (INCORRECT_PERMISSION)
     """
-    content = request.get_json()
-    if 'key' not in content or 'value' not in content:
-        raise APIException(
-            'Not all required keys were in content',
-            'The given content ({}) does  not contain "key" and "value"'.
-            format(content), APICodes.MISSING_REQUIRED_PARAM, 400)
-    snip = models.Snippet.query.get(snippet_id)
-    if snip is None:
-        raise APIException('Snippet not found',
-                           'The snippet with id {} was not found'.format(snip),
-                           APICodes.OBJECT_ID_NOT_FOUND, 404)
+    content = ensure_json_dict(request.get_json())
+
+    ensure_keys_in_dict(content, [('key', str), ('value', str)])
+    key = t.cast(str, content['key'])
+    value = t.cast(str, content['value'])
+
+    snip = helpers.get_or_404(models.Snippet, snippet_id)
+
     if snip.user_id != current_user.id:
         raise APIException(
             'The given snippet is not your snippet',
             'The snippet "{}" does not belong to user "{}"'.format(
                 snip.id, current_user.id), APICodes.INCORRECT_PERMISSION, 403)
 
-    snip.key = content['key']
-    snip.value = content['value']
+    snip.key = key
+    snip.value = value
     db.session.commit()
 
-    return '', 204
+    return make_empty_response()
 
 
 @api.route('/snippets/<int:snippet_id>', methods=['DELETE'])
 @auth.permission_required('can_use_snippets')
-def delete_snippets(snippet_id):
+def delete_snippets(snippet_id) -> EmptyResponse:
     """Delete the :class:`.models.Snippet` with the given id.
+
+    .. :quickref: Snippet; Delete a snippet.
 
     :param int snippet_id: The id of the snippet
     :returns: An empty response with return code 204
-    :rtype: (str, int)
 
     :raises APIException: If the snippet with the given id does not exist.
                           (OBJECT_ID_NOT_FOUND)
@@ -129,13 +139,10 @@ def delete_snippets(snippet_id):
     :raises PermissionException: If the user can not use snippets.
                                  (INCORRECT_PERMISSION)
     """
+    snip = helpers.get_or_404(models.Snippet, snippet_id)
     snip = models.Snippet.query.get(snippet_id)
-    if snip is None:
-        raise APIException(
-            'The specified snippet does not exits',
-            'The snipped with id "{}" does not exist'.format(snippet_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
-    elif snip.user_id != current_user.id:
+
+    if snip.user_id != current_user.id:
         raise APIException(
             'The given snippet is not your snippet',
             'The snippet "{}" does not belong to user "{}"'.format(
@@ -143,4 +150,4 @@ def delete_snippets(snippet_id):
     else:
         db.session.delete(snip)
         db.session.commit()
-        return '', 204
+        return make_empty_response()

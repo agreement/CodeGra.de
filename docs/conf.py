@@ -33,12 +33,16 @@ sys.path.insert(0, os.path.abspath('../'))
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'sphinx.ext.coverage',
+    'sphinx.ext.todo',
     'sphinx.ext.viewcode',
+    'sphinx.ext.doctest',
     'sphinx.ext.githubpages',
     'sphinxcontrib.httpdomain',
     'sphinxcontrib.autohttp.flask',
+    'sphinxcontrib.autohttp.flaskqref',
     'sphinx_autodoc_typehints',
 ]
 
@@ -91,7 +95,7 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -152,9 +156,12 @@ texinfo_documents = [
      'One line description of project.', 'Miscellaneous'),
 ]
 
+todo_include_todos = True
+
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'https://docs.python.org/3': None,
     'http://werkzeug.pocoo.org/docs/latest/': None,
-    'http://flask.pocoo.org/docs/latest/': None
+    'http://flask.pocoo.org/docs/latest/': None,
+    'http://sqlalchemy-utils.readthedocs.io/en/latest': None,
 }

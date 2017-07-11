@@ -28,7 +28,7 @@ export default {
 
         Promise.all([
             this.$http.get('/api/v1/courses/'), this.$http.get('/api/v1/permissions/', {
-                params: { permission: 'can_manage_course', type: 'all' },
+                params: { permission: 'can_manage_course', course_id: 'all' },
             })]).then(([coursesResponse, permsResponse]) => {
                 this.courses = coursesResponse.data;
                 this.loading = false;

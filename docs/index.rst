@@ -13,7 +13,7 @@ Welcome to CodeGra.de's documentation!
    code
 
 About Codegrade
------
+---------------
 
 This project started out as a university project for the course Software
 Engineering at the the UvA (University of Amsterdam). Current grading

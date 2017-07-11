@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json
+import typing as t
 
 from psef import app
 
@@ -12,7 +13,7 @@ class CustomJSONEncoder(json.JSONEncoder):
     Classes can define their serialization by implementing a `__to_json__`
     method.
     """
-    def default(self, obj):
+    def default(self, obj: t.Any) -> t.Any:
         """A way to serialize arbitrary methods to JSON.
 
         Classes can use this method by implementing a `__to_json__` method that

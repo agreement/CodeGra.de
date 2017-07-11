@@ -52,6 +52,7 @@ psef\.helpers module
     :undoc-members:
     :show-inheritance:
 
+
 psef\.json module
 -----------------
 
@@ -81,5 +82,5 @@ psef\.models module
 
 .. automodule:: psef.models
     :members:
-    :undoc-members:
     :show-inheritance:
+    :special-members:

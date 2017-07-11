@@ -1,17 +1,17 @@
 # This file contains large pieces of code from this github repository:
 # https://github.com/ucfopen/lti-template-flask-oauth-tokens
 
+import typing as t
 import datetime
-from collections import defaultdict
 
 import flask
 import oauth2
 import dateutil
 from lxml import etree, objectify
-from flask_login import login_user, login_fresh, current_user
+from flask_login import login_user, login_fresh
 
 import psef.models as models
-from psef import LTI_ROLE_LOOKUPS, db, app
+from psef import LTI_ROLE_LOOKUPS, db, app, current_user
 from psef.auth import ensure_valid_oauth
 
 
@@ -20,8 +20,8 @@ class LTI:
     """
 
     # TODO support more than just flask
-    def __init__(self, req):
-        self.launch_params = req.form.copy()
+    def __init__(self, req: flask.Response) -> None:
+        self.launch_params = req.form.copy()  # type: t.Mapping[str, str]
         self.lti_provider = models.LTIProvider.query.filter_by(
             key=self.launch_params['oauth_consumer_key']).first()
         if self.lti_provider is None:
@@ -35,32 +35,79 @@ class LTI:
         ensure_valid_oauth(self.key, self.secret, req)
 
     @property
-    def user_id(self):
+    def user_id(self) -> str:
         """The unique id of the current LTI user.
         """
         return self.launch_params['user_id']
 
     @property
-    def user_email(self):
+    def user_email(self) -> str:
         """The email of the current LTI user.
         """
         return self.launch_params['lis_person_contact_email_primary']
 
     @property
-    def user_name(self):
+    def user_name(self) -> str:
         """The name or username of the current LTI user.
         """
         return self.launch_params['lis_person_name_full']
 
     @property
-    def course_id(self):
+    def course_id(self) -> str:
         return self.launch_params['context_id']
 
     @property
-    def course_name(self):
+    def course_name(self) -> str:
         """The name of the current LTI course.
         """
         return self.launch_params['context_title']
+
+    @property
+    def assignment_id(self) -> str:
+        """The id of the current LTI assignment.
+        """
+        raise NotImplementedError
+
+    @property
+    def assignment_name(self) -> str:
+        """The name of the current LTI assignment.
+        """
+        raise NotImplementedError
+
+    @property
+    def outcome_service_url(self) -> str:
+        """The url used to passback grades to Canvas.
+        """
+        raise NotImplementedError
+
+    @property
+    def result_sourcedid(self) -> str:
+        """The sourcedid of the current user for the current assignment.
+        """
+        raise NotImplementedError
+
+    @property
+    def assignment_state(self) -> models._AssignmentStateEnum:
+        """The state of the current LTI assignment.
+        """
+        raise NotImplementedError
+
+    @property
+    def roles(self) -> t.Iterable[str]:
+        """The normalized roles of the current LTI user.
+        """
+        raise NotImplementedError
+
+    def get_assignment_deadline(
+            self, default: datetime.datetime=None) -> datetime.datetime:
+        """Get the deadline of the current LTI assignment.
+
+        :param default: The value to be returned of the assignment has no
+            deadline. If ``default.__bool__`` is ``False`` the current date
+            plus 365 days is used.
+        :returns: The deadline of the assignment as a datetime.
+        """
+        raise NotImplementedError
 
     def ensure_lti_user(self) -> models.User:
         """Make sure the current LTI user is logged in as a psef user.
@@ -160,7 +207,7 @@ class LTI:
 
         return assignment
 
-    def set_user_role(self, user):
+    def set_user_role(self, user: models.User) -> None:
         """Set the role of the given user if the user has no role.
 
         The role is determined according to :py:data:`.LTI_ROLE_LOOKUPS`.
@@ -186,7 +233,8 @@ class LTI:
             user.role = models.Role.query.filter_by(
                 name=app.config['DEFAULT_ROLE']).one()
 
-    def set_user_course_role(self, user, course):
+    def set_user_course_role(self, user: models.User,
+                             course: models.Course) -> None:
         """Set the course role for the given course and user if there is no
         such role just yet.
 
@@ -217,19 +265,19 @@ class LTI:
         return False
 
     @staticmethod
-    def generate_xml():
+    def generate_xml() -> str:
         """Generate a config XML for this LTI consumer.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @staticmethod
     def passback_grade(key: str,
                        secret: str,
-                       grade,
+                       grade: float,
                        service_url: str,
                        sourcedid: str,
                        text=None,
-                       url=None):
+                       url=None) -> 'OutcomeResponse':
         """Do a LTI grade passback.
 
         :param key: The oauth key to use.
@@ -244,12 +292,11 @@ class LTI:
         :type url: None or str
         :returns: The response of the LTI consumer.
         """
-        req = OutcomeRequest(opts={
-            'consumer_key': key,
-            'consumer_secret': secret,
-            'lis_outcome_service_url': service_url,
-            'lis_result_sourcedid': sourcedid,
-        })
+        req = OutcomeRequest(
+            consumer_key=key,
+            consumer_secret=secret,
+            lis_outcome_service_url=service_url,
+            lis_result_sourcedid=sourcedid)
         opts = None
         if text is not None and url is not None:
             raise ValueError('Only text or url can be passed, not both')
@@ -268,54 +315,43 @@ class CanvasLTI(LTI):
         super(CanvasLTI, self).__init__(*args, **kwargs)
 
     @property
-    def course_name(self):
-        """The name of the current LTI course.
-        """
+    def course_name(self) -> str:
         return self.launch_params['custom_canvas_course_name']
 
     @property
-    def course_id(self):
-        """The id of the current LTI course.
-        """
+    def course_id(self) -> str:
         return self.launch_params['custom_canvas_course_id']
 
     @property
-    def assignment_id(self):
-        """The id of the current LTI assignment.
-        """
+    def assignment_id(self) -> str:
         return self.launch_params['custom_canvas_assignment_id']
 
     @property
-    def assignment_name(self):
-        """The name of the current LTI assignment.
-        """
+    def assignment_name(self) -> str:
         return self.launch_params['custom_canvas_assignment_title']
 
     @property
-    def outcome_service_url(self):
-        """The url used to passback grades to Canvas.
-        """
+    def outcome_service_url(self) -> str:
         return self.launch_params['lis_outcome_service_url']
 
     @property
-    def result_sourcedid(self):
-        """The sourcedid of the current user for the current assignment.
-        """
+    def result_sourcedid(self) -> str:
         return self.launch_params['lis_result_sourcedid']
 
-    def has_result_sourcedid(self):
-        return 'lis_result_sourcedid' in self.launch_params
+    @property
+    def assignment_state(self) -> models._AssignmentStateEnum:
+        if self.launch_params['custom_canvas_assignment_published'] == 'true':
+            return models._AssignmentStateEnum.open
+        else:
+            return models._AssignmentStateEnum.hidden
 
-    def get_assignment_deadline(self, default=None):
-        """Get the deadline of the current LTI assignment.
+    @property
+    def roles(self) -> t.Iterable[str]:
+        for role in self.launch_params['roles'].split(','):
+            yield role.split('/')[-1].lower()
 
-        :param default: The value to be returned of the assignment has no
-            deadline. If ``default.__bool__`` is ``False`` the current date
-            plus 365 days is used.
-        :type default: datetime.datetime or None
-        :rtype: datetime.datetime
-        :returns: The deadline of the assignment as a datetime.
-        """
+    def get_assignment_deadline(
+            self, default: datetime.datetime=None) -> datetime.datetime:
         try:
             return dateutil.parser.parse(self.launch_params[
                 'custom_canvas_assignment_due_at'])
@@ -326,29 +362,12 @@ class CanvasLTI(LTI):
             else:
                 return default
 
-    @property
-    def assignment_state(self):
-        """The state of the current LTI assignment.
-        """
-        if self.launch_params['custom_canvas_assignment_published'] == 'true':
-            return models._AssignmentStateEnum.open
-        else:
-            return models._AssignmentStateEnum.hidden
-
-    @property
-    def roles(self):
-        """The normalized roles of the current LTI user.
-        """
-        for role in self.launch_params['roles'].split(','):
-            yield role.split('/')[-1].lower()
-
-
-CanvasLTI.has_result_sourcedid.__doc__ = LTI.has_result_sourcedid.__doc__
-
 
 @app.route('/lti/launch', methods=['POST'])
 def launch_lti():
     """Do a LTI launch.
+
+    .. :quickref: LTI; Do a LTI Launch.
     """
     lti = CanvasLTI(flask.request)
     user = lti.ensure_lti_user()
@@ -375,7 +394,7 @@ accessors = [
 ]
 
 
-class OutcomeRequest():
+class OutcomeRequest:
     '''
     Class for consuming & generating LTI Outcome Requests.
 
@@ -387,17 +406,29 @@ class OutcomeRequest():
     request to the TC. A TC will use it to parse such a request from a TP.
     '''
 
-    def __init__(self, opts=defaultdict(lambda: None)):
-        # Initialize all our accessors to None
-        for accessor in accessors:
-            setattr(self, accessor, None)
-
-        # Store specified options in our accessors
-        for key, val in opts.items():
-            setattr(self, key, val)
+    def __init__(self,
+                 operation: str=None,
+                 score: str=None,
+                 result_data: t.Mapping[str, str]=None,
+                 message_identifier: str=None,
+                 lis_outcome_service_url: str=None,
+                 lis_result_sourcedid: str=None,
+                 consumer_key: str=None,
+                 consumer_secret: str=None,
+                 post_request: str=None) -> None:
+        self.operation = operation
+        self.score = score
+        self.result_data = result_data
+        self.outcome_response = None  # type: t.Optional['OutcomeResponse']
+        self.message_identifier = message_identifier
+        self.lis_outcome_service_url = lis_outcome_service_url
+        self.lis_result_sourcedid = lis_result_sourcedid
+        self.consumer_key = consumer_key
+        self.consumer_secret = consumer_secret
+        self.post_request = post_request
 
     @staticmethod
-    def from_post_request(post_request):
+    def from_post_request(post_request) -> 'OutcomeRequest':
         '''
         Convenience method for creating a new OutcomeRequest from a request
         object.
@@ -409,7 +440,9 @@ class OutcomeRequest():
         request.process_xml(post_request.data)
         return request
 
-    def post_replace_result(self, score, result_data=None):
+    def post_replace_result(
+            self, score: str,
+            result_data: t.Mapping[str, str]=None) -> 'OutcomeResponse':
         '''
         POSTs the given score to the Tool Consumer with a replaceResult.
 
@@ -439,42 +472,43 @@ class OutcomeRequest():
         else:
             return self.post_outcome_request()
 
-    def post_delete_result(self):
+    def post_delete_result(self) -> 'OutcomeResponse':
         '''
         POSTs a deleteRequest to the Tool Consumer.
         '''
         self.operation = DELETE_REQUEST
         return self.post_outcome_request()
 
-    def post_read_result(self):
+    def post_read_result(self) -> 'OutcomeResponse':
         '''
         POSTS a readResult to the Tool Consumer.
         '''
         self.operation = READ_REQUEST
         return self.post_outcome_request()
 
-    def is_replace_request(self):
+    def is_replace_request(self) -> bool:
         '''
         Check whether this request is a replaceResult request.
         '''
         return self.operation == REPLACE_REQUEST
 
-    def is_delete_request(self):
+    def is_delete_request(self) -> bool:
         '''
         Check whether this request is a deleteResult request.
         '''
         return self.operation == DELETE_REQUEST
 
-    def is_read_request(self):
+    def is_read_request(self) -> bool:
         '''
         Check whether this request is a readResult request.
         '''
         return self.operation == READ_REQUEST
 
-    def was_outcome_post_successful(self):
-        return self.outcome_response and self.outcome_response.is_success()
+    def was_outcome_post_successful(self) -> bool:
+        return (self.outcome_response is not None and
+                self.outcome_response.is_success())
 
-    def post_outcome_request(self):
+    def post_outcome_request(self) -> 'OutcomeResponse':
         '''
         POST an OAuth signed request to the Tool Consumer.
         '''
@@ -496,7 +530,7 @@ class OutcomeRequest():
 
             normalize = http._normalize_headers
 
-            def my_normalize(self, headers):
+            def my_normalize(self, headers: t.Sequence) -> t.Sequence:
                 ret = normalize(self, headers)
                 if 'authorization' in ret:
                     ret['Authorization'] = ret.pop('authorization')
@@ -512,7 +546,6 @@ class OutcomeRequest():
             headers={'Content-Type': 'application/xml'})
 
         if monkey_patch_headers and monkey_patch_function:
-            import httplib2
             http = httplib2.Http
             http._normalize_headers = monkey_patch_function
 
@@ -520,16 +553,15 @@ class OutcomeRequest():
                                                                    content)
         return self.outcome_response
 
-    def process_xml(self, xml):
+    def process_xml(self, xml: str) -> None:
         '''
         Parse Outcome Request data from XML.
         '''
-        root = objectify.fromstring(xml)
-        self.message_identifier = str(
-            root.imsx_POXHeader.imsx_POXRequestHeaderInfo.
-            imsx_messageIdentifier)
+        root = t.cast(t.Mapping, objectify.fromstring(xml))
+        self.message_identifier = str(root['imsx_POXHeader'][
+            'imsx_POXRequestHeaderInfo']['imsx_messageIdentifier'])
         try:
-            result = root.imsx_POXBody.replaceResultRequest
+            result = root['imsx_POXBody']['replaceResultRequest']
             self.operation = REPLACE_REQUEST
             # Get result sourced id from resultRecord
             self.lis_result_sourcedid = result.resultRecord.\
@@ -539,31 +571,31 @@ class OutcomeRequest():
             pass
 
         try:
-            result = root.imsx_POXBody.deleteResultRequest
+            result = root['imsx_POXBody']['deleteResultRequest']
             self.operation = DELETE_REQUEST
             # Get result sourced id from resultRecord
-            self.lis_result_sourcedid = result.resultRecord.\
-                sourcedGUID.sourcedId
+            self.lis_result_sourcedid = result['resultRecord']['sourcedGUID'][
+                'sourcedId']
         except:
             pass
 
         try:
-            result = root.imsx_POXBody.readResultRequest
+            result = root['imsx_POXBody']['readResultRequest']
             self.operation = READ_REQUEST
             # Get result sourced id from resultRecord
-            self.lis_result_sourcedid = result.resultRecord.\
-                sourcedGUID.sourcedId
+            self.lis_result_sourcedid = result['resultRecord']['sourcedGUID'][
+                'sourcedId']
         except:
             pass
 
-    def has_required_attributes(self):
+    def has_required_attributes(self) -> bool:
         return self.consumer_key is not None\
             and self.consumer_secret is not None\
             and self.lis_outcome_service_url is not None\
             and self.lis_result_sourcedid is not None\
             and self.operation is not None
 
-    def generate_request_xml(self):
+    def generate_request_xml(self) -> t.Union[bytes, str]:
         root = etree.Element(
             'imsx_POXEnvelopeRequest',
             xmlns='http://www.imsglobal.org/services/ltiv1p1/xsd/imsoms_v1p0')
@@ -615,7 +647,7 @@ accessors = [
 ]
 
 
-class OutcomeResponse():
+class OutcomeResponse:
     '''
     This class consumes & generates LTI Outcome Responses.
 
@@ -631,17 +663,32 @@ class OutcomeResponse():
     to send back to a TP.
     '''
 
-    def __init__(self, **kwargs):
-        # Initialize all class accessors to None
-        for opt in accessors:
-            setattr(self, opt, None)
+    def __init__(self,
+                 request_type: str=None,
+                 score: str=None,
+                 message_identifier: str=None,
+                 response_code: str=None,
+                 post_response: str=None,
+                 code_major: str=None,
+                 severity: str=None,
+                 description: str=None,
+                 operation: str=None,
+                 message_ref_identifier: str=None) -> None:
+        self.request_type = request_type
+        self.score = score
+        self.message_identifier = message_identifier
+        self.response_code = response_code
 
-        # Store specified options in our options member
-        for (key, val) in kwargs.items():
-            setattr(self, key, val)
+        self.post_response = post_response
+        self.code_major = code_major
+        self.severity = severity
+        self.description = description
+        self.operation = operation
+
+        self.message_ref_identifier = message_ref_identifier
 
     @staticmethod
-    def from_post_response(post_response, content):
+    def from_post_response(post_response, content) -> 'OutcomeResponse':
         '''
         Convenience method for creating a new OutcomeResponse from a response
         object.
@@ -652,38 +699,36 @@ class OutcomeResponse():
         response.process_xml(content)
         return response
 
-    def is_success(self):
+    def is_success(self) -> bool:
         return self.code_major == 'success'
 
-    def is_processing(self):
+    def is_processing(self) -> bool:
         return self.code_major == 'processing'
 
-    def is_failure(self):
+    def is_failure(self) -> bool:
         return self.code_major == 'failure'
 
-    def is_unsupported(self):
+    def is_unsupported(self) -> bool:
         return self.code_major == 'unsupported'
 
-    def has_warning(self):
+    def has_warning(self) -> bool:
         return self.severity == 'warning'
 
-    def has_error(self):
+    def has_error(self) -> bool:
         return self.severity == 'error'
 
-    def process_xml(self, xml):
+    def process_xml(self, xml: str) -> None:
         '''
         Parse OutcomeResponse data form XML.
         '''
         try:
-            root = objectify.fromstring(xml)
+            root = t.cast(t.Mapping, objectify.fromstring(xml))
             # Get message idenifier from header info
-            self.message_identifier = root.imsx_POXHeader.\
-                imsx_POXResponseHeaderInfo.\
-                imsx_messageIdentifier
+            self.message_identifier = root['imsx_POXHeader'][
+                'imsx_POXResponseHeaderInfo']['imsx_messageIdentifier']
 
-            status_node = root.imsx_POXHeader.\
-                imsx_POXResponseHeaderInfo.\
-                imsx_statusInfo
+            status_node = root['imsx_POXHeader']['imsx_POXResponseHeaderInfo'][
+                'imsx_statusInfo']
 
             # Get status parameters from header info status
             self.code_major = status_node.imsx_codeMajor
@@ -695,15 +740,15 @@ class OutcomeResponse():
 
             try:
                 # Try to get the score
-                self.score = str(root.imsx_POXBody.readResultResponse.result.
-                                 resultScore.textString)
+                self.score = str(root['imsx_POXBody']['readResultResponse'][
+                    'result']['resultScore.textString'])
             except AttributeError:
                 # Not a readResult, just ignore!
                 pass
         except:
             pass
 
-    def generate_response_xml(self):
+    def generate_response_xml(self) -> str:
         '''
         Generate XML based on the current configuration.
         '''
@@ -744,4 +789,5 @@ class OutcomeResponse():
             text_string = etree.SubElement(result_score, 'textString')
             text_string.text = str(self.score)
 
-        return '<?xml version="1.0" encoding="UTF-8"?>' + etree.tostring(root)
+        return '<?xml version="1.0" encoding="UTF-8"?>{}'.format(
+            etree.tostring(root))

@@ -3,31 +3,43 @@ This module defines all API routes with the main directory "files". These APIs
 serve to upload and download temporary files which are not stored explicitly in
 the database.
 """
-
 import os
+import typing as t
 import threading
 
-from flask import jsonify, request, send_from_directory
+import werkzeug
+from flask import request, send_from_directory
 from flask_login import login_required
 from werkzeug.datastructures import FileStorage
 
 import psef.files
 from psef import app
 from psef.auth import APICodes, APIException
+from psef.helpers import (
+    JSONType,
+    JSONResponse,
+    EmptyResponse,
+    jsonify,
+    ensure_json_dict,
+    ensure_keys_in_dict,
+    make_empty_response
+)
 
 from . import api
 
 
 @api.route("/files/", methods=['POST'])
 @login_required
-def post_file():
+def post_file() -> JSONResponse[str]:
     """Temporarily store some data on the server.
 
-    The posted data will be removed after 60 seconds.
+    .. :quickref: File; Safe a file temporarily on the server.
+
+    .. note::
+        The posted data will be removed after 60 seconds.
 
     :returns: A response with the JSON serialized name of the file as content
-              and return code 201
-    :rtype: (flask.Response, int)
+              and return code 201.
 
     :raises APIException: If the request is bigger than the maximum upload
                           size. (REQUEST_TOO_LARGE)
@@ -47,13 +59,21 @@ def post_file():
 
     threading.Timer(60, lambda: os.remove(path))
 
-    return jsonify(name), 201
+    return jsonify(name, status_code=201)
 
 
 @api.route('/files/<file_name>', methods=['GET'])
 @login_required
-def get_file(file_name):
+def get_file(file_name) -> werkzeug.wrappers.Response:
     """Serve some specific file in the uploads folder.
+
+    .. :quickref: File; Get a uploaded file directory
+
+    .. note::
+        Only files uploaded using :py:func:`post_file` may be retrieved.
+
+    :param str file_name: The filename of the file to get.
+    :returns: The requested file.
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
