@@ -22,7 +22,7 @@ if t.TYPE_CHECKING:
     T = t.TypeVar('T', bound='Base')
 
     class Base:
-        query = ...  # type: t.ClassVar[t.Any]
+        query = None  # type: t.ClassVar[t.Any]
 
         def __init__(self, *args, **kwargs):
             return super(Base, self).__init__(*args, **kwargs)
@@ -39,36 +39,50 @@ if t.TYPE_CHECKING:
 else:
     Base = db.Model
 
-permissions = db.Table('roles-permissions',
-                       db.Column('permission_id', db.Integer,
-                                 db.ForeignKey(
-                                     'Permission.id', ondelete='CASCADE')),
-                       db.Column('role_id', db.Integer,
-                                 db.ForeignKey('Role.id', ondelete='CASCADE')))
+permissions = db.Table(
+    'roles-permissions',
+    db.Column(
+        'permission_id', db.Integer,
+        db.ForeignKey('Permission.id', ondelete='CASCADE')
+    ),
+    db.Column(
+        'role_id', db.Integer, db.ForeignKey('Role.id', ondelete='CASCADE')
+    )
+)
 
-course_permissions = db.Table('course_roles-permissions',
-                              db.Column('permission_id', db.Integer,
-                                        db.ForeignKey(
-                                            'Permission.id',
-                                            ondelete='CASCADE')),
-                              db.Column('course_role_id', db.Integer,
-                                        db.ForeignKey(
-                                            'Course_Role.id',
-                                            ondelete='CASCADE')))
+course_permissions = db.Table(
+    'course_roles-permissions',
+    db.Column(
+        'permission_id', db.Integer,
+        db.ForeignKey('Permission.id', ondelete='CASCADE')
+    ),
+    db.Column(
+        'course_role_id', db.Integer,
+        db.ForeignKey('Course_Role.id', ondelete='CASCADE')
+    )
+)
 
-user_course = db.Table('users-courses',
-                       db.Column('course_id', db.Integer,
-                                 db.ForeignKey(
-                                     'Course_Role.id', ondelete='CASCADE')),
-                       db.Column('user_id', db.Integer,
-                                 db.ForeignKey('User.id', ondelete='CASCADE')))
+user_course = db.Table(
+    'users-courses',
+    db.Column(
+        'course_id', db.Integer,
+        db.ForeignKey('Course_Role.id', ondelete='CASCADE')
+    ),
+    db.Column(
+        'user_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
+    )
+)
 
 work_rubric_item = db.Table(
     'work_rubric_item',
-    db.Column('work_id', db.Integer,
-              db.ForeignKey('Work.id', ondelete='CASCADE')),
-    db.Column('rubricitem_id', db.Integer,
-              db.ForeignKey('RubricItem.id', ondelete='CASCADE')))
+    db.Column(
+        'work_id', db.Integer, db.ForeignKey('Work.id', ondelete='CASCADE')
+    ),
+    db.Column(
+        'rubricitem_id', db.Integer,
+        db.ForeignKey('RubricItem.id', ondelete='CASCADE')
+    )
+)
 
 
 class LTIProvider(Base):
@@ -105,11 +119,13 @@ class AssignmentResult(Base):
         query = Base.query  # type: t.ClassVar[_MyQuery['AssignmentResult']]
     __tablename__ = 'AssignmentResult'
     sourcedid: str = db.Column('sourcedid', db.Unicode)
-    user_id: int = db.Column('User_id', db.Integer,
-                             db.ForeignKey('User.id', ondelete='CASCADE'))
-    assignment_id: int = db.Column('Assignment_id', db.Integer,
-                                   db.ForeignKey(
-                                       'Assignment.id', ondelete='CASCADE'))
+    user_id: int = db.Column(
+        'User_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
+    )
+    assignment_id: int = db.Column(
+        'Assignment_id', db.Integer,
+        db.ForeignKey('Assignment.id', ondelete='CASCADE')
+    )
 
     __table_args__ = (db.PrimaryKeyConstraint(assignment_id, user_id), )
 
@@ -144,7 +160,8 @@ class Permission(Base):
     default_value: bool  # NOQA
     default_value = db.Column('default_value', db.Boolean, default=False)
     course_permission: bool = db.Column(
-        'course_permission', db.Boolean, index=True)
+        'course_permission', db.Boolean, index=True
+    )
 
 
 class CourseRole(Base):
@@ -160,16 +177,19 @@ class CourseRole(Base):
     __tablename__ = 'Course_Role'
     id = db.Column('id', db.Integer, primary_key=True)
     name: str = db.Column('name', db.Unicode)
-    course_id: int = db.Column('Course_id', db.Integer,
-                               db.ForeignKey('Course.id'))
+    course_id: int = db.Column(
+        'Course_id', db.Integer, db.ForeignKey('Course.id')
+    )
     _permissions: t.MutableMapping[str, Permission] = db.relationship(
         'Permission',
         collection_class=attribute_mapped_collection('name'),
-        secondary=course_permissions)
+        secondary=course_permissions
+    )
 
     # Old syntax used to please sphinx
     course = db.relationship(
-        'Course', foreign_keys=course_id, backref="roles")  # type: Course
+        'Course', foreign_keys=course_id, backref="roles"
+    )  # type: Course
 
     def __to_json__(self) -> t.MutableMapping[str, t.Any]:
         """Creates a JSON serializable representation of this object.
@@ -224,11 +244,14 @@ class CourseRole(Base):
                     name=permission).first()
 
             if isinstance(permission, Permission):
-                return (permission.default_value and
-                        permission.course_permission)
+                return (
+                    permission.default_value and permission.course_permission
+                )
             else:
-                raise KeyError('The permission "{}" does not exist'.format(
-                    permission_name))
+                raise KeyError(
+                    'The permission "{}" does not exist'.
+                    format(permission_name)
+                )
 
     def get_all_permissions(self) -> t.Mapping[str, bool]:
         """Get all course :class:`permissions` for this course role.
@@ -238,8 +261,11 @@ class CourseRole(Base):
                   permission.
         """
         perms: t.Sequence[Permission] = (
-            Permission.query.filter_by(  # type: ignore
-                course_permission=True).all())
+            Permission.query.
+            filter_by(  # type: ignore
+                course_permission=True
+            ).all()
+        )
         result: t.MutableMapping[str, bool] = {}
         for perm in perms:
             if perm.name in self._permissions:
@@ -272,8 +298,11 @@ class CourseRole(Base):
         res = {}
         for name, c in app.config['DEFAULT_COURSE_ROLES'].items():
             perms: t.Sequence[Permission] = (
-                Permission.query.filter_by(  # type: ignore
-                    course_permission=True).all())
+                Permission.query.
+                filter_by(  # type: ignore
+                    course_permission=True
+                ).all()
+            )
             r_perms = {}
             perms_set = set(c['permissions'])
             for perm in perms:
@@ -299,7 +328,8 @@ class Role(Base):
         'Permission',
         collection_class=attribute_mapped_collection('name'),
         secondary=permissions,
-        backref=db.backref('roles', lazy='dynamic'))
+        backref=db.backref('roles', lazy='dynamic')
+    )
 
     def has_permission(self, permission: t.Union[str, Permission]) -> bool:
         """Check whether this role has the specified :class:`Permission`.
@@ -321,14 +351,20 @@ class Role(Base):
         else:
             if not isinstance(permission, Permission):
                 permission = (
-                    Permission.query.filter_by(  # type: ignore
-                        name=permission).first())
+                    Permission.query.
+                    filter_by(  # type: ignore
+                        name=permission
+                    ).first()
+                )
             if isinstance(permission, Permission):
-                return (permission.default_value and
-                        not permission.course_permission)
+                return (
+                    permission.default_value and
+                    not permission.course_permission
+                )
             else:
                 raise KeyError(
-                    'The permission "{}" does not exist'.format(permission))
+                    'The permission "{}" does not exist'.format(permission)
+                )
 
     def get_all_permissions(self) -> t.Mapping[str, bool]:
         """Get all course permissions (:class:`Permission`) for this role.
@@ -338,8 +374,11 @@ class Role(Base):
                   permission.
         """
         perms: t.Sequence[Permission] = (
-            Permission.query.filter_by(  # type: ignore
-                course_permission=False).all())
+            Permission.query.
+            filter_by(  # type: ignore
+                course_permission=False
+            ).all()
+        )
         result = {}
         for perm in perms:
             if perm.name in self._permissions:
@@ -374,27 +413,34 @@ class User(Base, UserMixin):
         'CourseRole',
         collection_class=attribute_mapped_collection('course_id'),
         secondary=user_course,
-        backref=db.backref('users', lazy='dynamic'))
+        backref=db.backref('users', lazy='dynamic')
+    )
     email: str = db.Column(
-        'email', db.Unicode(collation='NOCASE'), unique=True)
+        'email', db.Unicode(collation='NOCASE'), unique=True
+    )
     password: str = db.Column(
         'password',
         PasswordType(schemes=[
             'pbkdf2_sha512',
         ], deprecated=[]),
-        nullable=True)
+        nullable=True
+    )
 
     assignment_results: t.MutableMapping[
-        int, AssignmentResult] = db.relationship(
-            'AssignmentResult',
-            collection_class=attribute_mapped_collection('assignment_id'),
-            backref=db.backref('user', lazy='select'))
+        int, AssignmentResult
+    ] = db.relationship(
+        'AssignmentResult',
+        collection_class=attribute_mapped_collection('assignment_id'),
+        backref=db.backref('user', lazy='select')
+    )
 
     role: Role = db.relationship('Role', foreign_keys=role_id, lazy='select')
 
-    def has_permission(self,
-                       permission: t.Union[str, Permission],
-                       course_id: t.Union['Course', int]=None) -> bool:
+    def has_permission(
+        self,
+        permission: t.Union[str, Permission],
+        course_id: t.Union['Course', int]=None
+    ) -> bool:
         """Check whether this user has the specified global or course
         :class:`Permission`.
 
@@ -414,11 +460,13 @@ class User(Base, UserMixin):
         else:
             if isinstance(course_id, Course):
                 course_id = course_id.id
-            return (course_id in self.courses and
-                    self.courses[course_id].has_permission(permission))
+            return (
+                course_id in self.courses and
+                self.courses[course_id].has_permission(permission)
+            )
 
-    def get_permission_in_courses(
-            self, perm: t.Union[str, Permission]) -> t.Mapping[int, bool]:
+    def get_permission_in_courses(self, perm: t.Union[str, Permission]
+                                  ) -> t.Mapping[int, bool]:
         """Check for a specific course :class:`Permission` in all courses
         (:class:`Course`) the user is enrolled in.
 
@@ -436,17 +484,17 @@ class User(Base, UserMixin):
         assert permission.course_permission
 
         course_roles = db.session.query(user_course.c.course_id).join(
-            User, User.id == user_course.c.user_id).filter(
-                User.id == self.id).subquery('course_roles')
+            User, User.id == user_course.c.user_id
+        ).filter(User.id == self.id).subquery('course_roles')
 
         crp = db.session.query(course_permissions.c.course_role_id).join(
-            Permission,
-            course_permissions.c.permission_id == Permission.id).filter(
-                Permission.id == permission.id).subquery('crp')
+            Permission, course_permissions.c.permission_id == Permission.id
+        ).filter(Permission.id == permission.id).subquery('crp')
 
-        res: t.Sequence[t.Tuple[int]] = db.session.query(
-            course_roles.c.course_id).join(
-                crp, course_roles.c.course_id == crp.c.course_role_id).all()
+        res: t.Sequence[t.Tuple[int]]
+        res = db.session.query(course_roles.c.course_id).join(
+            crp, course_roles.c.course_id == crp.c.course_role_id
+        ).all()
 
         return {
             course_role.course_id:
@@ -496,7 +544,8 @@ class User(Base, UserMixin):
         """
         return {
             "hidden": self.can_see_hidden,
-            **self.__to_json__(),
+            **
+            self.__to_json__(),
         }
 
     def has_course_permission_once(self,
@@ -517,14 +566,14 @@ class User(Base, UserMixin):
         assert permission.course_permission
 
         course_roles = db.session.query(user_course.c.course_id).join(
-            User, User.id == user_course.c.user_id).filter(
-                User.id == self.id).subquery('course_roles')
+            User, User.id == user_course.c.user_id
+        ).filter(User.id == self.id).subquery('course_roles')
         crp = db.session.query(course_permissions.c.course_role_id).join(
-            Permission,
-            course_permissions.c.permission_id == Permission.id).filter(
-                Permission.id == permission.id).subquery('crp')
+            Permission, course_permissions.c.permission_id == Permission.id
+        ).filter(Permission.id == permission.id).subquery('crp')
         res = db.session.query(course_roles.c.course_id).join(
-            crp, course_roles.c.course_id == crp.c.course_role_id)
+            crp, course_roles.c.course_id == crp.c.course_role_id
+        )
         link: bool = db.session.query(res.exists()).scalar()
 
         return (not link) if permission.default_value else link
@@ -613,18 +662,21 @@ class Course(Base):
     # All stuff for LTI
     lti_course_id: str = db.Column(db.Unicode, unique=True)
 
-    lti_provider_id: int = db.Column(db.Integer,
-                                     db.ForeignKey('LTIProvider.id'))
+    lti_provider_id: int = db.Column(
+        db.Integer, db.ForeignKey('LTIProvider.id')
+    )
     lti_provider: LTIProvider = db.relationship("LTIProvider")
 
     assignments = db.relationship(
-        "Assignment", back_populates="course",
-        cascade='all,delete')  # type: t.MutableSequence[Assignment]
+        "Assignment", back_populates="course", cascade='all,delete'
+    )  # type: t.MutableSequence[Assignment]
 
-    def __init__(self,
-                 name: str=None,
-                 lti_course_id: str=None,
-                 lti_provider: LTIProvider=None) -> None:
+    def __init__(
+        self,
+        name: str=None,
+        lti_course_id: str=None,
+        lti_provider: LTIProvider=None
+    ) -> None:
         self.name = name
         self.lti_course_id = lti_course_id
         self.lti_provider = lti_provider
@@ -649,8 +701,9 @@ class Course(Base):
         """
         for name, perms in CourseRole.get_default_course_roles().items():
             if not db.session.query(
-                    CourseRole.query.filter_by(name=name, course_id=self.id)
-                    .exists()).scalar():
+                CourseRole.query.filter_by(name=name, course_id=self.id)
+                .exists()
+            ).scalar():
                 CourseRole(name=name, course=self, _permissions=perms)
 
 
@@ -662,28 +715,33 @@ class Work(Base):
         query = Base.query  # type: t.ClassVar[_MyQuery['Work']]
     __tablename__ = "Work"  # type: str
     id = db.Column('id', db.Integer, primary_key=True)  # type: int
-    assignment_id: int = db.Column('Assignment_id', db.Integer,
-                                   db.ForeignKey('Assignment.id'))
-    user_id: int = db.Column('User_id', db.Integer,
-                             db.ForeignKey('User.id', ondelete='CASCADE'))
+    assignment_id: int = db.Column(
+        'Assignment_id', db.Integer, db.ForeignKey('Assignment.id')
+    )
+    user_id: int = db.Column(
+        'User_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
+    )
     _grade: float = db.Column('grade', db.Float, default=None)
     comment: str = db.Column('comment', db.Unicode, default=None)
     created_at: datetime.datetime = db.Column(
-        db.DateTime, default=datetime.datetime.utcnow)
-    assigned_to: int = db.Column('assigned_to', db.Integer,
-                                 db.ForeignKey('User.id'))
+        db.DateTime, default=datetime.datetime.utcnow
+    )
+    assigned_to: int = db.Column(
+        'assigned_to', db.Integer, db.ForeignKey('User.id')
+    )
     selected_items = db.relationship(
-        'RubricItem',
-        secondary=work_rubric_item)  # type: t.MutableSequence['RubricItem']
+        'RubricItem', secondary=work_rubric_item
+    )  # type: t.MutableSequence['RubricItem']
 
     assignment = db.relationship(
-        'Assignment', foreign_keys=assignment_id,
-        lazy='joined')  # type: 'Assignment'
+        'Assignment', foreign_keys=assignment_id, lazy='joined'
+    )  # type: 'Assignment'
     user = db.relationship(
-        'User', single_parent=True, foreign_keys=user_id,
-        lazy='joined')  # type: User
+        'User', single_parent=True, foreign_keys=user_id, lazy='joined'
+    )  # type: User
     assignee = db.relationship(
-        'User', foreign_keys=assigned_to, lazy='joined')  # type: User
+        'User', foreign_keys=assigned_to, lazy='joined'
+    )  # type: User
 
     @property
     def grade(self) -> float:
@@ -734,11 +792,14 @@ class Work(Base):
                 self.grade / 10,
                 self.assignment.lti_outcome_service_url,
                 self.assignment.assignment_results[self.user_id].sourcedid,
-                url=('{}/'
-                     'courses/{}/assignments/{}/submissions/{}?lti=true'
-                     ).format(app.config['EXTERNAL_URL'],
-                              self.assignment.course_id, self.assignment_id,
-                              self.id))
+                url=(
+                    '{}/'
+                    'courses/{}/assignments/{}/submissions/{}?lti=true'
+                ).format(
+                    app.config['EXTERNAL_URL'], self.assignment.course_id,
+                    self.assignment_id, self.id
+                )
+            )
 
     def select_rubric_item(self, item: 'RubricItem') -> None:
         """ Selects the given :class:`RubricItem`.
@@ -772,8 +833,9 @@ class Work(Base):
         }
 
         try:
-            auth.ensure_permission('can_see_assignee',
-                                   self.assignment.course_id)
+            auth.ensure_permission(
+                'can_see_assignee', self.assignment.course_id
+            )
             item['assignee'] = self.assignee
         except auth.PermissionException:
             item['assignee'] = False
@@ -819,19 +881,22 @@ class Work(Base):
             return {
                 'rubrics': self.assignment.rubric_rows,
                 'selected': self.selected_items,
-                'points': {
-                    'max': self.assignment.max_rubric_points,
-                    'selected': self.selected_rubric_points,
-                },
+                'points':
+                    {
+                        'max': self.assignment.max_rubric_points,
+                        'selected': self.selected_rubric_points,
+                    },
             }
         except auth.PermissionException:
             return {
                 'rubrics': self.assignment.rubric_rows,
             }
 
-    def add_file_tree(self,
-                      session: 'orm.scoped_session',
-                      tree: 'psef.files.ExtractFileTree') -> None:
+    def add_file_tree(
+        self,
+        session: 'orm.scoped_session',
+        tree: 'psef.files.ExtractFileTree'
+    ) -> None:
         """Add the given tree to given session.
 
         .. warning::
@@ -846,10 +911,12 @@ class Work(Base):
         assert isinstance(tree, dict)
         return self._add_file_tree(session, tree, None)
 
-    def _add_file_tree(self,
-                       session: 'orm.scoped_session',
-                       tree: 'psef.files.ExtractFileTree',
-                       top: 'File') -> None:
+    def _add_file_tree(
+        self,
+        session: 'orm.scoped_session',
+        tree: 'psef.files.ExtractFileTree',
+        top: 'File'
+    ) -> None:
         """Add the given tree to the session with top as parent.
 
         :param session: The db session
@@ -864,7 +931,8 @@ class Work(Base):
                 is_directory=True,
                 name=new_top,
                 extension=None,
-                parent=top)
+                parent=top
+            )
             session.add(new_top)
             for child in children:
                 if isinstance(child, t.MutableMapping):
@@ -880,7 +948,9 @@ class Work(Base):
                         name=name,
                         filename=filename,
                         is_directory=False,
-                        parent=new_top))
+                        parent=new_top
+                    )
+                )
 
     def remove_selected_rubric_item(self, row_id: int) -> None:
         """Deselect selected :class:`RubricItem` on row.
@@ -893,10 +963,11 @@ class Work(Base):
         :returns: Nothing
         """
         rubricitem = db.session.query(RubricItem).join(
-            work_rubric_item,
-            RubricItem.id == work_rubric_item.c.rubricitem_id).filter(
-                work_rubric_item.c.work_id == self.id,
-                RubricItem.rubricrow_id == row_id).first()
+            work_rubric_item, RubricItem.id == work_rubric_item.c.rubricitem_id
+        ).filter(
+            work_rubric_item.c.work_id == self.id,
+            RubricItem.rubricrow_id == row_id
+        ).first()
         if rubricitem is not None:
             self.selected_items.remove(rubricitem)
 
@@ -927,13 +998,14 @@ class File(Base):
     children: t.Sequence['File']
 
     parent = db.relationship(
-        'File', remote_side=[id],
-        backref=db.backref('children'))  # type: 'File'
+        'File', remote_side=[id], backref=db.backref('children')
+    )  # type: 'File'
 
     work = db.relationship('Work', foreign_keys=work_id)  # type: 'Work'
 
-    __table_args__ = (db.CheckConstraint(
-        or_(is_directory == false(), extension == null())), )
+    __table_args__ = (
+        db.CheckConstraint(or_(is_directory == false(), extension == null())),
+    )
 
     def get_filename(self) -> str:
         """Get the real filename of the file.
@@ -1005,7 +1077,8 @@ class LinterComment(Base):
         query = Base.query  # type: t.ClassVar[_MyQuery['LinterComment']]
     __tablename__ = "LinterComment"  # type: str
     file_id: int = db.Column(
-        'File_id', db.Integer, db.ForeignKey('File.id'), index=True)
+        'File_id', db.Integer, db.ForeignKey('File.id'), index=True
+    )
     linter_id: str = db.Column(db.Unicode, db.ForeignKey('LinterInstance.id'))
 
     line: int = db.Column('line', db.Integer)
@@ -1014,7 +1087,8 @@ class LinterComment(Base):
     __table_args__ = (db.PrimaryKeyConstraint(file_id, line, linter_id), )
 
     linter = db.relationship(
-        "LinterInstance", back_populates="comments")  # type: 'LinterInstance'
+        "LinterInstance", back_populates="comments"
+    )  # type: 'LinterInstance'
     file: File = db.relationship('File', foreign_keys=file_id)
 
     def __to_json__(self) -> t.Mapping[str, t.Any]:
@@ -1086,12 +1160,15 @@ class AssignmentLinter(Base):
         "LinterInstance",
         back_populates="tester",
         cascade='all,delete',
-        order_by='LinterInstance.work_id')  # type: t.Sequence[LinterInstance]
-    assignment_id = db.Column('Assignment_id', db.Integer,
-                              db.ForeignKey('Assignment.id'))  # type: int
+        order_by='LinterInstance.work_id'
+    )  # type: t.Sequence[LinterInstance]
+    assignment_id = db.Column(
+        'Assignment_id', db.Integer, db.ForeignKey('Assignment.id')
+    )  # type: int
 
     assignment = db.relationship(
-        'Assignment', foreign_keys=assignment_id)  # type: 'Assignment'
+        'Assignment', foreign_keys=assignment_id
+    )  # type: 'Assignment'
 
     def __to_json__(self) -> t.Mapping[str, t.Any]:
         """Returns the JSON serializable representation of this class.
@@ -1124,9 +1201,9 @@ class AssignmentLinter(Base):
         }
 
     @classmethod
-    def create_tester(cls: t.Type['AssignmentLinter'],
-                      assignment_id: int,
-                      name: str) -> 'AssignmentLinter':
+    def create_tester(
+        cls: t.Type['AssignmentLinter'], assignment_id: int, name: str
+    ) -> 'AssignmentLinter':
         """Create a new instance of this class for a given :class:`Assignment`
         with a given :py:class:`.linters.Linter`
 
@@ -1136,12 +1213,13 @@ class AssignmentLinter(Base):
         """
         id = str(uuid.uuid4())
         while db.session.query(
-                AssignmentLinter.query.filter(cls.id == id).exists()).scalar():
+            AssignmentLinter.query.filter(cls.id == id).exists()
+        ).scalar():
             id = str(uuid.uuid4())
         self = cls(id=id, assignment_id=assignment_id, name=name)
         self.tests = []
-        for work in Assignment.query.get(
-                assignment_id).get_all_latest_submissions():
+        for work in Assignment.query.get(assignment_id
+                                         ).get_all_latest_submissions():
             self.tests.append(LinterInstance(work, self))
         return self
 
@@ -1158,23 +1236,27 @@ class LinterInstance(Base):
         'state',
         db.Enum(LinterState),
         default=LinterState.running,
-        nullable=False)
+        nullable=False
+    )
     work_id: int = db.Column('Work_id', db.Integer, db.ForeignKey('Work.id'))
-    tester_id: int = db.Column(db.Unicode,
-                               db.ForeignKey('AssignmentLinter.id'))
+    tester_id: int = db.Column(
+        db.Unicode, db.ForeignKey('AssignmentLinter.id')
+    )
 
     tester: AssignmentLinter = db.relationship(
-        "AssignmentLinter", back_populates="tests")
+        "AssignmentLinter", back_populates="tests"
+    )
     work: Work = db.relationship('Work', foreign_keys=work_id)
 
     comments: LinterComment = db.relationship(
-        "LinterComment", back_populates="linter", cascade='all,delete')
+        "LinterComment", back_populates="linter", cascade='all,delete'
+    )
 
     def __init__(self, work: Work, tester: AssignmentLinter) -> None:
         id = str(uuid.uuid4())
         while db.session.query(
-                LinterInstance.query.filter(LinterInstance.id == id)
-                .exists()).scalar():
+            LinterInstance.query.filter(LinterInstance.id == id).exists()
+        ).scalar():
             id = str(uuid.uuid4())
         self.id = id
         self.work = work
@@ -1208,12 +1290,15 @@ class Assignment(Base):
         'state',
         db.Enum(_AssignmentStateEnum),
         default=_AssignmentStateEnum.hidden,
-        nullable=False)
+        nullable=False
+    )
     description: str = db.Column('description', db.Unicode, default='')
-    course_id: int = db.Column('Course_id', db.Integer,
-                               db.ForeignKey('Course.id'))
+    course_id: int = db.Column(
+        'Course_id', db.Integer, db.ForeignKey('Course.id')
+    )
     created_at: datetime.datetime = db.Column(
-        db.DateTime, default=datetime.datetime.utcnow)
+        db.DateTime, default=datetime.datetime.utcnow
+    )
     deadline: datetime.datetime = db.Column('deadline', db.DateTime)
 
     # All stuff for LTI
@@ -1221,20 +1306,23 @@ class Assignment(Base):
     lti_outcome_service_url: str = db.Column(db.Unicode)
 
     assignment_results: t.MutableMapping[
-        int, AssignmentResult] = db.relationship(
-            'AssignmentResult',
-            collection_class=attribute_mapped_collection('user_id'),
-            backref=db.backref('assignment', lazy='select'))
+        int, AssignmentResult
+    ] = db.relationship(
+        'AssignmentResult',
+        collection_class=attribute_mapped_collection('user_id'),
+        backref=db.backref('assignment', lazy='select')
+    )
 
     course: Course = db.relationship(
         'Course',
         foreign_keys=course_id,
         back_populates='assignments',
-        lazy='joined')
+        lazy='joined'
+    )
 
     rubric_rows = db.relationship(
-        'RubricRow', backref=db.backref(
-            'assignment'))  # type: t.MutableSequence['RubricRow']
+        'RubricRow', backref=db.backref('assignment')
+    )  # type: t.MutableSequence['RubricRow']
 
     def _submit_grades(self) -> None:
         with futures.ThreadPoolExecutor() as pool:
@@ -1243,17 +1331,20 @@ class Assignment(Base):
 
     @property
     def max_rubric_points(self) -> float:
-        sub = db.session.query(
-            func.max(RubricItem.points).label('max_val')).join(
-                RubricRow, RubricRow.id == RubricItem.rubricrow_id).filter(
-                    RubricRow.assignment_id == self.id).group_by(
-                        RubricRow.id).subquery('sub')
+        sub = db.session.query(func.max(RubricItem.points).label('max_val')
+                               ).join(
+                                   RubricRow,
+                                   RubricRow.id == RubricItem.rubricrow_id
+                               ).filter(
+                                   RubricRow.assignment_id == self.id
+                               ).group_by(RubricRow.id).subquery('sub')
         return db.session.query(func.sum(sub.c.max_val)).scalar()
 
     @property
     def is_open(self) -> bool:
-        if (self.state == _AssignmentStateEnum.open and
-                self.deadline >= get_request_start_time()):
+        if (
+            self.state == _AssignmentStateEnum.open and
+            self.deadline >= get_request_start_time()):
             return True
         return False
 
@@ -1320,13 +1411,16 @@ class Assignment(Base):
         """
         sub = db.session.query(
             Work.user_id.label('user_id'),  # type: ignore
-            func.max(Work.created_at).label('max_date')).filter_by(
-                assignment_id=self.id).group_by(Work.user_id).subquery('sub')
+            func.max(Work.created_at).label('max_date')
+        ).filter_by(assignment_id=self.id
+                    ).group_by(Work.user_id).subquery('sub')
         return db.session.query(Work).join(
             sub,
-            and_(sub.c.user_id == Work.user_id,
-                 sub.c.max_date == Work.created_at)).filter(
-                     Work.assignment_id == self.id).all()
+            and_(
+                sub.c.user_id == Work.user_id,
+                sub.c.max_date == Work.created_at
+            )
+        ).filter(Work.assignment_id == self.id).all()
 
 
 class Snippet(Base):
@@ -1372,13 +1466,14 @@ class RubricRow(Base):
         query = Base.query  # type: t.ClassVar[_MyQuery['RubricRow']]
     __tablename__ = 'RubricRow'
     id: int = db.Column('id', db.Integer, primary_key=True)
-    assignment_id: int = db.Column('Assignment_id', db.Integer,
-                                   db.ForeignKey('Assignment.id'))
+    assignment_id: int = db.Column(
+        'Assignment_id', db.Integer, db.ForeignKey('Assignment.id')
+    )
     header: str = db.Column('header', db.Unicode)
     description: str = db.Column('description', db.Unicode, default='')
     items = db.relationship(
-        "RubricItem",
-        backref="rubricrow")  # type: t.MutableSequence[RubricItem]
+        "RubricItem", backref="rubricrow"
+    )  # type: t.MutableSequence[RubricItem]
 
     # This is for the type checker and is available because of a backref.
     assignment: Assignment
@@ -1404,9 +1499,10 @@ class RubricItem(Base):
     __tablename__ = 'RubricItem'
 
     id: int = db.Column('id', db.Integer, primary_key=True)
-    rubricrow_id: int = db.Column('Rubricrow_id', db.Integer,
-                                  db.ForeignKey(
-                                      'RubricRow.id', ondelete='CASCADE'))
+    rubricrow_id: int = db.Column(
+        'Rubricrow_id', db.Integer,
+        db.ForeignKey('RubricRow.id', ondelete='CASCADE')
+    )
     col: int = db.Column('col', db.Integer, default=0)
     description: str = db.Column('description', db.Unicode, default='')
     points: float = db.Column('points', db.Float)

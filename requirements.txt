@@ -35,3 +35,5 @@ git+https://github.com/libre-man/HTTPdomain#subdirectory=httpdomain
 git+https://github.com/libre-man/sphinx-autodoc-typehints
 mypy==0.520
 mypy-extensions==0.3.0
+yapf==0.16.2
+isort==4.2.15

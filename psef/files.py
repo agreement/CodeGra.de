@@ -26,7 +26,8 @@ _known_archive_extensions = tuple(archive.extension_map.keys())
 # Gestolen van Erik Kooistra
 _bb_txt_format = re.compile(
     r"(?P<assignment_name>.+)_(?P<student_id>\d+)_attempt_"
-    r"(?P<datetime>\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}).txt")
+    r"(?P<datetime>\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}).txt"
+)
 
 FileTree = t.MutableMapping[str, t.Union[int, str, t.MutableSequence[t.Any]]]
 
@@ -35,19 +36,25 @@ FileTree = t.MutableMapping[str, t.Union[int, str, t.MutableSequence[t.Any]]]
 # such a thing) we can't actually define a tree in types, however with enough
 # nesting we should come close enough (tm).
 if t.TYPE_CHECKING and not hasattr(t, 'SPHINX'):
-    _ExtractFileTreeValue0 = t.MutableSequence[t.Union[t.Tuple[
-        str, str], t.MutableMapping[str, t.Any]]]
-    _ExtractFileTreeValue1 = t.MutableSequence[t.Union[t.Tuple[
-        str, str], t.MutableMapping[str, _ExtractFileTreeValue0]]]
-    _ExtractFileTreeValue2 = t.MutableSequence[t.Union[t.Tuple[
-        str, str], t.MutableMapping[str, _ExtractFileTreeValue1]]]
-    _ExtractFileTreeValueN = t.MutableSequence[t.Union[t.Tuple[
-        str, str], t.MutableMapping[str, _ExtractFileTreeValue2]]]
-    ExtractFileTreeValue = t.MutableSequence[t.Union[t.Tuple[
-        str, str], t.MutableMapping[str, _ExtractFileTreeValueN]]]
+    _ExtractFileTreeValue0 = t.MutableSequence[
+        t.Union[t.Tuple[str, str], t.MutableMapping[str, t.Any]]
+    ]
+    _ExtractFileTreeValue1 = t.MutableSequence[t.Union[
+        t.Tuple[str, str], t.MutableMapping[str, _ExtractFileTreeValue0]
+    ]]
+    _ExtractFileTreeValue2 = t.MutableSequence[t.Union[
+        t.Tuple[str, str], t.MutableMapping[str, _ExtractFileTreeValue1]
+    ]]
+    _ExtractFileTreeValueN = t.MutableSequence[t.Union[
+        t.Tuple[str, str], t.MutableMapping[str, _ExtractFileTreeValue2]
+    ]]
+    ExtractFileTreeValue = t.MutableSequence[t.Union[
+        t.Tuple[str, str], t.MutableMapping[str, _ExtractFileTreeValueN]
+    ]]
 else:
-    ExtractFileTreeValue = t.MutableSequence[t.Union[t.Tuple[
-        str, str], t.MutableMapping[str, t.Any]]]
+    ExtractFileTreeValue = t.MutableSequence[
+        t.Union[t.Tuple[str, str], t.MutableMapping[str, t.Any]]
+    ]
 ExtractFileTree = t.MutableMapping[str, ExtractFileTreeValue]
 
 
@@ -75,14 +82,16 @@ def get_file_contents(code: models.File) -> str:
             raise APIException(
                 f'This file is a symlink to `{os.readlink(filename)}`.',
                 'The file {} is a symlink'.format(code.id),
-                APICodes.INVALID_STATE, 410)
+                APICodes.INVALID_STATE, 410
+            )
         with open(filename, 'r', encoding='utf-8') as codefile:
             return codefile.read()
     except UnicodeDecodeError:
         raise APIException(
             'Cannot display this file!',
             'The selected file with id {} was not UTF-8'.format(code.id),
-            APICodes.OBJECT_WRONG_TYPE, 400)
+            APICodes.OBJECT_WRONG_TYPE, 400
+        )
 
 
 def restore_directory_structure(code: models.File, parent: str) -> FileTree:
@@ -126,12 +135,15 @@ def restore_directory_structure(code: models.File, parent: str) -> FileTree:
     if code.is_directory:
         os.mkdir(out)
         return {
-            "name": code.get_filename(),
-            "id": code.id,
-            "entries": [
-                restore_directory_structure(child, out)
-                for child in code.children
-            ]
+            "name":
+                code.get_filename(),
+            "id":
+                code.id,
+            "entries":
+                [
+                    restore_directory_structure(child, out)
+                    for child in code.children
+                ]
         }
     else:  # this is a file
         filename = os.path.join(app.config['UPLOAD_DIR'], code.filename)
@@ -198,9 +210,11 @@ def rename_directory_structure(rootdir: str) -> ExtractFileTree:
                 shutil.move(os.path.join(name, key), new_name)
                 res.append((key, filename))
             else:
-                res.append({
-                    key: convert_to_lists(os.path.join(name, key), value)
-                })
+                res.append(
+                    {
+                        key: convert_to_lists(os.path.join(name, key), value)
+                    }
+                )
         return res
 
     result_lists = convert_to_lists(rootdir[:start], dir)
@@ -291,8 +305,10 @@ def dehead_filetree(tree: ExtractFileTree) -> ExtractFileTree:
     head_node = list(tree.keys())[0]
     head = tree[head_node]
 
-    while (isinstance(head, t.MutableSequence) and len(head) == 1 and
-           isinstance(head[0], t.MutableMapping) and len(head[0]) == 1):
+    while (
+        isinstance(head, t.MutableSequence) and len(head) == 1 and
+        isinstance(head[0], t.MutableMapping) and len(head[0]) == 1
+    ):
         head = list(head[0].values())[0]
 
     tree[head_node] = head
@@ -327,8 +343,9 @@ def process_files(files: t.MutableSequence[FileStorage]) -> ExtractFileTree:
     return dehead_filetree(tree)
 
 
-def process_blackboard_zip(blackboard_zip: FileStorage) -> t.MutableSequence[
-        t.Tuple[blackboard.SubmissionInfo, ExtractFileTree]]:
+def process_blackboard_zip(
+    blackboard_zip: FileStorage
+) -> t.MutableSequence[t.Tuple[blackboard.SubmissionInfo, ExtractFileTree]]:
     """Process the given :py:mod:`.blackboard` zip file.
 
     This is done by extracting, moving and saving the tree structure of each
@@ -340,19 +357,24 @@ def process_blackboard_zip(blackboard_zip: FileStorage) -> t.MutableSequence[
     tmpdir = extract_to_temp(blackboard_zip)
     try:
         info_files = filter(
-            None, [_bb_txt_format.match(f) for f in os.listdir(tmpdir)])
+            None, [_bb_txt_format.match(f) for f in os.listdir(tmpdir)]
+        )
         submissions = []
         for info_file in info_files:
             files = []
             info = blackboard.parse_info_file(
-                os.path.join(tmpdir, info_file.string))
+                os.path.join(tmpdir, info_file.string)
+            )
             for blackboard_file in info.files:
                 files.append(
                     FileStorage(
                         stream=open(
                             os.path.join(tmpdir, blackboard_file.name),
-                            mode='rb'),
-                        filename=blackboard_file.original_name))
+                            mode='rb'
+                        ),
+                        filename=blackboard_file.original_name
+                    )
+                )
             tree = process_files(files)
             map(lambda f: f.close(), files)
             submissions.append((info, tree))
@@ -363,9 +385,11 @@ def process_blackboard_zip(blackboard_zip: FileStorage) -> t.MutableSequence[
     return submissions
 
 
-def create_csv(objects: t.Sequence[t.Any],
-               attributes: t.Sequence[str],
-               headers: t.Sequence[str]=None) -> str:
+def create_csv(
+    objects: t.Sequence[t.Any],
+    attributes: t.Sequence[str],
+    headers: t.Sequence[str]=None
+) -> str:
     """Create a csv file from the given objects and attributes.
 
     :param objects: The objects that will be listed
@@ -376,9 +400,12 @@ def create_csv(objects: t.Sequence[t.Any],
     if headers is None:
         headers = attributes
 
-    return create_csv_from_rows([headers] + [[
-        str(helpers.rgetattr(obj, attr)) for attr in attributes
-    ] for obj in objects])
+    return create_csv_from_rows(
+        [headers] + [
+            [str(helpers.rgetattr(obj, attr)) for attr in attributes]
+            for obj in objects
+        ]
+    )
 
 
 def create_csv_from_rows(rows: t.Sequence[t.Sequence[str]]) -> str:
@@ -407,8 +434,9 @@ def remove_tree(tree: ExtractFileTree) -> None:
     :returns: Nothing
     """
 
-    def _remove_tree(tree: t.Union[ExtractFileTree, ExtractFileTreeValue,
-                                   t.Tuple[str, str]]) -> None:
+    def _remove_tree(
+        tree: t.Union[ExtractFileTree, ExtractFileTreeValue, t.Tuple[str, str]]
+    ) -> None:
         if isinstance(tree, t.MutableMapping):
             for key in tree.keys():
                 _remove_tree(tree[key])

@@ -23,10 +23,12 @@ class LTI:
     def __init__(self, req: flask.Response) -> None:
         self.launch_params = req.form.copy()  # type: t.Mapping[str, str]
         self.lti_provider = models.LTIProvider.query.filter_by(
-            key=self.launch_params['oauth_consumer_key']).first()
+            key=self.launch_params['oauth_consumer_key']
+        ).first()
         if self.lti_provider is None:
             self.lti_provider = models.LTIProvider(
-                key=self.launch_params['oauth_consumer_key'])
+                key=self.launch_params['oauth_consumer_key']
+            )
             db.session.add(self.lti_provider)
 
         self.key = self.lti_provider.key
@@ -99,7 +101,8 @@ class LTI:
         raise NotImplementedError
 
     def get_assignment_deadline(
-            self, default: datetime.datetime=None) -> datetime.datetime:
+        self, default: datetime.datetime=None
+    ) -> datetime.datetime:
         """Get the deadline of the current LTI assignment.
 
         :param default: The value to be returned of the assignment has no
@@ -127,8 +130,8 @@ class LTI:
             # The currently logged in user is now using LTI
             return current_user
 
-        lti_user = models.User.query.filter_by(
-            lti_user_id=self.user_id).first()
+        lti_user = models.User.query.filter_by(lti_user_id=self.user_id
+                                               ).first()
 
         if lti_user is not None:
             # LTI users are used before the current logged user.
@@ -147,7 +150,8 @@ class LTI:
                 name=self.user_name,
                 email=self.user_email,
                 active=True,
-                password=None)
+                password=None
+            )
             db.session.add(user)
             db.session.commit()
             login_user(user)
@@ -156,11 +160,12 @@ class LTI:
     def get_course(self) -> models.Course:
         """Get the current LTI course as a psef course.
         """
-        course = models.Course.query.filter_by(
-            lti_course_id=self.course_id).first()
+        course = models.Course.query.filter_by(lti_course_id=self.course_id
+                                               ).first()
         if course is None:
             course = models.Course(
-                name=self.course_name, lti_course_id=self.course_id)
+                name=self.course_name, lti_course_id=self.course_id
+            )
             db.session.add(course)
         elif course.lti_provider is None:
             course.ensure_default_roles()
@@ -174,7 +179,8 @@ class LTI:
         """Get the current LTI assignment as a psef assignment.
         """
         assignment = models.Assignment.query.filter_by(
-            lti_assignment_id=self.assignment_id).first()
+            lti_assignment_id=self.assignment_id
+        ).first()
         if assignment is None:
             course = self.get_course()
             assignment = models.Assignment(
@@ -183,25 +189,29 @@ class LTI:
                 course_id=course.id,
                 deadline=self.get_assignment_deadline(),
                 lti_assignment_id=self.assignment_id,
-                description='')
+                description=''
+            )
             db.session.add(assignment)
 
         if self.has_result_sourcedid():
             if assignment.id in current_user.assignment_results:
                 current_user.assignment_results[
-                    assignment.id].sourcedid = self.result_sourcedid
+                    assignment.id
+                ].sourcedid = self.result_sourcedid
             else:
                 assig_res = models.AssignmentResult(
                     sourcedid=self.result_sourcedid,
                     user_id=current_user.id,
-                    assignment_id=assignment.id)
+                    assignment_id=assignment.id
+                )
                 db.session.add(assig_res)
 
         assignment.lti_outcome_service_url = self.outcome_service_url
         if not assignment.is_done:
             assignment.state = self.assignment_state
         assignment.deadline = self.get_assignment_deadline(
-            default=assignment.deadline)
+            default=assignment.deadline
+        )
 
         db.session.commit()
 
@@ -228,13 +238,16 @@ class LTI:
                 if role_lookup['course_role']:
                     continue
                 user.role = models.Role.query.filter_by(
-                    name=role_lookup['role']).one()
+                    name=role_lookup['role']
+                ).one()
                 return
             user.role = models.Role.query.filter_by(
-                name=app.config['DEFAULT_ROLE']).one()
+                name=app.config['DEFAULT_ROLE']
+            ).one()
 
-    def set_user_course_role(self, user: models.User,
-                             course: models.Course) -> None:
+    def set_user_course_role(
+        self, user: models.User, course: models.Course
+    ) -> None:
         """Set the course role for the given course and user if there is no
         such role just yet.
 
@@ -252,7 +265,8 @@ class LTI:
                 if not role_lookup['course_role']:
                     continue
                 crole = models.CourseRole.query.filter_by(
-                    course_id=course.id, name=role_lookup['role']).one()
+                    course_id=course.id, name=role_lookup['role']
+                ).one()
                 user.courses[course.id] = crole
                 return
             raise ValueError('Got an unkown or no course roles')
@@ -271,13 +285,15 @@ class LTI:
         raise NotImplementedError
 
     @staticmethod
-    def passback_grade(key: str,
-                       secret: str,
-                       grade: float,
-                       service_url: str,
-                       sourcedid: str,
-                       text=None,
-                       url=None) -> 'OutcomeResponse':
+    def passback_grade(
+        key: str,
+        secret: str,
+        grade: float,
+        service_url: str,
+        sourcedid: str,
+        text=None,
+        url=None
+    ) -> 'OutcomeResponse':
         """Do a LTI grade passback.
 
         :param key: The oauth key to use.
@@ -296,7 +312,8 @@ class LTI:
             consumer_key=key,
             consumer_secret=secret,
             lis_outcome_service_url=service_url,
-            lis_result_sourcedid=sourcedid)
+            lis_result_sourcedid=sourcedid
+        )
         opts = None
         if text is not None and url is not None:
             raise ValueError('Only text or url can be passed, not both')
@@ -351,14 +368,17 @@ class CanvasLTI(LTI):
             yield role.split('/')[-1].lower()
 
     def get_assignment_deadline(
-            self, default: datetime.datetime=None) -> datetime.datetime:
+        self, default: datetime.datetime=None
+    ) -> datetime.datetime:
         try:
-            return dateutil.parser.parse(self.launch_params[
-                'custom_canvas_assignment_due_at'])
+            return dateutil.parser.parse(
+                self.launch_params['custom_canvas_assignment_due_at']
+            )
         except:
             if default is None:
                 return (
-                    datetime.datetime.utcnow() + datetime.timedelta(days=365))
+                    datetime.datetime.utcnow() + datetime.timedelta(days=365)
+                )
             else:
                 return default
 
@@ -377,8 +397,9 @@ def launch_lti():
     lti.set_user_course_role(user, course)
     db.session.commit()
     return flask.redirect(
-        '{}/courses/{}/assignments/{}/submissions?lti=true'.format(app.config[
-            'EXTERNAL_URL'], course.id, assig.id))
+        '{}/courses/{}/assignments/{}/submissions?lti=true'.
+        format(app.config['EXTERNAL_URL'], course.id, assig.id)
+    )
 
 
 # This part is largely copied from https://github.com/tophatmonocle/ims_lti_py
@@ -406,16 +427,18 @@ class OutcomeRequest:
     request to the TC. A TC will use it to parse such a request from a TP.
     '''
 
-    def __init__(self,
-                 operation: str=None,
-                 score: str=None,
-                 result_data: t.Mapping[str, str]=None,
-                 message_identifier: str=None,
-                 lis_outcome_service_url: str=None,
-                 lis_result_sourcedid: str=None,
-                 consumer_key: str=None,
-                 consumer_secret: str=None,
-                 post_request: str=None) -> None:
+    def __init__(
+        self,
+        operation: str=None,
+        score: str=None,
+        result_data: t.Mapping[str, str]=None,
+        message_identifier: str=None,
+        lis_outcome_service_url: str=None,
+        lis_result_sourcedid: str=None,
+        consumer_key: str=None,
+        consumer_secret: str=None,
+        post_request: str=None
+    ) -> None:
         self.operation = operation
         self.score = score
         self.result_data = result_data
@@ -441,8 +464,8 @@ class OutcomeRequest:
         return request
 
     def post_replace_result(
-            self, score: str,
-            result_data: t.Mapping[str, str]=None) -> 'OutcomeResponse':
+        self, score: str, result_data: t.Mapping[str, str]=None
+    ) -> 'OutcomeResponse':
         '''
         POSTs the given score to the Tool Consumer with a replaceResult.
 
@@ -461,11 +484,14 @@ class OutcomeRequest:
             if len(result_data) > 1:
                 error_msg = (
                     'Dictionary result_data can only have one entry. '
-                    '{0} entries were found.'.format(len(result_data)))
+                    '{0} entries were found.'.format(len(result_data))
+                )
                 raise ValueError(error_msg)
             elif 'text' not in result_data and 'url' not in result_data:
-                error_msg = ('Dictionary result_data can only have the key '
-                             '"text" or the key "url".')
+                error_msg = (
+                    'Dictionary result_data can only have the key '
+                    '"text" or the key "url".'
+                )
                 raise ValueError(error_msg)
             else:
                 return self.post_outcome_request()
@@ -505,8 +531,10 @@ class OutcomeRequest:
         return self.operation == READ_REQUEST
 
     def was_outcome_post_successful(self) -> bool:
-        return (self.outcome_response is not None and
-                self.outcome_response.is_success())
+        return (
+            self.outcome_response is not None and
+            self.outcome_response.is_success()
+        )
 
     def post_outcome_request(self) -> 'OutcomeResponse':
         '''
@@ -514,10 +542,12 @@ class OutcomeRequest:
         '''
         if not self.has_required_attributes():
             raise ValueError(
-                'OutcomeRequest does not have all required attributes')
+                'OutcomeRequest does not have all required attributes'
+            )
 
         consumer = oauth2.Consumer(
-            key=self.consumer_key, secret=self.consumer_secret)
+            key=self.consumer_key, secret=self.consumer_secret
+        )
 
         client = oauth2.Client(consumer)
         # monkey_patch_headers ensures that Authorization
@@ -543,14 +573,16 @@ class OutcomeRequest:
             self.lis_outcome_service_url,
             'POST',
             body=self.generate_request_xml(),
-            headers={'Content-Type': 'application/xml'})
+            headers={'Content-Type': 'application/xml'}
+        )
 
         if monkey_patch_headers and monkey_patch_function:
             http = httplib2.Http
             http._normalize_headers = monkey_patch_function
 
-        self.outcome_response = OutcomeResponse.from_post_response(response,
-                                                                   content)
+        self.outcome_response = OutcomeResponse.from_post_response(
+            response, content
+        )
         return self.outcome_response
 
     def process_xml(self, xml: str) -> None:
@@ -558,8 +590,10 @@ class OutcomeRequest:
         Parse Outcome Request data from XML.
         '''
         root = t.cast(t.Mapping, objectify.fromstring(xml))
-        self.message_identifier = str(root['imsx_POXHeader'][
-            'imsx_POXRequestHeaderInfo']['imsx_messageIdentifier'])
+        self.message_identifier = str(
+            root['imsx_POXHeader']['imsx_POXRequestHeaderInfo']
+            ['imsx_messageIdentifier']
+        )
         try:
             result = root['imsx_POXBody']['replaceResultRequest']
             self.operation = REPLACE_REQUEST
@@ -574,8 +608,8 @@ class OutcomeRequest:
             result = root['imsx_POXBody']['deleteResultRequest']
             self.operation = DELETE_REQUEST
             # Get result sourced id from resultRecord
-            self.lis_result_sourcedid = result['resultRecord']['sourcedGUID'][
-                'sourcedId']
+            self.lis_result_sourcedid = result['resultRecord']['sourcedGUID'
+                                                               ]['sourcedId']
         except:
             pass
 
@@ -583,8 +617,8 @@ class OutcomeRequest:
             result = root['imsx_POXBody']['readResultRequest']
             self.operation = READ_REQUEST
             # Get result sourced id from resultRecord
-            self.lis_result_sourcedid = result['resultRecord']['sourcedGUID'][
-                'sourcedId']
+            self.lis_result_sourcedid = result['resultRecord']['sourcedGUID'
+                                                               ]['sourcedId']
         except:
             pass
 
@@ -598,14 +632,16 @@ class OutcomeRequest:
     def generate_request_xml(self) -> t.Union[bytes, str]:
         root = etree.Element(
             'imsx_POXEnvelopeRequest',
-            xmlns='http://www.imsglobal.org/services/ltiv1p1/xsd/imsoms_v1p0')
+            xmlns='http://www.imsglobal.org/services/ltiv1p1/xsd/imsoms_v1p0'
+        )
 
         header = etree.SubElement(root, 'imsx_POXHeader')
         header_info = etree.SubElement(header, 'imsx_POXRequestHeaderInfo')
         version = etree.SubElement(header_info, 'imsx_version')
         version.text = 'V1.0'
-        message_identifier = etree.SubElement(header_info,
-                                              'imsx_messageIdentifier')
+        message_identifier = etree.SubElement(
+            header_info, 'imsx_messageIdentifier'
+        )
         message_identifier.text = self.message_identifier
         body = etree.SubElement(root, 'imsx_POXBody')
         request = etree.SubElement(body, '%s%s' % (self.operation, 'Request'))
@@ -663,17 +699,19 @@ class OutcomeResponse:
     to send back to a TP.
     '''
 
-    def __init__(self,
-                 request_type: str=None,
-                 score: str=None,
-                 message_identifier: str=None,
-                 response_code: str=None,
-                 post_response: str=None,
-                 code_major: str=None,
-                 severity: str=None,
-                 description: str=None,
-                 operation: str=None,
-                 message_ref_identifier: str=None) -> None:
+    def __init__(
+        self,
+        request_type: str=None,
+        score: str=None,
+        message_identifier: str=None,
+        response_code: str=None,
+        post_response: str=None,
+        code_major: str=None,
+        severity: str=None,
+        description: str=None,
+        operation: str=None,
+        message_ref_identifier: str=None
+    ) -> None:
         self.request_type = request_type
         self.score = score
         self.message_identifier = message_identifier
@@ -725,23 +763,27 @@ class OutcomeResponse:
             root = t.cast(t.Mapping, objectify.fromstring(xml))
             # Get message idenifier from header info
             self.message_identifier = root['imsx_POXHeader'][
-                'imsx_POXResponseHeaderInfo']['imsx_messageIdentifier']
+                'imsx_POXResponseHeaderInfo'
+            ]['imsx_messageIdentifier']
 
-            status_node = root['imsx_POXHeader']['imsx_POXResponseHeaderInfo'][
-                'imsx_statusInfo']
+            status_node = root['imsx_POXHeader']['imsx_POXResponseHeaderInfo'
+                                                 ]['imsx_statusInfo']
 
             # Get status parameters from header info status
             self.code_major = status_node.imsx_codeMajor
             self.severity = status_node.imsx_severity
             self.description = status_node.imsx_description
             self.message_ref_identifier = str(
-                status_node.imsx_messageRefIdentifier)
+                status_node.imsx_messageRefIdentifier
+            )
             self.operation = status_node.imsx_operationRefIdentifier
 
             try:
                 # Try to get the score
-                self.score = str(root['imsx_POXBody']['readResultResponse'][
-                    'result']['resultScore.textString'])
+                self.score = str(
+                    root['imsx_POXBody']['readResultResponse']['result']
+                    ['resultScore.textString']
+                )
             except AttributeError:
                 # Not a readResult, just ignore!
                 pass
@@ -754,14 +796,16 @@ class OutcomeResponse:
         '''
         root = etree.Element(
             'imsx_POXEnvelopeResponse',
-            xmlns='http://www.imsglobal.org/services/ltiv1p1/xsd/imsoms_v1p0')
+            xmlns='http://www.imsglobal.org/services/ltiv1p1/xsd/imsoms_v1p0'
+        )
 
         header = etree.SubElement(root, 'imsx_POXHeader')
         header_info = etree.SubElement(header, 'imsx_POXResponseHeaderInfo')
         version = etree.SubElement(header_info, 'imsx_version')
         version.text = 'V1.0'
-        message_identifier = etree.SubElement(header_info,
-                                              'imsx_messageIdentifier')
+        message_identifier = etree.SubElement(
+            header_info, 'imsx_messageIdentifier'
+        )
         message_identifier.text = str(self.message_identifier)
         status_info = etree.SubElement(header_info, 'imsx_statusInfo')
         code_major = etree.SubElement(status_info, 'imsx_codeMajor')
@@ -770,16 +814,19 @@ class OutcomeResponse:
         severity.text = str(self.severity)
         description = etree.SubElement(status_info, 'imsx_description')
         description.text = str(self.description)
-        message_ref_identifier = etree.SubElement(status_info,
-                                                  'imsx_messageRefIdentifier')
+        message_ref_identifier = etree.SubElement(
+            status_info, 'imsx_messageRefIdentifier'
+        )
         message_ref_identifier.text = str(self.message_ref_identifier)
         operation_ref_identifier = etree.SubElement(
-            status_info, 'imsx_operationRefIdentifier')
+            status_info, 'imsx_operationRefIdentifier'
+        )
         operation_ref_identifier.text = str(self.operation)
 
         body = etree.SubElement(root, 'imsx_POXBody')
-        response = etree.SubElement(body, '%s%s' % (self.operation,
-                                                    'Response'))
+        response = etree.SubElement(
+            body, '%s%s' % (self.operation, 'Response')
+        )
 
         if self.score:
             result = etree.SubElement(response, 'result')
@@ -790,4 +837,5 @@ class OutcomeResponse:
             text_string.text = str(self.score)
 
         return '<?xml version="1.0" encoding="UTF-8"?>{}'.format(
-            etree.tostring(root))
+            etree.tostring(root)
+        )

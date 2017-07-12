@@ -56,8 +56,8 @@ def rgetattr(obj: t.Any, attr: str) -> t.Any:
     return reduce(getattr, [obj] + attr.split('.'))
 
 
-_JSONValue = t.Union[str, int, float, bool, None, t.Dict[str, t.Any], t.List[
-    t.Any]]
+_JSONValue = t.Union[str, int, float, bool, None, t.Dict[str, t.Any],
+                     t.List[t.Any]]
 JSONType = t.Union[t.Dict[str, _JSONValue], t.List[_JSONValue], _JSONValue]
 
 
@@ -114,7 +114,8 @@ def _filter_or_404(model: t.Type[Y], get_all: bool,
         raise psef.errors.APIException(
             f'The requested "{model.__name__}" was not found',
             f'There is no "{model.__name__}" when filtering with {criteria}',
-            psef.errors.APICodes.OBJECT_ID_NOT_FOUND, 404)
+            psef.errors.APICodes.OBJECT_ID_NOT_FOUND, 404
+        )
     return obj
 
 
@@ -173,12 +174,14 @@ def get_or_404(model: t.Type[Y], object_id: t.Any) -> Y:
         raise psef.errors.APIException(
             f'The requested "{model.__name__}" was not found',
             f'There is no "{model.__name__}" with primary key {object_id}',
-            psef.errors.APICodes.OBJECT_ID_NOT_FOUND, 404)
+            psef.errors.APICodes.OBJECT_ID_NOT_FOUND, 404
+        )
     return obj
 
 
-def ensure_keys_in_dict(mapping: t.Mapping[T, t.Any],
-                        keys: t.Sequence[t.Tuple[T, t.Type]]) -> None:
+def ensure_keys_in_dict(
+    mapping: t.Mapping[T, t.Any], keys: t.Sequence[t.Tuple[T, t.Type]]
+) -> None:
     """Ensure that the given keys are in the given mapping.
 
     :param mapping: The mapping to check.
@@ -196,9 +199,11 @@ def ensure_keys_in_dict(mapping: t.Mapping[T, t.Any],
         if key not in mapping:
             missing.append(key)
         elif not isinstance(mapping[key], check_type):
-            missing.append(f'{str(key)} was of wrong type'
-                           f' (should be a "{check_type.__name__}"'
-                           f', was a "{type(mapping[key]).__name__}")')
+            missing.append(
+                f'{str(key)} was of wrong type'
+                f' (should be a "{check_type.__name__}"'
+                f', was a "{type(mapping[key]).__name__}")'
+            )
             type_wrong = True
     if missing:
         msg = 'The given object does not contain all required keys'
@@ -206,8 +211,10 @@ def ensure_keys_in_dict(mapping: t.Mapping[T, t.Any],
         raise psef.errors.APIException(
             msg + (' or the type was wrong' if type_wrong else ''),
             '"{}" is missing required keys "{}" of all required keys "{}{}{}"'.
-            format(mapping, ', '.join(str(m) for m in missing), '{', key_type,
-                   '}'), psef.errors.APICodes.MISSING_REQUIRED_PARAM, 400)
+            format(
+                mapping, ', '.join(str(m) for m in missing), '{', key_type, '}'
+            ), psef.errors.APICodes.MISSING_REQUIRED_PARAM, 400
+        )
 
 
 def ensure_json_dict(json: JSONType) -> t.Dict[str, JSONType]:
@@ -223,7 +230,8 @@ def ensure_json_dict(json: JSONType) -> t.Dict[str, JSONType]:
         return json
     raise psef.errors.APIException(
         'The given JSON is not a object as is required',
-        f'"{json}" is not a object', psef.errors.APICodes.INVALID_PARAM, 400)
+        f'"{json}" is not a object', psef.errors.APICodes.INVALID_PARAM, 400
+    )
 
 
 def jsonify(obj: T, status_code=200) -> JSONResponse[T]:

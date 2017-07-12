@@ -13,6 +13,7 @@ class CustomJSONEncoder(json.JSONEncoder):
     Classes can define their serialization by implementing a `__to_json__`
     method.
     """
+
     def default(self, obj: t.Any) -> t.Any:
         """A way to serialize arbitrary methods to JSON.
 

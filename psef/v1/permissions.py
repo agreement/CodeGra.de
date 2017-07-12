@@ -11,13 +11,8 @@ from flask_login import login_required
 from psef import current_user
 from psef.errors import APICodes, APIException
 from psef.helpers import (
-    JSONType,
-    JSONResponse,
-    EmptyResponse,
-    jsonify,
-    ensure_json_dict,
-    ensure_keys_in_dict,
-    make_empty_response
+    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
+    ensure_keys_in_dict, make_empty_response
 )
 
 from . import api
@@ -71,10 +66,11 @@ def get_permissions(
         try:
             course_id = int(course_id)
         except ValueError:
-            raise APIException('The specified course id was invalid',
-                               'The course id should be a number or but '
-                               f'{course_id} is not a number',
-                               APICodes.INVALID_PARAM, 400)
+            raise APIException(
+                'The specified course id was invalid',
+                'The course id should be a number or but '
+                f'{course_id} is not a number', APICodes.INVALID_PARAM, 400
+            )
         else:
             fun = lambda perm: current_user.has_permission(perm, course_id)  # NOQA
     else:
@@ -88,11 +84,13 @@ def get_permissions(
             raise APIException(
                 'The specified permission does not exist',
                 f'The permission "{perm}" is not real permission',
-                APICodes.OBJECT_NOT_FOUND, 404)
+                APICodes.OBJECT_NOT_FOUND, 404
+            )
     elif course_id == 'all':
         raise APIException(
             'You cannot query all permissions for all coursed',
             'Invalid combination of `course_id` and `permission` found',
-            APICodes.INVALID_PARAM, 400)
+            APICodes.INVALID_PARAM, 400
+        )
     else:
         return jsonify(current_user.get_all_permissions(course_id=course_id))

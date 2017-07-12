@@ -13,13 +13,8 @@ import psef.helpers as helpers
 from psef import db, current_user
 from psef.errors import APICodes, APIException
 from psef.helpers import (
-    JSONType,
-    JSONResponse,
-    EmptyResponse,
-    jsonify,
-    ensure_json_dict,
-    ensure_keys_in_dict,
-    make_empty_response
+    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
+    ensure_keys_in_dict, make_empty_response
 )
 
 from . import api
@@ -48,10 +43,12 @@ def add_snippet() -> JSONResponse[models.Snippet]:
     value = t.cast(str, content['value'])
 
     snippet: models.Snippet = models.Snippet.query.filter_by(
-        user_id=current_user.id, key=content['key']).first()
+        user_id=current_user.id, key=content['key']
+    ).first()
     if snippet is None:
         snippet = models.Snippet(
-            key=content['key'], value=content['value'], user=current_user)
+            key=content['key'], value=content['value'], user=current_user
+        )
         db.session.add(snippet)
     else:
         snippet.value = value
@@ -112,7 +109,9 @@ def patch_snippet(snippet_id) -> EmptyResponse:
         raise APIException(
             'The given snippet is not your snippet',
             'The snippet "{}" does not belong to user "{}"'.format(
-                snip.id, current_user.id), APICodes.INCORRECT_PERMISSION, 403)
+                snip.id, current_user.id
+            ), APICodes.INCORRECT_PERMISSION, 403
+        )
 
     snip.key = key
     snip.value = value
@@ -146,7 +145,9 @@ def delete_snippets(snippet_id) -> EmptyResponse:
         raise APIException(
             'The given snippet is not your snippet',
             'The snippet "{}" does not belong to user "{}"'.format(
-                snip.id, current_user.id), APICodes.INCORRECT_PERMISSION, 403)
+                snip.id, current_user.id
+            ), APICodes.INCORRECT_PERMISSION, 403
+        )
     else:
         db.session.delete(snip)
         db.session.commit()

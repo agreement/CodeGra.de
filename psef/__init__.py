@@ -50,7 +50,8 @@ def seed_lti_lookups():
     global LTI_ROLE_LOOKUPS  # NOQA
     _seed_data_path = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), '..', 'seed_data',
-        'lti_lookups.json')
+        'lti_lookups.json'
+    )
     with open(_seed_data_path, 'r') as f:
         LTI_ROLE_LOOKUPS = json.load(f)
 

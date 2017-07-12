@@ -20,13 +20,8 @@ import psef.helpers as helpers
 from psef import db, current_user
 from psef.errors import APICodes, APIException
 from psef.helpers import (
-    JSONType,
-    JSONResponse,
-    EmptyResponse,
-    jsonify,
-    ensure_json_dict,
-    ensure_keys_in_dict,
-    make_empty_response
+    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
+    ensure_keys_in_dict, make_empty_response
 )
 
 from . import api
@@ -38,7 +33,7 @@ if t.TYPE_CHECKING:
 @api.route("/submissions/<int:submission_id>", methods=['GET'])
 @login_required
 def get_submission(
-        submission_id: int
+    submission_id: int
 ) -> t.Union[JSONResponse[models.Work], 'werkzeug.wrappers.Response']:
     """Get the given submission (:class:`.models.Work`).
 
@@ -65,16 +60,19 @@ def get_submission(
     work = helpers.get_or_404(models.Work, submission_id)
 
     if work.user_id != current_user.id:
-        auth.ensure_permission('can_see_others_work',
-                               work.assignment.course_id)
+        auth.ensure_permission(
+            'can_see_others_work', work.assignment.course_id
+        )
 
     if request.args.get('type') == 'zip':
         return get_zip(work)
     elif request.args.get('type') == 'feedback':
         if work.assignment.state != models._AssignmentStateEnum.done:
-            raise APIException('Feedback not visible',
-                               'The assignment state was not set to done',
-                               APICodes.INVALID_STATE, 405)
+            raise APIException(
+                'Feedback not visible',
+                'The assignment state was not set to done',
+                APICodes.INVALID_STATE, 405
+            )
         return get_feedback(work)
     return jsonify(work)
 
@@ -101,20 +99,29 @@ def get_feedback(work: models.Work) -> 'werkzeug.wrappers.Response':
 
     fd, file = tempfile.mkstemp()
     with open(file, 'w') as fp:
-        fp.write('Assignment: {}\n'
-                 'Grade: {}\n'
-                 'General feedback: \n{}\n\n'
-                 'Comments:\n'.format(work.assignment.name, work.grade,
-                                      work.comment))
+        fp.write(
+            'Assignment: {}\n'
+            'Grade: {}\n'
+            'General feedback: \n{}\n\n'
+            'Comments:\n'.format(
+                work.assignment.name, work.grade, work.comment
+            )
+        )
         for comment in comments:
-            fp.write('{}:{}:0: {}\n'.format(comment.file.get_filename(),
-                                            comment.line, comment.comment))
+            fp.write(
+                '{}:{}:0: {}\n'.format(
+                    comment.file.get_filename(), comment.line, comment.comment
+                )
+            )
         fp.write('\nLinter comments:\n')
 
         for lcomment in linter_comments:
-            fp.write('{}:{}:0: ({} {}) {}\n'.format(
-                lcomment.file.get_filename(), lcomment.line, lcomment.linter.
-                tester.name, lcomment.linter_code, lcomment.comment))
+            fp.write(
+                '{}:{}:0: ({} {}) {}\n'.format(
+                    lcomment.file.get_filename(), lcomment.line, lcomment.
+                    linter.tester.name, lcomment.linter_code, lcomment.comment
+                )
+            )
 
     @after_this_request
     def remove_file(response):
@@ -140,8 +147,8 @@ def get_zip(work: models.Work) -> 'werkzeug.wrappers.Response':
         auth.ensure_permission('can_view_files', work.assignment.course_id)
 
     code = models.File.query.filter(
-        models.File.work_id == work.id,
-        models.File.parent_id == None).one()  # noqa
+        models.File.work_id == work.id, models.File.parent_id == None
+    ).one()  # noqa
 
     with tempfile.TemporaryFile(mode='w+b') as fp:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -158,10 +165,11 @@ def get_zip(work: models.Work) -> 'werkzeug.wrappers.Response':
 
         response = make_response(fp.read())
         response.headers['Content-Type'] = 'application/zip'
-        filename = '{}-{}-archive.zip'.format(work.assignment.name,
-                                              work.user.name)
-        response.headers[
-            'Content-Disposition'] = 'attachment; filename=' + filename
+        filename = '{}-{}-archive.zip'.format(
+            work.assignment.name, work.user.name
+        )
+        response.headers['Content-Disposition'
+                         ] = 'attachment; filename=' + filename
         return response
 
 
@@ -189,7 +197,8 @@ def get_rubric(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
 
 @api.route(
     "/submissions/<int:submission_id>/rubricitems/<int:rubricitem_id>",
-    methods=['PATCH'])
+    methods=['PATCH']
+)
 def select_rubric_item(submission_id,
                        rubricitem_id) -> JSONResponse[t.Mapping[str, t.Any]]:
     """Select a rubric item of the given submission (:class:`.models.Work`).
@@ -217,8 +226,9 @@ def select_rubric_item(submission_id,
     if rubric_item.rubricrow.assignment_id != work.assignment_id:
         raise APIException(
             'Rubric item selected does not match assignment',
-            'The rubric item with id {} does not match the assignment'.format(
-                rubricitem_id), APICodes.INVALID_PARAM, 400)
+            'The rubric item with id {} does not match the assignment'.
+            format(rubricitem_id), APICodes.INVALID_PARAM, 400
+        )
 
     work.remove_selected_rubric_item(rubric_item.rubricrow_id)
     work.select_rubric_item(rubric_item)
@@ -252,8 +262,10 @@ def patch_submission(submission_id) -> EmptyResponse:
 
     auth.ensure_permission('can_grade_work', work.assignment.course_id)
 
-    ensure_keys_in_dict(content, [('grade', numbers.Rational), ('feedback',
-                                                                str)])
+    ensure_keys_in_dict(
+        content, [('grade', numbers.Rational),
+                  ('feedback', str)]
+    )
     feedback = t.cast(str, content['feedback'])
     grade = float(t.cast(numbers.Rational, content['grade']))
 
@@ -262,7 +274,8 @@ def patch_submission(submission_id) -> EmptyResponse:
             'Grade submitted not between 0 and 10',
             'Grade for work with id {} is {} which is not between 0 and 10'.
             format(submission_id,
-                   content['grade']), APICodes.INVALID_PARAM, 400)
+                   content['grade']), APICodes.INVALID_PARAM, 400
+        )
 
     work.grade = grade
     work.comment = feedback
@@ -314,15 +327,19 @@ def get_dir_contents(submission_id) -> JSONResponse[psef.files.FileTree]:
             raise APIException(
                 'Incorrect URL',
                 'The identifiers in the URL do no match those related to the '
-                'file with code {}'.format(file.id), APICodes.INVALID_URL, 400)
+                'file with code {}'.format(file.id), APICodes.INVALID_URL, 400
+            )
     else:
         file = helpers.filter_single_or_404(
             models.File, models.File.work_id == submission_id,
-            models.File.parent_id == None)  # NOQA
+            models.File.parent_id == None
+        )  # NOQA
 
     if not file.is_directory:
-        raise APIException('File is not a directory',
-                           f'The file with code {file.id} is not a directory',
-                           APICodes.OBJECT_WRONG_TYPE, 400)
+        raise APIException(
+            'File is not a directory',
+            f'The file with code {file.id} is not a directory',
+            APICodes.OBJECT_WRONG_TYPE, 400
+        )
 
     return jsonify(file.list_contents())

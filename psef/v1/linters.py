@@ -16,11 +16,7 @@ import psef.helpers as helpers
 from psef import db
 from psef.errors import APICodes, APIException
 from psef.helpers import (
-    JSONType,
-    JSONResponse,
-    EmptyResponse,
-    jsonify,
-    ensure_json_dict,
+    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
     make_empty_response
 )
 
@@ -77,7 +73,8 @@ def put_linter_comment(token: str) -> EmptyResponse:
                 # TODO: maybe simply delete all comments for this linter on
                 # this file
                 comments = models.LinterComment.query.filter_by(
-                    linter_id=unit.id, file_id=file_id).all()
+                    linter_id=unit.id, file_id=file_id
+                ).all()
                 lookup = {c.line: c for c in comments}
 
                 for item in feedbacks:
@@ -93,7 +90,8 @@ def put_linter_comment(token: str) -> EmptyResponse:
                             line=line,
                             linter_code=code,
                             linter_id=unit.id,
-                            comment=feedback)
+                            comment=feedback
+                        )
                         lookup[line] = c
                         db.session.add(c)
 

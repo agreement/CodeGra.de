@@ -22,8 +22,10 @@ import psef.models as models
 from psef import app
 from psef.helpers import get_all_subclasses
 
-ENGINE = sqlalchemy.create_engine(app.config['SQLALCHEMY_DATABASE_URI'],
-                                  **app.config['DATABASE_CONNECT_OPTIONS'])
+ENGINE = sqlalchemy.create_engine(
+    app.config['SQLALCHEMY_DATABASE_URI'],
+    **app.config['DATABASE_CONNECT_OPTIONS']
+)
 
 
 class Linter:
@@ -71,20 +73,25 @@ class Pylint(Linter):
         with open(cfg, 'w') as config_file:
             config_file.write(self.config)
         sep = uuid.uuid4()
-        fmt = '{1}{0}{2}{0}{3}{4}{0}{5}'.format(sep, '{path}', '{line}', '{C}',
-                                                '{msg_id}', '{msg}')
+        fmt = '{1}{0}{2}{0}{3}{4}{0}{5}'.format(
+            sep, '{path}', '{line}', '{C}', '{msg_id}', '{msg}'
+        )
 
-        out = subprocess.run([
-            'pylint', '--rcfile={}'.format(cfg), '--msg-template', fmt, tempdir
-        ],
-                             stdout=subprocess.PIPE)
+        out = subprocess.run(
+            [
+                'pylint', '--rcfile={}'.format(cfg), '--msg-template', fmt,
+                tempdir
+            ],
+            stdout=subprocess.PIPE
+        )
         if out.returncode == 1:
             for dir_name, _, files in os.walk(tempdir):
                 for test_file in files:
                     if test_file.endswith('.py'):
                         emit(
                             os.path.join(dir_name, test_file), 1, 'ERR',
-                            'No init file was found, pylint did not run!')
+                            'No init file was found, pylint did not run!'
+                        )
             return
         for line in out.stdout.decode('utf8').split('\n'):
             args = line.split(str(sep))
@@ -112,11 +119,13 @@ class Flake8(Linter):
         # This is not guessable
         sep = uuid.uuid4()
         fmt = '%(path)s{0}%(row)d{0}%(code)s{0}%(text)s'.format(sep)
-        out = subprocess.run([
-            'flake8', '--disable-noqa', '--config={}'.format(cfg), '--format',
-            fmt, tempdir
-        ],
-                             stdout=subprocess.PIPE).stdout.decode('utf8')
+        out = subprocess.run(
+            [
+                'flake8', '--disable-noqa', '--config={}'.format(cfg),
+                '--format', fmt, tempdir
+            ],
+            stdout=subprocess.PIPE
+        ).stdout.decode('utf8')
         for line in out.split('\n'):
             args = line.split(str(sep))
             if len(args) == 4:
@@ -142,10 +151,9 @@ class LinterRunner():
         """
         self.linter = cls(cfg)  # type: Linter
 
-    def run(self,
-            works: t.Iterable[int],
-            tokens: t.Iterable[str],
-            urlpath: str) -> None:
+    def run(
+        self, works: t.Iterable[int], tokens: t.Iterable[str], urlpath: str
+    ) -> None:
         """Run this linter runner on the given works.
 
         .. note:: This method takes a long time to execute, please run it in a
@@ -171,7 +179,8 @@ class LinterRunner():
         session = sessionmaker(bind=ENGINE, autoflush=False)()
         for work, token in zip(works, tokens):
             code = session.query(models.File).filter_by(
-                parent=None, work_id=work).first()
+                parent=None, work_id=work
+            ).first()
             try:
                 self.test(code, urlpath.format(token))
             except Exception as e:
@@ -189,10 +198,10 @@ class LinterRunner():
                      result of the linter.
         :returns: Nothing
         """
-        temp_res: t.MutableMapping[str, t.MutableSequence[t.Tuple[int, str,
-                                                                  str]]] = {}
-        res: t.MutableMapping[str, t.MutableSequence[t.Tuple[int, str,
-                                                             str]]] = {}
+        temp_res: t.MutableMapping[str, t.MutableSequence[t.Tuple[int, str, str
+                                                                  ]]] = {}
+        res: t.MutableMapping[str, t.MutableSequence[t.Tuple[int, str, str]]
+                              ] = {}
 
         def emit(f: str, line: int, code: str, msg: str):
             if f.startswith(tmpdir):
@@ -221,11 +230,12 @@ class LinterRunner():
         requests.put(
             callback_url,
             json={'files': res,
-                  'name': self.linter.__class__.__name__})
+                  'name': self.linter.__class__.__name__}
+        )
 
 
-def get_all_linters() -> t.Dict[str, t.Dict[str, t.Union[str, t.MutableMapping[
-        str, str]]]]:
+def get_all_linters(
+) -> t.Dict[str, t.Dict[str, t.Union[str, t.MutableMapping[str, str]]]]:
     """Get an overview of all linters.
 
     The returned linters are all the subclasses of :class:`Linter`.

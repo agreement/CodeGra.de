@@ -13,13 +13,8 @@ import psef.models as models
 from psef import db, current_user
 from psef.errors import APICodes, APIException
 from psef.helpers import (
-    JSONType,
-    JSONResponse,
-    EmptyResponse,
-    jsonify,
-    ensure_json_dict,
-    ensure_keys_in_dict,
-    make_empty_response
+    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
+    ensure_keys_in_dict, make_empty_response
 )
 
 from . import api
@@ -50,28 +45,31 @@ def login() -> JSONResponse[models.User]:
     # we have to return the same error for a wrong email as for a wrong
     # password!
     user = db.session.query(models.User).filter(
-        models.User.email == data['email']).first()
+        models.User.email == data['email']
+    ).first()
 
     if user is None or user.password != data['password']:
         raise APIException(
-            'The supplied email or password is wrong.',
-            ('The user with email {} does not exist ' +
-             'or has a different password').format(data['email']),
-            APICodes.LOGIN_FAILURE, 400)
+            'The supplied email or password is wrong.', (
+                'The user with email {} does not exist ' +
+                'or has a different password'
+            ).format(data['email']), APICodes.LOGIN_FAILURE, 400
+        )
 
     if not login_user(user, remember=True):
         raise APIException(
             'User is not active',
             ('The user with id "{}" is not active any more').format(user.id),
-            APICodes.INACTIVE_USER, 403)
+            APICodes.INACTIVE_USER, 403
+        )
 
     return jsonify(user)
 
 
 @api.route("/login", methods=["GET"])
 @login_required
-def me() -> JSONResponse[t.Union[models.User, t.Mapping[int, str], t.Mapping[
-        str, t.Any]]]:
+def me() -> JSONResponse[t.Union[models.User, t.Mapping[int, str],
+                                 t.Mapping[str, t.Any]]]:
     """Get the info of the currently logged in :class:`.models.User`.
 
     .. :quickref: User; Get information about the currently logged in user.
@@ -86,10 +84,12 @@ def me() -> JSONResponse[t.Union[models.User, t.Mapping[int, str], t.Mapping[
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
     if request.args.get('type') == 'roles':
-        return jsonify({
-            role.course_id: role.name
-            for role in current_user.courses.values()
-        })
+        return jsonify(
+            {
+                role.course_id: role.name
+                for role in current_user.courses.values()
+            }
+        )
     elif request.args.get('type') == 'extended':
         return jsonify(current_user.__extended_to_json__())
     return jsonify(current_user)
@@ -124,8 +124,14 @@ def get_user_update() -> EmptyResponse:
     """
     data = ensure_json_dict(request.get_json())
 
-    ensure_keys_in_dict(data, [('email', str), ('o_password', str),
-                               ('username', str), ('n_password', str)])
+    ensure_keys_in_dict(
+        data, [
+            ('email', str),
+            ('o_password', str),
+            ('username', str),
+            ('n_password', str)
+        ]
+    )
     email = t.cast(str, data['email'])
     o_password = t.cast(str, data['o_password'])
     n_password = t.cast(str, data['n_password'])
@@ -134,9 +140,10 @@ def get_user_update() -> EmptyResponse:
     user = current_user
 
     if user.password != o_password:
-        raise APIException('Incorrect password.',
-                           'The supplied old password was incorrect',
-                           APICodes.INVALID_CREDENTIALS, 422)
+        raise APIException(
+            'Incorrect password.', 'The supplied old password was incorrect',
+            APICodes.INVALID_CREDENTIALS, 422
+        )
 
     auth.ensure_permission('can_edit_own_info')
 
@@ -151,7 +158,8 @@ def get_user_update() -> EmptyResponse:
             'The supplied username or password did not meet the requirements',
             APICodes.INVALID_PARAM,
             422,
-            rest=invalid_input)
+            rest=invalid_input
+        )
 
     user.name = username
     user.email = email if email else user.email

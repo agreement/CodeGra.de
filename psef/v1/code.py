@@ -17,13 +17,8 @@ import psef.helpers as helpers
 from psef import db, current_user
 from psef.errors import APICodes, APIException
 from psef.helpers import (
-    JSONType,
-    JSONResponse,
-    EmptyResponse,
-    jsonify,
-    ensure_json_dict,
-    ensure_keys_in_dict,
-    make_empty_response
+    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
+    ensure_keys_in_dict, make_empty_response
 )
 
 from . import api
@@ -56,26 +51,30 @@ def put_comment(id: int, line: int) -> EmptyResponse:
     content = ensure_json_dict(request.get_json())
 
     comment = db.session.query(models.Comment).filter(
-        models.Comment.file_id == id,
-        models.Comment.line == line).one_or_none()
+        models.Comment.file_id == id, models.Comment.line == line
+    ).one_or_none()
 
     ensure_keys_in_dict(content, [('comment', str)])
 
     if comment:
-        auth.ensure_permission('can_grade_work',
-                               comment.file.work.assignment.course_id)
+        auth.ensure_permission(
+            'can_grade_work', comment.file.work.assignment.course_id
+        )
         comment.comment = content['comment']
     else:
         file = helpers.get_or_404(models.File, id)
-        auth.ensure_permission('can_grade_work',
-                               file.work.assignment.course_id)
+        auth.ensure_permission(
+            'can_grade_work', file.work.assignment.course_id
+        )
 
         db.session.add(
             models.Comment(
                 file_id=id,
                 user_id=current_user.id,
                 line=line,
-                comment=content['comment']))
+                comment=content['comment']
+            )
+        )
 
     db.session.commit()
 
@@ -99,12 +98,14 @@ def remove_comment(id: int, line: int) -> EmptyResponse:
     :raises PermissionException: If the user can not can grade work in the
                                  attached course. (INCORRECT_PERMISSION)
     """
-    comment = helpers.filter_single_or_404(models.Comment,
-                                           models.Comment.file_id == id,
-                                           models.Comment.line == line)
+    comment = helpers.filter_single_or_404(
+        models.Comment, models.Comment.file_id == id,
+        models.Comment.line == line
+    )
 
-    auth.ensure_permission('can_grade_work',
-                           comment.file.work.assignment.course_id)
+    auth.ensure_permission(
+        'can_grade_work', comment.file.work.assignment.course_id
+    )
     db.session.delete(comment)
     db.session.commit()
 
@@ -114,8 +115,9 @@ def remove_comment(id: int, line: int) -> EmptyResponse:
 @api.route("/code/<int:file_id>", methods=['GET'])
 @login_required
 def get_code(
-        file_id: int) -> t.Union['werkzeug.wrappers.Response', JSONResponse[
-            t.Union[models.File, _FeedbackMapping]]]:
+    file_id: int
+) -> t.Union['werkzeug.wrappers.Response',
+             JSONResponse[t.Union[models.File, _FeedbackMapping]]]:
     """Get data from the :class:`.models.File` with the given id.
 
     .. :quickref: Code; Get code or its metadata
@@ -144,8 +146,9 @@ def get_code(
     file = helpers.filter_single_or_404(models.File, models.File.id == file_id)
 
     if file.work.user_id != current_user.id:
-        auth.ensure_permission('can_view_files',
-                               file.work.assignment.course_id)
+        auth.ensure_permission(
+            'can_view_files', file.work.assignment.course_id
+        )
 
     if request.args.get('type') == 'metadata':
         return jsonify(file)
@@ -198,7 +201,8 @@ def get_feedback(file: models.File, linter: bool=False) -> _FeedbackMapping:
 
         if linter:
             comments = db.session.query(models.LinterComment).filter_by(
-                file_id=file.id).all()
+                file_id=file.id
+            ).all()
 
             for linter_comment in comments:  # type: models.LinterComment
                 line = str(linter_comment.line)
@@ -208,7 +212,8 @@ def get_feedback(file: models.File, linter: bool=False) -> _FeedbackMapping:
                 res[line][name] = linter_comment  # type: ignore
         else:
             comments = db.session.query(models.Comment).filter_by(
-                file_id=file.id).all()
+                file_id=file.id
+            ).all()
 
             for human_comment in comments:  # type: models.Comment
                 res[str(human_comment.line)] = human_comment

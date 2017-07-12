@@ -17,13 +17,8 @@ import psef.helpers as helpers
 from psef import LTI_ROLE_LOOKUPS, db, current_user
 from psef.errors import APICodes, APIException
 from psef.helpers import (
-    JSONType,
-    JSONResponse,
-    EmptyResponse,
-    jsonify,
-    ensure_json_dict,
-    ensure_keys_in_dict,
-    make_empty_response
+    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
+    ensure_keys_in_dict, make_empty_response
 )
 
 from . import api
@@ -31,9 +26,10 @@ from . import api
 if t.TYPE_CHECKING:
     import sqlalchemy  # NOQA
 
-_UserCourse = TypedDict('_UserCourse',
-                        {'User': models.User,
-                         'CourseRole': models.CourseRole})
+_UserCourse = TypedDict(
+    '_UserCourse', {'User': models.User,
+                    'CourseRole': models.CourseRole}
+)
 
 
 @api.route('/courses/<int:course_id>/roles/<int:role_id>', methods=['DELETE'])
@@ -59,23 +55,28 @@ def delete_role(course_id, role_id) -> EmptyResponse:
     course = helpers.get_or_404(models.Course, course_id)
     role = helpers.filter_single_or_404(
         models.CourseRole, models.CourseRole.course_id == course_id,
-        models.CourseRole.id == role_id)
+        models.CourseRole.id == role_id
+    )
 
     if course.lti_provider is not None:
         if any(r['role'] == role.name for r in LTI_ROLE_LOOKUPS.values()):
             raise APIException(
-                'You cannot delete default LTI roles for a LTI course',
-                ('The course "{}" is an LTI course '
-                 'so it is impossible to delete role {}').format(
-                     course.id, role.id), APICodes.INCORRECT_PERMISSION, 403)
+                'You cannot delete default LTI roles for a LTI course', (
+                    'The course "{}" is an LTI course '
+                    'so it is impossible to delete role {}'
+                ).format(course.id, role.id), APICodes.INCORRECT_PERMISSION,
+                403
+            )
 
     sql = db.session.query(models.user_course).filter(
-        models.user_course.c.course_id == role_id).exists()
+        models.user_course.c.course_id == role_id
+    ).exists()
     if db.session.query(sql).scalar():
         raise APIException(
             'There are still users with this role',
             'There are still users with role {}'.format(role_id),
-            APICodes.INVALID_PARAM, 400)
+            APICodes.INVALID_PARAM, 400
+        )
 
     db.session.delete(role)
     db.session.commit()
@@ -115,11 +116,14 @@ def add_role(course_id) -> EmptyResponse:
     course = helpers.get_or_404(models.Course, course_id)
 
     if models.CourseRole.query.filter_by(
-            name=name, course_id=course_id).first() is not None:
+        name=name, course_id=course_id
+    ).first() is not None:
         raise APIException(
             'This course already has a role with this name',
             'The course "{}" already has a role named "{}"'.format(
-                course_id, name), APICodes.INVALID_PARAM, 400)
+                course_id, name
+            ), APICodes.INVALID_PARAM, 400
+        )
 
     role = models.CourseRole(name=name, course=course)
     db.session.add(role)
@@ -161,17 +165,21 @@ def update_role(course_id, role_id) -> EmptyResponse:
 
     role = helpers.filter_single_or_404(
         models.CourseRole, models.CourseRole.course_id == course_id,
-        models.CourseRole.id == role_id)
+        models.CourseRole.id == role_id
+    )
     perm = helpers.filter_single_or_404(
-        models.Permission, models.Permission.name == content['permission'])
+        models.Permission, models.Permission.name == content['permission']
+    )
 
-    if (current_user.courses[course_id].id == role.id and
-            role.name == 'can_manage_course'):
+    if (
+        current_user.courses[course_id].id == role.id and
+        role.name == 'can_manage_course'):
         raise APIException(
-            'You cannot remove this permission from your own role',
-            ('The current user is in role {} which'
-             ' cannot remove "can_manage_course"').format(role.id),
-            APICodes.INCORRECT_PERMISSION, 403)
+            'You cannot remove this permission from your own role', (
+                'The current user is in role {} which'
+                ' cannot remove "can_manage_course"'
+            ).format(role.id), APICodes.INCORRECT_PERMISSION, 403
+        )
 
     role.set_permission(perm, value)
 
@@ -181,10 +189,9 @@ def update_role(course_id, role_id) -> EmptyResponse:
 
 
 @api.route('/courses/<int:course_id>/roles/', methods=['GET'])
-def get_all_course_roles(
-        course_id: int
-) -> JSONResponse[t.Union[t.Sequence[models.CourseRole], t.Sequence[
-        t.MutableMapping[str, t.Union[t.Mapping[str, bool], bool]]]]]:
+def get_all_course_roles(course_id: int) -> JSONResponse[t.Union[t.Sequence[
+    models.CourseRole
+], t.Sequence[t.MutableMapping[str, t.Union[t.Mapping[str, bool], bool]]]]]:
     """Get a list of all :class:`.models.CourseRole` objects of a given
     :class:`.models.Course`.
 
@@ -209,15 +216,16 @@ def get_all_course_roles(
 
     course_roles: t.Sequence[models.CourseRole] = sorted(
         models.CourseRole.query.filter_by(course_id=course_id).all(),
-        key=lambda item: item.name)
+        key=lambda item: item.name
+    )
 
     if request.args.get('with_roles') == 'true':
         res = []
         for course_role in course_roles:
             json_course = course_role.__to_json__()
             json_course['perms'] = course_role.get_all_permissions()
-            json_course['own'] = current_user.courses[
-                course_role.course_id] == course_role
+            json_course['own'] = current_user.courses[course_role.course_id
+                                                      ] == course_role
             res.append(json_course)
         return jsonify(res)
     return jsonify(course_roles)
@@ -225,7 +233,8 @@ def get_all_course_roles(
 
 @api.route('/courses/<int:course_id>/users/', methods=['PUT'])
 def set_course_permission_user(
-        course_id: int) -> t.Union[EmptyResponse, JSONResponse[_UserCourse]]:
+    course_id: int
+) -> t.Union[EmptyResponse, JSONResponse[_UserCourse]]:
     """Set the :class:`.models.CourseRole` of a :class:`.models.User` in the
     given :class:`.models.Course`.
 
@@ -264,7 +273,8 @@ def set_course_permission_user(
         raise APIException(
             'Wrong wrong for this course',
             f'Course "{course_id}" does not have role "{role.id}"',
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+            APICodes.OBJECT_ID_NOT_FOUND, 404
+        )
 
     if 'user_id' in content:
         user = helpers.get_or_404(models.User, content['user_id'])
@@ -273,30 +283,35 @@ def set_course_permission_user(
             raise APIException(
                 'You cannot change your own role',
                 'The user requested and the current user are the same',
-                APICodes.INCORRECT_PERMISSION, 403)
+                APICodes.INCORRECT_PERMISSION, 403
+            )
 
         res = make_empty_response()
     elif 'user_email' in content:
         user = helpers.filter_single_or_404(
-            models.User, models.User.email == content['user_email'])
+            models.User, models.User.email == content['user_email']
+        )
 
         if course_id in user.courses:
-            raise APIException('The specified user is already in this course',
-                               'The user {} is in course {}'.format(
-                                   user.id,
-                                   course_id), APICodes.INVALID_PARAM, 400)
+            raise APIException(
+                'The specified user is already in this course',
+                'The user {} is in course {}'.format(user.id, course_id),
+                APICodes.INVALID_PARAM, 400
+            )
 
         res = jsonify(
             {
                 'User': user,
                 'CourseRole': role,
-            }, status_code=201)
+            }, status_code=201
+        )
     else:
         raise APIException(
-            'None of the keys "user_id" or "role_id" were found',
-            ('The given content ({})'
-             ' does  not contain "user_id" or "user_email"').format(content),
-            APICodes.MISSING_REQUIRED_PARAM, 400)
+            'None of the keys "user_id" or "role_id" were found', (
+                'The given content ({})'
+                ' does  not contain "user_id" or "user_email"'
+            ).format(content), APICodes.MISSING_REQUIRED_PARAM, 400
+        )
 
     user.courses[role.course_id] = role
     db.session.commit()
@@ -304,8 +319,8 @@ def set_course_permission_user(
 
 
 @api.route('/courses/<int:course_id>/users/', methods=['GET'])
-def get_all_course_users(
-        course_id: int) -> JSONResponse[t.Sequence[_UserCourse]]:
+def get_all_course_users(course_id: int
+                         ) -> JSONResponse[t.Sequence[_UserCourse]]:
     """Return a list of all :class:`.models.User` objects and their
     :class:`.models.CourseRole` in the given :class:`.models.Course`.
 
@@ -329,11 +344,11 @@ def get_all_course_users(
 
     users: t.Sequence['sqlalchemy.util.KeyedTuple']
     users = db.session.query(models.User, models.CourseRole).join(
-        models.user_course,
-        models.user_course.c.user_id == models.User.id).join(
-            models.CourseRole,
-            models.CourseRole.id == models.user_course.c.course_id).filter(
-                models.CourseRole.course_id == course_id).all()
+        models.user_course, models.user_course.c.user_id == models.User.id
+    ).join(
+        models.CourseRole,
+        models.CourseRole.id == models.user_course.c.course_id
+    ).filter(models.CourseRole.course_id == course_id).all()
 
     user_course = [
         t.cast(_UserCourse, dict(zip(row.keys(), row))) for row in users
@@ -343,7 +358,8 @@ def get_all_course_users(
 
 @api.route('/courses/<int:course_id>/assignments/', methods=['GET'])
 def get_all_course_assignments(
-        course_id: int) -> JSONResponse[t.Sequence[models.Assignment]]:
+    course_id: int
+) -> JSONResponse[t.Sequence[models.Assignment]]:
     """Get all :class:`.models.Assignment` objects of the given
     :class:`.models.Course`.
 
@@ -412,7 +428,8 @@ def get_courses() -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
     """
     return jsonify([{
         'role': c.name,
-        **c.course.__to_json__(),
+        **
+        c.course.__to_json__(),
     } for c in current_user.courses.values()])
 
 
@@ -439,9 +456,12 @@ def get_course_data(course_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
         if c.course.id == course_id:
             return jsonify({
                 'role': c.name,
-                **c.course.__to_json__(),
+                **
+                c.course.__to_json__(),
             })
 
-    raise APIException('Course not found',
-                       'The course with id {} was not found'.format(course_id),
-                       APICodes.OBJECT_ID_NOT_FOUND, 404)
+    raise APIException(
+        'Course not found',
+        'The course with id {} was not found'.format(course_id),
+        APICodes.OBJECT_ID_NOT_FOUND, 404
+    )

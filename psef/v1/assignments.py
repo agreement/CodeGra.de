@@ -26,13 +26,8 @@ import psef.linters as linters
 from psef import db, app, current_user
 from psef.errors import APICodes, APIException
 from psef.helpers import (
-    JSONType,
-    JSONResponse,
-    EmptyResponse,
-    jsonify,
-    ensure_json_dict,
-    ensure_keys_in_dict,
-    make_empty_response
+    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
+    ensure_keys_in_dict, make_empty_response
 )
 
 from . import linters as linters_routes
@@ -52,7 +47,8 @@ def get_student_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
     perm_can_see: models.Permission = models.Permission.query.filter_by(
-        name='can_see_assignments').first()
+        name='can_see_assignments'
+    ).first()
     courses = []
 
     for course_role in current_user.courses.values():
@@ -64,10 +60,12 @@ def get_student_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
     if courses:
         assignment: models.Assignment
         for assignment in models.Assignment.query.filter(
-                models.Assignment.course_id.in_(courses)  # type: ignore
+            models.Assignment.course_id.in_(courses)  # type: ignore
         ).all():
-            if ((not assignment.is_hidden) or current_user.has_permission(
-                    'can_see_hidden_assignments', assignment.course_id)):
+            has_perm = current_user.has_permission(
+                'can_see_hidden_assignments', assignment.course_id
+            )
+            if ((not assignment.is_hidden) or has_perm):
                 res.append(assignment)
     return jsonify(res)
 
@@ -92,14 +90,16 @@ def get_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
     auth.ensure_permission('can_see_assignments', assignment.course_id)
 
     if assignment.is_hidden:
-        auth.ensure_permission('can_see_hidden_assignments',
-                               assignment.course_id)
+        auth.ensure_permission(
+            'can_see_hidden_assignments', assignment.course_id
+        )
 
     if assignment is None:
         raise APIException(
             'Assignment not found',
             'The assignment with id {} was not found'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+            APICodes.OBJECT_ID_NOT_FOUND, 404
+        )
     else:
         return jsonify(assignment)
 
@@ -127,33 +127,38 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
         raise APIException(
             'Assignment not found',
             'The assignment with id "{}" was not found'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+            APICodes.OBJECT_ID_NOT_FOUND, 404
+        )
 
     auth.ensure_permission('can_manage_course', assig.course_id)
 
     content = ensure_json_dict(request.get_json())
 
     if 'state' in content:
-        if (isinstance(content['state'], str) and
-                content['state'] in ['hidden', 'open', 'done']):
+        if (
+            isinstance(content['state'], str) and
+            content['state'] in ['hidden', 'open', 'done']):
             assig.set_state(content['state'])
         else:
             raise APIException(
                 'The selected state is not valid',
                 'The state {} is not a valid state'.format(content['state']),
-                APICodes.INVALID_PARAM, 400)
+                APICodes.INVALID_PARAM, 400
+            )
 
     if 'name' in content:
         if not isinstance(content['name'], str):
             raise APIException(
                 'The name of an assignment should be a a string',
                 '{} is not a string'.format(content['name']),
-                APICodes.INVALID_PARAM, 400)
+                APICodes.INVALID_PARAM, 400
+            )
         if len(content['name']) < 3:
             raise APIException(
                 'The name of an assignment should be longer than 3',
                 'len({}) < 3'.format(content['name']), APICodes.INVALID_PARAM,
-                400)
+                400
+            )
         assig.name = content['name']
 
     if 'deadline' in content:
@@ -166,7 +171,8 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
             raise APIException(
                 'The given deadline is not valid!',
                 '{} cannot be parsed by dateutil'.format(content['deadline']),
-                APICodes.INVALID_PARAM, 400)
+                APICodes.INVALID_PARAM, 400
+            )
 
     db.session.commit()
 
@@ -174,8 +180,8 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
 
 
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['GET'])
-def get_assignment_rubric(
-        assignment_id: int) -> JSONResponse[t.Sequence[models.RubricRow]]:
+def get_assignment_rubric(assignment_id: int
+                          ) -> JSONResponse[t.Sequence[models.RubricRow]]:
     """Return the rubric corresponding to the given `assignment_id`.
 
     .. :quickref: Assignment; Get the rubric of an assignment.
@@ -196,14 +202,16 @@ def get_assignment_rubric(
         raise APIException(
             'Assignment not found',
             'The assignment with id "{}" was not found'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+            APICodes.OBJECT_ID_NOT_FOUND, 404
+        )
 
     auth.ensure_permission('can_see_assignments', assig.course_id)
     if not assig.rubric_rows:
         raise APIException(
             'Assignment has no rubric',
             'The assignment with id "{}" has no rubric'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+            APICodes.OBJECT_ID_NOT_FOUND, 404
+        )
 
     return jsonify(assig.rubric_rows)
 
@@ -232,15 +240,17 @@ def add_assignment_rubric(assignment_id: int) -> EmptyResponse:
         raise APIException(
             'Assignment not found',
             'The assignment with id "{}" was not found'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+            APICodes.OBJECT_ID_NOT_FOUND, 404
+        )
 
     auth.ensure_permission('manage_rubrics', assig.course_id)
     content = ensure_json_dict(request.get_json())
 
     if 'rows' not in content or not isinstance(content['rows'], list):
-        raise APIException('The rows are invalid',
-                           'The rows provied are not valid',
-                           APICodes.INVALID_PARAM, 400)
+        raise APIException(
+            'The rows are invalid', 'The rows provied are not valid',
+            APICodes.INVALID_PARAM, 400
+        )
 
     row: JSONType
     for row in content['rows']:
@@ -251,8 +261,11 @@ def add_assignment_rubric(assignment_id: int) -> EmptyResponse:
         #   'items': list
         # }
         row = ensure_json_dict(row)
-        ensure_keys_in_dict(row, [('description', str), ('header', str),
-                                  ('items', list)])
+        ensure_keys_in_dict(
+            row, [('description', str),
+                  ('header', str),
+                  ('items', list)]
+        )
         header = t.cast(str, row['header'])
         description = t.cast(str, row['description'])
         items = t.cast(list, row['items'])
@@ -266,10 +279,12 @@ def add_assignment_rubric(assignment_id: int) -> EmptyResponse:
     return make_empty_response()
 
 
-def add_new_rubric_row(assig: models.Assignment,
-                       header: str,
-                       description: str,
-                       items: t.Sequence[JSONType]) -> None:
+def add_new_rubric_row(
+    assig: models.Assignment,
+    header: str,
+    description: str,
+    items: t.Sequence[JSONType]
+) -> None:
     """Add new rubric row to the assignment.
 
     :param assig: The assignment to add the rubric row to
@@ -285,24 +300,31 @@ def add_new_rubric_row(assig: models.Assignment,
                           `item`. (INVALID_PARAM)
     """
     rubric_row = models.RubricRow(
-        assignment_id=assig.id, header=header, description=description)
+        assignment_id=assig.id, header=header, description=description
+    )
     db.session.add(rubric_row)
     for item in items:
         item = ensure_json_dict(item)
-        ensure_keys_in_dict(item, [('description', str),
-                                   ('points', numbers.Rational)])
+        ensure_keys_in_dict(
+            item, [('description', str),
+                   ('points', numbers.Rational)]
+        )
         description = t.cast(str, item['description'])
         points = t.cast(numbers.Rational, item['points'])
         rubric_row.items.append(
             models.RubricItem(
                 rubricrow_id=rubric_row.id,
                 description=description,
-                points=points))
+                points=points
+            )
+        )
 
 
-def patch_rubric_row(assig: models.Assignment,
-                     rubric_row_id: t.Any,
-                     items: t.Sequence[JSONType]) -> None:
+def patch_rubric_row(
+    assig: models.Assignment,
+    rubric_row_id: t.Any,
+    items: t.Sequence[JSONType]
+) -> None:
     """Update a rubric row of the assignment.
 
     :param models.Assignment assig: The assignment to add the rubric row to
@@ -325,12 +347,15 @@ def patch_rubric_row(assig: models.Assignment,
         raise APIException(
             'Rubric row not found',
             'The Rubric row with id "{}" was not found'.format(rubric_row_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+            APICodes.OBJECT_ID_NOT_FOUND, 404
+        )
 
     for item in items:
         item = ensure_json_dict(item)
-        ensure_keys_in_dict(item, [('description', str), ('points',
-                                                          numbers.Rational)])
+        ensure_keys_in_dict(
+            item, [('description', str),
+                   ('points', numbers.Rational)]
+        )
         description = t.cast(str, item['description'])
         points = t.cast(numbers.Rational, item['points'])
 
@@ -339,7 +364,9 @@ def patch_rubric_row(assig: models.Assignment,
                 models.RubricItem(
                     rubricrow_id=rubric_row.id,
                     description=description,
-                    points=points))
+                    points=points
+                )
+            )
         else:
             rubric_item = helpers.get_or_404(models.RubricItem, item['id'])
 
@@ -349,7 +376,8 @@ def patch_rubric_row(assig: models.Assignment,
 
 @api.route(
     '/assignments/<int:assignment_id>/rubrics/<int:rubric_row>',
-    methods=['DELETE'])
+    methods=['DELETE']
+)
 def delete_rubricrow(assignment_id: int, rubric_row: int) -> EmptyResponse:
     """Delete rubric row of the assignment.
 
@@ -370,7 +398,9 @@ def delete_rubricrow(assignment_id: int, rubric_row: int) -> EmptyResponse:
         raise APIException(
             'The requested rubric row was not found',
             'There is now rubric row for assignment {} with id {}'.format(
-                assignment_id, rubric_row), APICodes.OBJECT_ID_NOT_FOUND, 404)
+                assignment_id, rubric_row
+            ), APICodes.OBJECT_ID_NOT_FOUND, 404
+        )
 
     auth.ensure_permission('manage_rubrics', row.assignment.course_id)
 
@@ -407,26 +437,33 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
 
     if (request.content_length and
             request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException('Uploaded files are too big.',
-                           'Request is bigger than maximum '
-                           f'upload size of {app.config["MAX_UPLOAD_SIZE"]}.',
-                           APICodes.REQUEST_TOO_LARGE, 400)
+        raise APIException(
+            'Uploaded files are too big.', 'Request is bigger than maximum '
+            f'upload size of {app.config["MAX_UPLOAD_SIZE"]}.',
+            APICodes.REQUEST_TOO_LARGE, 400
+        )
 
     if len(request.files) == 0:
-        raise APIException("No file in HTTP request.",
-                           "There was no file in the HTTP request.",
-                           APICodes.MISSING_REQUIRED_PARAM, 400)
+        raise APIException(
+            "No file in HTTP request.",
+            "There was no file in the HTTP request.",
+            APICodes.MISSING_REQUIRED_PARAM, 400
+        )
 
     for key, file in request.files.items():
         if not key.startswith('file'):
-            raise APIException('The parameter name should start with "file".',
-                               'Expected ^file.*$ got {}.'.format(key),
-                               APICodes.INVALID_PARAM, 400)
+            raise APIException(
+                'The parameter name should start with "file".',
+                'Expected ^file.*$ got {}.'.format(key),
+                APICodes.INVALID_PARAM, 400
+            )
 
         if file.filename == '':
-            raise APIException('The filename should not be empty.',
-                               'Got an empty filename for key {}'.format(key),
-                               APICodes.INVALID_PARAM, 400)
+            raise APIException(
+                'The filename should not be empty.',
+                'Got an empty filename for key {}'.format(key),
+                APICodes.INVALID_PARAM, 400
+            )
 
         files.append(file)
 
@@ -435,12 +472,14 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
         raise APIException(
             'Assignment not found',
             'The assignment with code {} was not found'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+            APICodes.OBJECT_ID_NOT_FOUND, 404
+        )
 
     auth.ensure_permission('can_submit_own_work', assignment.course_id)
     if not assignment.is_open:
-        auth.ensure_permission('can_upload_after_deadline',
-                               assignment.course_id)
+        auth.ensure_permission(
+            'can_upload_after_deadline', assignment.course_id
+        )
 
     work = models.Work(assignment_id=assignment_id, user_id=current_user.id)
     db.session.add(work)
@@ -481,15 +520,19 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
         raise APIException(
             'Assignment not found',
             'The assignment with code {} was not found'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+            APICodes.OBJECT_ID_NOT_FOUND, 404
+        )
 
     content = ensure_json_dict(request.get_json())
 
     if 'graders' not in content or not isinstance(
-            content['graders'], list) or len(content['graders']) == 0:
-        raise APIException('List of assigned graders is required',
-                           'List of assigned graders is required',
-                           APICodes.MISSING_REQUIRED_PARAM, 400)
+        content['graders'], list
+    ) or len(content['graders']) == 0:
+        raise APIException(
+            'List of assigned graders is required',
+            'List of assigned graders is required',
+            APICodes.MISSING_REQUIRED_PARAM, 400
+        )
 
     submissions = assignment.get_all_latest_submissions()
 
@@ -497,20 +540,25 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
         raise APIException(
             'No submissions found',
             'No submissions found for assignment {}'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+            APICodes.OBJECT_ID_NOT_FOUND, 404
+        )
 
     users: t.Optional[models.User] = models.User.query.filter(
-        models.User.id.in_(content['graders'])).all()  # type: ignore
+        models.User.id.in_(content['graders'])
+    ).all()  # type: ignore
     if users is None or len(users) != len(content['graders']):
-        raise APIException('Invalid grader id given',
-                           'Invalid grader (=user) id given',
-                           APICodes.INVALID_PARAM, 400)
+        raise APIException(
+            'Invalid grader id given', 'Invalid grader (=user) id given',
+            APICodes.INVALID_PARAM, 400
+        )
 
     for grader in users:
         if not grader.has_permission('can_grade_work', assignment.course_id):
-            raise APIException('Selected grader has no permission to grade',
-                               'Selected grader has no permission to grade',
-                               APICodes.INVALID_PARAM, 400)
+            raise APIException(
+                'Selected grader has no permission to grade',
+                'Selected grader has no permission to grade',
+                APICodes.INVALID_PARAM, 400
+            )
 
     shuffle(submissions)
     shuffle(content['graders'])
@@ -523,8 +571,9 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
 
 
 @api.route('/assignments/<int:assignment_id>/graders', methods=['GET'])
-def get_all_graders(assignment_id: int) -> JSONResponse[t.Sequence[t.Mapping[
-        str, t.Union[int, str, bool]]]]:
+def get_all_graders(
+    assignment_id: int
+) -> JSONResponse[t.Sequence[t.Mapping[str, t.Union[int, str, bool]]]]:
     """Gets a list of all :class:`.models.User` objects who can grade the given
     :class:`.models.Assignment`.
 
@@ -551,42 +600,50 @@ def get_all_graders(assignment_id: int) -> JSONResponse[t.Sequence[t.Mapping[
         raise APIException(
             'Assignment not found',
             'The assignment with code {} was not found'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+            APICodes.OBJECT_ID_NOT_FOUND, 404
+        )
 
     permission = db.session.query(models.Permission.id).filter(
-        models.Permission.name == 'can_grade_work').as_scalar()
+        models.Permission.name == 'can_grade_work'
+    ).as_scalar()
 
     us = db.session.query(
-        models.User.id, models.User.name, models.user_course.c.course_id).join(
-            models.user_course,
-            models.User.id == models.user_course.c.user_id).subquery('us')
+        models.User.id, models.User.name, models.user_course.c.course_id
+    ).join(models.user_course,
+           models.User.id == models.user_course.c.user_id).subquery('us')
     per = db.session.query(models.course_permissions.c.course_role_id).join(
-        models.CourseRole, models.CourseRole.id ==
-        models.course_permissions.c.course_role_id).filter(
-            models.course_permissions.c.permission_id == permission,
-            models.CourseRole.course_id ==
-            assignment.course_id).subquery('per')
+        models.CourseRole,
+        models.CourseRole.id == models.course_permissions.c.course_role_id
+    ).filter(
+        models.course_permissions.c.permission_id == permission,
+        models.CourseRole.course_id == assignment.course_id
+    ).subquery('per')
     result: t.Sequence[t.Tuple[str, int]] = db.session.query(
-        us.c.name, us.c.id).join(
-            per,
-            us.c.course_id == per.c.course_role_id).order_by(us.c.name).all()
+        us.c.name, us.c.id
+    ).join(per,
+           us.c.course_id == per.c.course_role_id).order_by(us.c.name).all()
 
     divided: t.Set[str] = set(
         r[0]
         for r in db.session.query(models.Work.assigned_to).filter(
-            models.Work.assignment_id == assignment_id).group_by(
-                models.Work.assigned_to).all())
+            models.Work.assignment_id == assignment_id
+        ).group_by(models.Work.assigned_to).all()
+    )
 
-    return jsonify([{
-        'id': res[1],
-        'name': res[0],
-        'divided': res[1] in divided
-    } for res in result])
+    return jsonify(
+        [
+            {
+                'id': res[1],
+                'name': res[0],
+                'divided': res[1] in divided
+            } for res in result
+        ]
+    )
 
 
 @api.route('/assignments/<int:assignment_id>/submissions/', methods=['GET'])
-def get_all_works_for_assignment(
-        assignment_id: int) -> JSONResponse[t.Sequence[models.Work]]:
+def get_all_works_for_assignment(assignment_id: int
+                                 ) -> JSONResponse[t.Sequence[models.Work]]:
     """Return all :class:`.models.Work` objects for the given
     :class:`.models.Assignment`.
 
@@ -601,18 +658,22 @@ def get_all_works_for_assignment(
     """
     assignment = models.Assignment.query.get(assignment_id)
     if current_user.has_permission(
-            'can_see_others_work', course_id=assignment.course_id):
+        'can_see_others_work', course_id=assignment.course_id
+    ):
         obj = models.Work.query.filter_by(assignment_id=assignment_id)
     else:
         obj = models.Work.query.filter_by(
-            assignment_id=assignment_id, user_id=current_user.id)
+            assignment_id=assignment_id, user_id=current_user.id
+        )
 
     if assignment.is_hidden:
-        auth.ensure_permission('can_see_hidden_assignments',
-                               assignment.course_id)
+        auth.ensure_permission(
+            'can_see_hidden_assignments', assignment.course_id
+        )
 
     res: t.Sequence[models.Work] = (
-        obj.order_by(models.Work.created_at.desc()).all())  # type: ignore
+        obj.order_by(models.Work.created_at.desc()).all()
+    )  # type: ignore
 
     return jsonify(res)
 
@@ -643,15 +704,19 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
     auth.ensure_permission('can_manage_course', assignment.course_id)
 
     if len(request.files) == 0:
-        raise APIException("No file in HTTP request.",
-                           "There was no file in the HTTP request.",
-                           APICodes.MISSING_REQUIRED_PARAM, 400)
+        raise APIException(
+            "No file in HTTP request.",
+            "There was no file in the HTTP request.",
+            APICodes.MISSING_REQUIRED_PARAM, 400
+        )
 
     if 'file' not in request.files:
         key_string = ", ".join(request.files.keys())
-        raise APIException('The parameter name should be "file".',
-                           'Expected ^file$ got [{}].'.format(key_string),
-                           APICodes.INVALID_PARAM, 400)
+        raise APIException(
+            'The parameter name should be "file".',
+            'Expected ^file$ got [{}].'.format(key_string),
+            APICodes.INVALID_PARAM, 400
+        )
 
     file: 'FileStorage' = request.files['file']
     try:
@@ -661,31 +726,37 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
             "The blackboard zip could not imported or it was empty.",
             'The blackboard zip could not'
             ' be parsed or it did not contain any valid submissions.',
-            APICodes.INVALID_PARAM, 400)
+            APICodes.INVALID_PARAM, 400
+        )
     try:
         for submission_info, submission_tree in submissions:
             user = models.User.query.filter_by(
-                name=submission_info.student_name).first()
+                name=submission_info.student_name
+            ).first()
 
             if user is None:
                 # TODO: Check if this role still exists
                 perms = {
-                    assignment.course_id: models.CourseRole.query.filter_by(
-                        name='Student', course_id=assignment.course_id).first()
+                    assignment.course_id:
+                        models.CourseRole.query.filter_by(
+                            name='Student', course_id=assignment.course_id
+                        ).first()
                 }
                 user = models.User(
                     name=submission_info.student_name,
                     courses=perms,
                     email=submission_info.student_name + '@example.com',
                     password='password',
-                    role=models.Role.query.filter_by(name='Student').first())
+                    role=models.Role.query.filter_by(name='Student').first()
+                )
 
                 db.session.add(user)
             work = models.Work(
                 assignment_id=assignment.id,
                 user=user,
                 created_at=submission_info.created_at,
-                grade=submission_info.grade)
+                grade=submission_info.grade
+            )
             db.session.add(work)
             work.add_file_tree(db.session, submission_tree)
     except:
@@ -699,8 +770,8 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
 
 
 @api.route('/assignments/<int:assignment_id>/linters/', methods=['GET'])
-def get_linters(
-        assignment_id) -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
+def get_linters(assignment_id
+                ) -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
     """Get all linters for the given :class:`.models.Assignment`.
 
     .. :quickref: Assignment; Get all linters for a assignment.
@@ -730,26 +801,30 @@ def get_linters(
         raise APIException(
             'The specified assignment could not be found',
             'Assignment {} does not exist'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404)
+            APICodes.OBJECT_ID_NOT_FOUND, 404
+        )
 
     auth.ensure_permission('can_use_linter', assignment.course_id)
 
     res = []
     for name, opts in linters.get_all_linters().items():
         linter = models.AssignmentLinter.query.filter_by(
-            assignment_id=assignment_id, name=name).first()
+            assignment_id=assignment_id, name=name
+        ).first()
 
         if linter:
             running = db.session.query(
                 models.LinterInstance.query.filter(
                     models.LinterInstance.tester_id == linter.id,
-                    models.LinterInstance.state == models.LinterState.running)
-                .exists()).scalar()
+                    models.LinterInstance.state == models.LinterState.running
+                ).exists()
+            ).scalar()
             crashed = db.session.query(
                 models.LinterInstance.query.filter(
                     models.LinterInstance.tester_id == linter.id,
-                    models.LinterInstance.state == models.LinterState.crashed)
-                .exists()).scalar()
+                    models.LinterInstance.state == models.LinterState.crashed
+                ).exists()
+            ).scalar()
             if running:
                 state = models.LinterState.running.name
             elif crashed:
@@ -788,20 +863,25 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
     content = request.get_json()
 
     if not ('cfg' in content and 'name' in content):
-        raise APIException('Missing required params.',
-                           ('Missing one ore more of children, cfg'
-                            ' or name in the payload "{}"').format(content),
-                           APICodes.MISSING_REQUIRED_PARAM, 400)
+        raise APIException(
+            'Missing required params.', (
+                'Missing one ore more of children, cfg'
+                ' or name in the payload "{}"'
+            ).format(content), APICodes.MISSING_REQUIRED_PARAM, 400
+        )
 
     if db.session.query(
-            models.LinterInstance.query.filter(
-                models.AssignmentLinter.assignment_id == assignment_id,
-                models.AssignmentLinter.name == content['name'])
-            .exists()).scalar():
+        models.LinterInstance.query.filter(
+            models.AssignmentLinter.assignment_id == assignment_id,
+            models.AssignmentLinter.name == content['name']
+        ).exists()
+    ).scalar():
         raise APIException(
             'There is still a linter instance running',
             'There is a linter named "{}" running for assignment {}'.format(
-                content['name'], assignment_id), APICodes.INVALID_STATE, 409)
+                content['name'], assignment_id
+            ), APICodes.INVALID_STATE, 409
+        )
 
     perm = models.Assignment.query.get(assignment_id)
     auth.ensure_permission('can_use_linter', perm.course_id)
@@ -812,13 +892,19 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
 
     try:
         runner = linters.LinterRunner(
-            linters.get_linter_by_name(content['name']), content['cfg'])
+            linters.get_linter_by_name(content['name']), content['cfg']
+        )
 
         thread = threading.Thread(
             target=runner.run,
-            args=([t.work_id for t in res.tests], [t.id for t in res.tests],
-                  ('{}api/v1/linter' + '_comments/{}').format(request.url_root,
-                                                              '{}')))
+            args=(
+                [t.work_id for t in res.tests],
+                [t.id for t in res.tests],
+                ('{}api/v1/linter' + '_comments/{}').format(
+                    request.url_root, '{}'
+                )
+            )
+        )
 
         thread.start()
     except:

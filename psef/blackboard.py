@@ -11,24 +11,29 @@ import datetime
 
 from dateutil import parser as dateparser
 
-_txt_fmt = re.compile(r"Name: (?P<name>.+) \((?P<id>[0-9]+)\)\n"
-                      r"Assignment: (?P<assignment>.+)\n"
-                      r"Date Submitted: (?P<datetime>.+)\n"
-                      r"Current Grade: (?P<grade>[0-9.]*)\n\n"
-                      r"Submission Field:\n(?P<text>(.*\n)+)\n"
-                      r"Comments:\n(?P<comment>(.*\n)+)\n"
-                      r"Files:\n"
-                      r"(?P<files>(.+\n.+\n)+)\n".encode('utf-8'))
+_txt_fmt = re.compile(
+    r"Name: (?P<name>.+) \((?P<id>[0-9]+)\)\n"
+    r"Assignment: (?P<assignment>.+)\n"
+    r"Date Submitted: (?P<datetime>.+)\n"
+    r"Current Grade: (?P<grade>[0-9.]*)\n\n"
+    r"Submission Field:\n(?P<text>(.*\n)+)\n"
+    r"Comments:\n(?P<comment>(.*\n)+)\n"
+    r"Files:\n"
+    r"(?P<files>(.+\n.+\n)+)\n".encode('utf-8')
+)
 
-_txt_files_fmt = re.compile(r"\tOriginal filename: (.+)\n"
-                            r"\tFilename: (.+)\n")
+_txt_files_fmt = re.compile(
+    r"\tOriginal filename: (.+)\n"
+    r"\tFilename: (.+)\n"
+)
 
 
 class FileInfo(
-        t.NamedTuple('FileInfo', [
-            ('original_name', str),
-            ('name', str),
-        ])):
+    t.NamedTuple('FileInfo', [
+        ('original_name', str),
+        ('name', str),
+    ])
+):
     """A NamedTuple holding information about a specific file.
 
     :param original_name: The name provided by the user.
@@ -37,7 +42,8 @@ class FileInfo(
 
 
 class SubmissionInfo(
-        t.NamedTuple('SubmissionInfo', [
+    t.NamedTuple(
+        'SubmissionInfo', [
             ('student_name', str),
             ('student_id', int),
             ('assignment_name', str),
@@ -46,7 +52,9 @@ class SubmissionInfo(
             ('text', str),
             ('comment', str),
             ('files', t.MutableSequence[FileInfo]),
-        ])):
+        ]
+    )
+):
     """A NamedTuple holding information about a submission from a blackboard
     zip.
 
@@ -79,14 +87,16 @@ def parse_info_file(file: str) -> SubmissionInfo:
                 student_id=int(match.group('id')),
                 assignment_name=match.group('assignment').decode('utf-8'),
                 created_at=dateparser.parse(
-                    match.group('datetime').decode('utf-8').replace(" o'clock",
-                                                                    "")),
+                    match.group('datetime').decode('utf-8')
+                    .replace(" o'clock", "")
+                ),
                 grade=float(match.group('grade')),
                 text=match.group('text').decode('utf-8').rstrip(),
                 comment=match.group('comment').decode('utf-8').rstrip(),
                 files=[
                     FileInfo(org, cur)
-                    for org, cur in _txt_files_fmt.findall(
-                        match.group('files').decode('utf-8'))
-                ])
+                    for org, cur in _txt_files_fmt.
+                    findall(match.group('files').decode('utf-8'))
+                ]
+            )
             return info

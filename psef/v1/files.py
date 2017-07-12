@@ -16,13 +16,8 @@ import psef.files
 from psef import app
 from psef.auth import APICodes, APIException
 from psef.helpers import (
-    JSONType,
-    JSONResponse,
-    EmptyResponse,
-    jsonify,
-    ensure_json_dict,
-    ensure_keys_in_dict,
-    make_empty_response
+    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
+    ensure_keys_in_dict, make_empty_response
 )
 
 from . import api
@@ -45,13 +40,15 @@ def post_file() -> JSONResponse[str]:
                           size. (REQUEST_TOO_LARGE)
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
-    if (request.content_length and
-            request.content_length > app.config['MAX_UPLOAD_SIZE']):
+    if (
+        request.content_length and
+        request.content_length > app.config['MAX_UPLOAD_SIZE']):
         raise APIException(
             'Uploaded file is too big.',
-            'Request is bigger than maximum upload size of {}.'.format(
-                app.config['MAX_UPLOAD_SIZE']), APICodes.REQUEST_TOO_LARGE,
-            400)
+            'Request is bigger than maximum upload size of {}.'.
+            format(app.config['MAX_UPLOAD_SIZE']), APICodes.REQUEST_TOO_LARGE,
+            400
+        )
 
     path, name = psef.files.random_file_path()
 
@@ -83,4 +80,5 @@ def get_file(file_name) -> werkzeug.wrappers.Response:
         app.config['UPLOAD_DIR'],
         file_name,
         attachment_filename=name if name else 'export',
-        as_attachment=True)
+        as_attachment=True
+    )
