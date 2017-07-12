@@ -4,7 +4,7 @@
                placement="top"
                :content="err">
         <b-button
-            :disabled="pending"
+            :disabled="pending || disabled"
             :variant="variants[state]"
             :size="size"
             @click="$emit('click', $event)">
@@ -35,6 +35,10 @@ export default {
     },
 
     props: {
+        disabled: {
+            type: Boolean,
+            default: false,
+        },
         label: {
             type: String,
             default: 'Submit',

@@ -126,10 +126,8 @@ def restore_directory_structure(code: models.File, parent: str) -> FileTree:
     if code.is_directory:
         os.mkdir(out)
         return {
-            "name":
-            code.get_filename(),
-            "id":
-            code.id,
+            "name": code.get_filename(),
+            "id": code.id,
             "entries": [
                 restore_directory_structure(child, out)
                 for child in code.children
@@ -201,8 +199,7 @@ def rename_directory_structure(rootdir: str) -> ExtractFileTree:
                 res.append((key, filename))
             else:
                 res.append({
-                    key:
-                    convert_to_lists(os.path.join(name, key), value)
+                    key: convert_to_lists(os.path.join(name, key), value)
                 })
         return res
 
@@ -330,9 +327,8 @@ def process_files(files: t.MutableSequence[FileStorage]) -> ExtractFileTree:
     return dehead_filetree(tree)
 
 
-def process_blackboard_zip(
-        blackboard_zip: FileStorage
-) -> t.MutableSequence[t.Tuple[blackboard.SubmissionInfo, ExtractFileTree]]:
+def process_blackboard_zip(blackboard_zip: FileStorage) -> t.MutableSequence[
+        t.Tuple[blackboard.SubmissionInfo, ExtractFileTree]]:
     """Process the given :py:mod:`.blackboard` zip file.
 
     This is done by extracting, moving and saving the tree structure of each
@@ -342,23 +338,28 @@ def process_blackboard_zip(
     :returns: List of tuples (BBInfo, tree)
     """
     tmpdir = extract_to_temp(blackboard_zip)
-    info_files = filter(None,
-                        [_bb_txt_format.match(f) for f in os.listdir(tmpdir)])
-    submissions = []
-    for info_file in info_files:
-        files = []
-        info = blackboard.parse_info_file(
-            os.path.join(tmpdir, info_file.string))
-        for blackboard_file in info.files:
-            files.append(
-                FileStorage(
-                    stream=open(
-                        os.path.join(tmpdir, blackboard_file.name), mode='rb'),
-                    filename=blackboard_file.original_name))
-        tree = process_files(files)
-        map(lambda f: f.close(), files)
-        submissions.append((info, tree))
-    shutil.rmtree(tmpdir)
+    try:
+        info_files = filter(
+            None, [_bb_txt_format.match(f) for f in os.listdir(tmpdir)])
+        submissions = []
+        for info_file in info_files:
+            files = []
+            info = blackboard.parse_info_file(
+                os.path.join(tmpdir, info_file.string))
+            for blackboard_file in info.files:
+                files.append(
+                    FileStorage(
+                        stream=open(
+                            os.path.join(tmpdir, blackboard_file.name),
+                            mode='rb'),
+                        filename=blackboard_file.original_name))
+            tree = process_files(files)
+            map(lambda f: f.close(), files)
+            submissions.append((info, tree))
+        if not submissions:
+            raise ValueError
+    finally:
+        shutil.rmtree(tmpdir)
     return submissions
 
 

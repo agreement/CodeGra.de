@@ -358,7 +358,6 @@ def delete_rubricrow(assignment_id: int, rubric_row: int) -> EmptyResponse:
     :param int assignment_id: The id of the assignment
     :param int rubric_row: The id of the rubric row
     :returns: An empty response with return code 204
-    :rtype: (str, int)
 
     :raises APIException: If no rubric row with given id exists.
                           (OBJECT_ID_NOT_FOUND)
@@ -408,11 +407,10 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
 
     if (request.content_length and
             request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException(
-            'Uploaded files are too big.',
-            ('Request is bigger than maximum ' +
-             'upload size of {}.').format(app.config['MAX_UPLOAD_SIZE']),
-            APICodes.REQUEST_TOO_LARGE, 400)
+        raise APIException('Uploaded files are too big.',
+                           'Request is bigger than maximum '
+                           f'upload size of {app.config["MAX_UPLOAD_SIZE"]}.',
+                           APICodes.REQUEST_TOO_LARGE, 400)
 
     if len(request.files) == 0:
         raise APIException("No file in HTTP request.",
@@ -525,9 +523,8 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
 
 
 @api.route('/assignments/<int:assignment_id>/graders', methods=['GET'])
-def get_all_graders(
-        assignment_id: int
-) -> JSONResponse[t.Sequence[t.Mapping[str, t.Union[int, str, bool]]]]:
+def get_all_graders(assignment_id: int) -> JSONResponse[t.Sequence[t.Mapping[
+        str, t.Union[int, str, bool]]]]:
     """Gets a list of all :class:`.models.User` objects who can grade the given
     :class:`.models.Assignment`.
 
@@ -564,11 +561,11 @@ def get_all_graders(
             models.user_course,
             models.User.id == models.user_course.c.user_id).subquery('us')
     per = db.session.query(models.course_permissions.c.course_role_id).join(
-        models.CourseRole,
-        models.CourseRole.id == models.course_permissions.c.course_role_id
-    ).filter(
-        models.course_permissions.c.permission_id == permission,
-        models.CourseRole.course_id == assignment.course_id).subquery('per')
+        models.CourseRole, models.CourseRole.id ==
+        models.course_permissions.c.course_role_id).filter(
+            models.course_permissions.c.permission_id == permission,
+            models.CourseRole.course_id ==
+            assignment.course_id).subquery('per')
     result: t.Sequence[t.Tuple[str, int]] = db.session.query(
         us.c.name, us.c.id).join(
             per,
@@ -636,8 +633,8 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
         (OBJECT_ID_NOT_FOUND)
     :raises APIException: If there was no file in the request.
         (MISSING_REQUIRED_PARAM)
-    :raises APIException: If the file parameter name is incorrect.
-        (INVALID_PARAM)
+    :raises APIException: If the file parameter name is incorrect or if the
+        given file does not contain any valid submissions. (INVALID_PARAM)
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the user is not allowed to manage the
         course attached to the assignment. (INCORRECT_PERMISSION)
@@ -660,9 +657,11 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
     try:
         submissions = psef.files.process_blackboard_zip(file)
     except:
-        raise APIException("The blackboard zip could not imported.",
-                           "The blackboard zip could not be parsed.",
-                           APICodes.INVALID_PARAM, 400)
+        raise APIException(
+            "The blackboard zip could not imported or it was empty.",
+            'The blackboard zip could not'
+            ' be parsed or it did not contain any valid submissions.',
+            APICodes.INVALID_PARAM, 400)
     try:
         for submission_info, submission_tree in submissions:
             user = models.User.query.filter_by(
@@ -671,10 +670,8 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
             if user is None:
                 # TODO: Check if this role still exists
                 perms = {
-                    assignment.course_id:
-                    models.CourseRole.query.filter_by(
-                        name='Student',
-                        course_id=assignment.course_id).first()
+                    assignment.course_id: models.CourseRole.query.filter_by(
+                        name='Student', course_id=assignment.course_id).first()
                 }
                 user = models.User(
                     name=submission_info.student_name,
@@ -820,8 +817,8 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
         thread = threading.Thread(
             target=runner.run,
             args=([t.work_id for t in res.tests], [t.id for t in res.tests],
-                  ('{}api/v1/linter' + '_comments/{}').format(
-                      request.url_root, '{}')))
+                  ('{}api/v1/linter' + '_comments/{}').format(request.url_root,
+                                                              '{}')))
 
         thread.start()
     except:

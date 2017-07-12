@@ -1,9 +1,9 @@
 <template>
     <form :label-size="1" ref="fileInput">
-        <b-form-fieldset :feedback="error">
+        <b-form-fieldset>
             <b-input-group>
                 <b-input-group-button>
-                    <submit-button @click="submit" ref="submitButton" :showError="false"/>
+                    <submit-button @click="submit" ref="submitButton" :disabled="file === null"/>
                 </b-input-group-button>
                 <b-form-file name="file" v-model="file" @change="change" :disabled="disabled"/>
             </b-input-group>
@@ -41,24 +41,21 @@ export default {
     data() {
         return {
             file: null,
-            error: '',
             hasFile: false,
         };
     },
 
     methods: {
         change() {
-            this.error = '';
             this.hasFile = true;
         },
 
         submit() {
             const formData = new FormData(this.$refs.fileInput);
             const req = this.$http.post(this.action, formData);
-            req.catch(({ response }) => {
-                this.error = response.data.description;
-            });
-            this.$refs.submitButton.submit(req);
+            this.$refs.submitButton.submit(req.catch((res) => {
+                throw res.response.data.message;
+            }));
         },
     },
 
