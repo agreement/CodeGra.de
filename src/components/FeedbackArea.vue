@@ -1,10 +1,10 @@
 <template>
-    <b-card class="non-editable" v-if="(done && !editing)">
+    <b-card class="feedback-area non-editable" v-if="(done && !editing)">
         <div v-on:click="changeFeedback()" :style="{'min-height': '1em'}">
             <div v-html="newlines(escape(serverFeedback))"></div>
         </div>
     </b-card>
-    <div v-else>
+    <div class="feedback-area" v-else>
         <b-collapse class="collapsep" ref="snippetDialog" :id="`collapse${line}`">
             <b-input-group>
                 <b-form-input class="input" v-model="snippetKey" v-on:keydown.native.ctrl.enter="addSnippet"></b-form-input>

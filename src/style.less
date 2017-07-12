@@ -221,11 +221,20 @@ textarea:disabled {
 }
 
 .linter-feedback-outer {
+    background: rgba(255, 0, 0, .025) !important;
     color: red;
     font-weight: bold;
     -webkit-text-decoration-style: wavy;
     -moz-text-decoration-style: wavy;
     text-decoration-style: wavy;
+
+    > * {
+        font-weight: normal;
+    }
+
+    .feedback-area {
+        color: black;
+    }
 }
 
 .linter-feedback-inner .linter-toggle {

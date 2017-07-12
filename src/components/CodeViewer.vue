@@ -275,10 +275,6 @@ code {
     word-break: break-word;
 }
 
-.feedback {
-    font-family: sans-serif;
-}
-
 .add-feedback {
     position: absolute;
     top: 0;
