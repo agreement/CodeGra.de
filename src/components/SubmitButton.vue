@@ -1,5 +1,8 @@
 <template>
-    <b-popover :show="showError && state == 'failure'" placement="top" :content="err">
+    <b-popover class="submission-popover"
+               :show="showError && state == 'failure'"
+               placement="top"
+               :content="err">
         <b-button
             :disabled="pending"
             :variant="variants[state]"
@@ -104,6 +107,16 @@ export default {
     },
 };
 </script>
+
+<style lang="less">
+.input-group-btn > .submission-popover {
+    height: 100%;
+
+    > span > button {
+        height: 100%;
+    }
+}
+</style>
 
 <docs>
 Submit button component to be used when

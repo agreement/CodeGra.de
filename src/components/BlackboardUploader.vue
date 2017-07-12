@@ -3,7 +3,7 @@
         <b-form-fieldset :feedback="error">
             <b-input-group>
                 <b-input-group-button>
-                    <submit-button @click="submit" ref="submitButton"/ :showError="false">
+                    <submit-button @click="submit" ref="submitButton" :showError="false"/>
                 </b-input-group-button>
                 <b-form-file name="file" v-model="file" @change="change" :disabled="disabled"/>
             </b-input-group>
