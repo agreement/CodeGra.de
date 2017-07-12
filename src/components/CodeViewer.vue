@@ -5,7 +5,9 @@
         </center>
     </b-alert>
     <loader class="text-center" v-else-if="loading"></loader>
-    <ol class="code-viewer form-control" v-else :class="{ editable: editable }" @click="onClick">
+    <ol class="code-viewer form-control" v-else
+        :class="{ editable, 'lint-whitespace': assignment.whitespace_linter, }"
+        @click="onClick">
         <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
             :class="{ 'linter-feedback-outer': linterFeedback[i] }" v-bind:key="i">
 
@@ -46,6 +48,10 @@ export default {
     name: 'code-viewer',
 
     props: {
+        assignment: {
+            type: Object,
+            default: null,
+        },
         editable: {
             type: Boolean,
             default: false,
@@ -145,8 +151,13 @@ export default {
         },
 
         visualizeWhitespace(line) {
-            const replacer = match =>
-                `<span class="whitespace">${match.replace(/ /g, '&middot;').replace(/\t/g, '&#10230;   ')}</span>`;
+            function replacer(match) {
+                return match.replace(/( +)/g, spaces =>
+                    `<span class="whitespace space">${spaces.replace(/ /g, '&middot;')}</span>`,
+                ).replace(/(\t+)/g, tabs =>
+                    `<span class="whitespace tab">${tabs.replace(/\t/g, '&#10230;   ')}</span>`,
+                );
+            }
 
             // Replace line start and line end
             return line.replace(/^[ \t]*/g, replacer).replace(/[ \t]*$/g, replacer);

@@ -273,6 +273,11 @@ textarea:disabled {
 }
 
 .whitespace {
-    opacity: 0.4;
-    color: #000;
+    color: rgba(0, 0, 0, .2);
+
+    .code-viewer.lint-whitespace &.space + &.tab,
+    .code-viewer.lint-whitespace &.tab + &.space {
+        background: rgba(255, 0, 0, .1);
+        color: rgba(0, 0, 0, .4);
+    }
 }

@@ -860,7 +860,10 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
     :raises PermissionException: If the user can not user linters in this
                                  course. (INCORRECT_PERMISSION)
     """
-    content = request.get_json()
+    content = ensure_json_dict(request.get_json())
+    ensure_keys_in_dict(content, [('cfg', str), ('name', str)])
+    cfg = t.cast(str, content['cfg'])
+    name = t.cast(str, content['name'])
 
     if not ('cfg' in content and 'name' in content):
         raise APIException(
@@ -883,34 +886,39 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
             ), APICodes.INVALID_STATE, 409
         )
 
-    perm = models.Assignment.query.get(assignment_id)
-    auth.ensure_permission('can_use_linter', perm.course_id)
+    assig = helpers.get_or_404(models.Assignment, assignment_id)
+    auth.ensure_permission('can_use_linter', assig.course_id)
 
-    res = models.AssignmentLinter.create_tester(assignment_id, content['name'])
+    res = models.AssignmentLinter.create_tester(assignment_id, name)
     db.session.add(res)
     db.session.commit()
 
-    try:
-        runner = linters.LinterRunner(
-            linters.get_linter_by_name(content['name']), content['cfg']
-        )
-
-        thread = threading.Thread(
-            target=runner.run,
-            args=(
-                [t.work_id for t in res.tests],
-                [t.id for t in res.tests],
-                ('{}api/v1/linter' + '_comments/{}').format(
-                    request.url_root, '{}'
+    # Special case the MixedWhitespace linter
+    if name == 'MixedWhitespace':
+        for linter_inst in res.tests:
+            linter_inst.state = models.LinterState.done
+        db.session.commit()
+    else:
+        try:
+            runner = linters.LinterRunner(
+                linters.get_linter_by_name(name), cfg
+            )
+            thread = threading.Thread(
+                target=runner.run,
+                args=(
+                    [t.work_id for t in res.tests],
+                    [t.id for t in res.tests],
+                    ('{}api/v1/linter' + '_comments/{}').format(
+                        request.url_root, '{}'
+                    )
                 )
             )
-        )
 
-        thread.start()
-    except:
-        for test in res.tests:
-            test.state = models.LinterState.crashed
-        db.session.commit()
+            thread.start()
+        except:
+            for test in res.tests:
+                test.state = models.LinterState.crashed
+            db.session.commit()
 
     return jsonify(res)
 

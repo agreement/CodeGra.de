@@ -57,7 +57,7 @@ export default {
             this.assignment.id = this.assignmentId;
 
             this.hasPermission(['can_submit_own_work', 'can_see_others_work', 'can_see_grade_before_open']).then(([submit, others, before]) => {
-                this.canUpload = submit && this.assignment.open;
+                this.canUpload = submit && this.assignment.state === assignmentState.SUBMITTING;
 
                 if (others && this.assignment.state === assignmentState.DONE) {
                     this.canDownload = true;

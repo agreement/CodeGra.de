@@ -7,7 +7,7 @@
             {{ description }}
             <b-collapse :id="`collapse_${name}`" class="mt-2">
                 <div v-if="state == 'new'">
-                    <div>
+                    <div v-if="Object.keys(options).length">
                         <b-dropdown :text="selectedOption" class="margin">
                             <b-dropdown-header>Select your config file</b-dropdown-header>
                             <b-dropdown-item v-for="(_, optionName) in options" v-on:click="clicked(false, optionName)" :key="optionName">
@@ -23,7 +23,7 @@
                             </form>
                         </b-collapse>
                     </div>
-                    <b-btn variant="primary" :disabled="selectedOption === 'Select config file'" v-on:click="run">
+                    <b-btn variant="primary" :disabled="Object.keys(options).length !== 0 && selectedOption === 'Select config file'" v-on:click="run">
                         <loader :scale="1" v-if="starting"/>
                         <span v-else>Run!</span>
                     </b-btn>
@@ -153,8 +153,8 @@ export default {
         run() {
             let cfg;
             if (this.selectedOption === 'Custom config') {
-                cfg = this.config === undefined ? '' : this.config;
-            } else {
+                cfg = this.config;
+            } else if (this.selectedOption) {
                 cfg = this.options[this.selectedOption];
             }
 
@@ -166,7 +166,7 @@ export default {
 
             this.$http.post(`/api/v1/assignments/${this.assignment.id}/linter`, {
                 name: this.name,
-                cfg,
+                cfg: cfg || '',
             }).then(({ data }) => {
                 this.starting = false;
                 this.updateData(data);

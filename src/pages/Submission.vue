@@ -13,7 +13,9 @@
                                     :assignmentId="assignmentId"></submission-nav-bar>
                 <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
                 <code-viewer class="" :editable="editable"
-                             :tree="fileTree" v-else-if="fileId" ref="codeViewer"></code-viewer>
+                    :tree="fileTree"
+                    :assignment="assignment"
+                    v-else-if="fileId" ref="codeViewer"></code-viewer>
                 <grade-viewer :assignment="assignment"
                               :submission="submission"
                               :rubric="rubric"

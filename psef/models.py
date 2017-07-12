@@ -1366,19 +1366,67 @@ class Assignment(Base):
             return 'submitting' if self.is_open else 'grading'
         return _AssignmentStateEnum(self.state).name
 
+    @property
+    def whitespace_linter(self) -> bool:
+        """Check if this assignment has an associated MixedWhitespace linter.
+
+        .. note::
+
+            If the assignment is not yet done we check if the ``current_user``
+            has the permission ``can_see_grade_before_open``
+
+        :returns: True if there is an :py:class:`.AssignmentLinter` with name
+        ``MixedWhitespace`` and ``assignment_id``.
+        """
+        try:
+            if not self.is_done:
+                auth.ensure_permission(
+                    'can_see_grade_before_open', self.course_id
+                )
+        except auth.PermissionException:
+            return False
+        else:
+            return db.session.query(
+                AssignmentLinter.query.filter(
+                    AssignmentLinter.assignment_id == self.id,
+                    AssignmentLinter.name == 'MixedWhitespace'
+                ).exists()
+            ).scalar()
+
     def __to_json__(self) -> t.Mapping[str, t.Any]:
         """Creates a JSON serializable representation of this object.
+
+        This object will look like this:
+
+        .. code:: python
+
+            {
+                'id': int, # The id of this assignment.
+                'state': str, # Current state of this assignment.
+                'description': str, # Description of this assignment.
+                'created_at': str, # ISO UTC date.
+                'deadline': str, # ISO UTC date.
+                'name': str, # Assignment name.
+                'is_lti': bool, # Is this an LTI assignment.
+                'course': models.Course, # Course of this assignment.
+                'whitespace_linter': bool, # Has the whitespace linter
+                                           # run on this assignment.
+            }
+
+        :returns: An object as described above.
+
+        .. todo:: Remove description from Assignment model.
         """
         return {
             'id': self.id,
             'state': self.state_name,
-            'open': self.is_open,
             'description': self.description,
             'created_at': self.created_at.isoformat(),
             'deadline': self.deadline.isoformat(),
             'name': self.name,
             'is_lti': self.lti_outcome_service_url is not None,
             'course': self.course,
+            'whitespace_linter': self.whitespace_linter,
         }
 
     def set_state(self, state: str) -> None:

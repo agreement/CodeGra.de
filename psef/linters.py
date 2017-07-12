@@ -32,8 +32,14 @@ class Linter:
     """The base class for a linter.
 
     Every linter should inherit from this class as they are discovered by
-    reflecting on subclasses from this class. They should also override all
-    methods and variables from this class.
+    reflecting on subclasses from this class. They should override the ``run``
+    method, and they may override the ``DEFAULT_OPTIONS`` variable.
+
+    .. note::
+
+        If a linter doesn't override ``DEFAULT_OPTIONS`` the user will not have
+        the ability to define a custom configuration for the linter in the
+        frontend.
     """
     DEFAULT_OPTIONS = {}  # type: t.MutableMapping[str, str]
 
@@ -133,6 +139,16 @@ class Flake8(Linter):
                     emit(args[0], int(args[1]), *args[2:])
                 except ValueError:
                     pass
+
+
+class MixedWhitespace(Linter):
+    """Run the MixedWhitespace linter.
+
+    This linter checks if a file contains mixed indentation on the same line.
+    It doesn't catch different types of indentation being used in a file but on
+    different lines. Instead of adding a comment in the sidebar, the mixed
+    whitespace will be highlighted in the code.
+    """
 
 
 class LinterRunner():
