@@ -1,6 +1,6 @@
 <template>
     <div :class="{ 'linter-feedback-inner': feedback != null }">
-        <b-popover placement="top" triggers="hover" :content="getFeedback()" v-if="feedback != null">
+        <b-popover placement="bottom" triggers="hover" :content="getFeedback()" v-if="feedback != null">
             <div class="linter-toggle" v-on:click="toggleShow"></div>
         </b-popover>
     </div>
@@ -28,8 +28,7 @@ export default {
 
     methods: {
         getFeedback() {
-            const body = Object.keys(this.feedback).map((key) => {
-                const val = this.feedback[key];
+            const body = this.feedback.map(([key, val]) => {
                 let res = `<tr><td><b>${e(key)}</b></td><td style="text-align: left;">`;
                 if (val.code) {
                     res = `${res}[${e(val.code)}] `;

@@ -27,7 +27,7 @@ if t.TYPE_CHECKING:
     import werkzeug  # NOQA
 
 _HumanFeedback = models.Comment
-_LinterFeedback = t.Dict[str, models.LinterComment]
+_LinterFeedback = t.MutableSequence[t.Tuple[str, models.LinterComment]]
 _FeedbackMapping = t.Dict[str, t.Union[_HumanFeedback, _LinterFeedback]]
 
 
@@ -134,7 +134,7 @@ def get_code(
 
     :param int file_id: The id of the file
     :returns: A response containing a plain text file unless specified
-              otherwise
+        otherwise.
 
     :raises APIException: If there is not file with the given id.
                           (OBJECT_ID_NOT_FOUND)
@@ -192,8 +192,8 @@ def get_feedback(file: models.File, linter: bool=False) -> _FeedbackMapping:
     :param models.File file: The file object
     :param bool linter: If true returns linter comments instead
     :returns: Feedback for the given file. If ``linter`` is true it will be
-        given in the form ``{line: {linter_name: comment}}`` otherwise it is in
-        the form ``{line: comment}``.
+        given in the form ``{line: [(linter_name, comment)]`` otherwise it is
+        in the form ``{line: comment}``.
     """
     res: _FeedbackMapping = {}
     try:
@@ -207,9 +207,9 @@ def get_feedback(file: models.File, linter: bool=False) -> _FeedbackMapping:
             for linter_comment in comments:  # type: models.LinterComment
                 line = str(linter_comment.line)
                 if line not in res:
-                    res[line] = {}
+                    res[line] = []
                 name = linter_comment.linter.tester.name
-                res[line][name] = linter_comment  # type: ignore
+                res[line].append((name, linter_comment))  # type: ignore
         else:
             comments = db.session.query(models.Comment).filter_by(
                 file_id=file.id

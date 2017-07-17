@@ -7,6 +7,7 @@ import enum
 import uuid
 import typing as t
 import datetime
+import threading
 from concurrent import futures
 
 from flask_login import UserMixin
@@ -37,6 +38,7 @@ if t.TYPE_CHECKING:
         def filter_by(self, *args, **kwargs):
             ...
 else:
+    import psef
     Base = db.Model
 
 permissions = db.Table(
@@ -743,6 +745,33 @@ class Work(Base):
         'User', foreign_keys=assigned_to, lazy='joined'
     )  # type: User
 
+    def run_linter(self) -> None:
+        """Run all linters for the assignment on this work.
+
+        All linters that have been used on the assignment will also run on this
+        work.
+
+        :returns: Nothing
+        """
+        if not self.assignment.linters:
+            return
+
+        for linter in self.assignment.linters:
+            instance = LinterInstance(work=self, tester=linter)
+
+            linter_cls = psef.linters.get_linter_by_name(linter.name)
+            if not linter_cls.RUN_LINTER:
+                instance.state = LinterState.done
+
+            db.session.add(instance)
+            db.session.commit()
+
+            if not linter_cls.RUN_LINTER:
+                return
+
+            runner = psef.linters.LinterRunner(linter_cls, linter.config)
+            threading.Thread(target=runner.run, args=([instance.id], )).start()
+
     @property
     def grade(self) -> float:
         """Get the actual current grade for this work.
@@ -1076,6 +1105,7 @@ class LinterComment(Base):
     if t.TYPE_CHECKING:
         query = Base.query  # type: t.ClassVar[_MyQuery['LinterComment']]
     __tablename__ = "LinterComment"  # type: str
+    id: int = db.Column('id', db.Integer, primary_key=True)
     file_id: int = db.Column(
         'File_id', db.Integer, db.ForeignKey('File.id'), index=True
     )
@@ -1084,7 +1114,6 @@ class LinterComment(Base):
     line: int = db.Column('line', db.Integer)
     linter_code: str = db.Column('linter_code', db.Unicode)
     comment: str = db.Column('comment', db.Unicode)
-    __table_args__ = (db.PrimaryKeyConstraint(file_id, line, linter_id), )
 
     linter = db.relationship(
         "LinterInstance", back_populates="comments"
@@ -1149,6 +1178,13 @@ class AssignmentLinter(Base):
     :class:`LinterInstance`.
 
     The name identifies which :class:`.linters.Linter` is used.
+
+    :ivar name: The name of the linter which is the `__name__` of a subclass of
+        :py:class:`linters.Linter`.
+    :ivar tests: All the linter instances for this linter, this are the
+        recordings of the running of the actual linter (so in the case of the
+        :py:class:`linters.Flake8` metadata about the `flake8` program).
+    :ivar config: The config that was passed to the linter.
     """
     if t.TYPE_CHECKING:
         query = Base.query  # type: t.ClassVar[_MyQuery['AssignmentLinter']]
@@ -1162,13 +1198,39 @@ class AssignmentLinter(Base):
         cascade='all,delete',
         order_by='LinterInstance.work_id'
     )  # type: t.Sequence[LinterInstance]
+    config: str = db.Column(
+        'config',
+        db.Unicode,
+        nullable=False,
+    )
     assignment_id = db.Column(
-        'Assignment_id', db.Integer, db.ForeignKey('Assignment.id')
+        'Assignment_id',
+        db.Integer,
+        db.ForeignKey('Assignment.id'),
     )  # type: int
 
     assignment = db.relationship(
-        'Assignment', foreign_keys=assignment_id
+        'Assignment',
+        foreign_keys=assignment_id,
+        backref=db.backref('linters', uselist=True),
     )  # type: 'Assignment'
+
+    @property
+    def linters_crashed(self):
+        return self._amount_linters_in_state(LinterState.crashed)
+
+    @property
+    def linters_done(self):
+        return self._amount_linters_in_state(LinterState.done)
+
+    @property
+    def linters_running(self):
+        return self._amount_linters_in_state(LinterState.running)
+
+    def _amount_linters_in_state(self, state: LinterState):
+        return LinterInstance.query.filter_by(
+            tester_id=self.id, state=state
+        ).count()
 
     def __to_json__(self) -> t.Mapping[str, t.Any]:
         """Returns the JSON serializable representation of this class.
@@ -1180,29 +1242,20 @@ class AssignmentLinter(Base):
                   attributes and the test state counts of this
                   LinterAssignment.
         """
-        working = 0
-        crashed = 0
-        done = 0
-
-        for test in self.tests:
-            if test.state == LinterState.running:
-                working += 1
-            elif test.state == LinterState.crashed:
-                crashed += 1
-            else:
-                done += 1
-
         return {
-            'done': done,
-            'working': working,
-            'crashed': crashed,
+            'done': self.linters_done,
+            'working': self.linters_running,
+            'crashed': self.linters_crashed,
             'id': self.id,
             'name': self.name,
         }
 
     @classmethod
-    def create_tester(
-        cls: t.Type['AssignmentLinter'], assignment_id: int, name: str
+    def create_linter(
+        cls: t.Type['AssignmentLinter'],
+        assignment_id: int,
+        name: str,
+        config: str,
     ) -> 'AssignmentLinter':
         """Create a new instance of this class for a given :class:`Assignment`
         with a given :py:class:`.linters.Linter`
@@ -1212,15 +1265,21 @@ class AssignmentLinter(Base):
         :returns: The created AssignmentLinter
         """
         id = str(uuid.uuid4())
+
+        # Find a unique id.
         while db.session.query(
             AssignmentLinter.query.filter(cls.id == id).exists()
         ).scalar():
             id = str(uuid.uuid4())
+
         self = cls(id=id, assignment_id=assignment_id, name=name)
+        self.config = config
+
         self.tests = []
         for work in Assignment.query.get(assignment_id
                                          ).get_all_latest_submissions():
             self.tests.append(LinterInstance(work, self))
+
         return self
 
 
@@ -1253,20 +1312,47 @@ class LinterInstance(Base):
     )
 
     def __init__(self, work: Work, tester: AssignmentLinter) -> None:
+        # Find a unique id
         id = str(uuid.uuid4())
         while db.session.query(
             LinterInstance.query.filter(LinterInstance.id == id).exists()
         ).scalar():
             id = str(uuid.uuid4())
+
         self.id = id
         self.work = work
         self.tester = tester
 
-    def to_dict(self):
-        return {
-            'name': self.work.user.name,
-            'state': LinterState(self.state).name,
-        }
+    def add_comments(
+        self,
+        feedbacks: t.Mapping[int, t.Mapping[int, t.Sequence[t.Tuple[str, str]]]
+                             ],
+    ) -> t.Iterable[LinterComment]:
+        """Add comments written by this instance.
+
+        :param feedbacks: The feedback to add, it should be in form as
+            described below.
+        :returns: A iterable with comments that have not been added or commited
+            to the database yet.
+
+        .. code:: python
+
+            {
+                file_id: {
+                    line_number: [(linter_code, msg), ...]
+                }
+            }
+        """
+        for file_id, feedback in feedbacks.items():
+            for line_number, msgs in feedback.items():
+                for linter_code, msg in msgs:
+                    yield LinterComment(
+                        file_id=file_id,
+                        line=line_number,
+                        linter_code=linter_code,
+                        linter_id=self.id,
+                        comment=msg,
+                    )
 
 
 @enum.unique
@@ -1323,6 +1409,9 @@ class Assignment(Base):
     rubric_rows = db.relationship(
         'RubricRow', backref=db.backref('assignment')
     )  # type: t.MutableSequence['RubricRow']
+
+    # This variable is available through a backref
+    linters: 'AssignmentLinter'
 
     def _submit_grades(self) -> None:
         with futures.ThreadPoolExecutor() as pool:

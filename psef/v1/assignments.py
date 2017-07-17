@@ -467,13 +467,7 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
 
         files.append(file)
 
-    assignment = models.Assignment.query.get(assignment_id)
-    if assignment is None:
-        raise APIException(
-            'Assignment not found',
-            'The assignment with code {} was not found'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404
-        )
+    assignment = helpers.get_or_404(models.Assignment, assignment_id)
 
     auth.ensure_permission('can_submit_own_work', assignment.course_id)
     if not assignment.is_open:
@@ -488,6 +482,8 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
     work.add_file_tree(db.session, tree)
 
     db.session.commit()
+
+    work.run_linter()
 
     return jsonify(work, status_code=201)
 
@@ -544,8 +540,8 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
         )
 
     users: t.Optional[models.User] = models.User.query.filter(
-        models.User.id.in_(content['graders'])
-    ).all()  # type: ignore
+        models.User.id.in_(content['graders'])  # type: ignore
+    ).all()
     if users is None or len(users) != len(content['graders']):
         raise APIException(
             'Invalid grader id given', 'Invalid grader (=user) id given',
@@ -672,8 +668,8 @@ def get_all_works_for_assignment(assignment_id: int
         )
 
     res: t.Sequence[models.Work] = (
-        obj.order_by(models.Work.created_at.desc()).all()
-    )  # type: ignore
+        obj.order_by(models.Work.created_at.desc()).all()  # type: ignore
+    )
 
     return jsonify(res)
 
@@ -889,29 +885,17 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
     assig = helpers.get_or_404(models.Assignment, assignment_id)
     auth.ensure_permission('can_use_linter', assig.course_id)
 
-    res = models.AssignmentLinter.create_tester(assignment_id, name)
+    res = models.AssignmentLinter.create_linter(assignment_id, name, cfg)
     db.session.add(res)
     db.session.commit()
 
-    # Special case the MixedWhitespace linter
-    if name == 'MixedWhitespace':
-        for linter_inst in res.tests:
-            linter_inst.state = models.LinterState.done
-        db.session.commit()
-    else:
+    linter_cls = linters.get_linter_by_name(name)
+    if linter_cls.RUN_LINTER:
         try:
-            runner = linters.LinterRunner(
-                linters.get_linter_by_name(name), cfg
-            )
+            runner = linters.LinterRunner(linter_cls, cfg)
             thread = threading.Thread(
                 target=runner.run,
-                args=(
-                    [t.work_id for t in res.tests],
-                    [t.id for t in res.tests],
-                    ('{}api/v1/linter' + '_comments/{}').format(
-                        request.url_root, '{}'
-                    )
-                )
+                args=([t.id for t in res.tests], ),
             )
 
             thread.start()
@@ -919,6 +903,10 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
             for test in res.tests:
                 test.state = models.LinterState.crashed
             db.session.commit()
+    else:
+        for linter_inst in res.tests:
+            linter_inst.state = models.LinterState.done
+        db.session.commit()
 
     return jsonify(res)
 

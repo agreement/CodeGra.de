@@ -13,7 +13,6 @@ import tempfile
 import traceback
 import subprocess
 
-import requests
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 
@@ -33,7 +32,10 @@ class Linter:
 
     Every linter should inherit from this class as they are discovered by
     reflecting on subclasses from this class. They should override the ``run``
-    method, and they may override the ``DEFAULT_OPTIONS`` variable.
+    method, and they may override the ``DEFAULT_OPTIONS`` variable. If
+    ``RUN_LINTER`` is set to ``False`` we never actually run the linter, but
+    only create a :py:class:`.models.AssignmentLinter` for this assignment and
+    a :py:class:`.models.LinterInstance` for each submission.
 
     .. note::
 
@@ -41,7 +43,8 @@ class Linter:
         the ability to define a custom configuration for the linter in the
         frontend.
     """
-    DEFAULT_OPTIONS = {}  # type: t.MutableMapping[str, str]
+    DEFAULT_OPTIONS: t.ClassVar[t.Mapping[str, str]] = {}
+    RUN_LINTER: t.ClassVar[bool] = True
 
     def __init__(self, cfg: str) -> None:
         self.config = cfg
@@ -67,7 +70,9 @@ class Pylint(Linter):
     modules and will display an error on the first line of every file if the
     given code was not a proper module.
     """
-    DEFAULT_OPTIONS = {'Empty config file': ''}
+    DEFAULT_OPTIONS: t.ClassVar[t.Mapping[str, str]] = {
+        'Empty config file': ''
+    }
 
     def run(self, tempdir: str,
             emit: t.Callable[[str, int, str, str], None]) -> None:
@@ -114,7 +119,9 @@ class Flake8(Linter):
     This linter checks for errors in python code and checks the pep8 python
     coding standard. All "noqa"s are disabled when running.
     """
-    DEFAULT_OPTIONS = {'Empty config file': ''}
+    DEFAULT_OPTIONS: t.ClassVar[t.Mapping[str, str]] = {
+        'Empty config file': ''
+    }
 
     def run(self, tempdir: str,
             emit: t.Callable[[str, int, str, str], None]) -> None:
@@ -149,6 +156,7 @@ class MixedWhitespace(Linter):
     different lines. Instead of adding a comment in the sidebar, the mixed
     whitespace will be highlighted in the code.
     """
+    RUN_LINTER: t.ClassVar[bool] = False
 
 
 class LinterRunner():
@@ -167,71 +175,78 @@ class LinterRunner():
         """
         self.linter = cls(cfg)  # type: Linter
 
-    def run(
-        self, works: t.Iterable[int], tokens: t.Iterable[str], urlpath: str
-    ) -> None:
+        # We don't have any type for sqlalchemy sessions
+        self.session: t.Any = None
+
+    def run(self, linter_instance_ids: t.Sequence[int]) -> None:
         """Run this linter runner on the given works.
 
         .. note:: This method takes a long time to execute, please run it in a
                   thread.
 
-        .. note:: The `tokens` and `works` should match item for item. So
-                  `token[i]` should be valid only for `work[i]`.
+        :param linter_instance_ids: A sequence of all the ids of the linter
+            instances which should be run. If this linter instance has already
+            run once its old comments will be removed.
 
-        The results will be send to the given URL with are PUT request and are
-        identifiable by the token which will be formatted into the URL.
-
-        :param works: A list of ids of :class:`psef.models.Work` items that
-                      will be fetched and where the linters will run on.
-        :param tokens: A list of tokens that are the ids of
-                       :class:`psef.models.LinterInstance` that will be used
-                       when posting back to the given callback url.
-        :param urlpath: The url that should be used to postback the result
-                            of the linters, it should be possible to do
-                            `urlpath.format(token)` which should result in a
-                            valid url for posting back the result.
         :returns: Nothing
         """
-        session = sessionmaker(bind=ENGINE, autoflush=False)()
-        for work, token in zip(works, tokens):
-            code = session.query(models.File).filter_by(
-                parent=None, work_id=work
-            ).first()
+        self.session = sessionmaker(bind=ENGINE, autoflush=False)()
+
+        for linter_instance_id in linter_instance_ids:
+            linter_instance = self.session.query(models.LinterInstance
+                                                 ).get(linter_instance_id)
             try:
-                self.test(code, urlpath.format(token))
+                self.test(linter_instance)
             except Exception as e:
                 traceback.print_exc()
-                requests.put(urlpath.format(token), json={'crashed': True})
+                linter_instance.state = models.LinterState.crashed
+                self.session.commit()
 
-    def test(self, code: models.File, callback_url: str) -> None:
-        """Test the given code (:class:`models.Work`) and send the results to the
-        given URL.
+        self.session.close()
 
-        :param code: The file that the linter should be run on, this file and
-                     all its children will be restored to a directory and the
-                     linter will run on them.
-        :param callback_url: The url that should be used to give back the
-                     result of the linter.
+    def test(self, linter_instance: models.LinterInstance) -> None:
+        """Test the given code (:class:`models.Work`) and send the results to
+        the given URL.
+
+        :param linter_instance: The linter instance that will be run. This
+            linter instance is linked to a work from which all files will be
+            restored and the linter will be run on those files.
         :returns: Nothing
         """
-        temp_res: t.MutableMapping[str, t.MutableSequence[t.Tuple[int, str, str
-                                                                  ]]] = {}
-        res: t.MutableMapping[str, t.MutableSequence[t.Tuple[int, str, str]]
-                              ] = {}
+        temp_res: t.Dict[str, t.Dict[int, t.List[t.Tuple[str, str]]]]
+        temp_res = {}
+        res: t.Dict[int, t.Mapping[int, t.Sequence[t.Tuple[str, str]]]]
+        res = {}
 
-        def emit(f: str, line: int, code: str, msg: str):
-            if f.startswith(tmpdir):
-                f = f[len(tmpdir) + 1:]
-            elif f[0] == '/':
-                f = f[1:]
-            if f not in temp_res:
-                temp_res[f] = []
-            temp_res[f].append((line - 1, code, msg))
+        code = self.session.query(models.File).filter_by(
+            work_id=linter_instance.work_id,
+            parent=None,
+        ).one()
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            files = psef.files.restore_directory_structure(code, tmpdir)
+
+            def emit(f: str, line: int, code: str, msg: str):
+                if f.startswith(tmpdir):
+                    f = f[len(tmpdir) + 1:]
+                elif f[0] == '/':
+                    f = f[1:]
+                if f not in temp_res:
+                    temp_res[f] = {}
+                line = line - 1
+                if line in temp_res[f]:
+                    if (code, msg) in temp_res[f][line]:
+                        return
+                else:
+                    temp_res[f][line] = []
+                temp_res[f][line].append((code, msg))
+
+            files = psef.files.restore_directory_structure(
+                code,
+                tmpdir,
+            )
 
             self.linter.run(tmpdir, emit)
+        tmpdir = None
 
         def do(tree: t.MutableMapping[str, t.Any], parent: str) -> None:
             parent = os.path.join(parent, tree['name'])
@@ -243,15 +258,25 @@ class LinterRunner():
                 del temp_res[parent]
 
         do(files, '')
-        requests.put(
-            callback_url,
-            json={'files': res,
-                  'name': self.linter.__class__.__name__}
-        )
+
+        self.session.query(models.LinterComment).filter_by(
+            linter_id=linter_instance.id
+        ).delete()
+
+        with self.session.begin_nested(), self.session.no_autoflush:
+            try:
+                for comment in linter_instance.add_comments(res):
+                    self.session.add(comment)
+            except:
+                linter_instance.state = models.LinterState.crashed
+            else:
+                linter_instance.state = models.LinterState.done
+
+        self.session.commit()
 
 
 def get_all_linters(
-) -> t.Dict[str, t.Dict[str, t.Union[str, t.MutableMapping[str, str]]]]:
+) -> t.Dict[str, t.Dict[str, t.Union[str, t.Mapping[str, str]]]]:
     """Get an overview of all linters.
 
     The returned linters are all the subclasses of :class:`Linter`.
@@ -277,7 +302,7 @@ def get_all_linters(
     """
     res = {}
     for cls in get_all_subclasses(Linter):
-        item: t.Dict[str, t.Union[str, t.MutableMapping[str, str]]]
+        item: t.Dict[str, t.Union[str, t.Mapping[str, str]]]
         item = {
             'desc': cls.__doc__,
             'opts': cls.DEFAULT_OPTIONS,

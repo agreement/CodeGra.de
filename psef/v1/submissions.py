@@ -239,7 +239,8 @@ def select_rubric_item(submission_id,
 
 @api.route("/submissions/<int:submission_id>", methods=['PATCH'])
 def patch_submission(submission_id) -> EmptyResponse:
-    """Update the given submission (:class:`.models.Work`) if it already exists.
+    """Update the given submission (:class:`.models.Work`) if it already
+    exists.
 
     .. :quickref: Submission; Update a submissions grade and feedback.
 
