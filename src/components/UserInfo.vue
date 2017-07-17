@@ -1,69 +1,58 @@
 <template>
     <div class="userinfo">
         <loader class="col-md-12 text-center" v-if="loading"></loader>
-        <div @keyup.enter="submit" v-else>
+        <div @keyup.enter="submit" @keyup.capture="error = ''" v-else>
             <b-form-fieldset>
                 <b-input-group left="Username">
                     <b-form-input type="text" v-model="username"></b-form-input>
                 </b-input-group>
-                <b-alert variant="danger" :show="true" v-if="invalid_username_error.length">
-                    {{ invalid_username_error }}
-                </b-alert>
             </b-form-fieldset>
 
             <b-form-fieldset>
                 <b-input-group left="Email">
                     <b-form-input type="text" v-model="email"></b-form-input>
                 </b-input-group>
-                <b-alert variant="danger" :show="!validator.validate(email)">
-                    Please enter a valid email
-                </b-alert>
             </b-form-fieldset>
 
             <b-form-fieldset>
                 <b-input-group left="Old Password">
-                    <b-form-input  :type="o_pw_visible ? 'text' : 'password'" v-model="oldPassword"></b-form-input>
+                    <b-form-input  :type="oldPwVisible ? 'text' : 'password'" v-model="oldPw"></b-form-input>
                     <b-input-group-button slot="right">
-                        <b-button @click="o_pw_visible = !o_pw_visible" >
-                            <icon v-if="!o_pw_visible" name="eye"></icon>
+                        <b-button @click="oldPwVisible = !oldPwVisible" >
+                            <icon v-if="!oldPwVisible" name="eye"></icon>
                             <icon v-else name="eye-slash"></icon>
                         </b-button>
                     </b-input-group-button>
                 </b-input-group>
-                <b-alert variant="danger" :show="true" v-if="invalid_credentials_error.length">
-                    {{ invalid_credentials_error }}
-                </b-alert>
             </b-form-fieldset>
 
             <b-form-fieldset>
                 <b-input-group left="New Password">
-                    <b-form-input :type="n_pw_visible ? 'text' : 'password'" v-model="newPassword"></b-form-input>
+                    <b-form-input :type="newPwVisible ? 'text' : 'password'" v-model="newPw"></b-form-input>
                     <b-input-group-button slot="right">
-                        <b-button @click="n_pw_visible = !n_pw_visible" >
-                            <icon v-if="!n_pw_visible" name="eye"></icon>
+                        <b-button @click="newPwVisible = !newPwVisible" >
+                            <icon v-if="!newPwVisible" name="eye"></icon>
                             <icon v-else name="eye-slash"></icon>
                         </b-button>
                     </b-input-group-button>
                 </b-input-group>
-                <b-alert variant="danger" :show="true" v-if="invalid_password_error.length">
-                    {{ invalid_password_error }}
-                </b-alert>
             </b-form-fieldset>
 
             <b-form-fieldset>
                 <b-input-group left="Confirm Password">
-                    <b-form-input :type="c_pw_visible ? 'text' : 'password'" v-model="confirmPassword"></b-form-input>
+                    <b-form-input :type="confirmPwVisible ? 'text' : 'password'" v-model="confirmPw"></b-form-input>
                     <b-input-group-button slot="right">
-                        <b-button @click="c_pw_visible = !c_pw_visible" >
-                            <icon v-if="!c_pw_visible" name="eye"></icon>
+                        <b-button @click="confirmPwVisible = !confirmPwVisible" >
+                            <icon v-if="!confirmPwVisible" name="eye"></icon>
                             <icon v-else name="eye-slash"></icon>
                         </b-button>
                     </b-input-group-button>
                 </b-input-group>
-                <b-alert variant="danger" :show="true" v-if="newPassword != confirmPassword">
-                    New password is not equal to the confirmation password
-                </b-alert>
             </b-form-fieldset>
+
+            <b-alert variant="danger" :show="true" v-if="error">
+                {{ error }}
+            </b-alert>
 
             <b-button-toolbar justify>
                 <submit-button @click="submit" ref="submitButton" :showError="false"/>
@@ -74,6 +63,8 @@
 </template>
 
 <script>
+import validator from 'email-validator';
+
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/eye';
@@ -83,26 +74,21 @@ import 'vue-awesome/icons/times';
 import Loader from './Loader';
 import SubmitButton from './SubmitButton';
 
-const validator = require('email-validator');
-
 export default {
     name: 'userinfo',
 
     data() {
         return {
-            original: {},
             username: '',
             email: '',
-            oldPassword: '',
-            newPassword: '',
-            confirmPassword: '',
+            oldPw: '',
+            newPw: '',
+            confirmPw: '',
             loading: false,
-            o_pw_visible: false,
-            n_pw_visible: false,
-            c_pw_visible: false,
-            invalid_password_error: '',
-            invalid_username_error: '',
-            invalid_credentials_error: '',
+            oldPwVisible: false,
+            newPwVisible: false,
+            confirmPwVisible: false,
+            error: '',
             validator,
         };
     },
@@ -116,7 +102,6 @@ export default {
     mounted() {
         this.loading = true;
         this.$http.get('/api/v1/login').then(({ data }) => {
-            this.original = data;
             this.username = data.name;
             this.email = data.email;
             this.loading = false;
@@ -124,21 +109,12 @@ export default {
     },
 
     methods: {
-        resetErrors() {
-            this.invalid_password_error = '';
-            this.invalid_username_error = '';
-            this.invalid_credentials_error = '';
-        },
-
         resetParams() {
-            this.username = this.original.name;
-            this.email = this.original.email;
-            this.oldPassword = '';
-            this.newPassword = '';
-            this.confirmPassword = '';
-            this.o_pw_visible = false;
-            this.n_pw_visible = false;
-            this.c_pw_visible = false;
+            this.username = this.$store.state.user.name;
+            this.email = this.$store.state.user.email;
+            this.oldPw = '';
+            this.newPw = '';
+            this.confirmPw = '';
         },
 
         resetAll() {
@@ -147,28 +123,40 @@ export default {
         },
 
         submit() {
-            this.resetErrors();
+            this.error = '';
 
-            if (this.newPassword !== this.confirmPassword || !validator.validate(this.email)) {
+            if (!this.oldPw) {
+                this.error = 'Please fill in your password.';
+                return;
+            }
+            if (this.newPw !== this.confirmPw) {
+                this.error = 'New password doesn\'t match confirm password.';
+                return;
+            }
+            if (!validator.validate(this.email)) {
+                this.error = 'Invalid email address.';
                 return;
             }
 
-            const req = this.$http.patch('/api/v1/login', {
+            const req = this.$store.dispatch('user/updateUserInfo', {
                 username: this.username,
                 email: this.email,
-                o_password: this.oldPassword,
-                n_password: this.newPassword,
+                oldPw: this.oldPw,
+                newPw: this.newPw,
             });
             req.then(() => {
-                this.original.name = this.username;
-                this.original.email = this.email;
                 this.resetParams();
-            }, ({ response }) => {
-                if (response.data.code === 5) {
-                    this.invalid_password_error = response.data.rest.password;
-                    this.invalid_username_error = response.data.rest.username;
-                } else if (response.data.code === 12) {
-                    this.invalid_credentials_error = response.data.message;
+            }, (err) => {
+                switch (err.response.data.code) {
+                case 5:
+                    this.error = err.response.data.rest.username || err.response.data.rest.password;
+                    break;
+                case 12:
+                    this.error = err.response.data.message;
+                    break;
+                default:
+                    this.error = 'Unknown error';
+                    break;
                 }
             });
             this.$refs.submitButton.submit(req);

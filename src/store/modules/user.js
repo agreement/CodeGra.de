@@ -114,6 +114,16 @@ const actions = {
             });
         });
     },
+    updateUserInfo({ commit }, { username, email, oldPw, newPw }) {
+        return axios.patch('/api/v1/login', {
+            username,
+            email,
+            o_password: oldPw,
+            n_password: newPw,
+        }).then(() => {
+            commit(types.UPDATE_USER_INFO, { username, email });
+        });
+    },
 };
 
 const mutations = {
@@ -143,8 +153,8 @@ const mutations = {
     },
     [types.LOGOUT](state) {
         state.id = 0;
-        state.email = '';
         state.name = '';
+        state.email = '';
         state.snippets = null;
         state.permissions = null;
         state.canSeeHidden = false;
@@ -154,6 +164,10 @@ const mutations = {
     },
     [types.REMOVE_SNIPPET](state, key) {
         delete state.snippets[key];
+    },
+    [types.UPDATE_USER_INFO](state, { username, email }) {
+        state.name = username;
+        state.email = email;
     },
 };
 

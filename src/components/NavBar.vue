@@ -15,8 +15,8 @@
             <div v-if="loggedIn" class="nav-container justify-content-md-between">
                 <b-nav is-nav-bar>
                     <b-nav-item @click.stop>
-                        <router-link :to="{ name: 'me', params: { userId: this.userid, }, }" active-class="active">
-                            {{username}}
+                        <router-link :to="{ name: 'me', params: { userId: userid, }, }" active-class="active">
+                            {{ username }}
                         </router-link>
                     </b-nav-item>
                     <b-nav-item @click.stop>
