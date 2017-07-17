@@ -21,6 +21,10 @@ Vue.use(Toasted);
 
 Vue.config.productionTip = false;
 
+// console.dir is just much more useful
+// eslint-disable-next-line
+if (console.dir) console.log = console.dir;
+
 // Execute additional setup code
 require('./setup.js');
 
