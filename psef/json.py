@@ -24,7 +24,7 @@ class CustomJSONEncoder(json.JSONEncoder):
         """
         try:
             return obj.__to_json__()
-        except AttributeError:
+        except AttributeError:  # pragma: no cover
             return super().default(obj)
 
 

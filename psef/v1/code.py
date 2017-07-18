@@ -23,7 +23,7 @@ from psef.helpers import (
 
 from . import api
 
-if t.TYPE_CHECKING:
+if t.TYPE_CHECKING:  # pragma: no cover
     import werkzeug  # NOQA
 
 _HumanFeedback = models.Comment
@@ -48,19 +48,21 @@ def put_comment(id: int, line: int) -> EmptyResponse:
     :raises PermissionException: If the user can not can grade work in the
                                  attached course. (INCORRECT_PERMISSION)
     """
-    content = ensure_json_dict(request.get_json())
-
     comment = db.session.query(models.Comment).filter(
         models.Comment.file_id == id, models.Comment.line == line
     ).one_or_none()
 
-    ensure_keys_in_dict(content, [('comment', str)])
+    def get_comment() -> str:
+        content = ensure_json_dict(request.get_json())
+        ensure_keys_in_dict(content, [('comment', str)])
+        return t.cast(str, content['comment'])
 
     if comment:
         auth.ensure_permission(
             'can_grade_work', comment.file.work.assignment.course_id
         )
-        comment.comment = content['comment']
+
+        comment.comment = get_comment()
     else:
         file = helpers.get_or_404(models.File, id)
         auth.ensure_permission(
@@ -72,7 +74,7 @@ def put_comment(id: int, line: int) -> EmptyResponse:
                 file_id=id,
                 user_id=current_user.id,
                 line=line,
-                comment=content['comment']
+                comment=get_comment(),
             )
         )
 
@@ -127,7 +129,7 @@ def get_code(
 
     - If ``type == 'metadata'`` the JSON serialized :class:`.models.File` is
       returned.
-    - If ``type == 'binary'`` see :py:func:`get_binary_file`
+    - If ``type == 'pdf'`` see :py:func:`get_pdf_file`
     - If ``type == 'feedback'`` or ``type == 'linter-feedback'`` see
       :py:func:`get_feedback`
     - Otherwise the content of the file is returned as plain text.
@@ -154,8 +156,8 @@ def get_code(
         return jsonify(file)
     elif request.args.get('type') == 'feedback':
         return jsonify(get_feedback(file, linter=False))
-    elif request.args.get('type') == 'binary':
-        return get_binary_file(file)
+    elif request.args.get('type') == 'pdf':
+        return get_pdf_file(file)
     elif request.args.get('type') == 'linter-feedback':
         return jsonify(get_feedback(file, linter=True))
     else:
@@ -165,7 +167,7 @@ def get_code(
         return res
 
 
-def get_binary_file(file: models.File) -> 'werkzeug.wrappers.Response':
+def get_pdf_file(file: models.File) -> 'werkzeug.wrappers.Response':
     """Creates a response with the content of the given :class:`.models.File`
     as inline pdf.
 

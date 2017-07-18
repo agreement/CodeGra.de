@@ -1,71 +1,76 @@
 [
-    {
-        "name": "admin",
-        "role": "Admin",
-        "courses": {}
-    },
-    {
-        "name": "a",
-        "role": "Admin",
-        "courses": {}
-    },
-    {
-        "name": "b",
-        "role": "Admin",
-        "courses": {
-            "Project Software Engineering": "Student",
-            "Besturingssystemen": "TA",
-            "Programmeertalen": "TA"
-        }
-    },
-    {
-        "name": "Thomas Schaper",
-        "role": "Student",
-        "courses": {
-            "Project Software Engineering": "Student",
-            "Besturingssystemen": "TA",
-            "Programmeertalen": "TA"
-        }
-    },
-    {
-        "name": "Devin Hillenius",
-        "role": "Student",
-        "courses": {
-            "Project Software Engineering": "Student",
-            "Programmeertalen": "TA",
-            "Inleiding Programmeren": "TA"
-        }
-    },
-    {
-        "name": "Stupid1",
-        "role": "Student",
-        "courses": {
-            "Programmeertalen": "Student",
-            "Inleiding Programmeren": "Student"
-        }
-    },
-    {
-        "name": "Stupid2",
-        "role": "Student",
-        "courses": {
-            "Programmeertalen": "Student",
-            "Besturingssystemen": "Student"
-        }
-    },
-    {
-        "name": "Stupid3",
-        "role": "Student",
-        "courses": {
-            "Programmeertalen": "Student",
-            "Besturingssystemen": "Student"
-        }
-    },
-    {
-        "name": "Stupid4",
-        "role": "Student",
-        "courses": {
-            "Programmeertalen": "Student",
-            "Besturingssystemen": "Student"
-        }
+  {
+    "name": "admin",
+    "role": "Admin",
+    "courses": {}
+  },
+  {
+    "name": "nobody",
+    "role": "Nobody",
+    "courses": {}
+  },
+  {
+    "name": "a",
+    "role": "Admin",
+    "courses": {}
+  },
+  {
+    "name": "b",
+    "role": "Admin",
+    "courses": {
+      "Project Software Engineering": "Student",
+      "Besturingssystemen": "TA",
+      "Programmeertalen": "TA"
     }
+  },
+  {
+    "name": "Thomas Schaper",
+    "role": "Student",
+    "courses": {
+      "Project Software Engineering": "Student",
+      "Besturingssystemen": "TA",
+      "Programmeertalen": "TA"
+    }
+  },
+  {
+    "name": "Devin Hillenius",
+    "role": "Student",
+    "courses": {
+      "Project Software Engineering": "Student",
+      "Programmeertalen": "Teacher",
+      "Inleiding Programmeren": "Teacher"
+    }
+  },
+  {
+    "name": "Stupid1",
+    "role": "Student",
+    "courses": {
+      "Programmeertalen": "Student",
+      "Inleiding Programmeren": "Student"
+    }
+  },
+  {
+    "name": "Stupid2",
+    "role": "Student",
+    "courses": {
+      "Programmeertalen": "Student",
+      "Besturingssystemen": "Student"
+    }
+  },
+  {
+    "name": "Stupid3",
+    "role": "Student",
+    "courses": {
+      "Programmeertalen": "Student",
+      "Besturingssystemen": "Student"
+    }
+  },
+  {
+    "name": "Stupid4",
+    "role": "Student",
+    "courses": {
+      "Programmeertalen": "Student",
+      "Besturingssystemen": "Student"
+    }
+  }
 ]

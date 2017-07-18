@@ -36,9 +36,9 @@ from . import api
 
 @api.route("/assignments/", methods=['GET'])
 @login_required
-def get_student_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
-    """Get all the :class:`.models.Assignment` objects that the current user can
-    see.
+def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
+    """Get all the :class:`.models.Assignment` objects that the current user
+    can see.
 
     .. :quickref: Assignment; Get all assignments.
 
@@ -85,7 +85,7 @@ def get_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
     :raises PermissionException: If the user is not allowed to view this
                                  assignment. (INCORRECT_PERMISSION)
     """
-    assignment = models.Assignment.query.get(assignment_id)
+    assignment = helpers.get_or_404(models.Assignment, assignment_id)
 
     auth.ensure_permission('can_see_assignments', assignment.course_id)
 
@@ -94,14 +94,7 @@ def get_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
             'can_see_hidden_assignments', assignment.course_id
         )
 
-    if assignment is None:
-        raise APIException(
-            'Assignment not found',
-            'The assignment with id {} was not found'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404
-        )
-    else:
-        return jsonify(assignment)
+    return jsonify(assignment)
 
 
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
@@ -122,57 +115,46 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
     :raises PermissionException: If the user is not allowed to edit this is
                                  assignment. (INCORRECT_PERMISSION)
     """
-    assig = models.Assignment.query.get(assignment_id)
-    if assig is None:
-        raise APIException(
-            'Assignment not found',
-            'The assignment with id "{}" was not found'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404
-        )
+    assig = helpers.get_or_404(models.Assignment, assignment_id)
 
     auth.ensure_permission('can_manage_course', assig.course_id)
 
     content = ensure_json_dict(request.get_json())
+    ensure_keys_in_dict(
+        content, [('state', str),
+                  ('name', str),
+                  ('deadline', str)]
+    )
+    state = t.cast(str, content['state'])
+    name = t.cast(str, content['name'])
+    deadline = t.cast(str, content['deadline'])
 
-    if 'state' in content:
-        if (
-            isinstance(content['state'], str) and
-            content['state'] in ['hidden', 'open', 'done']):
-            assig.set_state(content['state'])
-        else:
-            raise APIException(
-                'The selected state is not valid',
-                'The state {} is not a valid state'.format(content['state']),
-                APICodes.INVALID_PARAM, 400
-            )
+    if state in ['hidden', 'open', 'done']:
+        assig.set_state(state)
+    else:
+        raise APIException(
+            'The selected state is not valid',
+            'The state {} is not a valid state'.format(content['state']),
+            APICodes.INVALID_PARAM, 400
+        )
 
-    if 'name' in content:
-        if not isinstance(content['name'], str):
-            raise APIException(
-                'The name of an assignment should be a a string',
-                '{} is not a string'.format(content['name']),
-                APICodes.INVALID_PARAM, 400
-            )
-        if len(content['name']) < 3:
-            raise APIException(
-                'The name of an assignment should be longer than 3',
-                'len({}) < 3'.format(content['name']), APICodes.INVALID_PARAM,
-                400
-            )
-        assig.name = content['name']
+    if not name:
+        raise APIException(
+            'The name of an assignment should be at least 1 char',
+            'len({}) == 0'.format(content['name']),
+            APICodes.INVALID_PARAM,
+            400,
+        )
+    assig.name = name
 
-    if 'deadline' in content:
-        try:
-            if isinstance(content['deadline'], str):
-                assig.deadline = dateutil.parser.parse(content['deadline'])
-            else:
-                raise ValueError
-        except ValueError:
-            raise APIException(
-                'The given deadline is not valid!',
-                '{} cannot be parsed by dateutil'.format(content['deadline']),
-                APICodes.INVALID_PARAM, 400
-            )
+    try:
+        assig.deadline = dateutil.parser.parse(deadline)
+    except ValueError:
+        raise APIException(
+            'The given deadline is not valid!',
+            '{} cannot be parsed by dateutil'.format(deadline),
+            APICodes.INVALID_PARAM, 400
+        )
 
     db.session.commit()
 
@@ -197,13 +179,7 @@ def get_assignment_rubric(assignment_id: int
     :raises PermissionException: If the user is not allowed to see this is
                                  assignment. (INCORRECT_PERMISSION)
     """
-    assig = models.Assignment.query.get(assignment_id)
-    if assig is None:
-        raise APIException(
-            'Assignment not found',
-            'The assignment with id "{}" was not found'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404
-        )
+    assig = helpers.get_or_404(models.Assignment, assignment_id)
 
     auth.ensure_permission('can_see_assignments', assig.course_id)
     if not assig.rubric_rows:
@@ -233,27 +209,18 @@ def add_assignment_rubric(assignment_id: int) -> EmptyResponse:
                           or `items` (list).(INVALID_PARAM)
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the user is not allowed to manage rubrics.
-                                 (INCORRECT_PERMISSION)
+                                (INCORRECT_PERMISSION)
     """
-    assig = models.Assignment.query.get(assignment_id)
-    if assig is None:
-        raise APIException(
-            'Assignment not found',
-            'The assignment with id "{}" was not found'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404
-        )
+    assig = helpers.get_or_404(models.Assignment, assignment_id)
 
     auth.ensure_permission('manage_rubrics', assig.course_id)
     content = ensure_json_dict(request.get_json())
 
-    if 'rows' not in content or not isinstance(content['rows'], list):
-        raise APIException(
-            'The rows are invalid', 'The rows provied are not valid',
-            APICodes.INVALID_PARAM, 400
-        )
+    helpers.ensure_keys_in_dict(content, [('rows', list)])
+    rows = t.cast(list, content['rows'])
 
     row: JSONType
-    for row in content['rows']:
+    for row in rows:
         # Check for object of form:
         # {
         #   'description': str,
@@ -271,7 +238,7 @@ def add_assignment_rubric(assignment_id: int) -> EmptyResponse:
         items = t.cast(list, row['items'])
 
         if 'id' in row:
-            patch_rubric_row(assig, row['id'], items)
+            patch_rubric_row(assig, header, description, row['id'], items)
         else:
             add_new_rubric_row(assig, header, description, items)
 
@@ -302,15 +269,14 @@ def add_new_rubric_row(
     rubric_row = models.RubricRow(
         assignment_id=assig.id, header=header, description=description
     )
-    db.session.add(rubric_row)
     for item in items:
         item = ensure_json_dict(item)
         ensure_keys_in_dict(
             item, [('description', str),
-                   ('points', numbers.Rational)]
+                   ('points', numbers.Real)]
         )
         description = t.cast(str, item['description'])
-        points = t.cast(numbers.Rational, item['points'])
+        points = t.cast(numbers.Real, item['points'])
         rubric_row.items.append(
             models.RubricItem(
                 rubricrow_id=rubric_row.id,
@@ -318,10 +284,13 @@ def add_new_rubric_row(
                 points=points
             )
         )
+    db.session.add(rubric_row)
 
 
 def patch_rubric_row(
     assig: models.Assignment,
+    header: str,
+    description: str,
     rubric_row_id: t.Any,
     items: t.Sequence[JSONType]
 ) -> None:
@@ -342,22 +311,19 @@ def patch_rubric_row(
     :raises APIException: If no rubric item with given id exists.
                           (OBJECT_ID_NOT_FOUND)
     """
-    rubric_row = models.RubricRow.query.get(rubric_row_id)
-    if rubric_row is None:
-        raise APIException(
-            'Rubric row not found',
-            'The Rubric row with id "{}" was not found'.format(rubric_row_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404
-        )
+    rubric_row = helpers.get_or_404(models.RubricRow, rubric_row_id)
+
+    rubric_row.header = header
+    rubric_row.description = description
 
     for item in items:
         item = ensure_json_dict(item)
         ensure_keys_in_dict(
             item, [('description', str),
-                   ('points', numbers.Rational)]
+                   ('points', numbers.Real)]
         )
         description = t.cast(str, item['description'])
-        points = t.cast(numbers.Rational, item['points'])
+        points = t.cast(numbers.Real, item['points'])
 
         if 'id' not in item:
             rubric_row.items.append(
@@ -393,14 +359,7 @@ def delete_rubricrow(assignment_id: int, rubric_row: int) -> EmptyResponse:
     :raises PermissionException: If the user is not allowed to manage rubrics.
                                  (INCORRECT_PERMISSION)
     """
-    row = models.RubricRow.query.get(rubric_row)
-    if row is None or row.assignment_id != assignment_id:
-        raise APIException(
-            'The requested rubric row was not found',
-            'There is now rubric row for assignment {} with id {}'.format(
-                assignment_id, rubric_row
-            ), APICodes.OBJECT_ID_NOT_FOUND, 404
-        )
+    row = helpers.get_or_404(models.RubricRow, rubric_row)
 
     auth.ensure_permission('manage_rubrics', row.assignment.course_id)
 
@@ -458,7 +417,7 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
                 APICodes.INVALID_PARAM, 400
             )
 
-        if file.filename == '':
+        if not file.filename:
             raise APIException(
                 'The filename should not be empty.',
                 'Got an empty filename for key {}'.format(key),
@@ -510,55 +469,52 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
                                  submissions for this assignment.
                                  (INCORRECT_PERMISSION)
     """
-    assignment = models.Assignment.query.get(assignment_id)
+    assignment = helpers.get_or_404(models.Assignment, assignment_id)
+
     auth.ensure_permission('can_manage_course', assignment.course_id)
-    if not assignment:
-        raise APIException(
-            'Assignment not found',
-            'The assignment with code {} was not found'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404
-        )
 
     content = ensure_json_dict(request.get_json())
+    ensure_keys_in_dict(content, [('graders', list)])
+    graders = t.cast(list, content['graders'])
 
-    if 'graders' not in content or not isinstance(
-        content['graders'], list
-    ) or len(content['graders']) == 0:
-        raise APIException(
-            'List of assigned graders is required',
-            'List of assigned graders is required',
-            APICodes.MISSING_REQUIRED_PARAM, 400
+    if graders:
+        users = helpers.filter_all_or_404(
+            models.User,
+            models.User.id.in_(graders)  # type: ignore
         )
-
-    submissions = assignment.get_all_latest_submissions()
-
-    if not submissions:
-        raise APIException(
-            'No submissions found',
-            'No submissions found for assignment {}'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404
+    else:
+        models.Work.query.filter_by(assignment=assignment).update(
+            {
+                'assigned_to': None
+            }
         )
+        db.session.commit()
+        return make_empty_response()
 
-    users: t.Optional[models.User] = models.User.query.filter(
-        models.User.id.in_(content['graders'])  # type: ignore
-    ).all()
-    if users is None or len(users) != len(content['graders']):
+    if len(users) != len(graders):
         raise APIException(
             'Invalid grader id given', 'Invalid grader (=user) id given',
             APICodes.INVALID_PARAM, 400
         )
 
-    for grader in users:
-        if not grader.has_permission('can_grade_work', assignment.course_id):
+    for user in users:
+        can_grade_work = helpers.filter_single_or_404(
+            models.Permission, models.Permission.name == 'can_grade_work'
+        )
+        if not user.has_permission(can_grade_work, assignment.course_id):
             raise APIException(
                 'Selected grader has no permission to grade',
-                'Selected grader has no permission to grade',
+                f'The grader {user.id} has no permission to grade',
                 APICodes.INVALID_PARAM, 400
             )
 
+    submissions = assignment.get_all_latest_submissions()
+    if not submissions:
+        return make_empty_response()
+
     shuffle(submissions)
-    shuffle(content['graders'])
-    for submission, grader in zip(submissions, cycle(content['graders'])):
+    shuffle(graders)
+    for submission, grader in zip(submissions, cycle(graders)):
         submission.assigned_to = grader
 
     db.session.commit()
@@ -566,7 +522,7 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
     return make_empty_response()
 
 
-@api.route('/assignments/<int:assignment_id>/graders', methods=['GET'])
+@api.route('/assignments/<int:assignment_id>/graders/', methods=['GET'])
 def get_all_graders(
     assignment_id: int
 ) -> JSONResponse[t.Sequence[t.Mapping[str, t.Union[int, str, bool]]]]:
@@ -589,15 +545,8 @@ def get_all_graders(
     :raises PermissionException: If the user is not allowed to view graders of
                                  this assignment. (INCORRECT_PERMISSION)
     """
-    assignment = models.Assignment.query.get(assignment_id)
+    assignment = helpers.get_or_404(models.Assignment, assignment_id)
     auth.ensure_permission('can_manage_course', assignment.course_id)
-
-    if not assignment:
-        raise APIException(
-            'Assignment not found',
-            'The assignment with code {} was not found'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404
-        )
 
     permission = db.session.query(models.Permission.id).filter(
         models.Permission.name == 'can_grade_work'
@@ -614,6 +563,7 @@ def get_all_graders(
         models.course_permissions.c.permission_id == permission,
         models.CourseRole.course_id == assignment.course_id
     ).subquery('per')
+
     result: t.Sequence[t.Tuple[str, int]] = db.session.query(
         us.c.name, us.c.id
     ).join(per,
@@ -652,20 +602,20 @@ def get_all_works_for_assignment(assignment_id: int
     :raises PermissionException: If the assignment is hidden and the user is
                                  not allowed to view it. (INCORRECT_PERMISSION)
     """
-    assignment = models.Assignment.query.get(assignment_id)
-    if current_user.has_permission(
-        'can_see_others_work', course_id=assignment.course_id
-    ):
-        obj = models.Work.query.filter_by(assignment_id=assignment_id)
-    else:
-        obj = models.Work.query.filter_by(
-            assignment_id=assignment_id, user_id=current_user.id
-        )
+    assignment = helpers.get_or_404(models.Assignment, assignment_id)
+
+    auth.ensure_permission('can_see_assignments', assignment.course_id)
 
     if assignment.is_hidden:
         auth.ensure_permission(
             'can_see_hidden_assignments', assignment.course_id
         )
+
+    obj = models.Work.query.filter_by(assignment_id=assignment_id)
+    if not current_user.has_permission(
+        'can_see_others_work', course_id=assignment.course_id
+    ):
+        obj = obj.filter_by(user_id=current_user.id)
 
     res: t.Sequence[models.Work] = (
         obj.order_by(models.Work.created_at.desc()).all()  # type: ignore
@@ -718,47 +668,43 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
     try:
         submissions = psef.files.process_blackboard_zip(file)
     except:
+        submissions = []
+    if not submissions:
         raise APIException(
             "The blackboard zip could not imported or it was empty.",
             'The blackboard zip could not'
             ' be parsed or it did not contain any valid submissions.',
             APICodes.INVALID_PARAM, 400
         )
-    try:
-        for submission_info, submission_tree in submissions:
-            user = models.User.query.filter_by(
-                name=submission_info.student_name
-            ).first()
+    for submission_info, submission_tree in submissions:
+        user = models.User.query.filter_by(name=submission_info.student_name
+                                           ).first()
 
-            if user is None:
-                # TODO: Check if this role still exists
-                perms = {
-                    assignment.course_id:
-                        models.CourseRole.query.filter_by(
-                            name='Student', course_id=assignment.course_id
-                        ).first()
-                }
-                user = models.User(
-                    name=submission_info.student_name,
-                    courses=perms,
-                    email=submission_info.student_name + '@example.com',
-                    password='password',
-                    role=models.Role.query.filter_by(name='Student').first()
-                )
-
-                db.session.add(user)
-            work = models.Work(
-                assignment_id=assignment.id,
-                user=user,
-                created_at=submission_info.created_at,
-                grade=submission_info.grade
+        if user is None:
+            # TODO: Check if this role still exists
+            perms = {
+                assignment.course_id:
+                    models.CourseRole.query.filter_by(
+                        name='Student', course_id=assignment.course_id
+                    ).first()
+            }
+            user = models.User(
+                name=submission_info.student_name,
+                courses=perms,
+                email=submission_info.student_name + '@example.com',
+                password='password',
+                role=models.Role.query.filter_by(name='Student').first()
             )
-            db.session.add(work)
-            work.add_file_tree(db.session, submission_tree)
-    except:
-        for _, tree in submissions:
-            psef.files.remove_tree(tree)
-        raise
+
+            db.session.add(user)
+        work = models.Work(
+            assignment_id=assignment.id,
+            user=user,
+            created_at=submission_info.created_at,
+            grade=submission_info.grade
+        )
+        db.session.add(work)
+        work.add_file_tree(db.session, submission_tree)
 
     db.session.commit()
 
@@ -766,7 +712,7 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
 
 
 @api.route('/assignments/<int:assignment_id>/linters/', methods=['GET'])
-def get_linters(assignment_id
+def get_linters(assignment_id: int
                 ) -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
     """Get all linters for the given :class:`.models.Assignment`.
 
@@ -791,14 +737,7 @@ def get_linters(assignment_id
     :raises PermissionException: If the user can not user linters in this
                                  course. (INCORRECT_PERMISSION)
     """
-    assignment = models.Assignment.query.get(assignment_id)
-
-    if assignment is None:
-        raise APIException(
-            'The specified assignment could not be found',
-            'Assignment {} does not exist'.format(assignment_id),
-            APICodes.OBJECT_ID_NOT_FOUND, 404
-        )
+    assignment = helpers.get_or_404(models.Assignment, assignment_id)
 
     auth.ensure_permission('can_use_linter', assignment.course_id)
 
@@ -830,8 +769,10 @@ def get_linters(assignment_id
             opts['id'] = linter.id
         else:
             state = 'new'
+
         opts['state'] = state
         opts['name'] = name
+
         res.append(opts)
 
     return jsonify(sorted(res, key=lambda item: item['name']))
@@ -857,17 +798,13 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
                                  course. (INCORRECT_PERMISSION)
     """
     content = ensure_json_dict(request.get_json())
+
+    assig = helpers.get_or_404(models.Assignment, assignment_id)
+    auth.ensure_permission('can_use_linter', assig.course_id)
+
     ensure_keys_in_dict(content, [('cfg', str), ('name', str)])
     cfg = t.cast(str, content['cfg'])
     name = t.cast(str, content['name'])
-
-    if not ('cfg' in content and 'name' in content):
-        raise APIException(
-            'Missing required params.', (
-                'Missing one ore more of children, cfg'
-                ' or name in the payload "{}"'
-            ).format(content), APICodes.MISSING_REQUIRED_PARAM, 400
-        )
 
     if db.session.query(
         models.LinterInstance.query.filter(
@@ -882,14 +819,23 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
             ), APICodes.INVALID_STATE, 409
         )
 
-    assig = helpers.get_or_404(models.Assignment, assignment_id)
-    auth.ensure_permission('can_use_linter', assig.course_id)
-
     res = models.AssignmentLinter.create_linter(assignment_id, name, cfg)
+
     db.session.add(res)
     db.session.commit()
 
-    linter_cls = linters.get_linter_by_name(name)
+    try:
+        linter_cls = linters.get_linter_by_name(name)
+    except:
+        raise APIException(
+            f'No linter named "{name}" was found',
+            (
+                f'There is no subclass of the "Linter"'
+                f'class with the name "{name}"'
+            ),
+            APICodes.OBJECT_NOT_FOUND,
+            404,
+        )
     if linter_cls.RUN_LINTER:
         try:
             runner = linters.LinterRunner(linter_cls, cfg)
@@ -899,7 +845,9 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
             )
 
             thread.start()
-        except:
+        except:  # pragma: no cover
+            # This code only runs in the case of bug in the `LinterRunner`
+            # class.
             for test in res.tests:
                 test.state = models.LinterState.crashed
             db.session.commit()
@@ -911,5 +859,5 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
     return jsonify(res)
 
 
-if t.TYPE_CHECKING:
+if t.TYPE_CHECKING:  # pragma: no cover
     from werkzeug.datastructures import FileStorage  # noqa

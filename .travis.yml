@@ -1,0 +1,38 @@
+language: python
+sudo: false
+notifications:
+  email: false
+
+cache: pip
+
+matrix:
+  include:
+    - python: "3.6-dev" # 3.6 development branch
+      env: TO_RUN="coveralls"
+    - python: "3.7-dev" # 3.7 development branch
+      env: TO_RUN="tests"
+    - python: "nightly" # currently points to 3.7-dev
+      env: TO_RUN="tests"
+    - python: "3.6-dev"
+      env: TO_RUN="flake8"
+    - python: "3.6-dev"
+      env: TO_RUN="mypy"
+    - python: "3.6-dev"
+      env: TO_RUN="yapf"
+
+install:
+  - pip install -U wheel
+  - pip install coveralls pytest-cov
+  - pip install -r requirements.txt
+
+before_script:
+  - mkdir -p /tmp/psef/uploads
+  - mkdir -p /tmp/psef/mirror_uploads
+  - python --version
+  - export PYTHONPATH="$PYTHONPATH:$(pwd)"
+
+script:
+  - bash ./.travis/run
+
+after_success:
+  "[[ $TO_RUN = 'coveralls' ]] && coveralls"

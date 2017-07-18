@@ -46,16 +46,6 @@ def get_request_start_time() -> datetime.datetime:
     return flask.g.request_start_time
 
 
-def rgetattr(obj: t.Any, attr: str) -> t.Any:
-    """Recursive implementation of getattr
-
-    :param obj: Some object
-    :param attr: A string identifying some (nested) attribute
-    :returns: The requested attribute
-    """
-    return reduce(getattr, [obj] + attr.split('.'))
-
-
 _JSONValue = t.Union[str, int, float, bool, None, t.Dict[str, t.Any],
                      t.List[t.Any]]
 JSONType = t.Union[t.Dict[str, _JSONValue], t.List[_JSONValue], _JSONValue]
@@ -73,7 +63,7 @@ class JSONResponse(t.Generic[T]):
         does not contain any valid data!
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:  # pragma: no cover
         raise NotImplementedError("Do not use this class as actual data")
 
 
@@ -89,7 +79,7 @@ class EmptyResponse:
         does not contain any valid data!
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self) -> None:  # pragma: no cover
         raise NotImplementedError("Do not use this class as actual data")
 
 
@@ -97,7 +87,7 @@ Y = t.TypeVar('Y', bound='psef.models.Base')
 
 
 def _filter_or_404(model: t.Type[Y], get_all: bool,
-                   criteria) -> t.Union[Y, t.Sequence[Y]]:
+                   criteria: t.Tuple) -> t.Union[Y, t.Sequence[Y]]:
     """Get the specified object by filtering or raise an exception.
 
     :param get_all: Get all objects if ``True`` else get a single one.
@@ -119,7 +109,7 @@ def _filter_or_404(model: t.Type[Y], get_all: bool,
     return obj
 
 
-def filter_all_or_404(model: t.Type[Y], *criteria) -> t.Sequence[Y]:
+def filter_all_or_404(model: t.Type[Y], *criteria: t.Any) -> t.Sequence[Y]:
     """Get all objects of the specified model filtered by the specified
     criteria.
 
@@ -137,7 +127,7 @@ def filter_all_or_404(model: t.Type[Y], *criteria) -> t.Sequence[Y]:
     return t.cast(t.Sequence[Y], _filter_or_404(model, True, criteria))
 
 
-def filter_single_or_404(model: t.Type[Y], *criteria) -> Y:
+def filter_single_or_404(model: t.Type[Y], *criteria: t.Any) -> Y:
     """Get a single object of the specified model by filtering or raise an
     exception.
 
@@ -198,7 +188,8 @@ def ensure_keys_in_dict(
     for key, check_type in keys:
         if key not in mapping:
             missing.append(key)
-        elif not isinstance(mapping[key], check_type):
+        elif (not isinstance(mapping[key], check_type)
+              ) or (check_type == int and isinstance(mapping[key], bool)):
             missing.append(
                 f'{str(key)} was of wrong type'
                 f' (should be a "{check_type.__name__}"'
@@ -234,7 +225,7 @@ def ensure_json_dict(json: JSONType) -> t.Dict[str, JSONType]:
     )
 
 
-def jsonify(obj: T, status_code=200) -> JSONResponse[T]:
+def jsonify(obj: T, status_code: int=200) -> JSONResponse[T]:
     response = flask.make_response(flask.jsonify(obj))
     response.status_code = status_code
     return response

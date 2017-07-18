@@ -14,6 +14,7 @@ from functools import reduce
 
 import archive
 from werkzeug.utils import secure_filename
+from mypy_extensions import NoReturn
 from werkzeug.datastructures import FileStorage
 
 import psef.models as models
@@ -35,7 +36,7 @@ FileTree = t.MutableMapping[str, t.Union[int, str, t.MutableSequence[t.Any]]]
 # system that has remotely advanced features, see Go why you should never do
 # such a thing) we can't actually define a tree in types, however with enough
 # nesting we should come close enough (tm).
-if t.TYPE_CHECKING and not hasattr(t, 'SPHINX'):
+if t.TYPE_CHECKING and not hasattr(t, 'SPHINX'):  # pragma: no cover
     _ExtractFileTreeValue0 = t.MutableSequence[
         t.Union[t.Tuple[str, str], t.MutableMapping[str, t.Any]]
     ]
@@ -76,8 +77,18 @@ def get_file_contents(code: models.File) -> str:
     :param code: The file object to read.
     :returns: The contents of the file with newlines.
     """
-    filename = os.path.join(app.config['UPLOAD_DIR'], code.filename)
+
+    def _raise_err(msg: str='') -> NoReturn:
+        raise APIException(
+            f'Cannot display this file{msg}!',
+            'The selected file with id {} was not UTF-8'.format(code.id),
+            APICodes.OBJECT_WRONG_TYPE, 400
+        )
+
     try:
+        if code.is_directory:
+            _raise_err(' as it is a directory')
+        filename = os.path.join(app.config['UPLOAD_DIR'], code.filename)
         if os.path.islink(filename):
             raise APIException(
                 f'This file is a symlink to `{os.readlink(filename)}`.',
@@ -87,11 +98,7 @@ def get_file_contents(code: models.File) -> str:
         with open(filename, 'r', encoding='utf-8') as codefile:
             return codefile.read()
     except UnicodeDecodeError:
-        raise APIException(
-            'Cannot display this file!',
-            'The selected file with id {} was not UTF-8'.format(code.id),
-            APICodes.OBJECT_WRONG_TYPE, 400
-        )
+        _raise_err()
 
 
 def restore_directory_structure(code: models.File, parent: str) -> FileTree:
@@ -264,26 +271,28 @@ def extract(file: FileStorage) -> ExtractFileTree:
     start = rootdir.rfind(os.sep) + 1
     try:
         res = rename_directory_structure(tmpdir)[tmpdir[start:]]
+        filename: str = file.filename.split('.')[0]
         if len(res) > 1:
-            return {'archive': res if isinstance(res, list) else [res]}
+            return {filename: res if isinstance(res, list) else [res]}
         elif not isinstance(res[0], t.MutableMapping):
-            return {'archive': res}
+            return {filename: res}
         else:
             return res[0]
     finally:
         shutil.rmtree(tmpdir)
 
 
-def random_file_path() -> t.Tuple[str, str]:
+def random_file_path(config_key: str='UPLOAD_DIR') -> t.Tuple[str, str]:
     """Generates a new random file path in the upload directory.
 
+    :param config_key: The key to use to find the basedir of the random file
+        path from the ``app.config`` store.
     :returns: The name of the new file and a path to that file
-    :rtype: (str, str)
     """
     while True:
         name = str(uuid.uuid4())
-        candidate = os.path.join(app.config['UPLOAD_DIR'], name)
-        if os.path.exists(candidate):
+        candidate = os.path.join(app.config[config_key], name)
+        if os.path.exists(candidate):  # pragma: no cover
             continue
         else:
             break
@@ -357,7 +366,7 @@ def process_blackboard_zip(
     tmpdir = extract_to_temp(blackboard_zip)
     try:
         info_files = filter(
-            None, [_bb_txt_format.match(f) for f in os.listdir(tmpdir)]
+            None, (_bb_txt_format.match(f) for f in os.listdir(tmpdir))
         )
         submissions = []
         for info_file in info_files:
@@ -383,67 +392,3 @@ def process_blackboard_zip(
     finally:
         shutil.rmtree(tmpdir)
     return submissions
-
-
-def create_csv(
-    objects: t.Sequence[t.Any],
-    attributes: t.Sequence[str],
-    headers: t.Sequence[str]=None
-) -> str:
-    """Create a csv file from the given objects and attributes.
-
-    :param objects: The objects that will be listed
-    :param attributes: The attributes of each object that will be listed
-    :param headers: Column headers that will be the first row in the csv file
-    :returns: The path to the csv file
-    """
-    if headers is None:
-        headers = attributes
-
-    return create_csv_from_rows(
-        [headers] + [
-            [str(helpers.rgetattr(obj, attr)) for attr in attributes]
-            for obj in objects
-        ]
-    )
-
-
-def create_csv_from_rows(rows: t.Sequence[t.Sequence[str]]) -> str:
-    """Create a csv file from the given rows.
-
-    Rows should be a nested list or other similar iterable like this:
-    [[header_1, header_2], [row_1a, row_1b], [row_2a, row_2b]]
-
-    :param rows: The rows that will be used to populate the csv
-    :returns: The path to the csv file
-    """
-    mode, csv_file = tempfile.mkstemp()
-    with open(csv_file, 'w') as csv_output:
-        csv_writer = csv.writer(csv_output)
-        csv_writer.writerows(rows)
-    return csv_file
-
-
-def remove_tree(tree: ExtractFileTree) -> None:
-    """Removes all files in the tree.
-
-    This removes all files in a tree as described by
-    :py:func`rename_directory_structure`
-
-    :param tree: Tree of files
-    :returns: Nothing
-    """
-
-    def _remove_tree(
-        tree: t.Union[ExtractFileTree, ExtractFileTreeValue, t.Tuple[str, str]]
-    ) -> None:
-        if isinstance(tree, t.MutableMapping):
-            for key in tree.keys():
-                _remove_tree(tree[key])
-        elif isinstance(tree, t.MutableSequence):
-            for item in tree:
-                _remove_tree(item)
-        else:
-            os.remove(os.path.join(app.config['UPLOAD_DIR'], tree[1]))
-
-    _remove_tree(tree)

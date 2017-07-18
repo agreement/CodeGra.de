@@ -33,16 +33,19 @@ SECRET_KEY = "secret"
 
 # Path for storage of uploaded files
 UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
+MIRROR_UPLOAD_DIR = os.path.join(BASE_DIR, 'mirror_uploads')
 
 # Maximum size in bytes for single upload request
-MAX_UPLOAD_SIZE = 64 * 2**20  # 64 megabytes
+MAX_UPLOAD_SIZE = 64 * 2 ** 20  # 64 megabytes
 
-LTI_CONSUMER_KEY_SECRETS = {'my_lti': '12345678', }
+LTI_CONSUMER_KEY_SECRETS = {
+    'my_lti': '12345678',
+}
 
 with open(
-        os.path.join(
-            os.path.dirname(__file__), 'seed_data', 'course_roles.json'),
-        'r') as f:
+    os.path.join(os.path.dirname(__file__), 'seed_data', 'course_roles.json'),
+    'r'
+) as f:
     DEFAULT_COURSE_ROLES = json.load(f)
 
 DEFAULT_ROLE = 'Student'

@@ -1,4 +1,7 @@
 {
+  "Nobody": {
+    "permissions": []
+  },
   "Student": {
     "permissions": [
       "can_use_snippets",
@@ -15,7 +18,8 @@
     "permissions": [
       "can_use_snippets",
       "can_edit_own_info",
-      "can_add_users"
+      "can_add_users",
+      "can_create_courses"
     ]
   }
 }

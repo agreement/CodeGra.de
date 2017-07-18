@@ -39,7 +39,7 @@ export default {
 
     mounted() {
         this.loading = true;
-        this.$http.get(`/api/v1/assignments/${this.assignment.id}/graders`).then((data) => {
+        this.$http.get(`/api/v1/assignments/${this.assignment.id}/graders/`).then((data) => {
             this.graders = data.data;
             this.loading = false;
         });

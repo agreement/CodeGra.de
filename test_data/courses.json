@@ -1,6 +1,17 @@
 [
-    {"name": "Project Software Engineering"},
-    {"name": "Besturingssystemen"},
-    {"name": "Programmeertalen"},
-    {"name": "Inleiding Programmeren"}
+  {
+    "name": "Project Software Engineering"
+  },
+  {
+    "name": "Besturingssystemen"
+  },
+  {
+    "name": "Programmeertalen"
+  },
+  {
+    "name": "Inleiding Programmeren"
+  },
+  {
+    "name": "Introductie Logisch programmeren"
+  }
 ]

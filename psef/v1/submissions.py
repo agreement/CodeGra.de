@@ -26,7 +26,7 @@ from psef.helpers import (
 
 from . import api
 
-if t.TYPE_CHECKING:
+if t.TYPE_CHECKING:  # pragma: no cover
     import werkzeug
 
 
@@ -67,12 +67,7 @@ def get_submission(
     if request.args.get('type') == 'zip':
         return get_zip(work)
     elif request.args.get('type') == 'feedback':
-        if work.assignment.state != models._AssignmentStateEnum.done:
-            raise APIException(
-                'Feedback not visible',
-                'The assignment state was not set to done',
-                APICodes.INVALID_STATE, 405
-            )
+        auth.ensure_can_see_grade(work)
         return get_feedback(work)
     return jsonify(work)
 
@@ -102,9 +97,9 @@ def get_feedback(work: models.Work) -> 'werkzeug.wrappers.Response':
         fp.write(
             'Assignment: {}\n'
             'Grade: {}\n'
-            'General feedback: \n{}\n\n'
+            'General feedback:\n{}\n\n'
             'Comments:\n'.format(
-                work.assignment.name, work.grade, work.comment
+                work.assignment.name, work.grade or '', work.comment or ''
             )
         )
         for comment in comments:
@@ -124,7 +119,7 @@ def get_feedback(work: models.Work) -> 'werkzeug.wrappers.Response':
             )
 
     @after_this_request
-    def remove_file(response):
+    def remove_file(response: t.Any) -> t.Any:
         os.close(fd)
         os.remove(file)
         return response
@@ -146,9 +141,11 @@ def get_zip(work: models.Work) -> 'werkzeug.wrappers.Response':
     if (work.user_id != current_user.id):
         auth.ensure_permission('can_view_files', work.assignment.course_id)
 
-    code = models.File.query.filter(
-        models.File.work_id == work.id, models.File.parent_id == None
-    ).one()  # noqa
+    code = helpers.filter_single_or_404(
+        models.File,
+        models.File.work_id == work.id,
+        models.File.parent_id == None,  # NOQA
+    )
 
     with tempfile.TemporaryFile(mode='w+b') as fp:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -199,8 +196,8 @@ def get_rubric(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
     "/submissions/<int:submission_id>/rubricitems/<int:rubricitem_id>",
     methods=['PATCH']
 )
-def select_rubric_item(submission_id,
-                       rubricitem_id) -> JSONResponse[t.Mapping[str, t.Any]]:
+def select_rubric_item(submission_id: int, rubricitem_id: int
+                       ) -> JSONResponse[t.Mapping[str, t.Any]]:
     """Select a rubric item of the given submission (:class:`.models.Work`).
 
     .. :quickref: Submission; Select a rubric item.
@@ -238,7 +235,7 @@ def select_rubric_item(submission_id,
 
 
 @api.route("/submissions/<int:submission_id>", methods=['PATCH'])
-def patch_submission(submission_id) -> EmptyResponse:
+def patch_submission(submission_id: int) -> EmptyResponse:
     """Update the given submission (:class:`.models.Work`) if it already
     exists.
 
@@ -285,7 +282,8 @@ def patch_submission(submission_id) -> EmptyResponse:
 
 
 @api.route("/submissions/<int:submission_id>/files/", methods=['GET'])
-def get_dir_contents(submission_id) -> JSONResponse[psef.files.FileTree]:
+@login_required
+def get_dir_contents(submission_id: int) -> JSONResponse[psef.files.FileTree]:
     """Return the file directory info of a file of the given submission
     (:class:`.models.Work`).
 
@@ -321,20 +319,19 @@ def get_dir_contents(submission_id) -> JSONResponse[psef.files.FileTree]:
         auth.ensure_permission('can_view_files', work.assignment.course_id)
 
     file_id = request.args.get('file_id')
-    if file_id:
-        file = helpers.get_or_404(models.File, file_id)
 
-        if (file.work_id != submission_id):
-            raise APIException(
-                'Incorrect URL',
-                'The identifiers in the URL do no match those related to the '
-                'file with code {}'.format(file.id), APICodes.INVALID_URL, 400
-            )
+    if file_id:
+        file = helpers.filter_single_or_404(
+            models.File,
+            models.File.id == file_id,
+            models.File.work_id == work.id,
+        )
     else:
         file = helpers.filter_single_or_404(
-            models.File, models.File.work_id == submission_id,
-            models.File.parent_id == None
-        )  # NOQA
+            models.File,
+            models.File.work_id == submission_id,
+            models.File.parent_id == None  # NOQA
+        )
 
     if not file.is_directory:
         raise APIException(

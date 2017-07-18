@@ -29,7 +29,9 @@ manager.add_command('db', MigrateCommand)
 
 @manager.command
 def seed():
-    with open('./seed_data/permissions.json', 'r') as perms:
+    with open(
+        f'{os.path.dirname(__file__)}/seed_data/permissions.json', 'r'
+    ) as perms:
         perms = json.load(perms)
         for name, perm in perms.items():
             old_perm = m.Permission.query.filter_by(name=name).first()
@@ -39,35 +41,37 @@ def seed():
             else:
                 db.session.add(m.Permission(name=name, **perm))
 
-    with open('./seed_data/roles.json', 'r') as c:
+    with open(f'{os.path.dirname(__file__)}/seed_data/roles.json', 'r') as c:
         cs = json.load(c)
         for name, c in cs.items():
             perms = m.Permission.query.filter_by(course_permission=False).all()
             r_perms = {}
             perms_set = set(c['permissions'])
             for perm in perms:
-                if ((perm.default_value and perm.name not in perms_set) or
-                        (not perm.default_value and perm.name in perms_set)):
+                if (perm.default_value ^ (perm.name in perms_set)):
                     r_perms[perm.name] = perm
 
             r = m.Role.query.filter_by(name=name).first()
-
-            if r is not None:
-                r._permissions = r_perms
-            else:
+            if r is None:
                 db.session.add(m.Role(name=name, _permissions=r_perms))
+            else:
+                r._permissions = r_perms
     db.session.commit()
 
 
 @manager.command
 def test_data():
     seed()
-    with open('./test_data/courses.json', 'r') as c:
+    db.session.commit()
+    with open(f'{os.path.dirname(__file__)}/test_data/courses.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
             if m.Course.query.filter_by(name=c['name']).first() is None:
                 db.session.add(m.Course(name=c['name']))
-    with open('./test_data/assignments.json', 'r') as c:
+    db.session.commit()
+    with open(
+        f'{os.path.dirname(__file__)}/test_data/assignments.json', 'r'
+    ) as c:
         cs = json.load(c)
         for c in cs:
             assig = m.Assignment.query.filter_by(name=c['name']).first()
@@ -79,14 +83,17 @@ def test_data():
                         datetime.timedelta(days=c['deadline']),
                         state=c['state'],
                         description=c['description'],
-                        course=m.Course.query.filter_by(name=c[
-                            'course']).first()))
+                        course=m.Course.query.filter_by(name=c['course']
+                                                        ).first()
+                    )
+                )
             else:
                 assig.description = c['description']
                 assig.state = c['state']
-                assig.course = m.Course.query.filter_by(
-                    name=c['course']).first()
-    with open('./test_data/users.json', 'r') as c:
+                assig.course = m.Course.query.filter_by(name=c['course']
+                                                        ).first()
+    db.session.commit()
+    with open(f'{os.path.dirname(__file__)}/test_data/users.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
             u = m.User.query.filter_by(name=c['name']).first()
@@ -95,8 +102,9 @@ def test_data():
                 for name, role in c['courses'].items()
             }
             perms = {
-                course.id: m.CourseRole.query.filter_by(
-                    name=name, course_id=course.id).first()
+                course.id:
+                m.CourseRole.query.filter_by(name=name,
+                                             course_id=course.id).first()
                 for course, name in courses.items()
             }
             if u is not None:
@@ -113,26 +121,42 @@ def test_data():
                         email=c['name'].replace(' ', '_').lower() +
                         '@example.com',
                         password=c['name'],
-                        role=m.Role.query.filter_by(name=c['role']).first()))
-    with open('./test_data/rubrics.json', 'r') as c:
+                        role=m.Role.query.filter_by(name=c['role']).first()
+                    )
+                )
+    db.session.commit()
+    with open(f'{os.path.dirname(__file__)}/test_data/rubrics.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
             for row in c['rows']:
                 assignment = m.Assignment.query.filter_by(
-                    name=c['assignment']).first()
+                    name=c['assignment']
+                ).first()
                 if assignment is not None:
-                    rubric_row = m.RubricRow(
+                    rubric_row = m.RubricRow.query.filter_by(
                         header=row['header'],
                         description=row['description'],
-                        assignment=assignment)
-                    db.session.add(rubric_row)
+                        assignment_id=assignment.id
+                    ).first()
+                    if rubric_row is None:
+                        rubric_row = m.RubricRow(
+                            header=row['header'],
+                            description=row['description'],
+                            assignment=assignment
+                        )
+                        db.session.add(rubric_row)
                     for item in row['items']:
-                        rubric_item = m.RubricItem(
-                            col=item['col'],
-                            description=item['description'],
-                            points=item['points'],
-                            rubricrow=rubric_row)
-                        db.session.add(rubric_item)
+                        if not db.session.query(
+                            m.RubricItem.query.filter_by(
+                                rubricrow_id=rubric_row.id, **item,
+                            ).exists()
+                        ).scalar():
+                            rubric_item = m.RubricItem(
+                                description=item['description'],
+                                points=item['points'],
+                                rubricrow=rubric_row
+                            )
+                            db.session.add(rubric_item)
     db.session.commit()
 
 

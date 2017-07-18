@@ -3,7 +3,8 @@
     "permissions": [
       "can_submit_own_work",
       "can_see_assignments"
-    ]
+    ],
+    "initial_role": false
   },
   "TA": {
     "permissions": [
@@ -17,7 +18,8 @@
       "can_see_assignee",
       "manage_rubrics",
       "can_see_hidden_assignments"
-    ]
+    ],
+    "initial_role": false
   },
   "Teacher": {
     "permissions": [
@@ -30,21 +32,26 @@
       "can_use_linter",
       "can_see_assignee",
       "manage_rubrics",
-      "can_see_hidden_assignments"
-    ]
+      "can_see_hidden_assignments",
+      "can_upload_after_deadline",
+      "can_submit_own_work"
+    ],
+    "initial_role": true
   },
   "Observer": {
-    "permissions": []
+    "permissions": [],
+    "initial_role": false
   },
   "Designer": {
     "permissions": [
       "can_view_files",
       "can_see_grade_before_open",
       "can_manage_course",
-      "can_user_linter",
+      "can_use_linter",
       "can_see_assignee",
       "manage_rubrics",
       "can_see_hidden_assignments"
-    ]
+    ],
+    "initial_role": false
   }
 }

@@ -21,11 +21,6 @@ import psef.models as models
 from psef import app
 from psef.helpers import get_all_subclasses
 
-ENGINE = sqlalchemy.create_engine(
-    app.config['SQLALCHEMY_DATABASE_URI'],
-    **app.config['DATABASE_CONNECT_OPTIONS']
-)
-
 
 class Linter:
     """The base class for a linter.
@@ -49,8 +44,8 @@ class Linter:
     def __init__(self, cfg: str) -> None:
         self.config = cfg
 
-    def run(self, tempdir: str,
-            emit: t.Callable[[str, int, str, str], None]) -> None:
+    def run(self, tempdir: str, emit: t.Callable[[str, int, str, str], None]
+            ) -> None:  # pragma: no cover
         """Run the linter on the code in `tempdir`.
 
         :param tempdir: The temp directory that should contain the code to
@@ -80,12 +75,12 @@ class Pylint(Linter):
 
         Arguments are the same as for :py:meth:`Linter.run`.
         """
-        cfg = os.path.join(tempdir, '.flake8')
+        cfg = os.path.join(tempdir, '.__config__')
         with open(cfg, 'w') as config_file:
             config_file.write(self.config)
         sep = uuid.uuid4()
-        fmt = '{1}{0}{2}{0}{3}{4}{0}{5}'.format(
-            sep, '{path}', '{line}', '{C}', '{msg_id}', '{msg}'
+        fmt = '{1}{0}{2}{0}{3}{0}{4}'.format(
+            sep, '{path}', '{line}', '{msg_id}', '{msg}'
         )
 
         out = subprocess.run(
@@ -95,6 +90,9 @@ class Pylint(Linter):
             ],
             stdout=subprocess.PIPE
         )
+        res = out.stdout.decode('utf8')
+        if out.returncode == 32:
+            raise ValueError(res)
         if out.returncode == 1:
             for dir_name, _, files in os.walk(tempdir):
                 for test_file in files:
@@ -104,13 +102,12 @@ class Pylint(Linter):
                             'No init file was found, pylint did not run!'
                         )
             return
-        for line in out.stdout.decode('utf8').split('\n'):
+        for line in res.split('\n'):
             args = line.split(str(sep))
-            if len(args) == 4:
-                try:
-                    emit(args[0], int(args[1]), *args[2:])
-                except ValueError:
-                    pass
+            try:
+                emit(args[0], int(args[1]), *args[2:])
+            except:
+                pass
 
 
 class Flake8(Linter):
@@ -135,17 +132,20 @@ class Flake8(Linter):
         out = subprocess.run(
             [
                 'flake8', '--disable-noqa', '--config={}'.format(cfg),
-                '--format', fmt, tempdir
+                '--format', fmt, tempdir, '--exit-zero'
             ],
             stdout=subprocess.PIPE
-        ).stdout.decode('utf8')
-        for line in out.split('\n'):
+        )
+        res = out.stdout.decode('utf8')
+
+        if out.returncode != 0:
+            raise ValueError(res)
+        for line in res.split('\n'):
             args = line.split(str(sep))
-            if len(args) == 4:
-                try:
-                    emit(args[0], int(args[1]), *args[2:])
-                except ValueError:
-                    pass
+            try:
+                emit(args[0], int(args[1]), *args[2:])
+            except:
+                pass
 
 
 class MixedWhitespace(Linter):
@@ -190,7 +190,14 @@ class LinterRunner():
 
         :returns: Nothing
         """
-        self.session = sessionmaker(bind=ENGINE, autoflush=False)()
+        if app.config.get('TESTING', False):
+            self.session = psef.db.session
+        else:  # pragma: no cover
+            engine = sqlalchemy.create_engine(
+                app.config['SQLALCHEMY_DATABASE_URI'],
+                **app.config['DATABASE_CONNECT_OPTIONS']
+            )
+            self.session = sessionmaker(bind=engine, autoflush=False)()
 
         for linter_instance_id in linter_instance_ids:
             linter_instance = self.session.query(models.LinterInstance
@@ -202,11 +209,12 @@ class LinterRunner():
                 linter_instance.state = models.LinterState.crashed
                 self.session.commit()
 
-        self.session.close()
+        if not app.config.get('TESTING', False):  # pragma: no cover
+            self.session.close()
 
     def test(self, linter_instance: models.LinterInstance) -> None:
-        """Test the given code (:class:`models.Work`) and send the results to
-        the given URL.
+        """Test the given code (:class:`models.Work`) and add generated
+        comments.
 
         :param linter_instance: The linter instance that will be run. This
             linter instance is linked to a work from which all files will be
@@ -225,18 +233,13 @@ class LinterRunner():
 
         with tempfile.TemporaryDirectory() as tmpdir:
 
-            def emit(f: str, line: int, code: str, msg: str):
+            def emit(f: str, line: int, code: str, msg: str) -> None:
                 if f.startswith(tmpdir):
                     f = f[len(tmpdir) + 1:]
-                elif f[0] == '/':
-                    f = f[1:]
                 if f not in temp_res:
                     temp_res[f] = {}
                 line = line - 1
-                if line in temp_res[f]:
-                    if (code, msg) in temp_res[f][line]:
-                        return
-                else:
+                if line not in temp_res[f]:
                     temp_res[f][line] = []
                 temp_res[f][line].append((code, msg))
 
@@ -245,7 +248,8 @@ class LinterRunner():
                 tmpdir,
             )
 
-            self.linter.run(tmpdir, emit)
+            self.linter.run(os.path.join(tmpdir, code.name), emit)
+
         tmpdir = None
 
         def do(tree: t.MutableMapping[str, t.Any], parent: str) -> None:
@@ -263,14 +267,9 @@ class LinterRunner():
             linter_id=linter_instance.id
         ).delete()
 
-        with self.session.begin_nested(), self.session.no_autoflush:
-            try:
-                for comment in linter_instance.add_comments(res):
-                    self.session.add(comment)
-            except:
-                linter_instance.state = models.LinterState.crashed
-            else:
-                linter_instance.state = models.LinterState.done
+        for comment in linter_instance.add_comments(res):
+            self.session.add(comment)
+        linter_instance.state = models.LinterState.done
 
         self.session.commit()
 

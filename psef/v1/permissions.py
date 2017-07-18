@@ -17,7 +17,7 @@ from psef.helpers import (
 
 from . import api
 
-if t.TYPE_CHECKING:
+if t.TYPE_CHECKING:  # pragma: no cover
     import psef.models as models  # NOQA
 
 

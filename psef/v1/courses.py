@@ -23,7 +23,7 @@ from psef.helpers import (
 
 from . import api
 
-if t.TYPE_CHECKING:
+if t.TYPE_CHECKING:  # pragma: no cover
     import sqlalchemy  # NOQA
 
 _UserCourse = TypedDict(
@@ -33,7 +33,7 @@ _UserCourse = TypedDict(
 
 
 @api.route('/courses/<int:course_id>/roles/<int:role_id>', methods=['DELETE'])
-def delete_role(course_id, role_id) -> EmptyResponse:
+def delete_role(course_id: int, role_id: int) -> EmptyResponse:
     """Remove a :class:`.models.CourseRole` from the given
     :class:`.models.Course`.
 
@@ -43,12 +43,12 @@ def delete_role(course_id, role_id) -> EmptyResponse:
     :returns: An empty response with return code 204
 
     :raises APIException: If the role with the given ids does not exist.
-                          (OBJECT_NOT_FOUND)
+        (OBJECT_NOT_FOUND)
     :raises APIException: If there are still users with this role.
-                          (INVALID_PARAM)
+        (INVALID_PARAM)
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the user can not manage the course with the
-                                 given id. (INCORRECT_PERMISSION)
+        given id. (INCORRECT_PERMISSION)
     """
     auth.ensure_permission('can_manage_course', course_id)
 
@@ -85,7 +85,7 @@ def delete_role(course_id, role_id) -> EmptyResponse:
 
 
 @api.route('/courses/<int:course_id>/roles/', methods=['POST'])
-def add_role(course_id) -> EmptyResponse:
+def add_role(course_id: int) -> EmptyResponse:
     """Add a new :class:`.models.CourseRole` to the given
     :class:`.models.Course`.
 
@@ -133,7 +133,7 @@ def add_role(course_id) -> EmptyResponse:
 
 
 @api.route('/courses/<int:course_id>/roles/<int:role_id>', methods=['PATCH'])
-def update_role(course_id, role_id) -> EmptyResponse:
+def update_role(course_id: int, role_id: int) -> EmptyResponse:
     """Update the :class:`.models.Permission` of a given
     :class:`.models.CourseRole` in the given :class:`.models.Course`.
 
@@ -162,18 +162,22 @@ def update_role(course_id, role_id) -> EmptyResponse:
 
     ensure_keys_in_dict(content, [('value', bool), ('permission', str)])
     value = t.cast(bool, content['value'])
+    permission = t.cast(str, content['permission'])
 
     role = helpers.filter_single_or_404(
-        models.CourseRole, models.CourseRole.course_id == course_id,
-        models.CourseRole.id == role_id
+        models.CourseRole,
+        models.CourseRole.course_id == course_id,
+        models.CourseRole.id == role_id,
     )
     perm = helpers.filter_single_or_404(
-        models.Permission, models.Permission.name == content['permission']
+        models.Permission,
+        models.Permission.name == permission,
+        models.Permission.course_permission == True,  # NOQA
     )
 
     if (
         current_user.courses[course_id].id == role.id and
-        role.name == 'can_manage_course'):
+        perm.name == 'can_manage_course'):
         raise APIException(
             'You cannot remove this permission from your own role', (
                 'The current user is in role {} which'
@@ -214,10 +218,10 @@ def get_all_course_roles(course_id: int) -> JSONResponse[t.Union[t.Sequence[
     """
     auth.ensure_permission('can_manage_course', course_id)
 
-    course_roles: t.Sequence[models.CourseRole] = sorted(
-        models.CourseRole.query.filter_by(course_id=course_id).all(),
-        key=lambda item: item.name
-    )
+    course_roles: t.Sequence[models.CourseRole]
+    course_roles = models.CourseRole.query.filter_by(
+        course_id=course_id
+    ).order_by(models.CourseRole.name).all()
 
     if request.args.get('with_roles') == 'true':
         res = []
@@ -261,23 +265,26 @@ def set_course_permission_user(
     .. todo::
         This function should probability be splitted.
     """
-    res: t.Union[EmptyResponse, JSONResponse[_UserCourse]]
+    auth.ensure_permission('can_manage_course', course_id)
 
     content = ensure_json_dict(request.get_json())
     ensure_keys_in_dict(content, [('role_id', int)])
+    role_id = t.cast(int, content['role_id'])
 
-    auth.ensure_permission('can_manage_course', course_id)
-    role = helpers.get_or_404(models.CourseRole, content['role_id'])
+    role = helpers.filter_single_or_404(
+        models.CourseRole, models.CourseRole.id == role_id,
+        models.CourseRole.course_id == course_id
+    )
 
-    if role.course_id != course_id:
-        raise APIException(
-            'Wrong wrong for this course',
-            f'Course "{course_id}" does not have role "{role.id}"',
-            APICodes.OBJECT_ID_NOT_FOUND, 404
-        )
+    res: t.Union[EmptyResponse, JSONResponse[_UserCourse]]
 
     if 'user_id' in content:
-        user = helpers.get_or_404(models.User, content['user_id'])
+        ensure_keys_in_dict(content, [('user_id', int)])
+        user_id = t.cast(int, content['user_id'])
+
+        print(user_id, isinstance(user_id, int))
+
+        user = helpers.get_or_404(models.User, user_id)
 
         if user.id == current_user.id:
             raise APIException(
@@ -288,6 +295,8 @@ def set_course_permission_user(
 
         res = make_empty_response()
     elif 'user_email' in content:
+        ensure_keys_in_dict(content, [('user_email', str)])
+
         user = helpers.filter_single_or_404(
             models.User, models.User.email == content['user_email']
         )
@@ -381,7 +390,17 @@ def get_all_course_assignments(
 
     course = helpers.get_or_404(models.Course, course_id)
 
-    return jsonify(sorted(course.assignments, key=lambda item: item.deadline))
+    if current_user.has_permission('can_see_hidden_assignments', course_id):
+        return jsonify(
+            sorted(course.assignments, key=lambda item: item.deadline)
+        )
+    else:
+        return jsonify(
+            sorted(
+                filter(lambda assig: not assig.is_hidden, course.assignments),
+                key=lambda item: item.deadline
+            )
+        )
 
 
 @api.route('/courses/', methods=['POST'])
@@ -399,12 +418,16 @@ def add_course() -> JSONResponse[models.Course]:
     :raises APIException: If the parameter "name" is not in the request.
         (MISSING_REQUIRED_PARAM)
     """
-    content: t.Mapping[str, JSONType] = ensure_json_dict(request.get_json())
+    content = ensure_json_dict(request.get_json())
     ensure_keys_in_dict(content, [('name', str)])
     name = t.cast(str, content['name'])
 
     new_course = models.Course(name)
     db.session.add(new_course)
+    db.session.commit()
+
+    role = models.CourseRole.get_initial_course_role(new_course)
+    current_user.courses[new_course.id] = role
     db.session.commit()
 
     return jsonify(new_course)
@@ -428,8 +451,7 @@ def get_courses() -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
     """
     return jsonify([{
         'role': c.name,
-        **
-        c.course.__to_json__(),
+        **c.course.__to_json__(),
     } for c in current_user.courses.values()])
 
 
@@ -456,8 +478,7 @@ def get_course_data(course_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
         if c.course.id == course_id:
             return jsonify({
                 'role': c.name,
-                **
-                c.course.__to_json__(),
+                **c.course.__to_json__(),
             })
 
     raise APIException(

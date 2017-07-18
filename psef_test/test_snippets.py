@@ -1,168 +1,216 @@
-# -*- py-isort-options: '("-sg *"); -*-
-import pytest
-import os
-import sys
-import flask_login
-import flask
 import json
 
-my_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, my_path + '/../')
+import pytest
 
+import psef
 import psef.models as m
-import psef.views as v
+from psef.errors import APICodes
+
+perm_error = pytest.mark.perm_error
 
 
-@pytest.fixture(scope='module')
-def perms(session):
-    perms = []
-    perms.append(
-        m.Permission(
-            name='can_use_snippets',
-            default_value=True,
-            course_permission=False))
+@pytest.mark.parametrize(
+    'named_user', [
+        ('Thomas Schaper'),
+        ('Stupid1'),
+        ('admin'),
+        perm_error(error=403)('nobody'),
+        perm_error(error=401)('NOT_LOGGED_IN'),
+    ],
+    indirect=True
+)
+def test_simple_add_delete(
+    named_user, logged_in, test_client, request, error_template
+):
+    perm_err = request.node.get_marker('perm_error')
+    if perm_err:
+        error = perm_err.kwargs['error']
+    else:
+        error = False
 
-    for perm in perms:
-        session.add(perm)
-    session.commit()
-    yield perms
-
-
-@pytest.fixture(scope='module')
-def student_role(session):
-    role = m.Role(name='student', _permissions={})
-    session.add(role)
-    session.commit()
-    yield role
-
-
-@pytest.fixture(scope='module')
-def thomas(session, perms, student_role):
-    thomas = m.User(
-        name='Thomas Schaper',
-        password='',
-        email='th',
-        role=student_role,
-        courses={})
-
-    session.add(thomas)
-    session.commit()
-    yield m.User.query.filter_by(name='Thomas Schaper').first()
-
-
-@pytest.fixture(scope='module')
-def other(session, perms, student_role):
-    thomas = m.User(
-        name='Other', password='', email='ths', role=student_role, courses={})
-
-    session.add(thomas)
-    session.commit()
-    yield m.User.query.filter_by(name='Other').first()
-
-
-@pytest.fixture(scope='function')
-def snippets(session, thomas, other):
-    tsnips = []
-    osnips = []
-    tsnips.append(m.Snippet(key='hello', value='bye', user=thomas))
-    tsnips.append(
-        m.Snippet(key='malloc', value='don\'t forget malloc', user=thomas))
-
-    osnips.append(m.Snippet(key='asd', value='WWWWWWWWW\nWWWW', user=other))
-
-    for snip in osnips + tsnips:
-        session.add(snip)
-    session.commit()
-
-    yield tsnips, osnips
-
-    for snip in osnips + tsnips:
-        if m.Snippet.query.get(snip.id):
-            session.delete(snip)
-    session.commit()
-
-
-def test_get_all_snippets(thomas, other, snippets, login_endpoint,
-                          test_client):
-    for user, snips in zip([thomas, other], snippets):
-        with test_client:
-            login_endpoint(user.id)
-            rv = test_client.get('/api/v1/snippets/')
-            data = json.loads(rv.get_data(as_text=True))
-            for snip in snips:
-                assert snip.key in data
-                assert data[snip.key] ==  {
-                    'value': snip.value,
-                    'id': snip.id
+    with logged_in(named_user):
+        snips = []
+        for i in range(2):
+            snip = {
+                'value': f'My snippet value{i}',
+                'key': f'My snippet key{i}',
+            }
+            snips.append(snip)
+            test_client.req(
+                'put',
+                '/api/v1/snippet',
+                error or 201,
+                data=snip,
+                result=error_template if error else {
+                    'id': int,
+                    **snip,
                 }
-            assert len(snips) == len(data)
-            test_client.post('/api/v1/logout')
-    rv = test_client.get('/api/v1/snippets/')
-    assert rv.status_code == 401
+            )
+        res = test_client.req('get', '/api/v1/snippets/', error or 200,
+                              result=error_template if error else [
+                                  {'id': int, **snip} for snip in snips
+                              ],)
+        if not error:
+            for snip in res:
+                test_client.req(
+                    'delete', f'/api/v1/snippets/{snip["id"]}', 204
+                )
+            res = test_client.req('get', '/api/v1/snippets/', 200, result=[])
 
 
-def test_delete_snippets(thomas, snippets, login_endpoint, test_client):
-    with test_client:
-        login_endpoint(thomas.id)
+@pytest.mark.parametrize(
+    'named_user', [
+        ('Thomas Schaper'),
+        ('Stupid1'),
+        ('admin'),
+        perm_error(error=403)('nobody'),
+        perm_error(error=401)('NOT_LOGGED_IN'),
+    ],
+    indirect=True
+)
+def test_simple_update(
+    named_user, logged_in, test_client, error_template, request
+):
+    perm_err = request.node.get_marker('perm_error')
+    if perm_err:
+        error = perm_err.kwargs['error']
+    else:
+        error = False
 
-        rv = test_client.delete(
-            '/api/v1/snippets/{}'.format(snippets[0][0].id))
-        assert rv.status_code == 204
+    with logged_in(named_user):
+        snips = []
+        for i in range(2):
+            snip = {
+                'value': f'My snippet value{i}',
+                'key': f'My snippet key{i}',
+            }
+            snips.append(snip)
+            test_client.req(
+                'put',
+                '/api/v1/snippet',
+                error or 201,
+                data=snip,
+                result=error_template if error else {
+                    'id': int,
+                    **snip,
+                }
+            )
+        snips = test_client.req(
+            'get',
+            '/api/v1/snippets/',
+            error or 200,
+            result=error_template if error else [
+                {'id': int, **snip} for snip in snips
+            ],
+        )
+        if not error:
+            snips[0]['value'] = 'dag dag'
+            test_client.req(
+                'put',
+                '/api/v1/snippet',
+                201,
+                data={
+                    'value': snips[0]['value'],
+                    'key': snips[0]['key'],
+                },
+                result=snips[0],
+            )
+        # Make sure the id has not changed.
+        test_client.req(
+            'get',
+            '/api/v1/snippets/',
+            error or 200,
+            result=error_template if error else snips
+        )
 
-        rv = test_client.get('/api/v1/snippets/')
-        data = json.loads(rv.get_data(as_text=True))
 
-        assert snippets[0][0].key not in data
-        assert len(data) + 1 == len(snippets[0])
+@pytest.mark.parametrize(
+    'named_user', [
+        ('Thomas Schaper'),
+        ('Stupid1'),
+        ('admin'),
+    ],
+    indirect=True
+)
+def test_full_update(named_user, logged_in, test_client):
+    with logged_in(named_user):
+        snips = []
+        for i in range(2):
+            snip = {
+                'value': f'My snippet value{i}',
+                'key': f'My snippet key{i}',
+            }
+            snips.append(snip)
+            test_client.req(
+                'put',
+                '/api/v1/snippet',
+                201,
+                data=snip,
+                result={
+                    'id': int,
+                    **snip,
+                }
+            )
+        snips = test_client.req('get', '/api/v1/snippets/', 200, result=[
+            {'id': int, **snip} for snip in snips
+        ])
+        snips[0]['value'] = 'dag dag'
+        snips[0]['key'] = 'hello hello'
+        test_client.req(
+            'patch',
+            f'/api/v1/snippets/{snips[0]["id"]}',
+            status_code=204,
+            data={
+                'value': snips[0]['value'],
+                'key': snips[0]['key'],
+            },
+        )
+        test_client.req('get', '/api/v1/snippets/', 200, result=[
+            {'id': int, **snip} for snip in snips
+        ])
 
-        rv = test_client.delete(
-            '/api/v1/snippets/{}'.format(snippets[1][0].id))
-        assert rv.status_code == 403
 
-        test_client.post('/api/v1/logout')
+@pytest.mark.parametrize(
+    'named_user', [
+        ('Devin Hillenius'),
+        ('Stupid1'),
+        ('admin'),
+    ],
+    indirect=True
+)
+def test_modify_others_snippet(named_user, ta_user, test_client, logged_in):
+    with logged_in(named_user):
+        snip = {'key': 'k', 'value': 'v'}
+        snip = test_client.req(
+            'put',
+            '/api/v1/snippet',
+            201,
+            data=snip,
+            result={
+                'id': int,
+                **snip,
+            },
+        )
 
-    rv = test_client.delete('/api/v1/snippets/{}'.format(snippets[0][1].id))
-    assert rv.status_code == 401
-
-
-def test_add_snippets(thomas, login_endpoint, test_client):
-    headers = [('Content-Type', 'application/json')]
-    with test_client:
-        def put(data):
-            return test_client.put('/api/v1/snippet',
-                                   data=json.dumps(data),
-                                   headers=headers)
-        login_endpoint(thomas.id)
-
-        rv = put({'key': 'hello', 'value': 'val'})
-        assert rv.status_code == 204
-
-        rv = test_client.get('/api/v1/snippets/')
-        data = json.loads(rv.get_data(as_text=True))
-
-        items = len(data)
-
-        for key, perm in data.items():
-            if key == 'hello' and perm['value'] == 'val':
-                break
-        else:
-            assert False
-
-        rv = put({'key': 'hello', 'value': 'bye'})
-        assert rv.status_code == 204
-
-        rv = test_client.get('/api/v1/snippets/')
-        data = json.loads(rv.get_data(as_text=True))
-
-        assert items == len(data)
-
-        for key, perm in data.items():
-            if key == 'hello' and perm['value'] == 'bye':
-                break
-        else:
-            assert False
-
-        test_client.post('/api/v1/logout')
-
-        rv = put({'key': 'hello', 'value': 'bye'})
-        assert rv.status_code == 401
+    with logged_in(ta_user):
+        test_client.req(
+            'delete',
+            f'/api/v1/snippets/{snip["id"]}',
+            403,
+            result={
+                'message': str,
+                'description': str,
+                'code': APICodes.INCORRECT_PERMISSION,
+            }
+        )
+        test_client.req(
+            'patch',
+            f'/api/v1/snippets/{snip["id"]}',
+            403,
+            data=snip,
+            result={
+                'message': str,
+                'description': str,
+                'code': APICodes.INCORRECT_PERMISSION,
+            }
+        )

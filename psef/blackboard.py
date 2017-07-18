@@ -15,11 +15,11 @@ _txt_fmt = re.compile(
     r"Name: (?P<name>.+) \((?P<id>[0-9]+)\)\n"
     r"Assignment: (?P<assignment>.+)\n"
     r"Date Submitted: (?P<datetime>.+)\n"
-    r"Current Grade: (?P<grade>[0-9.]*)\n\n"
+    r"Current Grade: *(?P<grade>[0-9.]*)\n\n"
     r"Submission Field:\n(?P<text>(.*\n)+)\n"
     r"Comments:\n(?P<comment>(.*\n)+)\n"
     r"Files:\n"
-    r"(?P<files>(.+\n.+\n)+)\n".encode('utf-8')
+    r"(?P<files>(.+\n.+\n)+)\n?".encode('utf-8')
 )
 
 _txt_files_fmt = re.compile(
@@ -48,7 +48,7 @@ class SubmissionInfo(
             ('student_id', int),
             ('assignment_name', str),
             ('created_at', datetime.datetime),
-            ('grade', float),
+            ('grade', t.Optional[float]),
             ('text', str),
             ('comment', str),
             ('files', t.MutableSequence[FileInfo]),
@@ -82,6 +82,12 @@ def parse_info_file(file: str) -> SubmissionInfo:
             # casting here is wrong, however see
             # https://github.com/python/typeshed/issues/1467
             match = _txt_fmt.match(t.cast(bytes, data))
+
+            try:
+                grade = float(match.group('grade'))
+            except ValueError:
+                grade = None
+
             info = SubmissionInfo(
                 student_name=match.group('name').decode('utf-8'),
                 student_id=int(match.group('id')),
@@ -90,7 +96,7 @@ def parse_info_file(file: str) -> SubmissionInfo:
                     match.group('datetime').decode('utf-8')
                     .replace(" o'clock", "")
                 ),
-                grade=float(match.group('grade')),
+                grade=grade,
                 text=match.group('text').decode('utf-8').rstrip(),
                 comment=match.group('comment').decode('utf-8').rstrip(),
                 files=[

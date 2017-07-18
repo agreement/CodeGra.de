@@ -65,44 +65,46 @@ class LTI:
         return self.launch_params['context_title']
 
     @property
-    def assignment_id(self) -> str:
+    def assignment_id(self) -> str:  # pragma: no cover
         """The id of the current LTI assignment.
         """
         raise NotImplementedError
 
     @property
-    def assignment_name(self) -> str:
+    def assignment_name(self) -> str:  # pragma: no cover
         """The name of the current LTI assignment.
         """
         raise NotImplementedError
 
     @property
-    def outcome_service_url(self) -> str:
+    def outcome_service_url(self) -> str:  # pragma: no cover
         """The url used to passback grades to Canvas.
         """
         raise NotImplementedError
 
     @property
-    def result_sourcedid(self) -> str:
+    def result_sourcedid(self) -> str:  # pragma: no cover
         """The sourcedid of the current user for the current assignment.
         """
         raise NotImplementedError
 
     @property
-    def assignment_state(self) -> models._AssignmentStateEnum:
+    def assignment_state(
+        self
+    ) -> models._AssignmentStateEnum:  # pragma: no cover
         """The state of the current LTI assignment.
         """
         raise NotImplementedError
 
     @property
-    def roles(self) -> t.Iterable[str]:
+    def roles(self) -> t.Iterable[str]:  # pragma: no cover
         """The normalized roles of the current LTI user.
         """
         raise NotImplementedError
 
     def get_assignment_deadline(
         self, default: datetime.datetime=None
-    ) -> datetime.datetime:
+    ) -> datetime.datetime:  # pragma: no cover
         """Get the deadline of the current LTI assignment.
 
         :param default: The value to be returned of the assignment has no
@@ -279,7 +281,7 @@ class LTI:
         return False
 
     @staticmethod
-    def generate_xml() -> str:
+    def generate_xml() -> str:  # pragma: no cover
         """Generate a config XML for this LTI consumer.
         """
         raise NotImplementedError
@@ -291,8 +293,8 @@ class LTI:
         grade: float,
         service_url: str,
         sourcedid: str,
-        text=None,
-        url=None
+        text: str=None,
+        url: str=None
     ) -> 'OutcomeResponse':
         """Do a LTI grade passback.
 
@@ -328,7 +330,7 @@ class CanvasLTI(LTI):
     """The LTI class used for the Canvas LMS.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
         super(CanvasLTI, self).__init__(*args, **kwargs)
 
     @property
@@ -384,7 +386,7 @@ class CanvasLTI(LTI):
 
 
 @app.route('/lti/launch', methods=['POST'])
-def launch_lti():
+def launch_lti() -> t.Any:
     """Do a LTI launch.
 
     .. :quickref: LTI; Do a LTI Launch.
@@ -407,12 +409,6 @@ def launch_lti():
 REPLACE_REQUEST = 'replaceResult'
 DELETE_REQUEST = 'deleteResult'
 READ_REQUEST = 'readResult'
-
-accessors = [
-    'operation', 'score', 'result_data', 'outcome_response',
-    'message_identifier', 'lis_outcome_service_url', 'lis_result_sourcedid',
-    'consumer_key', 'consumer_secret', 'post_request'
-]
 
 
 class OutcomeRequest:
@@ -437,7 +433,7 @@ class OutcomeRequest:
         lis_result_sourcedid: str=None,
         consumer_key: str=None,
         consumer_secret: str=None,
-        post_request: str=None
+        post_request: t.Any=None
     ) -> None:
         self.operation = operation
         self.score = score
@@ -451,7 +447,7 @@ class OutcomeRequest:
         self.post_request = post_request
 
     @staticmethod
-    def from_post_request(post_request) -> 'OutcomeRequest':
+    def from_post_request(post_request: t.Any) -> 'OutcomeRequest':
         '''
         Convenience method for creating a new OutcomeRequest from a request
         object.
@@ -560,7 +556,7 @@ class OutcomeRequest:
 
             normalize = http._normalize_headers
 
-            def my_normalize(self, headers: t.Sequence) -> t.Sequence:
+            def my_normalize(self: t.Any, headers: t.Sequence) -> t.Sequence:
                 ret = normalize(self, headers)
                 if 'authorization' in ret:
                     ret['Authorization'] = ret.pop('authorization')
@@ -676,12 +672,6 @@ CODE_MAJOR_CODES = ['success', 'processing', 'failure', 'unsupported']
 
 SEVERITY_CODES = ['status', 'warning', 'error']
 
-accessors = [
-    'request_type', 'score', 'message_identifier', 'response_code',
-    'post_response', 'code_major', 'severity', 'description', 'operation',
-    'message_ref_identifier'
-]
-
 
 class OutcomeResponse:
     '''
@@ -726,7 +716,9 @@ class OutcomeResponse:
         self.message_ref_identifier = message_ref_identifier
 
     @staticmethod
-    def from_post_response(post_response, content) -> 'OutcomeResponse':
+    def from_post_response(
+        post_response: t.Any, content: str
+    ) -> 'OutcomeResponse':
         '''
         Convenience method for creating a new OutcomeResponse from a response
         object.

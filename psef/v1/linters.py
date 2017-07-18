@@ -24,7 +24,7 @@ from . import api
 
 
 @api.route('/linters/<linter_id>', methods=['DELETE'])
-def delete_linter_output(linter_id) -> EmptyResponse:
+def delete_linter_output(linter_id: str) -> EmptyResponse:
     """Delete the all the output created by the
     :class:`.models.AssignmentLinter` with the given id.
 

@@ -4,6 +4,7 @@ import typing as t
 from functools import wraps
 
 import oauth2
+from mypy_extensions import NoReturn
 
 import psef
 from psef import app, login_manager
@@ -14,12 +15,12 @@ class PermissionException(APIException):
     """The exception used when a permission check fails.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
         super(PermissionException, self).__init__(*args, **kwargs)
 
 
 @login_manager.unauthorized_handler
-def _raise_login_exception(desc='No user was logged in.'):
+def _raise_login_exception(desc: str='No user was logged in.') -> NoReturn:
     raise PermissionException(
         'You need to be logged in to do this.', desc, APICodes.NOT_LOGGED_IN,
         401
@@ -32,8 +33,8 @@ def _user_active() -> bool:
     :returns: True if there is an active logged in user
     """
     return (
-        psef.current_user and psef.current_user.is_authenticated and
-        psef.current_user.is_active
+        psef.current_user is not None and
+        psef.current_user.is_authenticated and psef.current_user.is_active
     )
 
 
@@ -55,29 +56,6 @@ def ensure_can_see_grade(work: 'psef.models.Work') -> None:
         if not work.assignment.is_done:
             ensure_permission(
                 'can_see_grade_before_open', work.assignment.course_id
-            )
-        return
-    _raise_login_exception()
-
-
-def ensure_enrolled(course_id: int) -> None:
-    """Ensure the current user is enrolled in the given course.
-
-    :param course_id: The course id of the course.
-
-    :returns: Nothing
-
-    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
-    :raises PermissionException: If the user is not enrolled in the given
-                                 course. (INCORRECT_PERMISSION)
-    """
-    if _user_active():
-        if course_id not in psef.current_user.courses:
-            raise PermissionException(
-                'You are not enrolled in this course',
-                'The user "{}" is not enrolled in course "{}"'.format(
-                    psef.current_user.id, course_id
-                ), APICodes.INCORRECT_PERMISSION, 403
             )
         return
     _raise_login_exception()
@@ -155,7 +133,7 @@ def permission_required(
 
     def decorator(f: t.Callable) -> t.Callable:
         @wraps(f)
-        def decorated_function(*args, **kwargs) -> t.Any:
+        def decorated_function(*args: t.Any, **kwargs: t.Any) -> t.Any:
             ensure_permission(permission_name, course_id=course_id)
             return f(*args, **kwargs)
 
@@ -197,7 +175,7 @@ class RequestValidatorMixin(object):
             https://github.com/simplegeo/python-oauth2
         '''
 
-        def handle(e):
+        def handle(e: oauth2.Error) -> bool:
             if handle_error:
                 return False
             else:
@@ -229,8 +207,8 @@ class RequestValidatorMixin(object):
         request: t.Any,
         parameters: t.Optional[t.MutableMapping[str, str]],
         fake_method: t.Optional[t.Any]
-    ) -> t.Tuple[str, str, t.MutableMapping[str, str], t.MutableMapping[str,
-                                                                        str]]:
+    ) -> t.Tuple[str, str, t.MutableMapping[str, str],
+                 t.MutableMapping[str, str]]:  # pragma: no cover
         '''
         This must be implemented for the framework you're using
         Returns a tuple: (method, url, headers, parameters)
@@ -248,7 +226,7 @@ class RequestValidatorMixin(object):
         '''
         raise NotImplementedError()
 
-    def valid_request(self, request):
+    def valid_request(self, request: t.Any) -> None:
         '''
         Check whether the OAuth-signed request is valid and throw error if not.
         '''
@@ -273,7 +251,10 @@ class _FlaskOAuthValidator(RequestValidatorMixin):
 
 
 def ensure_valid_oauth(
-    key: str, secret: str, request: t.Any, parser_cls=_FlaskOAuthValidator
+    key: str,
+    secret: str,
+    request: t.Any,
+    parser_cls: t.Type=_FlaskOAuthValidator
 ) -> None:
     """Make sure the given oauth key and secret is valid for the given request.
 
@@ -295,5 +276,5 @@ def ensure_valid_oauth(
         )
 
 
-if t.TYPE_CHECKING:
+if t.TYPE_CHECKING:  # pragma: no cover
     import flask  # NOQA

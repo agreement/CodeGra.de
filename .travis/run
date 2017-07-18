@@ -1,0 +1,45 @@
+#!/bin/bash
+
+res="127"
+
+echo "Running test with pwd: $(pwd)"
+
+set -o xtrace
+
+case "$TO_RUN" in
+    "coveralls")
+        pytest --cov psef --cov-report term-missing "$(pwd)/psef_test/" -vvvv
+        res="$?"
+        set +o xtrace
+        ;;
+    "tests")
+        pytest "$(pwd)/psef_test/" -vvvv
+        res="$?"
+        set +o xtrace
+        ;;
+    "mypy")
+        mypy --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs --disallow-subclassing-any "$(pwd)/psef/"
+        res="$?"
+        set +o xtrace
+        ;;
+    "flake8")
+        flake8 "$(pwd)/psef/"
+        res="$?"
+        set +o xtrace
+        ;;
+    "yapf")
+        out="$(yapf -rdp "$(pwd)/psef" "$(pwd)/psef_test")"
+        set +o xtrace
+        if [[ "$out" ]]; then
+            echo "$out"
+            res=1
+        else
+            res=0
+        fi
+        ;;
+
+esac
+
+set +o xtrace
+
+exit "$res"

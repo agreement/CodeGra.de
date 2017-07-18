@@ -78,7 +78,7 @@ def get_snippets() -> JSONResponse[t.Sequence[models.Snippet]]:
 
 @api.route('/snippets/<int:snippet_id>', methods=['PATCH'])
 @auth.permission_required('can_use_snippets')
-def patch_snippet(snippet_id) -> EmptyResponse:
+def patch_snippet(snippet_id: int) -> EmptyResponse:
     """Modify the :class:`.models.Snippet` with the given id.
 
     .. :quickref: Snippet; Change a snippets key and value.
@@ -122,7 +122,7 @@ def patch_snippet(snippet_id) -> EmptyResponse:
 
 @api.route('/snippets/<int:snippet_id>', methods=['DELETE'])
 @auth.permission_required('can_use_snippets')
-def delete_snippets(snippet_id) -> EmptyResponse:
+def delete_snippets(snippet_id: int) -> EmptyResponse:
     """Delete the :class:`.models.Snippet` with the given id.
 
     .. :quickref: Snippet; Delete a snippet.

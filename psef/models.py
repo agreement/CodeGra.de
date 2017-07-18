@@ -10,7 +10,6 @@ import datetime
 import threading
 from concurrent import futures
 
-from flask_login import UserMixin
 from sqlalchemy_utils import PasswordType
 from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
@@ -19,25 +18,30 @@ import psef.auth as auth
 from psef import db, app, login_manager
 from psef.helpers import get_request_start_time
 
-if t.TYPE_CHECKING:
+if t.TYPE_CHECKING:  # pragma: no cover
+
+    class UserMixin:
+        is_authenticated: bool
+
     T = t.TypeVar('T', bound='Base')
 
     class Base:
         query = None  # type: t.ClassVar[t.Any]
 
-        def __init__(self, *args, **kwargs):
-            return super(Base, self).__init__(*args, **kwargs)
+        def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
+            pass
 
     class _MyQuery(t.Generic[T]):
-        def get(self, *args, **kwargs) -> t.Union[T, None]:
+        def get(self, *args: t.Any, **kwargs: t.Any) -> t.Union[T, None]:
             ...
 
-        def filter(self, *args, **kwargs):
+        def filter(self, *args: t.Any, **kwargs: t.Any) -> t.Any:
             ...
 
-        def filter_by(self, *args, **kwargs):
+        def filter_by(self, *args: t.Any, **kwargs: t.Any) -> t.Any:
             ...
 else:
+    from flask_login import UserMixin
     import psef
     Base = db.Model
 
@@ -92,7 +96,7 @@ class LTIProvider(Base):
 
     :ivar key: The OAuth consumer key for this LTI provider.
     """
-    if t.TYPE_CHECKING:
+    if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['LTIProvider']]
     __tablename__ = 'LTIProvider'
     id = db.Column('id', db.Integer, primary_key=True)
@@ -117,7 +121,7 @@ class AssignmentResult(Base):
     :ivar user_id: The id of the user this belongs to.
     :ivar assignment_id: The id of the assignment this belongs to.
     """
-    if t.TYPE_CHECKING:
+    if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['AssignmentResult']]
     __tablename__ = 'AssignmentResult'
     sourcedid: str = db.Column('sourcedid', db.Unicode)
@@ -151,7 +155,7 @@ class Permission(Base):
         for a subset of all the courses. If ``course_permission`` is ``False``
         this permission is global for the entire site.
     """
-    if t.TYPE_CHECKING:
+    if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['Permission']]
     __tablename__ = 'Permission'
 
@@ -174,7 +178,7 @@ class CourseRole(Base):
     :ivar name: The name of this role in the course.
     :ivar course_id: The :py:class:`Course` this role belongs to.
     """
-    if t.TYPE_CHECKING:
+    if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['CourseRole']]
     __tablename__ = 'Course_Role'
     id = db.Column('id', db.Integer, primary_key=True)
@@ -209,16 +213,10 @@ class CourseRole(Base):
         :param perm: The permission this role should (not) have
         """
         try:
-            if perm.default_value:
-                if should_have:
-                    self._permissions.pop(perm.name)
-                else:
-                    self._permissions[perm.name] = perm
+            if perm.default_value ^ should_have:
+                self._permissions[perm.name] = perm
             else:
-                if should_have:
-                    self._permissions[perm.name] = perm
-                else:
-                    self._permissions.pop(perm.name)
+                self._permissions.pop(perm.name)
         except KeyError:
             pass
 
@@ -245,7 +243,7 @@ class CourseRole(Base):
                 permission = Permission.query.filter_by(  # type: ignore
                     name=permission).first()
 
-            if isinstance(permission, Permission):
+            if isinstance(permission, Permission) and permission is not None:
                 return (
                     permission.default_value and permission.course_permission
                 )
@@ -275,6 +273,20 @@ class CourseRole(Base):
             else:
                 result[perm.name] = perm.default_value
         return result
+
+    @classmethod
+    def get_initial_course_role(cls: t.Type['CourseRole'],
+                                course: 'Course') -> 'CourseRole':
+        """Get the initial course role for a given course.
+
+        :param course: The course to get the initial role for.
+        :returns: A course role that should be the role for the user creating
+            the course.
+        """
+        for name, c in app.config['DEFAULT_COURSE_ROLES'].items():
+            if c['initial_role']:
+                return cls.query.filter_by(name=name, course=course).one()
+        raise ValueError('No initial course role found')
 
     @staticmethod
     def get_default_course_roles(
@@ -321,7 +333,7 @@ class Role(Base):
 
     :ivar name: The name of the global role.
     """
-    if t.TYPE_CHECKING:
+    if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['Role']]
     __tablename__ = 'Role'
     id: int = db.Column('id', db.Integer, primary_key=True)
@@ -456,16 +468,22 @@ class User(Base, UserMixin):
                          permission with this name exists.
         """
         if not self.active:
+            print('NOT ACTIVE')
             return False
         if course_id is None:
             return self.role.has_permission(permission)
         else:
             if isinstance(course_id, Course):
                 course_id = course_id.id
-            return (
-                course_id in self.courses and
-                self.courses[course_id].has_permission(permission)
-            )
+
+            if course_id in self.courses:
+                return self.courses[course_id].has_permission(permission)
+            elif isinstance(permission, str):
+                if Permission.query.filter_by(name=permission).first() is None:
+                    raise KeyError(
+                        f'The permission "{permission}" does not exist'
+                    )
+            return False
 
     def get_permission_in_courses(self, perm: t.Union[str, Permission]
                                   ) -> t.Mapping[int, bool]:
@@ -498,9 +516,12 @@ class User(Base, UserMixin):
             crp, course_roles.c.course_id == crp.c.course_role_id
         ).all()
 
+        course_ids: t.Set[int]
+        course_ids = set(course_id[0] for course_id in res)
+
         return {
             course_role.course_id:
-            ((course_role.id, ) in res) != permission.default_value
+            (course_role.id in course_ids) != permission.default_value
             for course_role in self.courses.values()
         }
 
@@ -546,8 +567,7 @@ class User(Base, UserMixin):
         """
         return {
             "hidden": self.can_see_hidden,
-            **
-            self.__to_json__(),
+            **self.__to_json__(),
         }
 
     def has_course_permission_once(self,
@@ -655,7 +675,7 @@ class Course(Base):
     :param lti_course_id: The id of the course in LTI
     :param lti_provider: The LTI provider
     """
-    if t.TYPE_CHECKING:
+    if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['Course']]
     __tablename__ = "Course"
     id: int = db.Column('id', db.Integer, primary_key=True)
@@ -713,7 +733,7 @@ class Work(Base):
     """This object describes a single work or submission of a :class:`User` for
     an :class:`Assignment`.
     """
-    if t.TYPE_CHECKING:
+    if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['Work']]
     __tablename__ = "Work"  # type: str
     id = db.Column('id', db.Integer, primary_key=True)  # type: int
@@ -739,7 +759,7 @@ class Work(Base):
         'Assignment', foreign_keys=assignment_id, lazy='joined'
     )  # type: 'Assignment'
     user = db.relationship(
-        'User', single_parent=True, foreign_keys=user_id, lazy='joined'
+        'User', foreign_keys=user_id, lazy='joined'
     )  # type: User
     assignee = db.relationship(
         'User', foreign_keys=assigned_to, lazy='joined'
@@ -753,9 +773,6 @@ class Work(Base):
 
         :returns: Nothing
         """
-        if not self.assignment.linters:
-            return
-
         for linter in self.assignment.linters:
             instance = LinterInstance(work=self, tester=linter)
 
@@ -789,7 +806,7 @@ class Work(Base):
         return self._grade
 
     @grade.setter
-    def grade(self, new_grade: float):
+    def grade(self, new_grade: float) -> None:
         """Set the grade to the new grade
 
         .. note:: This also passes back the grade to LTI if this is necessary
@@ -1012,14 +1029,14 @@ class File(Base):
     file. Each other file in a submission should be directly or indirectly
     connected to this file via the parent attribute.
     """
-    if t.TYPE_CHECKING:
+    if t.TYPE_CHECKING:  # pragma: no cover
         query: t.ClassVar[_MyQuery['File']]
     __tablename__ = "File"
     id: int = db.Column('id', db.Integer, primary_key=True)
     work_id: int = db.Column('Work_id', db.Integer, db.ForeignKey('Work.id'))
     extension: str = db.Column('extension', db.Unicode)
-    name: str = db.Column('name', db.Unicode)
-    filename: str = db.Column('path', db.Unicode)
+    name: str = db.Column('name', db.Unicode, nullable=False)
+    filename: t.Optional[str] = db.Column('path', db.Unicode, nullable=True)
     is_directory: bool = db.Column('is_directory', db.Boolean)
     parent_id: int = db.Column(db.Integer, db.ForeignKey('File.id'))
 
@@ -1082,17 +1099,38 @@ class File(Base):
             return {"name": self.get_filename(), "id": self.id}
         else:
             return {
-                "name": self.get_filename(),
-                "id": self.id,
-                "entries": [child.list_contents() for child in self.children]
+                "name":
+                    self.get_filename(),
+                "id":
+                    self.id,
+                "entries":
+                    sorted(
+                        [child.list_contents() for child in self.children],
+                        key=lambda el: el['name']
+                    )
             }
 
-    def __to_json__(self) -> t.Mapping[str, str]:
+    def __to_json__(self) -> t.Mapping[str, t.Union[str, bool]]:
         """Creates a JSON serializable representation of this object.
+
+
+        This object will look like this:
+
+        .. code:: python
+
+            {
+                'name': str, # The name of the file or directory.
+                'extension': str, # The extension of the file,
+                                  # '' if it has no extension.
+                'is_directory': bool, # Is this file a directory.
+            }
+
+        :returns: A object as described above.
         """
         return {
             'name': self.name,
-            'extension': self.extension,
+            'extension': self.extension if self.extension else '',
+            'is_directory': self.is_directory,
         }
 
 
@@ -1102,7 +1140,7 @@ class LinterComment(Base):
     Like a :class:`Comment` it is attached to a specific line in a
     :class:`File`.
     """
-    if t.TYPE_CHECKING:
+    if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['LinterComment']]
     __tablename__ = "LinterComment"  # type: str
     id: int = db.Column('id', db.Integer, primary_key=True)
@@ -1136,7 +1174,7 @@ class Comment(Base):
 
     A comment is always linked to a specific line in a file.
     """
-    if t.TYPE_CHECKING:
+    if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['Comment']]
     __tablename__ = "Comment"
     file_id: int = db.Column('File_id', db.Integer, db.ForeignKey('File.id'))
@@ -1186,7 +1224,7 @@ class AssignmentLinter(Base):
         :py:class:`linters.Flake8` metadata about the `flake8` program).
     :ivar config: The config that was passed to the linter.
     """
-    if t.TYPE_CHECKING:
+    if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['AssignmentLinter']]
     __tablename__ = 'AssignmentLinter'  # type: str
     # This has to be a Unicode object as the id has to be a non guessable uuid.
@@ -1216,18 +1254,18 @@ class AssignmentLinter(Base):
     )  # type: 'Assignment'
 
     @property
-    def linters_crashed(self):
+    def linters_crashed(self) -> int:
         return self._amount_linters_in_state(LinterState.crashed)
 
     @property
-    def linters_done(self):
+    def linters_done(self) -> int:
         return self._amount_linters_in_state(LinterState.done)
 
     @property
-    def linters_running(self):
+    def linters_running(self) -> int:
         return self._amount_linters_in_state(LinterState.running)
 
-    def _amount_linters_in_state(self, state: LinterState):
+    def _amount_linters_in_state(self, state: LinterState) -> int:
         return LinterInstance.query.filter_by(
             tester_id=self.id, state=state
         ).count()
@@ -1240,7 +1278,7 @@ class AssignmentLinter(Base):
 
         :returns: A dict containing JSON serializable representations of the
                   attributes and the test state counts of this
-                  LinterAssignment.
+                  AssignmentLinter.
         """
         return {
             'done': self.linters_done,
@@ -1269,7 +1307,7 @@ class AssignmentLinter(Base):
         # Find a unique id.
         while db.session.query(
             AssignmentLinter.query.filter(cls.id == id).exists()
-        ).scalar():
+        ).scalar():  # pragma: no cover
             id = str(uuid.uuid4())
 
         self = cls(id=id, assignment_id=assignment_id, name=name)
@@ -1287,7 +1325,7 @@ class LinterInstance(Base):
     """Describes the connection between a :class:`AssignmentLinter` and a
     :class:`Work`.
     """
-    if t.TYPE_CHECKING:
+    if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['LinterInstance']]
     __tablename__ = 'LinterInstance'
     id: str = db.Column('id', db.Unicode, nullable=False, primary_key=True)
@@ -1316,7 +1354,7 @@ class LinterInstance(Base):
         id = str(uuid.uuid4())
         while db.session.query(
             LinterInstance.query.filter(LinterInstance.id == id).exists()
-        ).scalar():
+        ).scalar():  # pragma: no cover
             id = str(uuid.uuid4())
 
         self.id = id
@@ -1367,7 +1405,7 @@ class _AssignmentStateEnum(enum.IntEnum):
 class Assignment(Base):
     """This class describes a :class:`Course` specific assignment.
     """
-    if t.TYPE_CHECKING:
+    if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type:  t.ClassVar[_MyQuery['Assignment']]
     __tablename__ = "Assignment"
     id: int = db.Column('id', db.Integer, primary_key=True)
@@ -1411,7 +1449,7 @@ class Assignment(Base):
     )  # type: t.MutableSequence['RubricRow']
 
     # This variable is available through a backref
-    linters: 'AssignmentLinter'
+    linters: t.Iterable['AssignmentLinter']
 
     def _submit_grades(self) -> None:
         with futures.ThreadPoolExecutor() as pool:
@@ -1537,8 +1575,8 @@ class Assignment(Base):
             self.state = _AssignmentStateEnum.done
             if self.lti_outcome_service_url is not None:
                 self._submit_grades()
-        else:
-            raise TypeError()
+        else:  # pragma: no cover
+            raise TypeError
 
     def get_all_latest_submissions(self) -> t.List[Work]:
         """Get a list of all the latest submissions (:class:`Work`) by each
@@ -1564,7 +1602,7 @@ class Snippet(Base):
     """Describes a :class:`User` specified mapping from a keyword to some
     string.
     """
-    if t.TYPE_CHECKING:
+    if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['Snippet']]
     __tablename__ = 'Snippet'
     id: int = db.Column('id', db.Integer, primary_key=True)
@@ -1587,7 +1625,11 @@ class Snippet(Base):
     def __to_json__(self) -> t.Mapping[str, t.Any]:
         """Creates a JSON serializable representation of this object.
         """
-        return {'key': self.key, 'value': self.value, 'id': self.id}
+        return {
+            'key': self.key,
+            'value': self.value,
+            'id': self.id,
+        }
 
 
 class RubricRow(Base):
@@ -1599,7 +1641,7 @@ class RubricRow(Base):
     :ivar assignment_id: The assignment id of the assignment that belows to
         this rubric row.
     """
-    if t.TYPE_CHECKING:
+    if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['RubricRow']]
     __tablename__ = 'RubricRow'
     id: int = db.Column('id', db.Integer, primary_key=True)
@@ -1630,7 +1672,7 @@ class RubricItem(Base):
     """This class holds the information about a single option/item in a
     :class:`RubricRow`.
     """
-    if t.TYPE_CHECKING:
+    if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['RubricItem']]
 
     __tablename__ = 'RubricItem'
@@ -1640,7 +1682,6 @@ class RubricItem(Base):
         'Rubricrow_id', db.Integer,
         db.ForeignKey('RubricRow.id', ondelete='CASCADE')
     )
-    col: int = db.Column('col', db.Integer, default=0)
     description: str = db.Column('description', db.Unicode, default='')
     points: float = db.Column('points', db.Float)
 
@@ -1652,12 +1693,11 @@ class RubricItem(Base):
         """
         return {
             'id': self.id,
-            'col': self.col,
             'description': self.description,
             'points': self.points,
         }
 
 
-if t.TYPE_CHECKING:
+if t.TYPE_CHECKING:  # pragma: no cover
     import psef  # NOQA
     import sqlalchemy.orm as orm  # NOQA

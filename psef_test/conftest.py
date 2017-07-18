@@ -1,29 +1,34 @@
-# -*- py-isort-options: '("-sg *"); -*-
 import os
 import sys
+import copy
+import json
+import datetime
+import contextlib
 
-import flask_login
 import pytest
-
-my_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, my_path + '/../')
+import flask_login
+from werkzeug.local import LocalProxy
 
 import psef
-from psef import db as _db
-import psef.models as m
+import manage
 import psef.auth as a
+import psef.models as m
+from psef import _db
 
 TESTDB = 'test_project.db'
-TESTDB_PATH = "/tmp/psef-{}".format(TESTDB)
+TESTDB_PATH = "/tmp/psef/psef-{}".format(TESTDB)
 TEST_DATABASE_URI = 'sqlite:///' + TESTDB_PATH
 
 
 @pytest.fixture(scope='session')
-def app(request):
+def app():
     """Session-wide test `Flask` application."""
     settings_override = {
         'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': TEST_DATABASE_URI
+        'SQLALCHEMY_DATABASE_URI': TEST_DATABASE_URI,
+        'UPLOAD_DIR': f'/tmp/psef/uploads',
+        'MIRROR_UPLOAD_DIR': f'/tmp/psef/mirror_uploads',
+        'MAX_UPLOAD_SIZE': 2 ** 20,  # 1mb
     }
     app = psef.create_app(settings_override)
 
@@ -36,29 +41,180 @@ def app(request):
     ctx.pop()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def test_client(app):
-    yield app.test_client()
+
+    client = app.test_client()
+
+    with client:
+
+        def req(
+            method,
+            url,
+            status_code,
+            result=None,
+            query=None,
+            data=None,
+            real_data=None,
+            **kwargs
+        ):
+            if real_data is None:
+                data = json.dumps(data) if data is not None else None
+                kwargs['content_type'] = 'application/json'
+            else:
+                data = real_data
+            rv = getattr(client, method)(
+                url,
+                query_string=query,
+                data=data,
+                **kwargs,
+            )
+
+            print(rv.get_data(as_text=True))
+            assert rv.status_code == status_code
+
+            if status_code == 204:
+                assert rv.get_data(as_text=True) == ''
+                assert result is None
+                res = None
+            else:
+                val = json.loads(rv.get_data(as_text=True))
+                res = copy.deepcopy(val)
+
+            def checker(vals, tree):
+                is_list = isinstance(tree, list)
+                i = 0
+                for k, value in enumerate(tree) if is_list else tree.items():
+                    i += 1
+                    assert is_list or k in vals
+
+                    if isinstance(value, type):
+                        assert isinstance(vals[k], value)
+                    elif isinstance(value, list) or isinstance(value, dict):
+                        checker(vals[k], value)
+                    else:
+                        assert vals[k] == value
+
+                assert len(vals) == i
+
+            if result is not None:
+                checker({'top': val}, {'top': result})
+            return res
+
+        client.req = req
+        yield client
 
 
-@pytest.fixture(scope='session')
-def login_endpoint(app, test_client):
+@pytest.fixture
+def error_template():
+    yield {
+        'code': int,
+        'message': str,
+        'description': str,
+    }
+
+
+@pytest.fixture(params=[True, False])
+def boolean(request):
+    yield request.param
+
+
+@pytest.fixture(autouse=True, scope='session')
+def _login_endpoint(app):
     @app.route('/auto_login/<int:id>')
     def _login(id):
         user = m.User.query.get(id)
         flask_login.login_user(user, remember=True)
         return "ok"
-    yield lambda id: test_client.get('/auto_login/' + str(id),
-                                     follow_redirects=True)
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture
+def logged_in(_login_endpoint, test_client):
+    @contextlib.contextmanager
+    def _login(user):
+        if isinstance(user, str) and user == 'NOT_LOGGED_IN':
+            yield None
+        else:
+            test_client.get(f'/auto_login/{user.id}', follow_redirects=True)
+            yield user
+            test_client.delete(f'/api/v1/login', follow_redirects=True)
+
+    yield _login
+
+
+@pytest.fixture
+def named_user(session, request):
+    if request.param == 'NOT_LOGGED_IN':
+        return 'NOT_LOGGED_IN'
+    return LocalProxy(session.query(m.User).filter_by(name=request.param).one)
+
+
+@pytest.fixture
+def student_user(session):
+    return LocalProxy(session.query(m.User).filter_by(name="Stupid1").one)
+
+
+@pytest.fixture
+def ta_user(session):
+    return LocalProxy(
+        session.query(m.User).filter_by(name="Thomas Schaper").one
+    )
+
+
+@pytest.fixture
+def admin_user(session):
+    return LocalProxy(session.query(m.User).filter_by(name="admin").one)
+
+
+@pytest.fixture
+def pse_course(session):
+    return session.query(m.Course).filter_by(
+        name="Project Software Engineering"
+    ).one()
+
+
+@pytest.fixture
+def prog_course(session):
+    yield m.Course.query.filter_by(name='Programmeertalen').one()
+
+
+@pytest.fixture
+def inprog_course(session):
+    yield m.Course.query.filter_by(name='Inleiding Programmeren').one()
+
+
+@pytest.fixture
+def bs_course(session):
+    return session.query(m.Course).filter_by(name="Besturingssystemen").one()
+
+
+@pytest.fixture
+def prolog_course(session):
+    return session.query(m.Course).filter_by(
+        name="Introductie Logisch programmeren"
+    ).one()
+
+
+@pytest.fixture(scope='session', autouse=True)
 def db(app, request):
     """Session-wide test database."""
     if os.path.exists(TESTDB_PATH):
         os.unlink(TESTDB_PATH)
+
     _db.app = app
     _db.create_all()
+
+    connection = _db.engine.connect()
+    options = dict(bind=connection, binds={})
+    session = _db.create_scoped_session(options=options)
+    session.commit()
+    db.session = session
+
+    manage.seed()
+    manage.test_data()
+
+    connection.close()
+    session.remove()
 
     yield _db
 
@@ -66,13 +222,13 @@ def db(app, request):
     os.unlink(TESTDB_PATH)
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='function')
 def session(db, request):
     """Creates a new database session for a test."""
     connection = db.engine.connect()
     transaction = connection.begin()
 
-    options = dict(bind=connection, binds={})
+    options = dict(bind=connection, binds={}, autoflush=False)
     session = db.create_scoped_session(options=options)
 
     db.session = session
@@ -82,3 +238,83 @@ def session(db, request):
     transaction.rollback()
     connection.close()
     session.remove()
+
+
+@pytest.fixture(params=['Programmeertalen'])
+def course_name(request):
+    yield request.param
+
+
+@pytest.fixture(params=[False])
+def state_is_hidden(request):
+    yield request.param
+
+
+@pytest.fixture(params=[False])
+def with_works(request):
+    yield request.param
+
+
+@pytest.fixture(params=['new'])
+def assignment(course_name, state_is_hidden, session, request, with_works):
+    course = m.Course.query.filter_by(name=course_name).one()
+    state = (
+        m._AssignmentStateEnum.hidden
+        if state_is_hidden else m._AssignmentStateEnum.open
+    )
+    assig = m.Assignment(
+        name='TEST COURSE',
+        state=state,
+        course=course,
+        deadline=datetime.datetime.utcnow() +
+        datetime.timedelta(days=1 if request.param == 'new' else -1)
+    )
+    session.add(assig)
+    session.commit()
+
+    if with_works:
+        names = ['Stupid1', 'Stupid2', 'Stupid3']
+        if with_works != 'single':
+            names += names
+        for uname in names:
+            user = m.User.query.filter_by(name=uname).one()
+            work = m.Work(assignment=assig, user=user)
+            session.add(work)
+        session.commit()
+
+    yield assig
+
+
+@pytest.fixture
+def filename(request):
+    yield request.param
+
+
+@pytest.fixture
+def assignment_real_works(
+    filename,
+    test_client,
+    logged_in,
+    assignment,
+):
+    res = []
+    for name in ['Stupid1', 'Stupid2']:
+        user = m.User.query.filter_by(name=name).one()
+        with logged_in(user):
+            res.append(
+                test_client.req(
+                    'post',
+                    f'/api/v1/assignments/{assignment.id}/submission',
+                    201,
+                    real_data={
+                        'file':
+                            (
+                                f'{os.path.dirname(__file__)}/../'
+                                f'test_data/test_linter/{filename}',
+                                os.path.basename(os.path.realpath(filename))
+                            )
+                    }
+                )
+            )
+
+    yield assignment, res[0]

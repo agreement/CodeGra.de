@@ -40,20 +40,21 @@ def login() -> JSONResponse[models.User]:
     """
     data = ensure_json_dict(request.get_json())
     ensure_keys_in_dict(data, [('email', str), ('password', str)])
+    email = t.cast(str, data['email'])
+    password = t.cast(str, data['password'])
 
     # WARNING: Do not use the `helpers.filter_single_or_404` function here as
     # we have to return the same error for a wrong email as for a wrong
     # password!
-    user = db.session.query(models.User).filter(
-        models.User.email == data['email']
-    ).first()
+    user = db.session.query(models.User).filter(models.User.email == email
+                                                ).first()
 
-    if user is None or user.password != data['password']:
+    if user is None or user.password != password:
         raise APIException(
             'The supplied email or password is wrong.', (
                 'The user with email {} does not exist ' +
                 'or has a different password'
-            ).format(data['email']), APICodes.LOGIN_FAILURE, 400
+            ).format(email), APICodes.LOGIN_FAILURE, 400
         )
 
     if not login_user(user, remember=True):

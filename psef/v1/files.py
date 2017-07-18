@@ -50,7 +50,7 @@ def post_file() -> JSONResponse[str]:
             400
         )
 
-    path, name = psef.files.random_file_path()
+    path, name = psef.files.random_file_path('MIRROR_UPLOAD_DIR')
 
     FileStorage(request.stream).save(path)
 
@@ -61,7 +61,7 @@ def post_file() -> JSONResponse[str]:
 
 @api.route('/files/<file_name>', methods=['GET'])
 @login_required
-def get_file(file_name) -> werkzeug.wrappers.Response:
+def get_file(file_name: str) -> werkzeug.wrappers.Response:
     """Serve some specific file in the uploads folder.
 
     .. :quickref: File; Get a uploaded file directory
@@ -77,7 +77,7 @@ def get_file(file_name) -> werkzeug.wrappers.Response:
     name = request.args.get('name')
 
     return send_from_directory(
-        app.config['UPLOAD_DIR'],
+        app.config['MIRROR_UPLOAD_DIR'],
         file_name,
         attachment_filename=name if name else 'export',
         as_attachment=True
