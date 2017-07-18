@@ -31,6 +31,7 @@ export default {
                 success: this.success,
                 failure: this.failure,
             },
+            timeout: null,
         };
     },
 
@@ -95,7 +96,11 @@ export default {
         update(state, mult = 1) {
             this.state = state;
             return new Promise((resolve) => {
-                setTimeout(() => {
+                if (this.timeout != null) {
+                    clearTimeout(this.timeout);
+                }
+                this.timeout = setTimeout(() => {
+                    this.timeout = null;
                     this.state = 'default';
                     this.$nextTick(() => {
                         this.err = '';
