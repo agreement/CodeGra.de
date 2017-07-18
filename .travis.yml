@@ -3,6 +3,10 @@ sudo: false
 notifications:
   email: false
 
+branches:
+  only:
+    - master
+
 cache: pip
 
 matrix:
