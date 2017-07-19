@@ -3,7 +3,7 @@
     <img src="https://codegra.de/static/img/codegrade-inv.svg" alt="CodeGrade" height="130">
   </a>
 </p>
-<p align="center"
+<p align="center">
   <a href="https://travis-ci.org/CodeGra-de/CodeGra.de">
     <img src="https://travis-ci.org/CodeGra-de/CodeGra.de.svg?branch=master"
       alt="Build Status">
@@ -20,11 +20,23 @@
     <img src="https://pyup.io/repos/github/CodeGra-de/CodeGra.de/python-3-shield.svg"
       alt="Python 3">
   </a>
-  <img src="https://img.shields.io/badge/style-%E2%9D%A4%EF%B8%8F%20&%20%F0%9F%8D%BB-ff69b4.svg?label=Made%20with"
+  <img src="https://img.shields.io/badge/style-%E2%9D%A4%EF%B8%8F%20&%20%F0%9F%8D%BB-ff69b4.svg?label=made%20with"
     alt="Made with ❤ & ️🍻">
   <a href="https://codegra.de">
-    <img src="https://img.shields.io/badge/style-CodeGra.de-blue.svg?label=Website"
+    <img src="https://img.shields.io/badge/style-CodeGra.de-blue.svg?label=website"
       alt="CodeGra.de">
+  </a>
+  <img src="https://img.shields.io/badge/semVer-v0.1.0--alpha-green.svg"
+    alt="Semantic Version v0.1.0-alpha">
+  <img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg"
+    alt="License AGPL-3.0">
+  <a href="https://matrix.to/#/#CodeGra.de:matrix.org">
+    <img src="https://img.shields.io/badge/matrix-user-43ad8d.svg"
+      alt="Chat on Matrix">
+  </a>
+  <a href="https://matrix.to/#/#DevCodeGra.de:matrix.org">
+    <img src="https://img.shields.io/badge/matrix-dev-4e42aa.svg"
+      alt="Chat as developer on Matrix">
   </a>
 </p>
 
