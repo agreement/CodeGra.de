@@ -29,12 +29,6 @@ _db = SQLAlchemy(
 db = LocalProxy(lambda: _db)
 
 
-# Sample HTTP error handling
-@app.errorhandler(404)
-def not_found(error: t.Type[Exception]) -> t.Tuple[t.Any, int]:
-    return render_template('404.html'), 404
-
-
 @app.before_request
 def set_request_start_time() -> None:
     g.request_start_time = datetime.datetime.utcnow()
@@ -96,7 +90,8 @@ def teardown_request(exception: t.Type[Exception]) -> None:
 
 
 def create_app(config: t.Mapping=None) -> t.Any:
-    if config is not None:
+    # This code is only used for uwsgi
+    if config is not None:  # pragma: no cover
         app.config.update(config)
     _db.init_app(app)
     return app

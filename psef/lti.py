@@ -213,8 +213,6 @@ class LTI:
                 name=self.course_name, lti_course_id=self.course_id
             )
             db.session.add(course)
-        elif course.lti_provider is None:
-            course.ensure_default_roles()
 
         course.lti_provider = self.lti_provider
         db.session.commit()

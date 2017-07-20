@@ -484,7 +484,6 @@ class User(Base):
                          permission with this name exists.
         """
         if not self.active:
-            print('NOT ACTIVE')
             return False
         if course_id is None:
             return self.role.has_permission(permission)
@@ -647,10 +646,7 @@ class User(Base):
     @staticmethod
     @jwt.user_loader_callback_loader
     def load_user(user_id: int) -> t.Optional['User']:
-        try:
-            return User.query.get(int(user_id))
-        except:
-            return None
+        return User.query.get(int(user_id))
 
     @staticmethod
     def validate_username(username: str) -> str:
@@ -731,21 +727,6 @@ class Course(Base):
             'id': self.id,
             'name': self.name,
         }
-
-    def ensure_default_roles(self) -> None:
-        """Ensures that the default roles (:class:`CourseRole`) for this course
-        exist.
-
-        All changes to the object are not committed to the database.
-
-        :returns: Nothing
-        """
-        for name, perms in CourseRole.get_default_course_roles().items():
-            if not db.session.query(
-                CourseRole.query.filter_by(name=name, course_id=self.id)
-                .exists()
-            ).scalar():
-                CourseRole(name=name, course=self, _permissions=perms)
 
 
 class Work(Base):
