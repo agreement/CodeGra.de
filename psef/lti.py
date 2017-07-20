@@ -5,17 +5,18 @@ import typing as t
 import urllib
 import datetime
 
-import jwt as my_jwt
+import jwt
 import flask
 import oauth2
 import dateutil
 from lxml import etree, objectify
 
 import psef
+import psef.auth as auth
 import psef.models as models
 import psef.helpers as helpers
 from psef import LTI_ROLE_LOOKUPS, db, app, current_user
-from psef.auth import _user_active, ensure_valid_oauth
+from psef.auth import _user_active
 
 
 class LTI:
@@ -62,11 +63,10 @@ class LTI:
         for key, value in params.items():
             if not key.startswith('oauth'):
                 launch_params[key] = value
-        print(launch_params)
 
         self = cls(launch_params, lti_provider)
 
-        ensure_valid_oauth(self.key, self.secret, req)
+        auth.ensure_valid_oauth(self.key, self.secret, req)
 
         return self
 
@@ -89,11 +89,11 @@ class LTI:
         return self.launch_params['lis_person_name_full']
 
     @property
-    def course_id(self) -> str:
+    def course_id(self) -> str:  # pragma: no cover
         return self.launch_params['context_id']
 
     @property
-    def course_name(self) -> str:
+    def course_name(self) -> str:  # pragma: no cover
         """The name of the current LTI course.
         """
         return self.launch_params['context_title']
@@ -426,7 +426,7 @@ class CanvasLTI(LTI):
                 return default
 
 
-@app.route('/lti/launch/1', methods=['POST'])
+@app.route('/api/v1/lti/launch/1', methods=['POST'])
 def launch_lti() -> t.Any:
     """Do a LTI launch.
 
@@ -440,7 +440,7 @@ def launch_lti() -> t.Any:
         '{}/lti_launch/?inLTI=true&jwt={}'.format(
             app.config['EXTERNAL_URL'],
             urllib.parse.quote(
-                my_jwt.encode(
+                jwt.encode(
                     lti, app.config['LTI_SECRET_KEY'], algorithm='HS512'
                 ).decode('utf8')
             )
@@ -448,10 +448,10 @@ def launch_lti() -> t.Any:
     )
 
 
-@app.route('/api/lti/launch/2', methods=['GET'])
+@app.route('/api/v1/lti/launch/2', methods=['GET'])
 def second_phase_lti_launch(
 ) -> helpers.JSONResponse[t.Mapping[str, t.Union[str, models.Assignment]]]:
-    launch_params = my_jwt.decode(
+    launch_params = jwt.decode(
         flask.request.headers.get('Jwt', None),
         app.config['LTI_SECRET_KEY'],
         algorithm='HS512'

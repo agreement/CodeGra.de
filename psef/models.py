@@ -102,7 +102,7 @@ class LTIProvider(Base):
         public_id = str(uuid.uuid4())
 
         while db.session.query(
-            LTIProvider.query.filter(public_id=public_id).exists()
+            LTIProvider.query.filter_by(public_id=public_id).exists()
         ).scalar():  # pragma: no cover
             public_id = str(uuid.uuid4())
 
