@@ -2,39 +2,73 @@
 # https://github.com/ucfopen/lti-template-flask-oauth-tokens
 
 import typing as t
+import urllib
 import datetime
 
+import jwt as my_jwt
 import flask
 import oauth2
 import dateutil
 from lxml import etree, objectify
-from flask_login import login_user, login_fresh
 
+import psef
 import psef.models as models
+import psef.helpers as helpers
 from psef import LTI_ROLE_LOOKUPS, db, app, current_user
-from psef.auth import ensure_valid_oauth
+from psef.auth import _user_active, ensure_valid_oauth
 
 
 class LTI:
     """The base LTI class.
     """
 
-    # TODO support more than just flask
-    def __init__(self, req: flask.Response) -> None:
-        self.launch_params = req.form.copy()  # type: t.Mapping[str, str]
-        self.lti_provider = models.LTIProvider.query.filter_by(
-            key=self.launch_params['oauth_consumer_key']
-        ).first()
-        if self.lti_provider is None:
-            self.lti_provider = models.LTIProvider(
-                key=self.launch_params['oauth_consumer_key']
+    def __init__(
+        self,
+        params: t.Mapping[str, str],
+        lti_provider: models.LTIProvider=None
+    ) -> None:
+        self.launch_params = params
+
+        if lti_provider is not None:
+            self.lti_provider = lti_provider
+        else:
+            lti_id = params['lti_provider_id']
+            self.lti_provider = helpers.filter_single_or_404(
+                models.LTIProvider,
+                models.LTIProvider.public_id == lti_id,
             )
-            db.session.add(self.lti_provider)
 
         self.key = self.lti_provider.key
         self.secret = self.lti_provider.secret
 
+    # TODO support more than just flask
+    @classmethod
+    def create_from_request(cls: t.Type['LTI'], req: flask.Request) -> 'LTI':
+        params = req.form.copy()
+
+        lti_provider = models.LTIProvider.query.filter_by(
+            key=params['oauth_consumer_key']
+        ).first()
+        if lti_provider is None:
+            lti_provider = models.LTIProvider(key=params['oauth_consumer_key'])
+            db.session.add(lti_provider)
+            db.session.commit()
+
+        params['lti_provider_id'] = lti_provider.public_id
+
+        # This is semi sensitive information so it should not end up in the JWT
+        # token.
+        launch_params = {}
+        for key, value in params.items():
+            if not key.startswith('oauth'):
+                launch_params[key] = value
+        print(launch_params)
+
+        self = cls(launch_params, lti_provider)
+
         ensure_valid_oauth(self.key, self.secret, req)
+
+        return self
 
     @property
     def user_id(self) -> str:
@@ -114,7 +148,7 @@ class LTI:
         """
         raise NotImplementedError
 
-    def ensure_lti_user(self) -> models.User:
+    def ensure_lti_user(self) -> t.Tuple[models.User, t.Optional[str]]:
         """Make sure the current LTI user is logged in as a psef user.
 
         This is done by first checking if we know a user with the current LTI
@@ -127,22 +161,28 @@ class LTI:
         Otherwise we create a new user and link this user to current LTI
         user_id.
         """
-        is_logged_in = login_fresh()
-        if is_logged_in and current_user.lti_user_id == self.user_id:
-            # The currently logged in user is now using LTI
-            return current_user
+        is_logged_in = _user_active()
+        token = None
+        user = None
 
         lti_user = models.User.query.filter_by(lti_user_id=self.user_id
                                                ).first()
 
-        if lti_user is not None:
+        if is_logged_in and current_user.lti_user_id == self.user_id:
+            # The currently logged in user is now using LTI
+            user = current_user
+
+        elif lti_user is not None:
             # LTI users are used before the current logged user.
-            login_user(lti_user)
-            return lti_user
+            token = psef.jwt.create_access_token(
+                identity=lti_user.id,
+                fresh=True,
+            )
+            user = lti_user
         elif is_logged_in and current_user.lti_user_id is None:
             # TODO show some sort of screen if this linking is wanted
             current_user.lti_user_id = self.user_id
-            return current_user
+            user = current_user
         else:
             # New LTI user id is found and no user is logged in or the current
             # user has a different LTI user id. A new user is created and
@@ -156,8 +196,12 @@ class LTI:
             )
             db.session.add(user)
             db.session.commit()
-            login_user(user)
-            return user
+            token = psef.jwt.create_access_token(
+                identity=user.id,
+                fresh=True,
+            )
+
+        return user, token
 
     def get_course(self) -> models.Course:
         """Get the current LTI course as a psef course.
@@ -330,9 +374,6 @@ class CanvasLTI(LTI):
     """The LTI class used for the Canvas LMS.
     """
 
-    def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
-        super(CanvasLTI, self).__init__(*args, **kwargs)
-
     @property
     def course_name(self) -> str:
         return self.launch_params['custom_canvas_course_name']
@@ -385,23 +426,51 @@ class CanvasLTI(LTI):
                 return default
 
 
-@app.route('/lti/launch', methods=['POST'])
+@app.route('/lti/launch/1', methods=['POST'])
 def launch_lti() -> t.Any:
     """Do a LTI launch.
 
     .. :quickref: LTI; Do a LTI Launch.
     """
-    lti = CanvasLTI(flask.request)
-    user = lti.ensure_lti_user()
+    lti = {
+        'params': CanvasLTI.create_from_request(flask.request).launch_params,
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
+    }
+    return flask.redirect(
+        '{}/lti_launch/?inLTI=true&jwt={}'.format(
+            app.config['EXTERNAL_URL'],
+            urllib.parse.quote(
+                my_jwt.encode(
+                    lti, app.config['LTI_SECRET_KEY'], algorithm='HS512'
+                ).decode('utf8')
+            )
+        )
+    )
+
+
+@app.route('/api/lti/launch/2', methods=['GET'])
+def second_phase_lti_launch(
+) -> helpers.JSONResponse[t.Mapping[str, t.Union[str, models.Assignment]]]:
+    launch_params = my_jwt.decode(
+        flask.request.headers.get('Jwt', None),
+        app.config['LTI_SECRET_KEY'],
+        algorithm='HS512'
+    )['params']
+    lti = CanvasLTI(launch_params)
+
+    user, new_token = lti.ensure_lti_user()
     course = lti.get_course()
     assig = lti.get_assignment()
     lti.set_user_role(user)
     lti.set_user_course_role(user, course)
     db.session.commit()
-    return flask.redirect(
-        '{}/courses/{}/assignments/{}/submissions?lti=true'.
-        format(app.config['EXTERNAL_URL'], course.id, assig.id)
-    )
+
+    result: t.Mapping[str, t.Union[str, models.Assignment]]
+    result = {'assignment': assig}
+    if new_token is not None:
+        result['access_token'] = new_token
+
+    return helpers.jsonify(result)
 
 
 # This part is largely copied from https://github.com/tophatmonocle/ims_lti_py

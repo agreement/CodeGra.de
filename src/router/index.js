@@ -1,7 +1,7 @@
 import Vue from 'vue';
 import Router from 'vue-router';
 import store from '@/store';
-import { Assignments, Courses, Home, Login, ManageCourse, Submission, Submissions, User } from '@/pages';
+import { LTILaunch, Assignments, Courses, Home, Login, ManageCourse, Submission, Submissions, User } from '@/pages';
 import { NewCourse, UsersManager, RubricEditor } from '@/components';
 
 import { setTitle } from '@/pages/title';
@@ -16,6 +16,11 @@ const router = new Router({
             path: '/',
             name: 'home',
             component: Home,
+        },
+        {
+            path: '/lti_launch/',
+            name: 'lti-launch',
+            component: LTILaunch,
         },
         {
             path: '/login',
@@ -95,7 +100,7 @@ router.beforeEach((to, from, next) => {
         const path = restorePath;
         restorePath = '';
         next({ path });
-    } else if (!loggedIn && to.path !== '/login' && to.name !== 'home') {
+    } else if (!loggedIn && to.path !== '/login' && to.name !== 'home' && to.name !== 'lti-launch') {
         store.dispatch('user/verifyLogin').then(() => {
             next();
         }).catch(() => {

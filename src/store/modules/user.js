@@ -172,6 +172,9 @@ const mutations = {
         state.name = username;
         state.email = email;
     },
+    [types.UPDATE_ACCESS_TOKEN](state, data) {
+        state.jwtToken = data.access_token;
+    },
 };
 
 export default {

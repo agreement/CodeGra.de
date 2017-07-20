@@ -1,10 +1,11 @@
-# Statement for enabling the development environment
-DEBUG = True
-
 import os
+import sys
 import json
-# Define the application directory
+import secrets
 import datetime
+
+# Statement for enabling the development environment
+DEBUG = os.environ.get('DEBUG_ON', False) == 'True'
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -29,8 +30,17 @@ CSRF_ENABLED = True
 # signing the data.
 CSRF_SESSION_KEY = os.environ.get('CSRF_SECRET_KEY') or 'secret'
 
-# Secret key for signing cookies
-SECRET_KEY = os.environ.get('SECRET_KEY', False) or 'secret'
+BYTES_RANDOM = 64
+
+# Secret key for signing JWT tokens
+if os.environ.get('SECRET_KEY', False) == 'GENERATE':
+    SECRET_KEY = secrets.token_hex(BYTES_RANDOM)
+elif os.environ.get('SECRET_KEY', False):
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+else:
+    print('WARNING: No secret key given!', file=sys.stderr)
+    SECRET_KEY = 'secret'
+LTI_SECRET_KEY = secrets.token_hex(BYTES_RANDOM)
 
 JWT_ALGORITHM = 'HS512'
 JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(days=30)

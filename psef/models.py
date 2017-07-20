@@ -94,8 +94,19 @@ class LTIProvider(Base):
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['LTIProvider']]
     __tablename__ = 'LTIProvider'
-    id = db.Column('id', db.Integer, primary_key=True)
-    key: str = db.Column('key', db.Unicode)
+    public_id: str = db.Column('id', db.String(32))
+    key: str = db.Column('key', db.Unicode, primary_key=True)
+
+    def __init__(self, key: str) -> None:
+        self.key = key
+        public_id = str(uuid.uuid4())
+
+        while db.session.query(
+            LTIProvider.query.filter(public_id=public_id).exists()
+        ).scalar():  # pragma: no cover
+            public_id = str(uuid.uuid4())
+
+        self.public_id = public_id
 
     @property
     def secret(self) -> str:
@@ -1235,8 +1246,8 @@ class AssignmentLinter(Base):
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['AssignmentLinter']]
     __tablename__ = 'AssignmentLinter'  # type: str
-    # This has to be a Unicode object as the id has to be a non guessable uuid.
-    id: str = db.Column('id', db.Unicode, nullable=False, primary_key=True)
+    # This has to be a String object as the id has to be a non guessable uuid.
+    id: str = db.Column('id', db.String(36), nullable=False, primary_key=True)
     name: str = db.Column('name', db.Unicode)
     tests = db.relationship(
         "LinterInstance",
@@ -1336,7 +1347,7 @@ class LinterInstance(Base):
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['LinterInstance']]
     __tablename__ = 'LinterInstance'
-    id: str = db.Column('id', db.Unicode, nullable=False, primary_key=True)
+    id: str = db.Column('id', db.String(36), nullable=False, primary_key=True)
     state: LinterState = db.Column(
         'state',
         db.Enum(LinterState),
