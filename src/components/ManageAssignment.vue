@@ -72,8 +72,13 @@
             <div class="row">
                 <div class="col-md-6">
                     <b-form-fieldset label="Upload blackboard zip">
-                        <b-popover placement="top" :triggers="assignment.is_lti ? ['hover'] : []" content="Not available for LTI assignments">
-                            <blackboard-uploader :disabled="assignment.is_lti" :assignment="assignment"></blackboard-uploader>
+                        <b-popover
+                            placement="top"
+                            :triggers="assignment.is_lti ? ['hover'] : []"
+                            content="Not available for LTI assignments">
+                            <file-uploader
+                                :url="`/api/v1/assignments/${assignment.id}/submissions/`"
+                                :disabled="assignment.is_lti"/>
                         </b-popover>
                     </b-form-fieldset>
                 </div>
@@ -101,7 +106,7 @@ import 'vue-awesome/icons/clock-o';
 import 'vue-awesome/icons/check';
 
 import DivideSubmissions from './DivideSubmissions';
-import BlackboardUploader from './BlackboardUploader';
+import FileUploader from './FileUploader';
 import Linters from './Linters';
 import Loader from './Loader';
 import SubmitButton from './SubmitButton';
@@ -167,18 +172,15 @@ export default {
             const req = this.$http.patch(this.assignmentUrl, {
                 deadline: this.assignment.deadline,
             });
-            req.catch(([err]) => {
-                // TODO: visual feedback
-                // eslint-disable-next-line
-                console.dir(err);
-            });
-            this.$refs.updateDeadline.submit(req);
+            this.$refs.updateDeadline.submit(req.catch((err) => {
+                throw err.response.data.message;
+            }));
         },
     },
 
     components: {
-        BlackboardUploader,
         DivideSubmissions,
+        FileUploader,
         Linters,
         Loader,
         SubmitButton,

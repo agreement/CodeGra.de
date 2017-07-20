@@ -14,7 +14,6 @@ import Login from './Login';
 import NavBar from './NavBar';
 import UserInfo from './UserInfo';
 import AssignmentList from './AssignmentList';
-import CodeUploader from './CodeUploader';
 import SubmissionList from './SubmissionList';
 import DivideSubmissions from './DivideSubmissions';
 import UsersManager from './UsersManager';
@@ -22,7 +21,6 @@ import PermissionsManager from './PermissionsManager';
 import SubmissionsExporter from './SubmissionsExporter';
 import SnippetManager from './SnippetManager';
 import PdfViewer from './PdfViewer';
-import BlackboardUploader from './BlackboardUploader';
 import SubmissionNavBar from './SubmissionNavBar';
 import NewCourse from './NewCourse';
 import CourseList from './CourseList';
@@ -31,7 +29,6 @@ import RubricEditor from './RubricEditor';
 export {
     Linters,
     Linter,
-    BlackboardUploader,
     CodeViewer,
     LinterFeedbackArea,
     ManageAssignment,
@@ -46,7 +43,6 @@ export {
     NavBar,
     UserInfo,
     AssignmentList,
-    CodeUploader,
     SubmissionList,
     DivideSubmissions,
     SubmissionsExporter,

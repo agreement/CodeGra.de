@@ -1,83 +1,100 @@
 <template>
-    <loader :class="`col-md-12 text-center`" v-if="loading < 3">
-    </loader>
+    <loader :class="`col-md-12 text-center`" v-if="loading"/>
     <div class="page submission-list" v-else>
-        <h1>Submissions for {{ assignment.name }} in
-            <router-link :to="{ name: 'assignments', query: { q: course.name }}">{{ course.name }}</router-link>
+        <h1>
+            Submissions for {{ assignment.name }} in
+            <router-link :to="{ name: 'assignments', query: { q: course.name }}">
+                {{ course.name }}
+            </router-link>
         </h1>
-        <submission-list :assignment="assignment" :submissions="submissions" :canDownload="canDownload"></submission-list>
-        <code-uploader :assignment="assignment" v-if="canUpload"></code-uploader>
+        <submission-list
+            :assignment="assignment"
+            :submissions="submissions"
+            :canDownload="canDownload"/>
+        <b-popover
+            placement="top"
+            :triggers="assignment.is_lti && !inLTI ? ['hover'] : []"
+            content="You can only submit this assignment from within your LMS">
+            <file-uploader
+                :url="`/api/v1/assignments/${this.assignmentId}/submission`"
+                @response="goToSubmission"
+                v-if="canUpload"/>
+        </b-popover>
     </div>
 </template>
 
 <script>
 import { mapActions } from 'vuex';
-import { SubmissionList, CodeUploader, Loader }
-    from '@/components';
+import { SubmissionList, Loader } from '@/components';
 import moment from 'moment';
 
+import FileUploader from '@/components/FileUploader';
 import * as assignmentState from '../store/assignment-states';
 
 import { setTitle, titleSep } from './title';
 
 export default {
-    name: 'submission-list-page',
+    name: 'submissions-page',
 
     data() {
         return {
-            loading: 0,
-            assignmentId: this.$route.params.assignmentId,
-            courseId: this.$route.params.courseId,
+            loading: false,
             submissions: [],
             canUpload: false,
             assignment: null,
             course: null,
             canDownload: false,
-            showAssignedFilter: false,
+            inLTI: window.inLTI,
         };
-    },
-
-    mounted() {
-        const partDone = () => {
-            this.loading += 1;
-        };
-
-        this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`).then(({ data }) => {
-            partDone();
-            this.submissions = data;
-            for (let i = 0, len = data.length; i < len; i += 1) {
-                data[i].created_at = moment.utc(data[i].created_at, moment.ISO_8601).local().format('YYYY-MM-DD HH:mm');
-            }
-        });
-
-        this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then(({ data }) => {
-            setTitle(`${data.name} ${titleSep} Submissions`);
-
-            this.assignment = data;
-            this.assignment.id = this.assignmentId;
-
-            this.hasPermission(['can_submit_own_work', 'can_see_others_work', 'can_see_grade_before_open']).then(([submit, others, before]) => {
-                this.canUpload = submit && this.assignment.state === assignmentState.SUBMITTING;
-
-                if (others && this.assignment.state === assignmentState.DONE) {
-                    this.canDownload = true;
-                } else if (others) {
-                    this.canDownload = before;
-                }
-                partDone();
-            });
-        });
-
-        this.$http.get(`/api/v1/courses/${this.courseId}`).then(({ data }) => {
-            this.course = data;
-            partDone();
-        });
     },
 
     computed: {
+        assignmentId() {
+            return this.$route.params.assignmentId;
+        },
+        courseId() {
+            return this.$route.params.courseId;
+        },
         courseLink() {
             return `/assignments?q=${this.course.name}`;
         },
+    },
+
+    mounted() {
+        Promise.all([
+            this.$http.get(`/api/v1/courses/${this.courseId}`),
+            this.$http.get(`/api/v1/assignments/${this.assignmentId}`),
+            this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`),
+        ]).then(([{ data: course }, { data: assignment }, { data: submissions }]) => {
+            this.loading = false;
+
+            this.course = course;
+            this.assignment = assignment;
+            this.submissions = submissions;
+
+            this.hasPermission([
+                'can_submit_own_work', 'can_see_others_work', 'can_see_grade_before_open',
+            ]).then(([submit, others, before]) => {
+                this.canUpload = submit && this.assignment.state === assignmentState.SUBMITTING;
+
+                if (others) {
+                    if (this.assignment.state === assignmentState.DONE) {
+                        this.canDownload = true;
+                    } else {
+                        this.canDownload = before;
+                    }
+                }
+            });
+
+            setTitle(`${assignment.name} ${titleSep} Submissions`);
+
+            submissions.forEach((sub) => {
+                sub.created_at = moment.utc(sub.created_at, moment.ISO_8601).local().format('YYYY-MM-DD HH:mm');
+            });
+        }, (err) => {
+            // eslint-disable-next-line
+            console.dir(err);
+        });
     },
 
     methods: {
@@ -85,7 +102,7 @@ export default {
             return this.u_hasPermission({ name: perm, course_id: this.courseId });
         },
 
-        gotoSubmission(submission) {
+        goToSubmission({ data: submission }) {
             this.$router.push({
                 name: 'submission',
                 params: { submissionId: submission.id },
@@ -98,8 +115,8 @@ export default {
     },
 
     components: {
+        FileUploader,
         SubmissionList,
-        CodeUploader,
         Loader,
     },
 };
