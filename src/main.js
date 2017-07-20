@@ -28,6 +28,14 @@ if (console.dir) console.log = console.dir;
 // Execute additional setup code
 require('./setup.js');
 
+axios.defaults.transformRequest.push((data, headers) => {
+    if (store.state.user.jwtToken) {
+        headers.Authorization = `Bearer ${store.state.user.jwtToken}`;
+    }
+    return data;
+});
+
+
 Vue.prototype.$http = axios;
 
 /* eslint-disable no-new */

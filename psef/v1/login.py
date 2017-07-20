@@ -6,11 +6,10 @@ User object of the logged in user.
 import typing as t
 
 from flask import request
-from flask_login import login_user, logout_user, login_required
 
 import psef.auth as auth
 import psef.models as models
-from psef import db, current_user
+from psef import db, jwt, current_user
 from psef.errors import APICodes, APIException
 from psef.helpers import (
     JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
@@ -21,7 +20,7 @@ from . import api
 
 
 @api.route("/login", methods=["POST"])
-def login() -> JSONResponse[models.User]:
+def login() -> JSONResponse[t.Mapping[str, t.Union[models.User, str]]]:
     """Login a :class:`.models.User` if the request is valid.
 
     .. :quickref: User; Login a given user.
@@ -46,6 +45,7 @@ def login() -> JSONResponse[models.User]:
     # WARNING: Do not use the `helpers.filter_single_or_404` function here as
     # we have to return the same error for a wrong email as for a wrong
     # password!
+    user: t.Optional[models.User]
     user = db.session.query(models.User).filter(models.User.email == email
                                                 ).first()
 
@@ -57,18 +57,28 @@ def login() -> JSONResponse[models.User]:
             ).format(email), APICodes.LOGIN_FAILURE, 400
         )
 
-    if not login_user(user, remember=True):
+    if not user.is_active:
         raise APIException(
             'User is not active',
             ('The user with id "{}" is not active any more').format(user.id),
             APICodes.INACTIVE_USER, 403
         )
 
-    return jsonify(user)
+    return jsonify(
+        {
+            'user':
+                user,
+            'access_token':
+                jwt.create_access_token(
+                    identity=user.id,
+                    fresh=True,
+                )
+        }
+    )
 
 
 @api.route("/login", methods=["GET"])
-@login_required
+@auth.login_required
 def me() -> JSONResponse[t.Union[models.User, t.Mapping[int, str],
                                  t.Mapping[str, t.Any]]]:
     """Get the info of the currently logged in :class:`.models.User`.
@@ -93,11 +103,11 @@ def me() -> JSONResponse[t.Union[models.User, t.Mapping[int, str],
         )
     elif request.args.get('type') == 'extended':
         return jsonify(current_user.__extended_to_json__())
-    return jsonify(current_user)
+    return jsonify(current_user.__to_json__())
 
 
 @api.route('/login', methods=['PATCH'])
-@login_required
+@auth.login_required
 def get_user_update() -> EmptyResponse:
     """Change data of the current :class:`.models.User`.
 
@@ -168,16 +178,4 @@ def get_user_update() -> EmptyResponse:
         user.password = n_password
 
     db.session.commit()
-    return make_empty_response()
-
-
-@api.route("/login", methods=["DELETE"])
-def logout() -> EmptyResponse:
-    """Logout the currently logged in :class:`.models.User`.
-
-    .. :quickref: User; Log out the currently logged in user.
-
-    :returns: An empty response with return code 204
-    """
-    logout_user()
     return make_empty_response()

@@ -15,7 +15,6 @@ from itertools import cycle
 import flask
 import dateutil
 from flask import request, send_file, after_this_request
-from flask_login import login_required
 
 import psef
 import psef.auth as auth
@@ -35,7 +34,7 @@ from . import api
 
 
 @api.route("/assignments/", methods=['GET'])
-@login_required
+@auth.login_required
 def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
     """Get all the :class:`.models.Assignment` objects that the current user
     can see.
@@ -49,6 +48,7 @@ def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
     perm_can_see: models.Permission = models.Permission.query.filter_by(
         name='can_see_assignments'
     ).first()
+    print(current_user.id, current_user.name)
     courses = []
 
     for course_role in current_user.courses.values():
@@ -483,7 +483,7 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
             models.User.id.in_(graders)  # type: ignore
         )
     else:
-        models.Work.query.filter_by(assignment=assignment).update(
+        models.Work.query.filter_by(assignment_id=assignment.id).update(
             {
                 'assigned_to': None
             }

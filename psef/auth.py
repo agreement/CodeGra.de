@@ -7,7 +7,7 @@ import oauth2
 from mypy_extensions import NoReturn
 
 import psef
-from psef import app, login_manager
+from psef import app, jwt
 from psef.errors import APICodes, APIException
 
 
@@ -19,7 +19,6 @@ class PermissionException(APIException):
         super(PermissionException, self).__init__(*args, **kwargs)
 
 
-@login_manager.unauthorized_handler
 def _raise_login_exception(desc: str='No user was logged in.') -> NoReturn:
     raise PermissionException(
         'You need to be logged in to do this.', desc, APICodes.NOT_LOGGED_IN,
@@ -27,15 +26,36 @@ def _raise_login_exception(desc: str='No user was logged in.') -> NoReturn:
     )
 
 
+@jwt.revoked_token_loader
+@jwt.expired_token_loader
+@jwt.invalid_token_loader
+@jwt.needs_fresh_token_loader
+def _handle_jwt_errors(
+    reason: str='No user was logged in.',
+) -> 'psef.helpers.JSONResponse[PermissionException]':
+    return psef.helpers.jsonify(
+        PermissionException(
+            'You need to be logged in to do this.',
+            reason,
+            APICodes.NOT_LOGGED_IN,
+            401,
+        ),
+        status_code=401
+    )
+
+
+jwt.user_loader_error_loader(
+    lambda id: _handle_jwt_errors(f'No user with id "{id}" was found.')
+)
+
+
 def _user_active() -> bool:
     """Check if there is a current user who is authenticated and active.
 
     :returns: True if there is an active logged in user
     """
-    return (
-        psef.current_user is not None and
-        psef.current_user.is_authenticated and psef.current_user.is_active
-    )
+    user = psef.current_user._get_current_object()  # type: ignore
+    return user is not None and user.is_active
 
 
 def ensure_can_see_grade(work: 'psef.models.Work') -> None:
@@ -142,8 +162,20 @@ def permission_required(
     return decorator
 
 
-# The code below is copied for a large part from here:
-# https://github.com/tophatmonocle/ims_lti_py
+def login_required(fn: t.Callable) -> t.Callable:
+    """Make sure a valid user is logged in at this moment.
+
+    :raises PermissionException: If no user was logged in.
+    """
+
+    @wraps(fn)
+    def wrapper(*args: t.Any, **kwargs: t.Any) -> t.Any:
+        if _user_active():
+            return fn(*args, **kwargs)
+        else:
+            _raise_login_exception()
+
+    return wrapper
 
 
 class RequestValidatorMixin(object):

@@ -6,8 +6,8 @@ APIs are used communicate the permissions users.
 import typing as t
 
 from flask import request
-from flask_login import login_required
 
+import psef.auth as auth
 from psef import current_user
 from psef.errors import APICodes, APIException
 from psef.helpers import (
@@ -22,7 +22,7 @@ if t.TYPE_CHECKING:  # pragma: no cover
 
 
 @api.route('/permissions/', methods=['GET'])
-@login_required
+@auth.login_required
 def get_permissions(
 ) -> JSONResponse[t.Union[t.Mapping[int, bool], t.Mapping[str, bool], bool]]:
     """Get the permissions (:class:`.models.Permission`) of the currently

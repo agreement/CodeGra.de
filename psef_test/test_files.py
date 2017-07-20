@@ -42,10 +42,14 @@ def test_get_code_metadata(
                 test_client.req(
                     'get',
                     f'/api/v1/files/{fname}',
-                    error,
+                    404,
                     result=error_template,
                 )
             else:
                 res = test_client.get(f'/api/v1/files/{fname}')
                 assert res.status_code == 200
+
                 assert res.get_data(as_text=True) == filestr
+
+                res = test_client.get(f'/api/v1/files/{fname}')
+                assert res.status_code == 404

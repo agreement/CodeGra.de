@@ -8,7 +8,6 @@ APIs are used to manipulate student submitted code and the related feedback.
 import typing as t
 
 from flask import request, make_response
-from flask_login import login_required
 
 import psef.auth as auth
 import psef.files
@@ -115,7 +114,7 @@ def remove_comment(id: int, line: int) -> EmptyResponse:
 
 
 @api.route("/code/<int:file_id>", methods=['GET'])
-@login_required
+@auth.login_required
 def get_code(
     file_id: int
 ) -> t.Union['werkzeug.wrappers.Response',

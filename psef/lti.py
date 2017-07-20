@@ -127,7 +127,7 @@ class LTI:
         Otherwise we create a new user and link this user to current LTI
         user_id.
         """
-        is_logged_in = login_fresh() and current_user.is_authenticated
+        is_logged_in = login_fresh()
         if is_logged_in and current_user.lti_user_id == self.user_id:
             # The currently logged in user is now using LTI
             return current_user

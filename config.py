@@ -1,9 +1,10 @@
 # Statement for enabling the development environment
 DEBUG = True
 
-# Define the application directory
 import os
 import json
+# Define the application directory
+import datetime
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -26,10 +27,13 @@ CSRF_ENABLED = True
 
 # Use a secure, unique and absolutely secret key for
 # signing the data.
-CSRF_SESSION_KEY = "secret"
+CSRF_SESSION_KEY = os.environ.get('CSRF_SECRET_KEY') or 'secret'
 
 # Secret key for signing cookies
-SECRET_KEY = "secret"
+SECRET_KEY = os.environ.get('SECRET_KEY', False) or 'secret'
+
+JWT_ALGORITHM = 'HS512'
+JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(days=30)
 
 # Path for storage of uploaded files
 UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')

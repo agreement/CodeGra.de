@@ -27,7 +27,7 @@ does_have_permission = pytest.mark.does_have_permission
     ]
 )
 def test_login(
-    test_client, session, error_template, password, email, request, active
+    test_client, session, error_template, password, email, request, active, app
 ):
     new_user = m.User(
         name='NEW_USER', email='a@a.nl', password='a', active=active
@@ -53,20 +53,29 @@ def test_login(
     if email is not None:
         data['email'] = email
 
-    test_client.req(
+    res = test_client.req(
         'post',
         f'/api/v1/login',
         error or 200,
         data=data,
-        result=error_template
-        if error else {'email': 'a@a.nl',
-                       'id': int,
-                       'name': 'NEW_USER'}
+        result=error_template if error else {
+            'user': {
+                'email': 'a@a.nl',
+                'id': int,
+                'name': 'NEW_USER'
+            },
+            'access_token': str
+        }
     )
-    test_client.req('get', '/api/v1/login', 401 if error else 200)
+    access_token = '' if error else res['access_token']
 
-    if not error:
-        test_client.req('delete', '/api/v1/login', 204)
+    with app.app_context():
+        test_client.req(
+            'get',
+            '/api/v1/login',
+            401 if error else 200,
+            headers={'Authorization': f'Bearer {access_token}'}
+        )
 
     test_client.req('get', '/api/v1/login', 401)
 

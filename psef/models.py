@@ -15,14 +15,10 @@ from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 import psef.auth as auth
-from psef import db, app, login_manager
+from psef import db, app, jwt
 from psef.helpers import get_request_start_time
 
 if t.TYPE_CHECKING:  # pragma: no cover
-
-    class UserMixin:
-        is_authenticated: bool
-
     T = t.TypeVar('T', bound='Base')
 
     class Base:
@@ -41,7 +37,6 @@ if t.TYPE_CHECKING:  # pragma: no cover
         def filter_by(self, *args: t.Any, **kwargs: t.Any) -> t.Any:
             ...
 else:
-    from flask_login import UserMixin
     import psef
     Base = db.Model
 
@@ -402,7 +397,7 @@ class Role(Base):
         return result
 
 
-class User(Base, UserMixin):
+class User(Base):
     """This class describes a user of the system.
 
     :ivar lti_user_id: The id of this user in a LTI consumer.
@@ -414,7 +409,11 @@ class User(Base, UserMixin):
     :ivar password: The password of this user, it is automatically hashed.
     :ivar assignment_results: The way this user can do LTI grade passback.
     """
+    # Python 3 implicitly set __hash__ to None if we override __eq__
+    # We set it back to its default implementation
+    __hash__ = object.__hash__
     __tablename__ = "User"
+
     id: int = db.Column('id', db.Integer, primary_key=True)
 
     # All stuff for LTI
@@ -449,6 +448,12 @@ class User(Base, UserMixin):
     )
 
     role: Role = db.relationship('Role', foreign_keys=role_id, lazy='select')
+
+    def __eq__(self, other: t.Any) -> bool:
+        return isinstance(other, User) and self.id == other.id
+
+    def __ne__(self, other: t.Any) -> bool:
+        return not self.__eq__(other)
 
     def has_permission(
         self,
@@ -629,9 +634,12 @@ class User(Base, UserMixin):
         return self.active
 
     @staticmethod
-    @login_manager.user_loader
-    def load_user(user_id: int) -> 'User':
-        return User.query.get(int(user_id))
+    @jwt.user_loader_callback_loader
+    def load_user(user_id: int) -> t.Optional['User']:
+        try:
+            return User.query.get(int(user_id))
+        except:
+            return None
 
     @staticmethod
     def validate_username(username: str) -> str:

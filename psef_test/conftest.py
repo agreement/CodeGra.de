@@ -6,14 +6,14 @@ import datetime
 import contextlib
 
 import pytest
-import flask_login
+from flask import _app_ctx_stack as ctx_stack
 from werkzeug.local import LocalProxy
 
 import psef
 import manage
 import psef.auth as a
 import psef.models as m
-from psef import _db
+from psef import _db, jwt
 
 TESTDB = 'test_project.db'
 TESTDB_PATH = "/tmp/psef/psef-{}".format(TESTDB)
@@ -33,76 +33,81 @@ def app():
     app = psef.create_app(settings_override)
 
     # Establish an application context before running the tests.
-    ctx = app.app_context()
-    ctx.push()
+    with app.app_context():
 
-    yield app
+        class FlaskTestClientProxy(object):
+            def __init__(self, app):
+                self.app = app
 
-    ctx.pop()
+            def __call__(self, environ, start_response):
+                if _TOKENS and _TOKENS[-1] is not None:
+                    environ['HTTP_AUTHORIZATION'] = f'Bearer {_TOKENS[-1]}'
+                return self.app(environ, start_response)
+
+        app.wsgi_app = FlaskTestClientProxy(app.wsgi_app)
+
+        yield app
 
 
 @pytest.fixture
 def test_client(app):
-
     client = app.test_client()
 
-    with client:
-
-        def req(
-            method,
+    def req(
+        method,
+        url,
+        status_code,
+        result=None,
+        query=None,
+        data=None,
+        real_data=None,
+        **kwargs
+    ):
+        if real_data is None:
+            data = json.dumps(data) if data is not None else None
+            kwargs['content_type'] = 'application/json'
+        else:
+            data = real_data
+        rv = getattr(client, method)(
             url,
-            status_code,
-            result=None,
-            query=None,
-            data=None,
-            real_data=None,
-            **kwargs
-        ):
-            if real_data is None:
-                data = json.dumps(data) if data is not None else None
-                kwargs['content_type'] = 'application/json'
-            else:
-                data = real_data
-            rv = getattr(client, method)(
-                url,
-                query_string=query,
-                data=data,
-                **kwargs,
-            )
+            query_string=query,
+            data=data,
+            **kwargs,
+        )
 
-            print(rv.get_data(as_text=True))
-            assert rv.status_code == status_code
+        print(rv.get_data(as_text=True))
+        assert rv.status_code == status_code
 
-            if status_code == 204:
-                assert rv.get_data(as_text=True) == ''
-                assert result is None
-                res = None
-            else:
-                val = json.loads(rv.get_data(as_text=True))
-                res = copy.deepcopy(val)
+        if status_code == 204:
+            assert rv.get_data(as_text=True) == ''
+            assert result is None
+            res = None
+        else:
+            val = json.loads(rv.get_data(as_text=True))
+            res = copy.deepcopy(val)
 
-            def checker(vals, tree):
-                is_list = isinstance(tree, list)
-                i = 0
-                for k, value in enumerate(tree) if is_list else tree.items():
-                    i += 1
-                    assert is_list or k in vals
+        def checker(vals, tree):
+            is_list = isinstance(tree, list)
+            i = 0
+            for k, value in enumerate(tree) if is_list else tree.items():
+                i += 1
+                assert is_list or k in vals
 
-                    if isinstance(value, type):
-                        assert isinstance(vals[k], value)
-                    elif isinstance(value, list) or isinstance(value, dict):
-                        checker(vals[k], value)
-                    else:
-                        assert vals[k] == value
+                if isinstance(value, type):
+                    assert isinstance(vals[k], value)
+                elif isinstance(value, list) or isinstance(value, dict):
+                    checker(vals[k], value)
+                else:
+                    assert vals[k] == value
 
-                assert len(vals) == i
+            assert len(vals) == i
 
-            if result is not None:
-                checker({'top': val}, {'top': result})
-            return res
+        if result is not None:
+            checker({'top': val}, {'top': result})
+        return res
 
-        client.req = req
-        yield client
+    client.req = req
+    yield client
 
 
 @pytest.fixture
@@ -119,25 +124,27 @@ def boolean(request):
     yield request.param
 
 
-@pytest.fixture(autouse=True, scope='session')
-def _login_endpoint(app):
-    @app.route('/auto_login/<int:id>')
-    def _login(id):
-        user = m.User.query.get(id)
-        flask_login.login_user(user, remember=True)
-        return "ok"
+_TOKENS = []
 
 
 @pytest.fixture
-def logged_in(_login_endpoint, test_client):
+def logged_in():
     @contextlib.contextmanager
     def _login(user):
+        setattr(ctx_stack.top, 'jwt_user', None)
         if isinstance(user, str) and user == 'NOT_LOGGED_IN':
-            yield None
+            _TOKENS.append(None)
+            res = None
         else:
-            test_client.get(f'/auto_login/{user.id}', follow_redirects=True)
-            yield user
-            test_client.delete(f'/api/v1/login', follow_redirects=True)
+            _TOKENS.append(
+                jwt.create_access_token(identity=user.id, fresh=True)
+            )
+            res = user
+
+        yield res
+
+        _TOKENS.pop(-1)
+        setattr(ctx_stack.top, 'jwt_user', None)
 
     yield _login
 
