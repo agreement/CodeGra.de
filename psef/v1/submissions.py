@@ -75,7 +75,9 @@ def get_feedback(work: models.Work) -> t.Mapping[str, str]:
     """Get the feedback of :class:`.models.Work` as a plain text file.
 
     :param work: The submission with the required feedback.
-    :returns: A response with the plain text feedback as attached file.
+    :returns: A object with two keys: ``name`` where the value is the name
+        which can be given to ``GET - /api/v1/files/<name>`` and
+        ``output_name`` which is the resulting file should be named.
     """
     comments: t.Sequence[models.Comment] = models.Comment.query.filter(
         models.Comment.file.has(work=work)).order_by(  # type: ignore
@@ -125,7 +127,9 @@ def get_zip(work: models.Work) -> t.Mapping[str, str]:
     """Return a :class:`.models.Work` as a zip file.
 
     :param work: The submission which should be returns as zip file.
-    :returns: A response with the zip as attached file.
+    :returns: A object with two keys: ``name`` where the value is the name
+        which can be given to ``GET - /api/v1/files/<name>`` and
+        ``output_name`` which is the resulting file should be named.
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If submission does not belong to the current
