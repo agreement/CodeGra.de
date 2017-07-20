@@ -25,10 +25,24 @@ Vue.config.productionTip = false;
 // eslint-disable-next-line
 if (console.dir) console.log = console.dir;
 
-// Execute additional setup code
-require('./setup.js');
-
 Vue.prototype.$http = axios;
+
+axios.interceptors.response.use(response => response, (() => {
+    let toastVisible = false;
+    return (error) => {
+        if (!error.response && error.request && !toastVisible) {
+            toastVisible = true;
+            Vue.toasted.error('There was an error connecting to the server... Please try again later', {
+                position: 'bottom-center',
+                duration: 3000,
+                onComplete: () => {
+                    toastVisible = false;
+                },
+            });
+        }
+        throw error;
+    };
+})());
 
 /* eslint-disable no-new */
 new Vue({
