@@ -120,14 +120,8 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
     auth.ensure_permission('can_manage_course', assig.course_id)
 
     content = ensure_json_dict(request.get_json())
-    ensure_keys_in_dict(
-        content, [('state', str),
-                  ('name', str),
-                  ('deadline', str)]
-    )
+    ensure_keys_in_dict(content, [('state', str)])
     state = t.cast(str, content['state'])
-    name = t.cast(str, content['name'])
-    deadline = t.cast(str, content['deadline'])
 
     if state in ['hidden', 'open', 'done']:
         assig.set_state(state)
@@ -138,23 +132,29 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
             APICodes.INVALID_PARAM, 400
         )
 
-    if not name:
-        raise APIException(
-            'The name of an assignment should be at least 1 char',
-            'len({}) == 0'.format(content['name']),
-            APICodes.INVALID_PARAM,
-            400,
-        )
-    assig.name = name
+    if 'name' in content or 'deadline' in content:
+        ensure_keys_in_dict(content, [('name', str), ('deadline', str)])
+        name = t.cast(str, content['name'])
+        deadline = t.cast(str, content['deadline'])
 
-    try:
-        assig.deadline = dateutil.parser.parse(deadline)
-    except ValueError:
-        raise APIException(
-            'The given deadline is not valid!',
-            '{} cannot be parsed by dateutil'.format(deadline),
-            APICodes.INVALID_PARAM, 400
-        )
+        if not name:
+            raise APIException(
+                'The name of an assignment should be at least 1 char',
+                'len({}) == 0'.format(content['name']),
+                APICodes.INVALID_PARAM,
+                400,
+            )
+
+        assig.name = name
+
+        try:
+            assig.deadline = dateutil.parser.parse(deadline)
+        except ValueError:
+            raise APIException(
+                'The given deadline is not valid!',
+                '{} cannot be parsed by dateutil'.format(deadline),
+                APICodes.INVALID_PARAM, 400
+            )
 
     db.session.commit()
 

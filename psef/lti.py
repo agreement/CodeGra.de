@@ -221,7 +221,7 @@ class LTI:
 
         return course
 
-    def get_assignment(self) -> models.Assignment:
+    def get_assignment(self, user: models.User) -> models.Assignment:
         """Get the current LTI assignment as a psef assignment.
         """
         assignment = models.Assignment.query.filter_by(
@@ -240,21 +240,22 @@ class LTI:
             db.session.add(assignment)
 
         if self.has_result_sourcedid():
-            if assignment.id in current_user.assignment_results:
-                current_user.assignment_results[
-                    assignment.id
-                ].sourcedid = self.result_sourcedid
+            if assignment.id in user.assignment_results:
+                user.assignment_results[assignment.id
+                                        ].sourcedid = self.result_sourcedid
             else:
                 assig_res = models.AssignmentResult(
                     sourcedid=self.result_sourcedid,
-                    user_id=current_user.id,
+                    user_id=user.id,
                     assignment_id=assignment.id
                 )
                 db.session.add(assig_res)
 
         assignment.lti_outcome_service_url = self.outcome_service_url
+
         if not assignment.is_done:
             assignment.state = self.assignment_state
+
         assignment.deadline = self.get_assignment_deadline(
             default=assignment.deadline
         )
@@ -317,7 +318,7 @@ class LTI:
                 return
             raise ValueError('Got an unkown or no course roles')
 
-    def has_result_sourcedid(self) -> bool:
+    def has_result_sourcedid(self) -> bool:  # pragma: no cover
         """Check if the current LTI request has a ``sourcedid`` field.
 
         :returns: A boolean indicating if a ``sourcedid`` field was found.
@@ -398,6 +399,9 @@ class CanvasLTI(LTI):
     def result_sourcedid(self) -> str:
         return self.launch_params['lis_result_sourcedid']
 
+    def has_result_sourcedid(self) -> bool:
+        return 'lis_result_sourcedid' in self.launch_params
+
     @property
     def assignment_state(self) -> models._AssignmentStateEnum:
         if self.launch_params['custom_canvas_assignment_published'] == 'true':
@@ -460,7 +464,7 @@ def second_phase_lti_launch(
 
     user, new_token = lti.ensure_lti_user()
     course = lti.get_course()
-    assig = lti.get_assignment()
+    assig = lti.get_assignment(user)
     lti.set_user_role(user)
     lti.set_user_course_role(user, course)
     db.session.commit()

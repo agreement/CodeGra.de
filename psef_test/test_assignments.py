@@ -164,13 +164,17 @@ def test_update_assignment(
         data.update(changes)
         assig_id = assignment.id
 
-        for rem, name in zip(
-            [keep_name, keep_state, keep_deadline],
-            ['name', 'state', 'deadline']
-        ):
-            if rem:
-                data.pop(name)
-                err_code = 400
+        if not keep_state:
+            data.pop('state')
+            err_code = 400
+
+        if keep_name + keep_deadline == 1:
+            for keep, name in zip(
+                [keep_name, keep_deadline], ['name', 'deadline']
+            ):
+                if not keep:
+                    data.pop(name)
+                    err_code = 400
 
         test_client.req(
             'patch',
@@ -181,8 +185,9 @@ def test_update_assignment(
         )
         if not err_code:
             new_assig = psef.helpers.get_or_404(m.Assignment, assig_id)
-            assert new_assig.deadline.isoformat() == data['deadline']
-            assert new_assig.name == data['name']
+            if keep_name and keep_deadline:
+                assert new_assig.deadline.isoformat() == data['deadline']
+                assert new_assig.name == data['name']
             assert new_assig.state.name == data['state']
 
 

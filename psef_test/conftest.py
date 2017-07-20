@@ -40,7 +40,9 @@ def app():
                 self.app = app
 
             def __call__(self, environ, start_response):
-                if _TOKENS and _TOKENS[-1] is not None:
+                if (_TOKENS and
+                    _TOKENS[-1] is not None and
+                    'HTTP_AUTHORIZATION' not in environ):
                     environ['HTTP_AUTHORIZATION'] = f'Bearer {_TOKENS[-1]}'
                 return self.app(environ, start_response)
 
