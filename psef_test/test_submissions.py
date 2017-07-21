@@ -376,20 +376,21 @@ def test_get_zip_file(
         error = False
 
     with logged_in(named_user):
-        res = test_client.get(
+        res = test_client.req(
+            'get',
             f'/api/v1/submissions/{work_id}',
-            query_string={'type': 'zip'},
+            error or 200,
+            result=error_template
+            if error else {'name': str,
+                           'output_name': str},
+            query={'type': 'zip'},
         )
-        if error:
-            res = test_client.req(
-                'get',
-                f'/api/v1/submissions/{work_id}',
-                error,
-                result=error_template,
-                query={'type': 'zip'},
-            )
-        else:
-            res.status_code == 200
+
+        if not error:
+            file_name = res['name']
+            res = test_client.get(f'/api/v1/files/{file_name}')
+
+            assert res.status_code == 200
             files = zipfile.ZipFile(io.BytesIO(res.get_data())).infolist()
             files = set(f.filename for f in files)
             assert files == set(
@@ -400,3 +401,6 @@ def test_get_zip_file(
                     'multiple_dir_archive/dir2/single_file_work_copy',
                 ]
             )
+
+            res = test_client.get(f'/api/v1/files/{file_name}')
+            res.status_code == 404

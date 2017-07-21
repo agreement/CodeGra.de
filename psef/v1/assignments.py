@@ -15,7 +15,6 @@ from itertools import cycle
 import flask
 import dateutil
 from flask import request, send_file, after_this_request
-from flask_login import login_required
 
 import psef
 import psef.auth as auth
@@ -35,7 +34,7 @@ from . import api
 
 
 @api.route("/assignments/", methods=['GET'])
-@login_required
+@auth.login_required
 def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
     """Get all the :class:`.models.Assignment` objects that the current user
     can see.
@@ -49,6 +48,7 @@ def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
     perm_can_see: models.Permission = models.Permission.query.filter_by(
         name='can_see_assignments'
     ).first()
+    print(current_user.id, current_user.name)
     courses = []
 
     for course_role in current_user.courses.values():
@@ -120,14 +120,8 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
     auth.ensure_permission('can_manage_course', assig.course_id)
 
     content = ensure_json_dict(request.get_json())
-    ensure_keys_in_dict(
-        content, [('state', str),
-                  ('name', str),
-                  ('deadline', str)]
-    )
+    ensure_keys_in_dict(content, [('state', str)])
     state = t.cast(str, content['state'])
-    name = t.cast(str, content['name'])
-    deadline = t.cast(str, content['deadline'])
 
     if state in ['hidden', 'open', 'done']:
         assig.set_state(state)
@@ -138,23 +132,29 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
             APICodes.INVALID_PARAM, 400
         )
 
-    if not name:
-        raise APIException(
-            'The name of an assignment should be at least 1 char',
-            'len({}) == 0'.format(content['name']),
-            APICodes.INVALID_PARAM,
-            400,
-        )
-    assig.name = name
+    if 'name' in content or 'deadline' in content:
+        ensure_keys_in_dict(content, [('name', str), ('deadline', str)])
+        name = t.cast(str, content['name'])
+        deadline = t.cast(str, content['deadline'])
 
-    try:
-        assig.deadline = dateutil.parser.parse(deadline)
-    except ValueError:
-        raise APIException(
-            'The given deadline is not valid!',
-            '{} cannot be parsed by dateutil'.format(deadline),
-            APICodes.INVALID_PARAM, 400
-        )
+        if not name:
+            raise APIException(
+                'The name of an assignment should be at least 1 char',
+                'len({}) == 0'.format(content['name']),
+                APICodes.INVALID_PARAM,
+                400,
+            )
+
+        assig.name = name
+
+        try:
+            assig.deadline = dateutil.parser.parse(deadline)
+        except ValueError:
+            raise APIException(
+                'The given deadline is not valid!',
+                '{} cannot be parsed by dateutil'.format(deadline),
+                APICodes.INVALID_PARAM, 400
+            )
 
     db.session.commit()
 
@@ -483,7 +483,7 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
             models.User.id.in_(graders)  # type: ignore
         )
     else:
-        models.Work.query.filter_by(assignment=assignment).update(
+        models.Work.query.filter_by(assignment_id=assignment.id).update(
             {
                 'assigned_to': None
             }

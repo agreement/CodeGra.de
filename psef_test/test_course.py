@@ -654,7 +654,7 @@ def test_delete_lti_courseroles(
         error = False
 
     course = session.query(m.Course).filter_by(name=course_n).one()
-    course.lti_provider = m.LTIProvider()
+    course.lti_provider = m.LTIProvider('NO_ACTUAL_KEY')
     session.commit()
 
     with logged_in(ta_user):

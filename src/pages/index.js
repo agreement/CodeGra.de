@@ -6,6 +6,7 @@ import ManageCourse from './ManageCourse';
 import User from './User';
 import Submission from './Submission';
 import Submissions from './Submissions';
+import LTILaunch from './LTILaunch';
 
 export {
     Assignments,
@@ -16,4 +17,5 @@ export {
     User,
     Submission,
     Submissions,
+    LTILaunch,
 };

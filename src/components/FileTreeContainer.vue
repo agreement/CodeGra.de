@@ -1,11 +1,11 @@
 <template>
     <div class="file-tree-container">
         <b-form-fieldset class="button-bar">
-            <b-button @click="downloadArchive()" variant="primary" title="Download archive">
+            <b-button @click="downloadType('zip')" variant="primary" title="Download archive">
                 <icon name="download"></icon>
                 <span>Archive</span>
             </b-button>
-            <b-button @click="downloadFeedback()" v-if="canSeeFeedback" variant="primary" title="Download feedback">
+            <b-button @click="downloadType('feedback')" v-if="canSeeFeedback" variant="primary" title="Download feedback">
                 <icon name="download"></icon>
                 <span>Feedback</span>
             </b-button>
@@ -41,11 +41,12 @@ export default {
     },
 
     methods: {
-        downloadArchive() {
-            window.open(`/api/v1/submissions/${this.submissionId}?type=zip`);
-        },
-        downloadFeedback() {
-            window.open(`/api/v1/submissions/${this.submissionId}?type=feedback`);
+        downloadType(type) {
+            this.$http.get(`/api/v1/submissions/${this.submissionId}?type=${type}`).then(({ data }) => {
+                const params = new URLSearchParams();
+                params.append('name', data.output_name);
+                window.open(`/api/v1/files/${data.name}?${params.toString()}`);
+            });
         },
     },
 

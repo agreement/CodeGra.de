@@ -15,14 +15,10 @@ from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 import psef.auth as auth
-from psef import db, app, login_manager
+from psef import db, app, jwt
 from psef.helpers import get_request_start_time
 
 if t.TYPE_CHECKING:  # pragma: no cover
-
-    class UserMixin:
-        is_authenticated: bool
-
     T = t.TypeVar('T', bound='Base')
 
     class Base:
@@ -41,7 +37,6 @@ if t.TYPE_CHECKING:  # pragma: no cover
         def filter_by(self, *args: t.Any, **kwargs: t.Any) -> t.Any:
             ...
 else:
-    from flask_login import UserMixin
     import psef
     Base = db.Model
 
@@ -99,8 +94,19 @@ class LTIProvider(Base):
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['LTIProvider']]
     __tablename__ = 'LTIProvider'
-    id = db.Column('id', db.Integer, primary_key=True)
-    key: str = db.Column('key', db.Unicode)
+    id: str = db.Column('id', db.String(32), primary_key=True)
+    key: str = db.Column('key', db.Unicode, unique=True)
+
+    def __init__(self, key: str) -> None:
+        self.key = key
+        public_id = str(uuid.uuid4())
+
+        while db.session.query(
+            LTIProvider.query.filter_by(id=public_id).exists()
+        ).scalar():  # pragma: no cover
+            public_id = str(uuid.uuid4())
+
+        self.id = public_id
 
     @property
     def secret(self) -> str:
@@ -402,7 +408,7 @@ class Role(Base):
         return result
 
 
-class User(Base, UserMixin):
+class User(Base):
     """This class describes a user of the system.
 
     :ivar lti_user_id: The id of this user in a LTI consumer.
@@ -414,7 +420,11 @@ class User(Base, UserMixin):
     :ivar password: The password of this user, it is automatically hashed.
     :ivar assignment_results: The way this user can do LTI grade passback.
     """
+    # Python 3 implicitly set __hash__ to None if we override __eq__
+    # We set it back to its default implementation
+    __hash__ = object.__hash__
     __tablename__ = "User"
+
     id: int = db.Column('id', db.Integer, primary_key=True)
 
     # All stuff for LTI
@@ -450,6 +460,12 @@ class User(Base, UserMixin):
 
     role: Role = db.relationship('Role', foreign_keys=role_id, lazy='select')
 
+    def __eq__(self, other: t.Any) -> bool:
+        return isinstance(other, User) and self.id == other.id
+
+    def __ne__(self, other: t.Any) -> bool:
+        return not self.__eq__(other)
+
     def has_permission(
         self,
         permission: t.Union[str, Permission],
@@ -468,7 +484,6 @@ class User(Base, UserMixin):
                          permission with this name exists.
         """
         if not self.active:
-            print('NOT ACTIVE')
             return False
         if course_id is None:
             return self.role.has_permission(permission)
@@ -629,8 +644,8 @@ class User(Base, UserMixin):
         return self.active
 
     @staticmethod
-    @login_manager.user_loader
-    def load_user(user_id: int) -> 'User':
+    @jwt.user_loader_callback_loader
+    def load_user(user_id: int) -> t.Optional['User']:
         return User.query.get(int(user_id))
 
     @staticmethod
@@ -684,8 +699,8 @@ class Course(Base):
     # All stuff for LTI
     lti_course_id: str = db.Column(db.Unicode, unique=True)
 
-    lti_provider_id: int = db.Column(
-        db.Integer, db.ForeignKey('LTIProvider.id')
+    lti_provider_id: str = db.Column(
+        db.String(32), db.ForeignKey('LTIProvider.id')
     )
     lti_provider: LTIProvider = db.relationship("LTIProvider")
 
@@ -712,21 +727,6 @@ class Course(Base):
             'id': self.id,
             'name': self.name,
         }
-
-    def ensure_default_roles(self) -> None:
-        """Ensures that the default roles (:class:`CourseRole`) for this course
-        exist.
-
-        All changes to the object are not committed to the database.
-
-        :returns: Nothing
-        """
-        for name, perms in CourseRole.get_default_course_roles().items():
-            if not db.session.query(
-                CourseRole.query.filter_by(name=name, course_id=self.id)
-                .exists()
-            ).scalar():
-                CourseRole(name=name, course=self, _permissions=perms)
 
 
 class Work(Base):
@@ -1227,8 +1227,8 @@ class AssignmentLinter(Base):
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['AssignmentLinter']]
     __tablename__ = 'AssignmentLinter'  # type: str
-    # This has to be a Unicode object as the id has to be a non guessable uuid.
-    id: str = db.Column('id', db.Unicode, nullable=False, primary_key=True)
+    # This has to be a String object as the id has to be a non guessable uuid.
+    id: str = db.Column('id', db.String(36), nullable=False, primary_key=True)
     name: str = db.Column('name', db.Unicode)
     tests = db.relationship(
         "LinterInstance",
@@ -1328,7 +1328,7 @@ class LinterInstance(Base):
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['LinterInstance']]
     __tablename__ = 'LinterInstance'
-    id: str = db.Column('id', db.Unicode, nullable=False, primary_key=True)
+    id: str = db.Column('id', db.String(36), nullable=False, primary_key=True)
     state: LinterState = db.Column(
         'state',
         db.Enum(LinterState),

@@ -1,5 +1,4 @@
 import axios from 'axios';
-import * as error from '@/errors';
 import * as types from '../mutation-types';
 
 const getters = {
@@ -12,7 +11,8 @@ const getters = {
 };
 
 const actions = {
-    login({ commit }, { email, password }) {
+    login({ commit, state }, { email, password }) {
+        state.jwtToken = null;
         return new Promise((resolve, reject) => {
             axios.post('/api/v1/login', { email, password }).then((response) => {
                 commit(types.LOGIN, response.data);
@@ -92,20 +92,19 @@ const actions = {
         });
     },
     logout({ commit }) {
-        return new Promise((resolve, reject) => {
-            axios.delete('/api/v1/login?type=extended').then(() => {
-                commit(types.LOGOUT);
-                resolve();
-            }).catch(() => {
-                reject(error.apiError);
-            });
+        return new Promise((resolve) => {
+            commit(types.LOGOUT);
+            resolve();
         });
     },
-    verifyLogin({ commit }) {
+    verifyLogin({ commit, state }) {
         return new Promise((resolve, reject) => {
             axios.get('/api/v1/login').then((response) => {
                 // We are already logged in. Update state to logged in state
-                commit(types.LOGIN, response.data);
+                commit(types.LOGIN, {
+                    access_token: state.jwtToken,
+                    user: response.data,
+                });
                 actions.refreshSnippets({ commit });
                 resolve();
             }).catch(() => {
@@ -127,7 +126,10 @@ const actions = {
 };
 
 const mutations = {
-    [types.LOGIN](state, userdata) {
+    [types.LOGIN](state, data) {
+        state.jwtToken = data.access_token;
+
+        const userdata = data.user;
         state.id = userdata.id;
         state.email = userdata.email;
         state.name = userdata.name;
@@ -158,6 +160,7 @@ const mutations = {
         state.snippets = null;
         state.permissions = null;
         state.canSeeHidden = false;
+        state.jwtToken = null;
     },
     [types.NEW_SNIPPET](state, { key, value }) {
         state.snippets[key] = value;
@@ -169,11 +172,15 @@ const mutations = {
         state.name = username;
         state.email = email;
     },
+    [types.UPDATE_ACCESS_TOKEN](state, data) {
+        state.jwtToken = data.access_token;
+    },
 };
 
 export default {
     namespaced: true,
     state: {
+        jwtToken: null,
         id: 0,
         email: '',
         name: '',

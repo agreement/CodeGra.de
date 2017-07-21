@@ -342,35 +342,54 @@ def test_get_all_feedback(
     )
 
     with logged_in(named_user):
-        res = test_client.get(
-            f'/api/v1/submissions/{work["id"]}',
-            query_string={'type': 'feedback'}
-        )
+        work_id = work['id']
 
-        print(res.data.decode('utf8'))
-
-        if late_err:
+        if perm_err:
+            code = perm_err.kwargs['error']
+        elif late_err:
             code = 403
         else:
-            code = perm_err.kwargs['error'] if perm_err else 200
+            code = 200
 
-        assert res.status_code == code
-        if not (perm_err or late_err):
+        res = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}',
+            code,
+            result={'name': str,
+                    'output_name': str} if code == 200 else error_template,
+            query={'type': 'feedback'},
+        )
+
+        if not (late_err or perm_err):
+            file_name = res['name']
+
+            res = test_client.get(f'/api/v1/files/{file_name}')
+            assert res.status_code == 200
+
             assert expected.match(res.data.decode('utf8'))
+
+            res = test_client.get(f'/api/v1/files/{file_name}')
+            assert res.status_code == 404
 
     assig = session.query(m.Assignment).get(assignment.id)
     assig.state = m._AssignmentStateEnum.done
     session.commit()
 
     with logged_in(named_user):
-        res = test_client.get(
+        res = test_client.req(
+            'get',
             f'/api/v1/submissions/{work["id"]}',
-            query_string={'type': 'feedback'}
+            perm_err.kwargs['error'] if perm_err else 200,
+            result=error_template
+            if perm_err else {'name': str,
+                              'output_name': str},
+            query={'type': 'feedback'}
         )
 
-        print(res.data.decode('utf8'))
-        code = perm_err.kwargs['error'] if perm_err else 200
-        assert res.status_code == code
-
         if not perm_err:
+            file_name = res['name']
+
+            res = test_client.get(f'/api/v1/files/{file_name}')
+            assert res.status_code == 200
+
             assert expected.match(res.data.decode('utf8'))

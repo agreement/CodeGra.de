@@ -25,6 +25,13 @@ Vue.config.productionTip = false;
 // eslint-disable-next-line
 if (console.dir) console.log = console.dir;
 
+axios.defaults.transformRequest.push((data, headers) => {
+    if (store.state.user.jwtToken) {
+        headers.Authorization = `Bearer ${store.state.user.jwtToken}`;
+    }
+    return data;
+});
+
 Vue.prototype.$http = axios;
 
 axios.interceptors.response.use(response => response, (() => {

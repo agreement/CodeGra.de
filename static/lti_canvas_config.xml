@@ -11,7 +11,7 @@
     <blti:title>CodeGra.de</blti:title>
     <blti:description>A blended learning app.</blti:description>
     <blti:icon>http://bla.com</blti:icon>
-    <blti:launch_url>http://localhost:5000/lti/launch</blti:launch_url>
+    <blti:launch_url>http://localhost:5000/api/v1/lti/launch/1</blti:launch_url>
       <blti:custom>
         <lticm:property name="custom_canvas_course_name">$Canvas.course.name</lticm:property>
         <lticm:property name="custom_canvas_course_id">$Canvas.course.id</lticm:property>

@@ -162,26 +162,32 @@ def test_update_assignment(
     with logged_in(ta_user):
         data = copy.deepcopy(update_data)
         data.update(changes)
+        assig_id = assignment.id
 
-        for rem, name in zip(
-            [keep_name, keep_state, keep_deadline],
-            ['name', 'state', 'deadline']
-        ):
-            if rem:
-                data.pop(name)
-                err_code = 400
+        if not keep_state:
+            data.pop('state')
+            err_code = 400
+
+        if keep_name + keep_deadline == 1:
+            for keep, name in zip(
+                [keep_name, keep_deadline], ['name', 'deadline']
+            ):
+                if not keep:
+                    data.pop(name)
+                    err_code = 400
 
         test_client.req(
             'patch',
-            f'/api/v1/assignments/{assignment.id}',
+            f'/api/v1/assignments/{assig_id}',
             err_code if err_code else 204,
             data=data,
             result=error_template if err_code else None
         )
         if not err_code:
-            new_assig = psef.helpers.get_or_404(m.Assignment, assignment.id)
-            assert new_assig.deadline.isoformat() == data['deadline']
-            assert new_assig.name == data['name']
+            new_assig = psef.helpers.get_or_404(m.Assignment, assig_id)
+            if keep_name and keep_deadline:
+                assert new_assig.deadline.isoformat() == data['deadline']
+                assert new_assig.name == data['name']
             assert new_assig.state.name == data['state']
 
 
@@ -863,8 +869,10 @@ def test_get_all_graders(
 @pytest.mark.parametrize(
     'named_user', [
         http_err(error=403)('admin'),
-        http_err(error=401)('NOT_LOGGED_IN'), 'Devin Hillenius',
-        pytest.mark.no_others(pytest.mark.no_hidden('Stupid1'))
+        http_err(error=401)('NOT_LOGGED_IN'),
+        'Devin Hillenius',
+        pytest.mark.
+        no_grade(pytest.mark.no_others(pytest.mark.no_hidden('Stupid1'))),
     ],
     indirect=True
 )
@@ -873,25 +881,34 @@ def test_get_all_submissions(
     assignment, error_template
 ):
     marker = request.node.get_marker('http_err')
+    no_hide = request.node.get_marker('no_hidden')
+    no_grade = request.node.get_marker('no_grade')
+
     with logged_in(named_user):
-        if request.node.get_marker('no_hidden') and state_is_hidden:
+        if no_hide and state_is_hidden:
             code = 403
         elif marker is None:
             code = 200
             res = m.Work.query.filter_by(assignment_id=assignment.id)
             if request.node.get_marker('no_others') is not None:
                 res = res.filter_by(user_id=named_user.id)
+
             res = [
-                r.__to_json__()
+                {
+                    'assignee': False if no_hide else r.assignee,
+                    'grade': False if no_grade else r.grade,
+                    'comment': False if no_grade else r.comment,
+                    'id': r.id,
+                    'user': dict,
+                    'created_at': r.created_at.isoformat(),
+                }
                 for r in
                 sorted(res.all(), key=lambda el: el.created_at, reverse=True)
             ]
-            for r in res:
-                r['user'] = dict
-            print(res)
-
         else:
             code = marker.kwargs['error']
+
+        print(named_user if isinstance(named_user, str) else named_user.name)
         test_client.req(
             'get',
             f'/api/v1/assignments/{assignment.id}/submissions/',

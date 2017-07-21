@@ -8,10 +8,11 @@ import typing as t
 import threading
 
 import werkzeug
-from flask import request, send_from_directory
-from flask_login import login_required
+from flask import request, safe_join, after_this_request, send_from_directory
+from werkzeug.exceptions import NotFound
 from werkzeug.datastructures import FileStorage
 
+import psef.auth as auth
 import psef.files
 from psef import app
 from psef.auth import APICodes, APIException
@@ -24,7 +25,7 @@ from . import api
 
 
 @api.route("/files/", methods=['POST'])
-@login_required
+@auth.login_required
 def post_file() -> JSONResponse[str]:
     """Temporarily store some data on the server.
 
@@ -54,13 +55,10 @@ def post_file() -> JSONResponse[str]:
 
     FileStorage(request.stream).save(path)
 
-    threading.Timer(60, lambda: os.remove(path))
-
     return jsonify(name, status_code=201)
 
 
 @api.route('/files/<file_name>', methods=['GET'])
-@login_required
 def get_file(file_name: str) -> werkzeug.wrappers.Response:
     """Serve some specific file in the uploads folder.
 
@@ -74,11 +72,27 @@ def get_file(file_name: str) -> werkzeug.wrappers.Response:
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
-    name = request.args.get('name')
+    name = request.args.get('name', 'export')
 
-    return send_from_directory(
-        app.config['MIRROR_UPLOAD_DIR'],
-        file_name,
-        attachment_filename=name if name else 'export',
-        as_attachment=True
-    )
+    directory = app.config['MIRROR_UPLOAD_DIR']
+    error = False
+
+    @after_this_request
+    def delete_file(response: t.Any) -> t.Any:
+        if not error:
+            filename = safe_join(directory, file_name)
+            os.unlink(filename)
+        return response
+
+    try:
+        return send_from_directory(
+            directory, file_name, attachment_filename=name, as_attachment=True
+        )
+    except NotFound:
+        error = True
+        raise APIException(
+            'The specified file was not found',
+            f'The file with name "{file_name}" was not found or is deleted.',
+            APICodes.OBJECT_NOT_FOUND,
+            404,
+        )

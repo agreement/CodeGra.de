@@ -11,7 +11,6 @@ import zipfile
 import tempfile
 
 from flask import request, send_file, make_response, after_this_request
-from flask_login import login_required
 
 import psef.auth as auth
 import psef.files
@@ -31,10 +30,10 @@ if t.TYPE_CHECKING:  # pragma: no cover
 
 
 @api.route("/submissions/<int:submission_id>", methods=['GET'])
-@login_required
+@auth.login_required
 def get_submission(
     submission_id: int
-) -> t.Union[JSONResponse[models.Work], 'werkzeug.wrappers.Response']:
+) -> JSONResponse[t.Union[models.Work, t.Mapping[str, str]]]:
     """Get the given submission (:class:`.models.Work`).
 
     .. :quickref: Submission; Get a single submission.
@@ -65,18 +64,20 @@ def get_submission(
         )
 
     if request.args.get('type') == 'zip':
-        return get_zip(work)
+        return jsonify(get_zip(work))
     elif request.args.get('type') == 'feedback':
         auth.ensure_can_see_grade(work)
-        return get_feedback(work)
+        return jsonify(get_feedback(work))
     return jsonify(work)
 
 
-def get_feedback(work: models.Work) -> 'werkzeug.wrappers.Response':
+def get_feedback(work: models.Work) -> t.Mapping[str, str]:
     """Get the feedback of :class:`.models.Work` as a plain text file.
 
     :param work: The submission with the required feedback.
-    :returns: A response with the plain text feedback as attached file.
+    :returns: A object with two keys: ``name`` where the value is the name
+        which can be given to ``GET - /api/v1/files/<name>`` and
+        ``output_name`` which is the resulting file should be named.
     """
     comments: t.Sequence[models.Comment] = models.Comment.query.filter(
         models.Comment.file.has(work=work)).order_by(  # type: ignore
@@ -92,8 +93,9 @@ def get_feedback(work: models.Work) -> 'werkzeug.wrappers.Response':
 
     filename = f'{work.assignment.name}-{work.user.name}-feedback.txt'
 
-    fd, file = tempfile.mkstemp()
-    with open(file, 'w') as fp:
+    path, name = psef.files.random_file_path('MIRROR_UPLOAD_DIR')
+
+    with open(path, 'w') as fp:
         fp.write(
             'Assignment: {}\n'
             'Grade: {}\n'
@@ -118,20 +120,16 @@ def get_feedback(work: models.Work) -> 'werkzeug.wrappers.Response':
                 )
             )
 
-    @after_this_request
-    def remove_file(response: t.Any) -> t.Any:
-        os.close(fd)
-        os.remove(file)
-        return response
-
-    return send_file(file, attachment_filename=filename, as_attachment=True)
+    return {'name': name, 'output_name': filename}
 
 
-def get_zip(work: models.Work) -> 'werkzeug.wrappers.Response':
+def get_zip(work: models.Work) -> t.Mapping[str, str]:
     """Return a :class:`.models.Work` as a zip file.
 
     :param work: The submission which should be returns as zip file.
-    :returns: A response with the zip as attached file.
+    :returns: A object with two keys: ``name`` where the value is the name
+        which can be given to ``GET - /api/v1/files/<name>`` and
+        ``output_name`` which is the resulting file should be named.
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If submission does not belong to the current
@@ -147,7 +145,9 @@ def get_zip(work: models.Work) -> 'werkzeug.wrappers.Response':
         models.File.parent_id == None,  # NOQA
     )
 
-    with tempfile.TemporaryFile(mode='w+b') as fp:
+    path, name = psef.files.random_file_path('MIRROR_UPLOAD_DIR')
+
+    with open(path, 'w+b') as fp:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Restore the files to tmpdir
             psef.files.restore_directory_structure(code, tmpdir)
@@ -158,16 +158,12 @@ def get_zip(work: models.Work) -> 'werkzeug.wrappers.Response':
                     path = os.path.join(root, file)
                     zipf.write(path, path[len(tmpdir):])
             zipf.close()
-        fp.seek(0)
+        fp.flush()
 
-        response = make_response(fp.read())
-        response.headers['Content-Type'] = 'application/zip'
-        filename = '{}-{}-archive.zip'.format(
-            work.assignment.name, work.user.name
-        )
-        response.headers['Content-Disposition'
-                         ] = 'attachment; filename=' + filename
-        return response
+    return {
+        'name': name,
+        'output_name': f'{work.assignment.name}-{work.user.name}-archive.zip'
+    }
 
 
 @api.route("/submissions/<int:submission_id>/rubrics/", methods=['GET'])
@@ -282,7 +278,7 @@ def patch_submission(submission_id: int) -> EmptyResponse:
 
 
 @api.route("/submissions/<int:submission_id>/files/", methods=['GET'])
-@login_required
+@auth.login_required
 def get_dir_contents(submission_id: int) -> JSONResponse[psef.files.FileTree]:
     """Return the file directory info of a file of the given submission
     (:class:`.models.Work`).

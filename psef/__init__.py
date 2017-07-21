@@ -3,10 +3,10 @@
 from flask import Flask, render_template, g
 import typing as t
 import os
+import flask_jwt_extended as flask_jwt
 
 import datetime
 import json
-import flask_login
 
 from werkzeug.local import LocalProxy
 
@@ -18,6 +18,8 @@ app = Flask(__name__)
 app.config.from_object('config')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+jwt = flask_jwt.JWTManager(app)
+
 # Define the database object which is imported
 # by modules and controllers
 _db = SQLAlchemy(
@@ -27,19 +29,18 @@ _db = SQLAlchemy(
 db = LocalProxy(lambda: _db)
 
 
-# Sample HTTP error handling
-@app.errorhandler(404)
-def not_found(error: t.Type[Exception]) -> t.Tuple[t.Any, int]:
-    return render_template('404.html'), 404
-
-
 @app.before_request
 def set_request_start_time() -> None:
     g.request_start_time = datetime.datetime.utcnow()
 
 
-login_manager = flask_login.LoginManager()
-login_manager.init_app(app)
+@app.before_request
+@flask_jwt.jwt_optional
+def set_current_user() -> None:
+    # This code is necessary to make `flask_jwt_extended` understand that we
+    # always want to try to load the given JWT token.
+    pass
+
 
 LTI_ROLE_LOOKUPS = {
 }  # type: t.Mapping[str, t.Mapping[str, t.Union[str, bool]]]
@@ -67,7 +68,7 @@ import psef.models  # NOQA
 if t.TYPE_CHECKING:  # pragma: no cover
     current_user: 'psef.models.User' = None
 else:
-    current_user = LocalProxy(lambda: flask_login.current_user)
+    current_user = flask_jwt.current_user
 
 import psef.auth  # NOQA
 import psef.json  # NOQA
@@ -84,16 +85,14 @@ app.register_blueprint(api_v1_blueprint, url_prefix='/api/v1')
 
 @app.teardown_request
 def teardown_request(exception: t.Type[Exception]) -> None:
-    if exception:
+    db.session.expire_all()
+    if exception:  # pragma: no cover
         db.session.rollback()
-    db.session.remove()
 
 
 def create_app(config: t.Mapping=None) -> t.Any:
-    if config is not None:
+    # This code is only used for uwsgi
+    if config is not None:  # pragma: no cover
         app.config.update(config)
     _db.init_app(app)
     return app
-
-
-login_manager.init_app(app)

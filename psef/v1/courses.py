@@ -8,7 +8,6 @@ are used to create courses and return information about courses.
 import typing as t
 
 from flask import request
-from flask_login import login_required
 from mypy_extensions import TypedDict
 
 import psef.auth as auth
@@ -434,7 +433,7 @@ def add_course() -> JSONResponse[models.Course]:
 
 
 @api.route('/courses/', methods=['GET'])
-@login_required
+@auth.login_required
 def get_courses() -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
     """Return all :class:`.models.Course` objects the current user is a member
     of.
@@ -456,7 +455,7 @@ def get_courses() -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
 
 
 @api.route('/courses/<int:course_id>', methods=['GET'])
-@login_required
+@auth.login_required
 def get_course_data(course_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
     """Return course data for a given :class:`.models.Course`.
 

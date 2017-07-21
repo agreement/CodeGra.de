@@ -57,17 +57,13 @@ import { mapGetters, mapActions } from 'vuex';
 export default {
     name: 'nav-bar',
 
-    data() {
-        return {
-            lti: this.$route.query.lti || window.inLTI,
-        };
-    },
-
-    mounted() {
-        window.inLTI = this.lti;
-    },
-
     computed: {
+        lti() {
+            if (this.$route.query.inLTI !== undefined) {
+                window.inLTI = this.$route.query.inLTI;
+            }
+            return window.inLTI || false;
+        },
         ...mapGetters('user', {
             loggedIn: 'loggedIn',
             userid: 'id',

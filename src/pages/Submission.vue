@@ -24,7 +24,7 @@
                               v-on:gradeChange="gradeChange"/>
             </div>
             <file-tree-container class="col-lg-3" :fileTree="fileTree"
-                                 :canSeeFeedback="assignment.state === assignmentState.DONE"></file-tree-container>
+                                 :canSeeFeedback="canSeeFeedback"></file-tree-container>
         </div>
     </div>
 </template>
@@ -74,6 +74,7 @@ export default {
             feedback: '',
             loading: true,
             assignmentState,
+            canSeeFeedback: false,
         };
     },
 
@@ -92,10 +93,11 @@ export default {
 
     mounted() {
         this.hasPermission({
-            name: 'can_grade_work',
+            name: ['can_grade_work', 'can_see_grade_before_open'],
             course_id: this.courseId,
-        }).then((val) => {
-            this.editable = val;
+        }).then(([canGrade, canSeeGrade]) => {
+            this.editable = canGrade;
+            this.canSeeFeedback = canSeeGrade || (this.assignment.state === assignmentState.DONE);
         });
 
         Promise.all([
