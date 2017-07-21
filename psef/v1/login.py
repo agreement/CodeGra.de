@@ -30,6 +30,11 @@ def login() -> JSONResponse[t.Mapping[str, t.Union[models.User, str]]]:
     :<json str email: The email of the user to log in.
     :<json str password: The password of the user to log in.
 
+    :>json user: The user that was logged in.
+    :>jsonobj user: :py:class:`~.models.User`
+    :>json str access_token: A JWT token that can be used to send requests to
+        the server logged in as the given user.
+
     :raises APIException: If the request does not contain email and/or password
                           parameter. (MISSING_REQUIRED_PARAM)
     :raises APIException: If no user with email exists or the password is
