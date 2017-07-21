@@ -26,8 +26,8 @@
     <img src="https://img.shields.io/badge/style-CodeGra.de-blue.svg?label=website"
       alt="CodeGra.de">
   </a>
-  <img src="https://img.shields.io/badge/semVer-v0.2.0-green.svg"
-    alt="Semantic Version v0.1.0-alpha">
+  <img src="https://img.shields.io/badge/semVer-v0.2.1-green.svg"
+    alt="Semantic Version v0.2.1">
   <img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg"
     alt="License AGPL-3.0">
   <a href="https://matrix.to/#/#CodeGra.de:matrix.org">
