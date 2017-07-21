@@ -1,42 +1,96 @@
-<p align="center"
+<p align="center">
   <a href="https://codegra.de">
-    <img src="https://codegra.de/static/img/codegrade-inv.svg" alt="CodeGrade" height="130">
+    <img src="https://codegra.de/static/img/codegrade-inv.svg" alt="CodeGra.de" title="CodeGra.de" height="130">
   </a>
 </p>
 <p align="center">
+  <!--<a href="https://github.com/CodeGra-de/CodeGra.de/releases">
+    <img src="https://img.shields.io/github/downloads/CodeGra-de/CodeGra.de/total.svg?maxAge=2592000"
+      alt="Downloads" title="Downloads">
+  </a>-->
   <a href="https://travis-ci.org/CodeGra-de/CodeGra.de">
-    <img src="https://travis-ci.org/CodeGra-de/CodeGra.de.svg?branch=master"
-      alt="Build Status">
+    <img src="https://img.shields.io/travis/CodeGra-de/CodeGra.de.svg"
+      alt="Build Status" title="Build Status">
   </a>
   <a href="https://coveralls.io/github/CodeGra-de/CodeGra.de?branch=master">
-    <img src="https://coveralls.io/repos/github/CodeGra-de/CodeGra.de/badge.svg?branch=master"
-      alt="Coverage Status">
+    <img src="https://img.shields.io/coveralls/CodeGra-de/CodeGra.de.svg"
+      alt="Coverage Status" title="Coverage Status">
+  </a>
+  <a href="https://github.com/CodeGra-de/CodeGra.de">
+    <img src="https://5ezz6jithh.execute-api.us-east-1.amazonaws.com/prod/lambda-shield-redirect?user=CodeGra-de&repo=CodeGra.de"
+      alt="Source Lines of Code" title="Source Lines of Code">
   </a>
   <a href="https://pyup.io/repos/github/CodeGra-de/CodeGra.de/">
     <img src="https://pyup.io/repos/github/CodeGra-de/CodeGra.de/shield.svg"
-      alt="Updates">
+      alt="Python updates" title="Python updates">
   </a>
   <a href="https://pyup.io/repos/github/CodeGra-de/CodeGra.de/">
     <img src="https://pyup.io/repos/github/CodeGra-de/CodeGra.de/python-3-shield.svg"
-      alt="Python 3">
+      alt="Python 3 ready" title="Python 3 ready" style="margin-right: -7px;">
   </a>
-  <img src="https://img.shields.io/badge/style-%E2%9D%A4%EF%B8%8F%20&%20%F0%9F%8D%BB-ff69b4.svg?label=made%20with"
-    alt="Made with ❤ & ️🍻">
   <a href="https://codegra.de">
-    <img src="https://img.shields.io/badge/style-CodeGra.de-blue.svg?label=website"
-      alt="CodeGra.de">
+    <img src="https://img.shields.io/badge/made%20with-%E2%9D%A4%EF%B8%8F%20&%20%F0%9F%8D%BB-ff69b4.svg"
+      alt="Made with ❤ & ️🍻" title="Made with ❤ & ️🍻">
   </a>
-  <img src="https://img.shields.io/badge/semVer-v0.2.1-green.svg"
-    alt="Semantic Version v0.2.1">
-  <img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg"
-    alt="License AGPL-3.0">
+  <a href="https://codegra.de">
+    <img src="https://img.shields.io/badge/website-CodeGra.de-blue.svg"
+      alt="Website: CodeGra.de" title="Website: CodeGra.de">
+  </a>
+  <a href="https://github.com/CodeGra-de/CodeGra.de/tags">
+    <img src="https://img.shields.io/github/tag/CodeGra-de/CodeGra.de.svg"
+      alt="Latest git tag" title="Latest git tag">
+  </a>
+  <a href="https://github.com/CodeGra-de/CodeGra.de/releases">
+    <img src="https://img.shields.io/github/release/CodeGra-de/CodeGra.de.svg"
+      alt="Latest release" title="Latest release">
+  </a>
+  <a href="https://github.com/CodeGra-de/CodeGra.de/releases">
+    <img src="https://img.shields.io/badge/semVer-✓-green.svg"
+      alt="Semantic Version: ✓" title="Semantic Version">
+  </a>
+  <a href="https://github.com/CodeGra-de/CodeGra.de/issues">
+    <img src="https://img.shields.io/github/issues-raw/CodeGra-de/CodeGra.de.svg"
+      alt="Open GitHub Issues" title="Open GitHub Issues">
+  </a>
+  <a href="https://github.com/CodeGra-de/CodeGra.de/issues">
+    <img src="https://img.shields.io/github/issues-closed-raw/CodeGra-de/CodeGra.de.svg"
+      alt="Closed GitHub Issues" title="Closed GitHub Issues">
+  </a>
+  <a href="https://github.com/CodeGra-de/CodeGra.de/issues">
+    <img src="https://img.shields.io/issuestats/i/github/CodeGra-de/CodeGra.de.svg"
+      alt="Closed GitHub Issues" title="Closed GitHub Issues">
+  </a>
+  <a href="https://github.com/CodeGra-de/CodeGra.de/pulls">
+    <img src="https://img.shields.io/github/issues-pr-raw/CodeGra-de/CodeGra.de.svg"
+      alt="Open GitHub Pull Requests" title="Open GitHub Pull Requests">
+  </a>
+  <a href="https://github.com/CodeGra-de/CodeGra.de/pulls">
+    <img src="https://img.shields.io/issuestats/p/github/CodeGra-de/CodeGra.de.svg"
+      alt="Open GitHub Pull Requests" title="Open GitHub Pull Requests">
+  </a>
+  <a href="https://github.com/CodeGra-de/CodeGra.de">
+    <img src="https://reposs.herokuapp.com/?path=CodeGra-de/CodeGra.de"
+      alt="Repository size" title="Repository size">
+  </a>
+  <a href="https://github.com/CodeGra-de/CodeGra.de/blob/master/LICENSE">
+    <img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg"
+      alt="License AGPL-3.0" title="License AGPL-3.0">
+  </a>
   <a href="https://matrix.to/#/#CodeGra.de:matrix.org">
     <img src="https://img.shields.io/badge/matrix-user-43ad8d.svg"
-      alt="Chat on Matrix">
+      alt="Chat on Matrix: #CodeGra.de:matrix.org"
+      title="Chat on Matrix: #CodeGra.de:matrix.org">
   </a>
   <a href="https://matrix.to/#/#DevCodeGra.de:matrix.org">
     <img src="https://img.shields.io/badge/matrix-dev-4e42aa.svg"
-      alt="Chat as developer on Matrix">
+      alt="Chat as developer on Matrix #DevCodeGra.de:matrix.org"
+      title="Chat as developer on Matrix #DevCodeGra.de:matrix.org">
+  </a>
+</p>
+<p align="center">
+  <a href="https://waffle.io/CodeGra-de/CodeGra.de/metrics">
+    <img src="https://graphs.waffle.io/CodeGra-de/CodeGra.de/throughput.svg"
+      alt="Metrics on waffle.io" title="Metrics on waffle.io">
   </a>
 </p>
 

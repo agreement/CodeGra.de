@@ -37,7 +37,7 @@ export default {
             if (!PDFObject.supportsPDFs) {
                 options = {
                     forcePDFJS: true,
-                    PDFJS_URL: '/static/web/viewer.html',
+                    PDFJS_URL: '/static/vendor/pdf.js/web/viewer.html',
                 };
             }
             PDFObject.embed(this.url, '#pdf-viewer', options);
