@@ -26,7 +26,7 @@
     <img src="https://img.shields.io/badge/style-CodeGra.de-blue.svg?label=website"
       alt="CodeGra.de">
   </a>
-  <img src="https://img.shields.io/badge/semVer-v0.1.0--alpha-green.svg"
+  <img src="https://img.shields.io/badge/semVer-v0.2.0--alpha-green.svg"
     alt="Semantic Version v0.1.0-alpha">
   <img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg"
     alt="License AGPL-3.0">
