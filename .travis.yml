@@ -3,6 +3,9 @@ sudo: false
 notifications:
   email: false
 
+services:
+  - postgresql
+
 branches:
   only:
     - master
@@ -13,6 +16,8 @@ matrix:
   include:
     - python: "3.6-dev" # 3.6 development branch
       env: TO_RUN="coveralls"
+    - python: "3.6-dev" # 3.7 development branch
+      env: TO_RUN="postgres-test"
     - python: "3.7-dev" # 3.7 development branch
       env: TO_RUN="tests"
     - python: "nightly" # currently points to 3.7-dev
@@ -34,6 +39,7 @@ before_script:
   - mkdir -p /tmp/psef/mirror_uploads
   - python --version
   - export PYTHONPATH="$PYTHONPATH:$(pwd)"
+  - psql -c 'create database travis_ci_test;' -U postgres
 
 script:
   - bash ./.travis/run

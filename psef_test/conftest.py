@@ -20,16 +20,30 @@ TESTDB_PATH = "/tmp/psef/psef-{}".format(TESTDB)
 TEST_DATABASE_URI = 'sqlite:///' + TESTDB_PATH
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--postgresql",
+        action="store",
+        default=False,
+        help="Run the test using postresql"
+    )
+
+
 @pytest.fixture(scope='session')
-def app():
+def app(request):
     """Session-wide test `Flask` application."""
     settings_override = {
         'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': TEST_DATABASE_URI,
         'UPLOAD_DIR': f'/tmp/psef/uploads',
         'MIRROR_UPLOAD_DIR': f'/tmp/psef/mirror_uploads',
         'MAX_UPLOAD_SIZE': 2 ** 20,  # 1mb
     }
+    if request.config.getoption('--postgresql'):
+        print('Running with postgres!')
+        pdb = request.config.getoption('--postgresql')
+        settings_override['SQLALCHEMY_DATABASE_URI'] = f'postgresql:///{pdb}'
+    else:
+        settings_override['SQLALCHEMY_DATABASE_URI'] = TEST_DATABASE_URI
     app = psef.create_app(settings_override)
 
     # Establish an application context before running the tests.
@@ -150,6 +164,8 @@ def logged_in():
 
     yield _login
 
+    _TOKENS.clear()
+
 
 @pytest.fixture
 def named_user(session, request):
@@ -228,7 +244,8 @@ def db(app, request):
     yield _db
 
     _db.drop_all()
-    os.unlink(TESTDB_PATH)
+    if os.path.exists(TESTDB_PATH):
+        os.unlink(TESTDB_PATH)
 
 
 @pytest.fixture(scope='function')

@@ -848,18 +848,20 @@ def test_get_all_graders(
             code,
             result=[
                 {
-                    'name': 'Devin Hillenius',
-                    'id': int,
-                    'divided': 'Devin Hillenius' in with_assignees
-                }, {
-                    'name': 'Thomas Schaper',
-                    'id': int,
-                    'divided': 'Thomas Schaper' in with_assignees
-                }, {
                     'name': 'b',
                     'id': int,
                     'divided': False,
-                }
+                },
+                {
+                    'name': 'Devin Hillenius',
+                    'id': int,
+                    'divided': 'Devin Hillenius' in with_assignees
+                },
+                {
+                    'name': 'Thomas Schaper',
+                    'id': int,
+                    'divided': 'Thomas Schaper' in with_assignees
+                },
             ] if marker is None else error_template
         )
 

@@ -14,6 +14,7 @@ from itertools import cycle
 
 import flask
 import dateutil
+import sqlalchemy.sql.expression as expression
 from flask import request, send_file, after_this_request
 
 import psef
@@ -566,8 +567,8 @@ def get_all_graders(
 
     result: t.Sequence[t.Tuple[str, int]] = db.session.query(
         us.c.name, us.c.id
-    ).join(per,
-           us.c.course_id == per.c.course_role_id).order_by(us.c.name).all()
+    ).join(per, us.c.course_id == per.c.course_role_id
+           ).order_by(expression.func.lower(us.c.name)).all()
 
     divided: t.Set[str] = set(
         r[0]

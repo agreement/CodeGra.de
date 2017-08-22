@@ -4,6 +4,10 @@ res="127"
 
 echo "Running test with pwd: $(pwd)"
 
+if [[ "$TO_RUN" = "postgres-test" ]]; then
+    TEST_FLAGS="--postgresql=travis_ci_test"
+fi
+
 set -o xtrace
 
 case "$TO_RUN" in
@@ -12,8 +16,8 @@ case "$TO_RUN" in
         res="$?"
         set +o xtrace
         ;;
-    "tests")
-        pytest "$(pwd)/psef_test/" -vvvv
+    "tests"|"postgres-test")
+        pytest "$(pwd)/psef_test/" -vvvv "$TEST_FLAGS"
         res="$?"
         set +o xtrace
         ;;

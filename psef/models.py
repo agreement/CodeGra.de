@@ -18,6 +18,8 @@ import psef.auth as auth
 from psef import db, app, jwt
 from psef.helpers import get_request_start_time
 
+UUID_LENGTH = 36
+
 if t.TYPE_CHECKING:  # pragma: no cover
     T = t.TypeVar('T', bound='Base')
 
@@ -94,7 +96,7 @@ class LTIProvider(Base):
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['LTIProvider']]
     __tablename__ = 'LTIProvider'
-    id: str = db.Column('id', db.String(32), primary_key=True)
+    id: str = db.Column('id', db.String(UUID_LENGTH), primary_key=True)
     key: str = db.Column('key', db.Unicode, unique=True)
 
     def __init__(self, key: str) -> None:
@@ -439,9 +441,7 @@ class User(Base):
         secondary=user_course,
         backref=db.backref('users', lazy='dynamic')
     )
-    email: str = db.Column(
-        'email', db.Unicode(collation='NOCASE'), unique=True
-    )
+    email: str = db.Column('email', db.Unicode, unique=True)
     password: str = db.Column(
         'password',
         PasswordType(schemes=[
@@ -700,7 +700,7 @@ class Course(Base):
     lti_course_id: str = db.Column(db.Unicode, unique=True)
 
     lti_provider_id: str = db.Column(
-        db.String(32), db.ForeignKey('LTIProvider.id')
+        db.String(UUID_LENGTH), db.ForeignKey('LTIProvider.id')
     )
     lti_provider: LTIProvider = db.relationship("LTIProvider")
 
@@ -1620,7 +1620,7 @@ class Snippet(Base):
         :param user: The user to get the snippets for.
         :returns: List of all snippets of the user.
         """
-        return cls.query.filter_by(user_id=user.id).all()
+        return cls.query.filter_by(user_id=user.id).order_by('id').all()
 
     def __to_json__(self) -> t.Mapping[str, t.Any]:
         """Creates a JSON serializable representation of this object.
