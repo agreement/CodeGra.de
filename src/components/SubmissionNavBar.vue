@@ -172,7 +172,7 @@ export default {
         ...mapGetters('user', {
             loggedIn: 'loggedIn',
             userid: 'id',
-            username: 'name',
+            name: 'name',
         }),
     },
 

@@ -113,14 +113,14 @@ const actions = {
             });
         });
     },
-    updateUserInfo({ commit }, { username, email, oldPw, newPw }) {
+    updateUserInfo({ commit }, { name, email, oldPw, newPw }) {
         return axios.patch('/api/v1/login', {
-            username,
+            name,
             email,
             o_password: oldPw,
             n_password: newPw,
         }).then(() => {
-            commit(types.UPDATE_USER_INFO, { username, email });
+            commit(types.UPDATE_USER_INFO, { name, email });
         });
     },
 };
@@ -168,8 +168,8 @@ const mutations = {
     [types.REMOVE_SNIPPET](state, key) {
         delete state.snippets[key];
     },
-    [types.UPDATE_USER_INFO](state, { username, email }) {
-        state.name = username;
+    [types.UPDATE_USER_INFO](state, { name, email }) {
+        state.name = name;
         state.email = email;
     },
     [types.UPDATE_ACCESS_TOKEN](state, data) {

@@ -121,18 +121,18 @@ def get_user_update() -> EmptyResponse:
     :returns: An empty response with return code 204
 
     :<json str email: The new email of the user.
-    :<json str username: The new full name of the user.
+    :<json str name: The new full name of the user.
     :<json str o_password: The old password of the user.
     :<json str n_password: The new password of the user.
 
     .. todo:: Refactor this code so it doesn't always require an old password.
 
     :raises APIException: If not all required parameters ('email',
-                          'o_password', 'username', 'n_password') were in the
+                          'o_password', 'name', 'n_password') were in the
                           request. (MISSING_REQUIRED_PARAM)
     :raises APIException: If the old password was not correct.
                           (INVALID_CREDENTIALS)
-    :raises APIException: If the new password or username is not valid.
+    :raises APIException: If the new password or name is not valid.
                           (INVALID_PARAM)
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the user can not edit his own info.
@@ -144,14 +144,14 @@ def get_user_update() -> EmptyResponse:
         data, [
             ('email', str),
             ('o_password', str),
-            ('username', str),
+            ('name', str),
             ('n_password', str)
         ]
     )
     email = t.cast(str, data['email'])
     o_password = t.cast(str, data['o_password'])
     n_password = t.cast(str, data['n_password'])
-    username = t.cast(str, data['username'])
+    name = t.cast(str, data['name'])
 
     user = current_user
 
@@ -163,21 +163,21 @@ def get_user_update() -> EmptyResponse:
 
     auth.ensure_permission('can_edit_own_info')
 
-    invalid_input = {'password': '', 'username': ''}
+    invalid_input = {'password': '', 'name': ''}
     if n_password:
         invalid_input['password'] = user.validate_password(n_password)
-    invalid_input['username'] = user.validate_username(username)
+    invalid_input['name'] = user.validate_name(name)
 
-    if invalid_input['password'] != '' or invalid_input['username'] != '':
+    if invalid_input['password'] != '' or invalid_input['name'] != '':
         raise APIException(
-            'Invalid password or username.',
-            'The supplied username or password did not meet the requirements',
+            'Invalid password or name.',
+            'The supplied name or password did not meet the requirements',
             APICodes.INVALID_PARAM,
             422,
             rest=invalid_input
         )
 
-    user.name = username
+    user.name = name
     user.email = email if email else user.email
     if n_password:
         user.password = n_password

@@ -16,7 +16,7 @@
                 <b-nav is-nav-bar>
                     <b-nav-item @click.stop>
                         <router-link :to="{ name: 'me', params: { userId: userid, }, }" active-class="active">
-                            {{ username }}
+                            {{ name }}
                         </router-link>
                     </b-nav-item>
                     <b-nav-item @click.stop>
@@ -67,7 +67,7 @@ export default {
         ...mapGetters('user', {
             loggedIn: 'loggedIn',
             userid: 'id',
-            username: 'name',
+            name: 'name',
         }),
     },
 

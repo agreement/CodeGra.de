@@ -649,16 +649,16 @@ class User(Base):
         return User.query.get(int(user_id))
 
     @staticmethod
-    def validate_username(username: str) -> str:
-        """Check the validity of the username.
+    def validate_name(name: str) -> str:
+        """Check the validity of the name.
 
         TODO: Refactor or remove me.
 
-        :param username: The username to check
+        :param name: The name to check
         :returns: An error message if the name is invalid, else an empty string
         """
         min_len = 3
-        if len(username) < min_len:
+        if len(name) < min_len:
             return ('use at least {} chars'.format(min_len))
         else:
             return ('')

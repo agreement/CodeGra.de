@@ -22,10 +22,7 @@ def test_lti_new_user_new_course(test_client, app, logged_in, ta_user):
     due_at = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 
     def do_lti_launch(
-        username='A the A-er',
-        lti_id='USER_ID',
-        source_id='',
-        published='false'
+        name='A the A-er', lti_id='USER_ID', source_id='', published='false'
     ):
         with app.app_context():
             data = {
@@ -39,7 +36,7 @@ def test_lti_new_user_new_course(test_client, app, logged_in, ta_user):
                 'custom_canvas_assignment_published': published,
                 'user_id': lti_id,
                 'lis_person_contact_email_primary': 'a@a.nl',
-                'lis_person_name_full': username,
+                'lis_person_name_full': name,
                 'context_id': 'NO_CONTEXT',
                 'context_title': 'WRONG_TITLE',
                 'oauth_consumer_key': 'my_lti',

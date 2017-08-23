@@ -4,7 +4,7 @@
         <div @keyup.enter="submit" @keyup.capture="error = ''" v-else>
             <b-form-fieldset>
                 <b-input-group left="Username">
-                    <b-form-input type="text" v-model="username"></b-form-input>
+                    <b-form-input type="text" v-model="name"></b-form-input>
                 </b-input-group>
             </b-form-fieldset>
 
@@ -79,7 +79,7 @@ export default {
 
     data() {
         return {
-            username: '',
+            name: '',
             email: '',
             oldPw: '',
             newPw: '',
@@ -102,7 +102,7 @@ export default {
     mounted() {
         this.loading = true;
         this.$http.get('/api/v1/login').then(({ data }) => {
-            this.username = data.name;
+            this.name = data.name;
             this.email = data.email;
             this.loading = false;
         });
@@ -110,7 +110,7 @@ export default {
 
     methods: {
         resetParams() {
-            this.username = this.$store.state.user.name;
+            this.name = this.$store.state.user.name;
             this.email = this.$store.state.user.email;
             this.oldPw = '';
             this.newPw = '';
@@ -139,7 +139,7 @@ export default {
             }
 
             const req = this.$store.dispatch('user/updateUserInfo', {
-                username: this.username,
+                name: this.name,
                 email: this.email,
                 oldPw: this.oldPw,
                 newPw: this.newPw,
@@ -149,7 +149,7 @@ export default {
             }, (err) => {
                 switch (err.response.data.code) {
                 case 5:
-                    this.error = err.response.data.rest.username || err.response.data.rest.password;
+                    this.error = err.response.data.rest.name || err.response.data.rest.password;
                     break;
                 case 12:
                     this.error = err.response.data.message;
