@@ -6,7 +6,7 @@ This module implements generic helpers and convenience functions.
 """
 import typing as t
 import datetime
-from functools import reduce
+from functools import wraps, reduce
 
 import flask  # type: ignore
 import werkzeug
@@ -237,3 +237,33 @@ def make_empty_response() -> EmptyResponse:
     response = flask.make_response('')
     response.status_code = 204
     return response
+
+
+def feature_required(feature_name: str) -> t.Callable:
+    """ A decorator used to make sure the function decorated is only called
+    with a certain feature enabled.
+
+    :param feature_name: The name of the feature to check for.
+
+    :returns: The value of the decorated function if the given feature is
+        enabled.
+
+    :raises APIException: If the feature is not enabled. (DISABLED_FEATURE)
+    """
+
+    def decorator(f: t.Callable) -> t.Callable:
+        @wraps(f)
+        def decorated_function(*args: t.Any, **kwargs: t.Any) -> t.Any:
+            enabled = psef.app.config['FEATURES'][feature_name]
+            if enabled:
+                return f(*args, **kwargs)
+            else:
+                raise psef.errors.APIException(
+                    'This feature is not enabled for this instance.',
+                    f'The feature "{feature_name}" is not enabled.',
+                    psef.errors.APICodes.DISABLED_FEATURE, 400
+                )
+
+        return decorated_function
+
+    return decorator

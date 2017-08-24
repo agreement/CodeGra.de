@@ -163,6 +163,7 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
 
 
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['GET'])
+@helpers.feature_required('RUBRICS')
 def get_assignment_rubric(assignment_id: int
                           ) -> JSONResponse[t.Sequence[models.RubricRow]]:
     """Return the rubric corresponding to the given `assignment_id`.
@@ -194,6 +195,7 @@ def get_assignment_rubric(assignment_id: int
 
 
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['PUT'])
+@helpers.feature_required('RUBRICS')
 def add_assignment_rubric(assignment_id: int) -> EmptyResponse:
     """Add or update rubric of an assignment.
 
@@ -345,6 +347,7 @@ def patch_rubric_row(
     '/assignments/<int:assignment_id>/rubrics/<int:rubric_row>',
     methods=['DELETE']
 )
+@helpers.feature_required('RUBRICS')
 def delete_rubricrow(assignment_id: int, rubric_row: int) -> EmptyResponse:
     """Delete rubric row of the assignment.
 
@@ -626,6 +629,7 @@ def get_all_works_for_assignment(assignment_id: int
 
 
 @api.route("/assignments/<int:assignment_id>/submissions/", methods=['POST'])
+@helpers.feature_required('BLACKBOARD_ZIP_UPLOAD')
 def post_submissions(assignment_id: int) -> EmptyResponse:
     """Add submissions to the  given:class:`.models.Assignment` from a
     blackboard zip file as :class:`.models.Work` objects.

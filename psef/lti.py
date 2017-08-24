@@ -193,16 +193,27 @@ class LTI:
             # New LTI user id is found and no user is logged in or the current
             # user has a different LTI user id. A new user is created and
             # logged in.
+            i = 0
+
+            def _get_username() -> str:
+                return self.username + (f' ({i})' if i > 0 else '')
+
+            while db.session.query(
+                models.User.query.filter_by(username=_get_username()).exists()
+            ).scalar():  # pragma: no cover
+                i += 1
+
             user = models.User(
                 lti_user_id=self.user_id,
                 name=self.users_name,
                 email=self.user_email,
                 active=True,
                 password=None,
-                username=self.username,
+                username=_get_username(),
             )
             db.session.add(user)
             db.session.commit()
+
             token = psef.jwt.create_access_token(
                 identity=user.id,
                 fresh=True,
@@ -440,6 +451,7 @@ class CanvasLTI(LTI):
 
 
 @app.route('/api/v1/lti/launch/1', methods=['POST'])
+@helpers.feature_required('LTI')
 def launch_lti() -> t.Any:
     """Do a LTI launch.
 
@@ -462,6 +474,7 @@ def launch_lti() -> t.Any:
 
 
 @app.route('/api/v1/lti/launch/2', methods=['GET'])
+@helpers.feature_required('LTI')
 def second_phase_lti_launch(
 ) -> helpers.JSONResponse[t.Mapping[str, t.Union[str, models.Assignment]]]:
     launch_params = jwt.decode(
