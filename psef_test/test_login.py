@@ -5,7 +5,10 @@ import pytest
 import psef.models as m
 
 data_error = pytest.mark.data_error
+missing_error = pytest.mark.missing_error
+password_error = pytest.mark.password_error
 does_have_permission = pytest.mark.does_have_permission
+needs_password = pytest.mark.needs_password
 
 
 @pytest.mark.parametrize('active', [True, False])
@@ -14,23 +17,28 @@ does_have_permission = pytest.mark.does_have_permission
         data_error(None),
         data_error(5),
         'a',
-        data_error(wrong=True)('b'),
+        data_error(wrong=True)('b-the-wrong-password'),
     ]
 )
 @pytest.mark.parametrize(
-    'email', [
+    'username', [
         data_error(None),
         data_error(5),
-        'a@a.nl',
+        'a-the-a-er',
         data_error('b@b.nl'),
         data_error(wrong=True)('b'),
     ]
 )
 def test_login(
-    test_client, session, error_template, password, email, request, active, app
+    test_client, session, error_template, password, request, active, app,
+    username
 ):
     new_user = m.User(
-        name='NEW_USER', email='a@a.nl', password='a', active=active
+        name='NEW_USER',
+        email='a@a.nl',
+        password='a',
+        active=active,
+        username='a-the-a-er'
     )
     session.add(new_user)
     session.commit()
@@ -50,8 +58,8 @@ def test_login(
     data = {}
     if password is not None:
         data['password'] = password
-    if email is not None:
-        data['email'] = email
+    if username is not None:
+        data['username'] = username
 
     res = test_client.req(
         'post',
@@ -59,11 +67,13 @@ def test_login(
         error or 200,
         data=data,
         result=error_template if error else {
-            'user': {
-                'email': 'a@a.nl',
-                'id': int,
-                'name': 'NEW_USER'
-            },
+            'user':
+                {
+                    'email': 'a@a.nl',
+                    'id': int,
+                    'name': 'NEW_USER',
+                    'username': 'a-the-a-er',
+                },
             'access_token': str
         }
     )
@@ -101,6 +111,7 @@ def test_extended_get_login(test_client, named_user, logged_in, request):
                 'id': int,
                 'email': str,
                 'hidden': perm_true,
+                'username': str,
             }
         )
 
@@ -133,3 +144,141 @@ def test_get_roles(
             query={'type': 'roles'},
             result=result,
         )
+
+
+def test_login_duplicate_email(
+    test_client, session, error_template, request, app
+):
+    new_users = [
+        m.User(
+            name='NEW_USER',
+            email='a@a.nl',
+            password='a',
+            active=True,
+            username='a-the-awesome'
+        ),
+        m.User(
+            name='NEW_USER',
+            email='a@a.nl',
+            password='a',
+            active=True,
+            username='a-the-a-er'
+        )
+    ]
+    for new_user in new_users:
+        session.add(new_user)
+    session.commit()
+
+    for user_id in [u.id for u in new_users]:
+        user = m.User.query.get(user_id)
+
+        res = test_client.req(
+            'post',
+            f'/api/v1/login',
+            200,
+            data={'username': user.username,
+                  'password': 'a'},
+            result={
+                'user':
+                    {
+                        'email': 'a@a.nl',
+                        'id': int,
+                        'name': 'NEW_USER',
+                        'username': user.username,
+                    },
+                'access_token': str
+            }
+        )
+        access_token = res['access_token']
+
+        with app.app_context():
+            test_client.req(
+                'get',
+                '/api/v1/login',
+                200,
+                headers={'Authorization': f'Bearer {access_token}'},
+                result={
+                    'username': user.username,
+                    'id': int,
+                    'email': user.email,
+                    'name': user.name,
+                }
+            )
+
+        test_client.req('get', '/api/v1/login', 401)
+
+
+@pytest.mark.parametrize(
+    'new_password', [needs_password('wow'), '',
+                     missing_error(None)]
+)
+@pytest.mark.parametrize(
+    'email', [
+        needs_password('a-the@a.nl'), 'a@a.nl',
+        data_error('wrong_email'),
+        missing_error(None)
+    ]
+)
+@pytest.mark.parametrize('name', ['Wow', data_error(''), missing_error(None)])
+@pytest.mark.parametrize(
+    'old_password', [
+        'a',
+        '',
+        password_error('wrong'),
+        missing_error(None),
+    ]
+)
+def test_update_user_info(
+    logged_in, test_client, session, new_password, email, name, old_password,
+    error_template, request
+):
+    user = m.User(
+        name='NEW_USER',
+        email='a@a.nl',
+        password='a',
+        active=True,
+        username='a-the-a-er'
+    )
+    session.add(user)
+    session.commit()
+    user_id = user.id
+
+    missing_err = request.node.get_marker('missing_error')
+    data_err = request.node.get_marker('data_error')
+    password_err = request.node.get_marker('password_error')
+    needs_pw = request.node.get_marker('needs_password')
+    if missing_err:
+        error = 400
+    elif password_err:
+        error = 403
+    elif data_err:
+        error = 400
+    elif needs_pw and old_password != 'a':
+        error = 403
+    else:
+        error = False
+
+    data = {}
+    if new_password is not None:
+        data['new_password'] = new_password
+    if old_password is not None:
+        data['old_password'] = old_password
+    if email is not None:
+        data['email'] = email
+    if name is not None:
+        data['name'] = name
+
+    with logged_in(user):
+        test_client.req(
+            'patch',
+            '/api/v1/login',
+            error or 204,
+            data=data,
+            result=error_template if error else None
+        )
+        new_user = m.User.query.get(user_id)
+        if not error:
+            assert new_user.name == name
+            assert new_user.email == email
+        else:
+            assert new_user.name != name

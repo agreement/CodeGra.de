@@ -179,6 +179,7 @@ def get_zip(work: models.Work,
 
 
 @api.route("/submissions/<int:submission_id>/rubrics/", methods=['GET'])
+@helpers.feature_required('RUBRICS')
 def get_rubric(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
     """Return full rubric of the :class:`.models.Assignment` of the given
     submission (:class:`.models.Work`).

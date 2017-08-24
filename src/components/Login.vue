@@ -1,9 +1,9 @@
 <template>
     <div class="login" @keyup.enter="login">
         <b-form-fieldset>
-            <b-form-input type="text" placeholder="Email" v-model="email"></b-form-input>
-            <b-alert variant="danger" :show="submitted && !validator.validate(email)">
-                Please enter a valid email
+            <b-form-input type="text" placeholder="username" v-model="username"></b-form-input>
+            <b-alert variant="danger" :show="submitted && !username">
+                Please enter a non empty username
             </b-alert>
         </b-form-fieldset>
 
@@ -27,16 +27,13 @@
 <script>
 import { mapActions } from 'vuex';
 
-const validator = require('email-validator');
-
 export default {
     name: 'login',
     data() {
         return {
-            email: '',
+            username: '',
             password: '',
             error: '',
-            validator,
             submitted: false,
         };
     },
@@ -46,14 +43,11 @@ export default {
             event.preventDefault();
             this.error = '';
             this.submitted = true;
-            if (!validator.validate(this.email)) {
-                return;
-            }
-            if (this.password.length === 0) {
+            if (this.password.length === 0 || this.username.length === 0) {
                 return;
             }
 
-            this.tryLogin({ email: this.email, password: this.password }).then(() => {
+            this.tryLogin({ username: this.username, password: this.password }).then(() => {
                 this.$router.replace({ name: 'assignments' });
             }).catch((reason) => {
                 if (reason) {

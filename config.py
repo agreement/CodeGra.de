@@ -65,3 +65,23 @@ with open(
 DEFAULT_ROLE = 'Student'
 
 EXTERNAL_URL = 'http://localhost:8080'
+
+enabled = True
+# This variables contains all enables features, please do add, remove or edit
+# any keys, the values however can and should be edited. A truth value (where
+# `bool(value)` evaluates to `True`) enables the given feature.
+FEATURES = {
+    # Should any user be able to upload blackboard zips. If this is enabled
+    # sometimes the username can collide with another user, meaning work is
+    # uploaded for the wrong user. This option is UNSAFE to enable when working
+    # on a multiple school instance.
+    'BLACKBOARD_ZIP_UPLOAD': enabled,
+    # Should rubrics be enabled. This means rubrics can be created by teachers
+    # and used for grading purposes.
+    'RUBRICS': enabled,
+    # Should LTI be enabled.
+    'LTI': enabled,
+}
+
+with open(f'{os.path.dirname(__file__)}/VERSION', 'r') as f:
+    VERSION = f.read().strip()

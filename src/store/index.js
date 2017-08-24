@@ -3,6 +3,7 @@ import Vuex from 'vuex';
 import createPersistedState from 'vuex-persistedstate';
 
 import user from './modules/user';
+import features from './modules/features';
 
 Vue.use(Vuex);
 
@@ -14,6 +15,7 @@ const plugins = [
 export default new Vuex.Store({
     modules: {
         user,
+        features,
     },
     strict: debug,
     plugins,

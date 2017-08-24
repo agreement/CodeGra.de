@@ -15,7 +15,7 @@
             <div v-if="loggedIn" class="nav-container justify-content-md-between">
                 <b-nav is-nav-bar>
                     <b-nav-item :to="{ name: 'me', params: { userId: userid, }, }" active-class="active">
-                        {{ username }}
+                        {{ name }}
                     </b-nav-item>
                     <b-nav-item :to="{ name: 'assignments', }"  active-class="active">
                         Assignments
@@ -57,7 +57,7 @@ export default {
         ...mapGetters('user', {
             loggedIn: 'loggedIn',
             userid: 'id',
-            username: 'name',
+            name: 'name',
         }),
     },
 

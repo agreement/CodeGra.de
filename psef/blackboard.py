@@ -45,7 +45,7 @@ class SubmissionInfo(
     t.NamedTuple(
         'SubmissionInfo', [
             ('student_name', str),
-            ('student_id', int),
+            ('student_id', str),
             ('assignment_name', str),
             ('created_at', datetime.datetime),
             ('grade', t.Optional[float]),
@@ -90,7 +90,7 @@ def parse_info_file(file: str) -> SubmissionInfo:
 
             info = SubmissionInfo(
                 student_name=match.group('name').decode('utf-8'),
-                student_id=int(match.group('id')),
+                student_id=match.group('id').decode('utf-8'),
                 assignment_name=match.group('assignment').decode('utf-8'),
                 created_at=dateparser.parse(
                     match.group('datetime').decode('utf-8')

@@ -69,8 +69,8 @@
                 <linters class="col-md-6" :assignment="assignment"></linters>
             </div>
 
-            <div class="row">
-                <div class="col-md-6">
+            <div class="row" v-if="features.BLACKBOARD_ZIP_UPLOAD || features.RUBRICS">
+                <div class="col-md-6" v-if="features.BLACKBOARD_ZIP_UPLOAD">
                     <b-form-fieldset label="Upload blackboard zip">
                         <b-popover
                             placement="top"
@@ -83,7 +83,7 @@
                     </b-form-fieldset>
                 </div>
 
-                <div class="col-md-6">
+                <div class="col-md-6" v-if="features.RUBRICS">
                     <b-form-fieldset label="Misc.">
                         <b-button-toolbar>
                             <b-button
@@ -104,6 +104,8 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/eye-slash';
 import 'vue-awesome/icons/clock-o';
 import 'vue-awesome/icons/check';
+
+import { mapGetters } from 'vuex';
 
 import DivideSubmissions from './DivideSubmissions';
 import FileUploader from './FileUploader';
@@ -134,6 +136,9 @@ export default {
         assignmentUrl() {
             return `/api/v1/assignments/${this.assignment.id}`;
         },
+        ...mapGetters('features', {
+            features: 'features',
+        }),
     },
 
     methods: {

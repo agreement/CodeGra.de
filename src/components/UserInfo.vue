@@ -4,7 +4,14 @@
         <div @keyup.enter="submit" @keyup.capture="error = ''" v-else>
             <b-form-fieldset>
                 <b-input-group left="Username">
-                    <b-form-input type="text" v-model="username"></b-form-input>
+                    <b-popover placement="top" triggers="hover" content="You cannot change your username" style="width: 100%;">
+                        <b-form-input type="text" v-model="username" :disabled="true" style="border-top-left-radius: 0; border-bottom-left-radius: 0; width: 100%"/>
+                    </b-popover>
+                </b-input-group>
+            </b-form-fieldset>
+            <b-form-fieldset>
+                <b-input-group left="Full name">
+                    <b-form-input type="text" v-model="name"></b-form-input>
                 </b-input-group>
             </b-form-fieldset>
 
@@ -56,7 +63,7 @@
 
             <b-button-toolbar justify>
                 <submit-button @click="submit" ref="submitButton" :showError="false"/>
-                <b-button variant="danger" @click="resetAll">Reset</b-button>
+                <b-button variant="danger" @click="reset">Reset</b-button>
             </b-button-toolbar>
         </div>
     </div>
@@ -79,6 +86,7 @@ export default {
 
     data() {
         return {
+            name: '',
             username: '',
             email: '',
             oldPw: '',
@@ -102,62 +110,45 @@ export default {
     mounted() {
         this.loading = true;
         this.$http.get('/api/v1/login').then(({ data }) => {
-            this.username = data.name;
+            this.name = data.name;
+            this.username = data.username;
             this.email = data.email;
             this.loading = false;
         });
     },
 
     methods: {
-        resetParams() {
-            this.username = this.$store.state.user.name;
+        reset() {
+            this.name = this.$store.state.user.name;
             this.email = this.$store.state.user.email;
             this.oldPw = '';
             this.newPw = '';
             this.confirmPw = '';
-        },
-
-        resetAll() {
-            this.resetErrors();
-            this.resetParams();
+            this.error = '';
         },
 
         submit() {
             this.error = '';
 
-            if (!this.oldPw) {
-                this.error = 'Please fill in your password.';
-                return;
-            }
             if (this.newPw !== this.confirmPw) {
                 this.error = 'New password doesn\'t match confirm password.';
                 return;
             }
             if (!validator.validate(this.email)) {
-                this.error = 'Invalid email address.';
+                this.error = 'The given email is not valid.';
                 return;
             }
 
             const req = this.$store.dispatch('user/updateUserInfo', {
-                username: this.username,
+                name: this.name,
                 email: this.email,
                 oldPw: this.oldPw,
                 newPw: this.newPw,
             });
             req.then(() => {
-                this.resetParams();
-            }, (err) => {
-                switch (err.response.data.code) {
-                case 5:
-                    this.error = err.response.data.rest.username || err.response.data.rest.password;
-                    break;
-                case 12:
-                    this.error = err.response.data.message;
-                    break;
-                default:
-                    this.error = 'Unknown error';
-                    break;
-                }
+                this.reset();
+            }, ({ response }) => {
+                this.error = response.data.message;
             });
             this.$refs.submitButton.submit(req);
         },

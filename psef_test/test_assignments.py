@@ -939,6 +939,7 @@ def test_get_all_submissions(
                                 }],
                         'name': 'top',
                         'id': int,
+                        'username': '0000001',
                 },
                 'New User': {
                         'entries': [{
@@ -949,7 +950,8 @@ def test_get_all_submissions(
                                     'id': int
                                 }],
                         'name': 'top',
-                        'id': int
+                        'id': int,
+                        'username': '0000003',
                 },
                 'Stupid2': {
                         'entries': [{
@@ -960,7 +962,8 @@ def test_get_all_submissions(
                                     'id': int
                                 }],
                         'name': 'top',
-                        'id': int
+                        'id': int,
+                        'username': '0000002',
                 },
             }
         ),
@@ -1025,11 +1028,16 @@ def test_upload_blackboard_zip(
             assert len(res) == len(result)
             for item in res:
                 assert item['user']['name'] in result
+                name = item['user']['name']
+                username = result[name]['username']
+                del result[name]['username']
                 test_client.req(
                     'get',
                     f'/api/v1/submissions/{item["id"]}/files/',
                     200,
-                    result=result[item['user']['name']]
+                    result=result[name]
                 )
+                found_us = m.User.query.filter_by(name=name).all()
+                assert any(u.username == username for u in found_us)
         else:
             assert not res

@@ -83,10 +83,15 @@ class LTI:
         return self.launch_params['lis_person_contact_email_primary']
 
     @property
-    def user_name(self) -> str:
-        """The name or username of the current LTI user.
+    def full_name(self) -> str:
+        """The name of the current LTI user.
         """
         return self.launch_params['lis_person_name_full']
+
+    @property
+    def username(self) -> str:
+        """The username of the current LTI user."""
+        return self.launch_params['user_id']
 
     @property
     def course_id(self) -> str:  # pragma: no cover
@@ -182,20 +187,33 @@ class LTI:
         elif is_logged_in and current_user.lti_user_id is None:
             # TODO show some sort of screen if this linking is wanted
             current_user.lti_user_id = self.user_id
+            db.session.commit()
             user = current_user
         else:
             # New LTI user id is found and no user is logged in or the current
             # user has a different LTI user id. A new user is created and
             # logged in.
+            i = 0
+
+            def _get_username() -> str:
+                return self.username + (f' ({i})' if i > 0 else '')
+
+            while db.session.query(
+                models.User.query.filter_by(username=_get_username()).exists()
+            ).scalar():  # pragma: no cover
+                i += 1
+
             user = models.User(
                 lti_user_id=self.user_id,
-                name=self.user_name,
+                name=self.full_name,
                 email=self.user_email,
                 active=True,
-                password=None
+                password=None,
+                username=_get_username(),
             )
             db.session.add(user)
             db.session.commit()
+
             token = psef.jwt.create_access_token(
                 identity=user.id,
                 fresh=True,
@@ -374,6 +392,10 @@ class CanvasLTI(LTI):
     """
 
     @property
+    def username(self) -> str:
+        return self.launch_params['lis_person_sourcedid']
+
+    @property
     def course_name(self) -> str:
         return self.launch_params['custom_canvas_course_name']
 
@@ -429,6 +451,7 @@ class CanvasLTI(LTI):
 
 
 @app.route('/api/v1/lti/launch/1', methods=['POST'])
+@helpers.feature_required('LTI')
 def launch_lti() -> t.Any:
     """Do a LTI launch.
 
@@ -451,6 +474,7 @@ def launch_lti() -> t.Any:
 
 
 @app.route('/api/v1/lti/launch/2', methods=['GET'])
+@helpers.feature_required('LTI')
 def second_phase_lti_launch(
 ) -> helpers.JSONResponse[t.Mapping[str, t.Union[str, models.Assignment]]]:
     launch_params = jwt.decode(
