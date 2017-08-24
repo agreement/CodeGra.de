@@ -1,11 +1,11 @@
 <template>
-    <form class="file-uploader" ref="form">
+    <form class="file-uploader" ref="form" method="POST" enctype="multipart/form-data">
         <b-form-fieldset>
             <b-input-group>
                 <b-input-group-button>
                     <submit-button
                         :disabled="this.file === null"
-                        @click="submit"
+                        @click.prevent="submit"
                         ref="submitButton"/>
                 </b-input-group-button>
                 <b-form-file

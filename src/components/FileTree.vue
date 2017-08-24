@@ -1,17 +1,23 @@
 <template>
     <div class="file-tree" v-bind:class="{ collapsed: isCollapsed, }">
         <div v-on:click="toggle($event)">
-            <icon name="caret-right" v-if="isCollapsed"></icon>
-            <icon name="caret-down" v-else></icon>
-            <icon name="folder" v-if="isCollapsed"></icon>
-            <icon name="folder-open" v-else></icon>
+            <icon name="caret-right" v-if="isCollapsed"/>
+            <icon name="caret-down" v-else/>
+            <icon name="folder" v-if="isCollapsed"/>
+            <icon name="folder-open" v-else/>
             {{ tree.name }}
         </div>
         <ol v-show="!isCollapsed">
             <li v-for="f in tree.entries">
-                <file-tree v-bind:tree="f" v-bind:collapsed="!FileInTree($route.params.fileId, f)" v-if="f.entries"></file-tree>
-                <router-link :class="{ 'active-file': $route.params.fileId == f.id }" :to="{ name: 'submission_file', params: { courseId: courseId, assignmentId: assignmentId, submissionId: submissionId, fileId: f.id, }, }" replace v-else>
-                    <icon name="file"></icon> {{ f.name }}
+                <file-tree :tree="f"
+                           :collapsed="!fileInTree($route.params.fileId, f)"
+                           v-if="f.entries"/>
+                <router-link :class="{ 'active-file': $route.params.fileId == f.id }"
+                             :to="getFileRoute(f.id)"
+                             replace
+                             v-else>
+                    <icon name="file"/>
+                    {{ f.name }}
                 </router-link>
             </li>
         </ol>
@@ -55,13 +61,26 @@ export default {
             event.stopPropagation();
             this.isCollapsed = !this.isCollapsed;
         },
-        FileInTree(fileid, tree) {
+
+        getFileRoute(fileId) {
+            return {
+                name: 'submission_file',
+                params: {
+                    courseId: this.courseId,
+                    assignmentId: this.assignmentId,
+                    submissionId: this.submissionId,
+                    fileId,
+                },
+            };
+        },
+
+        fileInTree(fileId, tree) {
             for (let i = 0; i < tree.entries.length; i += 1) {
                 if (tree.entries[i].entries) {
-                    if (this.FileInTree(fileid, tree.entries[i])) {
+                    if (this.fileInTree(fileId, tree.entries[i])) {
                         return true;
                     }
-                } else if (Number(tree.entries[i].id) === Number(fileid)) {
+                } else if (Number(tree.entries[i].id) === Number(fileId)) {
                     return true;
                 }
             }

@@ -1,7 +1,7 @@
-export const titleSep = '»';
+export const pageTitleSep = '»';
 
-export function setTitle(title = '') {
+export function setPageTitle(title = '') {
     let s = title;
-    if (s) s += ` ${titleSep} `;
+    if (s) s += ` ${pageTitleSep} `;
     document.title = `${s}CodeGra.de`;
 }

@@ -15,37 +15,30 @@
             <div class="col-6">
                 <b-input-group>
                     <b-input-group-button v-if="editable">
-                        <b-popover :show="!!(grade < 0 || grade > 10 || error)"
-                            :content="error || 'Grade have to be between 0 and 10'">
-                            <submit-button @click="putFeedback" ref="submitButton"/>
-                        </b-popover>
+                        <submit-button @click="putFeedback" ref="submitButton"/>
                     </b-input-group-button>
 
                     <b-form-input type="number"
-                                step="any"
-                                min="0"
-                                max="10"
-                                :disabled="!editable"
-                                placeholder="Grade"
-                                @keyup.enter="putFeedback"
-                                v-model="grade"
-                                @change="() => { this.error = false; }"
-                                v-if="!showRubric"/>
-                    <b-form-input
-                        class="text-right"
-                        :disabled="!editable"
-                        v-model="gradeAndRubricPoints"
-                        v-else/>
+                                  step="any"
+                                  min="0"
+                                  max="10"
+                                  :disabled="!editable"
+                                  placeholder="Grade"
+                                  @keyup.enter="putFeedback"
+                                  v-model="grade"
+                                  v-if="!showRubric"/>
+                    <b-form-input class="text-right"
+                                  :disabled="!editable"
+                                  v-model="gradeAndRubricPoints"
+                                  v-else/>
 
                     <b-input-group-button v-if="showRubric">
-                        <b-popover
-                            placement="top"
-                            triggers="hover"
-                            content="Rubric">
-                            <b-button
-                                variant="secondary"
-                                v-b-toggle.rubric-collapse>
-                                <icon name="bars"></icon>
+                        <b-popover placement="top"
+                                   triggers="hover"
+                                   content="Rubric">
+                            <b-button variant="secondary"
+                                      v-b-toggle.rubric-collapse>
+                                <icon name="bars"/>
                             </b-button>
                         </b-popover>
                     </b-input-group-button>
@@ -101,11 +94,10 @@ export default {
 
     data() {
         return {
-            feedback: '',
-            grade: 0,
+            feedback: this.submission.comment,
+            grade: this.submission.grade,
             rubricPoints: {},
             gradeAndRubricPoints: '',
-            error: false,
         };
     },
 
@@ -117,7 +109,7 @@ export default {
 
     watch: {
         grade(grade) {
-            this.$emit('gradeChange', grade);
+            this.$emit('gradeUpdated', grade);
         },
 
         submission() {
@@ -142,9 +134,6 @@ export default {
     },
 
     mounted() {
-        this.feedback = this.submission.comment || '';
-        this.grade = this.submission.grade || 0;
-
         if (this.showRubric) {
             this.rubric.points.grade = this.grade;
         }
@@ -171,25 +160,16 @@ export default {
         putFeedback() {
             const grade = parseFloat(this.grade);
             if (!(grade >= 0 && grade <= 10)) {
-                this.error = `The given grade '${this.grade}' is not a number between 0 and 10`;
-                this.$nextTick(() => setTimeout(() => {
-                    this.error = false;
-                }, 3000));
+                this.$refs.submitButton.fail(`Grade '${this.grade}' must be between 0 and 10`);
                 return;
             }
-            this.error = false;
 
-            const req = this.$http.patch(
-                `/api/v1/submissions/${this.submission.id}`, {
-                    grade,
-                    feedback: this.feedback,
-                },
-            );
+            const req = this.$http.patch(`/api/v1/submissions/${this.submission.id}`, {
+                grade,
+                feedback: this.feedback,
+            });
             req.then(() => {
-                this.$emit('gradeChange', this.grade);
-            }, (err) => {
-                // eslint-disable-next-line
-                console.dir(err);
+                this.grade = grade;
             });
             this.$refs.submitButton.submit(req.catch((err) => {
                 throw err.response.data.message;

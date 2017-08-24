@@ -13,7 +13,7 @@ import { mapGetters, mapActions } from 'vuex';
 import { AssignmentList, Loader } from '@/components';
 import moment from 'moment';
 
-import { setTitle } from './title';
+import { setPageTitle } from './title';
 
 function formatDate(d) {
     return moment.utc(d, moment.ISO_8601).local().format('YYYY-MM-DD HH:mm');
@@ -30,7 +30,7 @@ export default {
     },
 
     mounted() {
-        setTitle('Assignments');
+        setPageTitle('Assignments');
 
         Promise.all([
             this.$http.get('/api/v1/assignments/'),

@@ -6,7 +6,6 @@ import Linter from './Linter';
 import ManageAssignment from './ManageAssignment';
 import ManageCourse from './ManageCourse';
 import FileTree from './FileTree';
-import FileTreeContainer from './FileTreeContainer';
 import FooterBar from './FooterBar';
 import GradeViewer from './GradeViewer';
 import Loader from './Loader';
@@ -35,7 +34,6 @@ export {
     ManageCourse,
     FeedbackArea,
     FileTree,
-    FileTreeContainer,
     FooterBar,
     GradeViewer,
     Loader,

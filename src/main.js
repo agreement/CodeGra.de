@@ -34,6 +34,18 @@ axios.defaults.transformRequest.push((data, headers) => {
 
 Vue.prototype.$http = axios;
 
+// Fix axios automatically parsing all responses as JSON... WTF!!!
+axios.defaults.transformResponse = [
+    function defaultTransformResponse(data, headers) {
+        switch (headers['content-type']) {
+        case 'application/json':
+            return JSON.parse(data);
+        default:
+            return data;
+        }
+    },
+];
+
 axios.interceptors.response.use(response => response, (() => {
     let toastVisible = false;
     return (error) => {

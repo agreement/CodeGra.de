@@ -14,36 +14,26 @@
         <b-collapse is-nav id="nav_collapse">
             <div v-if="loggedIn" class="nav-container justify-content-md-between">
                 <b-nav is-nav-bar>
-                    <b-nav-item @click.stop>
-                        <router-link :to="{ name: 'me', params: { userId: userid, }, }" active-class="active">
-                            {{ username }}
-                        </router-link>
+                    <b-nav-item :to="{ name: 'me', params: { userId: userid, }, }" active-class="active">
+                        {{ username }}
                     </b-nav-item>
-                    <b-nav-item @click.stop>
-                        <router-link :to="{ name: 'assignments', }"  active-class="active">
-                            Assignments
-                        </router-link>
+                    <b-nav-item :to="{ name: 'assignments', }"  active-class="active">
+                        Assignments
                     </b-nav-item>
-                    <b-nav-item @click.stop>
-                        <router-link :to="{ name: 'courses', }"  active-class="active">
-                            Courses
-                        </router-link>
+                    <b-nav-item :to="{ name: 'courses', }"  active-class="active">
+                        Courses
                     </b-nav-item>
                 </b-nav>
                 <b-nav is-nav-bar>
-                    <b-nav-item @click.stop>
-                        <router-link :to="{ name: 'logout', }" @click.native.capture="logoutAndRedirect"  active-class="active">
-                            Logout
-                        </router-link>
+                    <b-nav-item :to="{ name: 'logout', }" @click.native.capture="logoutAndRedirect"  active-class="active">
+                        Logout
                     </b-nav-item>
                 </b-nav>
             </div>
             <div v-else class="nav-container justify-content-md-end">
                 <b-nav is-nav-bar>
-                    <b-nav-item @click.stop>
-                        <router-link :to="{ name: 'login', }"  active-class="active">
-                            Login
-                        </router-link>
+                    <b-nav-item :to="{ name: 'login', }"  active-class="active">
+                        Login
                     </b-nav-item>
                 </b-nav>
             </div>
@@ -114,24 +104,28 @@ export default {
     }
 }
 
-.nav-item a {
+.logo {
+    width: 10em;
+}
+</style>
+
+<style lang="less">
+.navbar .navbar-nav .nav-item a {
     display: block;
     padding: 0.5em;
     margin: -.5em -.25em;
     text-decoration: none;
     text-align: right;
-    color: white;
+    color: #cbcbcb;
+    border-bottom: 3px solid transparent;
 
     &:hover {
-        color: #cbcbcb;
+        color: white;
     }
 
     &.active {
-        border-bottom: 3px solid white;
+        border-color: white;
+        color: white;
     }
-}
-
-.logo {
-    width: 10em;
 }
 </style>

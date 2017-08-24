@@ -52,7 +52,7 @@
 <script>
 import { mapGetters } from 'vuex';
 
-import { setTitle } from './title';
+import { setPageTitle } from './title';
 
 export default {
     name: 'home-page',
@@ -75,7 +75,7 @@ export default {
     },
 
     mounted() {
-        setTitle('Home');
+        setPageTitle('Home');
     },
 };
 </script>

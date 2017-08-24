@@ -2,24 +2,26 @@
     <b-form-fieldset class="submission-nav-bar">
         <b-input-group>
             <b-input-group-button>
-                <b-button class="angle-btn" @click="backToSubmissions">
-                    <icon name="angle-double-left"></icon>
+                <b-button class="angle-btn"
+                          @click="backToSubmissions">
+                    <icon name="angle-double-left"/>
                 </b-button>
             </b-input-group-button>
             <b-input-group-button>
-                <b-button :disabled="!prev" @click="gotoSubmission(prev)" class="angle-btn">
-                    <icon name="angle-left"></icon>
+                <b-button :disabled="!hasPrev"
+                          @click="selectPrev">
+                    <icon name="angle-left"/>
                 </b-button>
             </b-input-group-button>
             <b-input-group-button style="flex-grow: 1;">
-                <b-form-select :options="options.map(item => item.item)"
-                               v-model="selectedOption"
-                               id="student-selector">
-                </b-form-select>
+                <b-form-select :options="options"
+                               v-model="selected"
+                               id="student-selector"/>
             </b-input-group-button>
             <b-input-group-button>
-                <b-button :disabled="!next" @click="gotoSubmission(next)" class="angle-btn">
-                    <icon name="angle-right"></icon>
+                <b-button :disabled="!hasNext"
+                          @click="selectNext">
+                    <icon name="angle-right"/>
                 </b-button>
             </b-input-group-button>
         </b-input-group>
@@ -27,174 +29,109 @@
 </template>
 
 <script>
+import moment from 'moment';
 import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/angle-double-left';
 import 'vue-awesome/icons/angle-left';
 import 'vue-awesome/icons/angle-right';
-import 'vue-awesome/icons/angle-double-left';
-import 'vue-awesome/icons/list';
-
-import { mapGetters } from 'vuex';
 
 export default {
     name: 'submission-nav-bar',
 
+    props: {
+        value: {
+            type: Object,
+            default: null,
+        },
+        submissions: {
+            type: Array,
+            default: [],
+        },
+        filter: {
+            type: Function,
+            default: x => x,
+        },
+    },
+
     data() {
         return {
-            selectedOption: 0,
-            options: [],
-            next: null,
-            prev: null,
+            selected: this.value,
+            index: this.submissions.indexOf(this.value),
         };
     },
 
+    computed: {
+        options() {
+            return this.filter(this.submissions).map(sub => ({
+                text: this.getItemText(sub),
+                value: sub,
+            }));
+        },
+
+        hasPrev() {
+            return this.index > 0 && this.index < this.submissions.length;
+        },
+
+        hasNext() {
+            return this.index >= 0 && this.index < this.submissions.length - 1;
+        },
+    },
+
+    watch: {
+        selected(submission) {
+            this.index = this.submissions.indexOf(submission);
+            this.$emit('input', submission);
+        },
+    },
+
     mounted() {
-        this.options = this.filterAll();
-        this.findNextPrev();
-        this.selectedOption = this.submission.user.id;
         this.$root.$on('shown::dropdown', () => {
             this.$nextTick(this.scrollToItem);
         });
     },
 
     methods: {
-        gotoSubmission(next) {
-            this.selectedOption = next;
+        backToSubmissions() {
+            this.$router.push({
+                name: 'assignment_submissions',
+                params: {
+                    courseId: this.$route.params.courseId,
+                    assignmentId: this.$route.params.assignmentId,
+                },
+            });
         },
-        scrollToItem() {
-            let el = document.getElementById('selectedItem').parentNode;
-            for (let i = 0, end = 6; i < end; i += 1) {
-                el = el.previousSibling || el;
+
+        selectPrev() {
+            if (this.hasPrev) {
+                this.selected = this.submissions[this.index - 1];
             }
-            el.scrollIntoView(true);
+        },
+
+        selectNext() {
+            if (this.hasNext) {
+                this.selected = this.submissions[this.index + 1];
+            }
         },
 
         getItemText(submission) {
-            let text = submission.user.name;
+            const date = moment.utc(submission.created_at, moment.ISO_8601)
+                .local().format('DD-MM-YYYY HH:mm');
+            let text = `${submission.user.name} - ${date}`;
             if (submission.grade) {
                 text += ` [${submission.grade}]`;
             }
             if (submission.assignee) {
                 text += ` (${submission.assignee.name})`;
             }
-            return {
-                text,
-                value: submission.user.id,
-            };
+            return text;
         },
 
-        filterAll() {
-            const options = this.filterLatestSubmissions(this.submissions);
-            return this.filterMineOnly(options);
-        },
-
-        filterLatestSubmissions(submissions) {
-            // filter submissions on latest only
-            const latestSubs = [];
-            const seen = {};
-            for (let i = 0, len = submissions.length; i < len; i += 1) {
-                const sub = submissions[i];
-                if (seen[sub.user.id] !== true) {
-                    latestSubs.push({
-                        item: this.getItemText(sub),
-                        value: sub.id,
-                        assignee: sub.assignee,
-                    });
-                    seen[sub.user.id] = true;
-                }
+        scrollToItem() {
+            let el = document.getElementById('selectedItem').parentNode;
+            for (let i = 0, end = 6; i < end; i += 1) {
+                el = el.previousSibling || el;
             }
-
-            return latestSubs;
-        },
-
-        filterMineOnly(options) {
-            // and filter submissions on mine only
-            let mineOnlyOptions;
-            if (this.submission.assignee !== null &&
-                this.submission.assignee.id === this.userid) {
-                mineOnlyOptions = options.filter(sub => sub.assignee !== null &&
-                                         sub.assignee.id === this.userid);
-                return mineOnlyOptions;
-            }
-            return options;
-        },
-
-        findNextPrev() {
-            // find next and prev submissions
-            this.next = null;
-            this.prev = null;
-            const index = this.options.findIndex(x => x.value === this.submission.id);
-            if (index >= 1) {
-                this.prev = this.options[index - 1].item.value;
-            }
-            if (index < this.options.length - 1) {
-                this.next = this.options[index + 1].item.value;
-            }
-        },
-
-        backToSubmissions() {
-            this.$router.push({
-                name: 'assignment_submissions',
-            });
-        },
-
-        clicked(val) {
-            this.$router.push({
-                name: 'submission',
-                params: {
-                    assignmentId: this.assignmentId,
-                    submissionId: val,
-                },
-            });
-            this.$emit('subChange');
-            this.options = this.filterMineOnly(this.options);
-        },
-    },
-
-    watch: {
-        selectedOption() {
-            for (let i = 0, len = this.options.length; i < len; i += 1) {
-                if (this.options[i].item.value === this.selectedOption) {
-                    this.clicked(this.options[i].value);
-                }
-            }
-        },
-
-        submissions() {
-            this.options = this.filterAll();
-        },
-
-        submission() {
-            this.findNextPrev();
-        },
-    },
-
-    computed: {
-        ...mapGetters('user', {
-            loggedIn: 'loggedIn',
-            userid: 'id',
-            username: 'name',
-        }),
-    },
-
-    props: {
-        submission: {
-            type: Object,
-            default: {},
-        },
-
-        submissions: {
-            type: Array,
-            default: [],
-        },
-
-        courseId: {
-            type: Number,
-            default: 0,
-        },
-
-        assignmentId: {
-            type: Number,
-            default: 0,
+            el.scrollIntoView(true);
         },
     },
 
@@ -222,6 +159,7 @@ export default {
         padding: 0.5rem;
     }
 }
+
 .dropdown-header .dropdown-item:active {
     background-color: inherit;
 }
@@ -229,5 +167,6 @@ export default {
 #student-selector {
     border-radius: 0;
     width: 100%;
+    padding-top: .625rem;
 }
 </style>

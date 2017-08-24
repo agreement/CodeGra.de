@@ -1,41 +1,67 @@
 <template>
-    <div v-if="loading">
-        <loader style="text-align: center; margin-top: 30px;"/>
-    </div>
+    <loader style="text-align: center; margin-top: 30px;" v-if="loading"/>
     <div class="page submission" v-else>
         <div class="row justify-content-center">
             <div class="col-lg-9 code-and-grade">
-                <submission-nav-bar v-if="submissions && submission"
-                                    v-on:subChange="reloadSubmission"
-                                    :submission="submission"
+                <submission-nav-bar v-if="submissions"
+                                    v-model="submission"
                                     :submissions="submissions"
-                                    :courseId="courseId"
-                                    :assignmentId="assignmentId"></submission-nav-bar>
-                <pdf-viewer v-if="fileExtension === 'pdf'" :id="fileId"></pdf-viewer>
-                <code-viewer class="" :editable="editable"
-                    :tree="fileTree"
-                    :assignment="assignment"
-                    v-else-if="fileId" ref="codeViewer"></code-viewer>
+                                    :filter="filterSubmissions"/>
+
+                <pdf-viewer :id="fileId"
+                            v-if="fileExtension === 'pdf'"/>
+                <code-viewer :assignment="assignment"
+                             :submission="submission"
+                             :fileId="+fileId"
+                             :editable="canGradeWork"
+                             :tree="fileTree"
+                             v-else-if="fileId"/>
+
                 <grade-viewer :assignment="assignment"
                               :submission="submission"
                               :rubric="rubric"
-                              :editable="editable"
-                              v-if="editable || assignment.state === assignmentState.DONE"
-                              v-on:gradeChange="gradeChange"/>
+                              :editable="canGradeWork"
+                              v-if="canGradeWork || assignment.state === assignmentState.DONE"
+                              @gradeUpdated="gradeUpdated"/>
             </div>
-            <file-tree-container class="col-lg-3" :fileTree="fileTree"
-                                 :canSeeFeedback="canSeeFeedback"></file-tree-container>
+
+            <div class="col-lg-3 file-tree-container">
+                <b-form-fieldset class="button-bar">
+                    <b-button @click="downloadArchive()"
+                              variant="primary">
+                        <icon name="download"/>
+                        Archive
+                    </b-button>
+                    <b-button @click="downloadFeedback()"
+                              v-if="assignment.state === assignmentState.DONE"
+                              variant="primary">
+                        <icon name="download"/>
+                        Feedback
+                    </b-button>
+                </b-form-fieldset>
+
+                <loader class="text-center"
+                        :scale="3"
+                        v-if="!fileTree"/>
+                <file-tree class="form-control"
+                           :collapsed="false"
+                           :tree="fileTree"
+                           v-else/>
+            </div>
         </div>
     </div>
 </template>
 
 <script>
 import { mapActions } from 'vuex';
-import { CodeViewer, FileTreeContainer, GradeViewer, Loader, PdfViewer, SubmissionNavBar } from '@/components';
+import Icon from 'vue-awesome/components/Icon';
+import 'vue-awesome/icons/download';
 
-import * as assignmentState from '../store/assignment-states';
+import { CodeViewer, FileTree, GradeViewer, Loader, PdfViewer, SubmissionNavBar } from '@/components';
 
-import { setTitle, titleSep } from './title';
+import * as assignmentState from '@/store/assignment-states';
+
+import { setPageTitle, pageTitleSep } from '@/pages/title';
 
 function getFirstFile(fileTree) {
     // Returns the first file in the file tree that is not a folder
@@ -61,33 +87,61 @@ export default {
 
     data() {
         return {
-            assignment: {},
-            submission: {},
+            courseId: Number(this.$route.params.courseId),
+            assignmentId: Number(this.$route.params.assignmentId),
+            assignment: null,
+            submissionId: Number(this.$route.params.submissionId),
+            submission: null,
+            fileId: Number(this.$route.params.fileId) || null,
             fileTree: null,
             submissions: null,
             rubric: null,
-            editable: false,
+            canGradeWork: false,
             fileExtension: '',
-            title: '',
-            grade: 0,
-            showGrade: false,
-            feedback: '',
             loading: true,
+            initialLoad: true,
             assignmentState,
             canSeeFeedback: false,
         };
     },
 
-    computed: {
-        courseId() { return Number(this.$route.params.courseId); },
-        assignmentId() { return Number(this.$route.params.assignmentId); },
-        submissionId() { return Number(this.$route.params.submissionId); },
-        fileId() { return Number(this.$route.params.fileId); },
-    },
-
     watch: {
-        fileId() {
-            this.getFileMetadata();
+        $route(to) {
+            if (to.params.fileId) {
+                this.fileId = to.params.fileId;
+                this.getFileMetadata();
+            }
+        },
+
+        submission(submission) {
+            this.submissionId = submission.id;
+            this.fileId = this.$route.params.fileId;
+
+            let title = this.assignment.name;
+            if (submission.grade) {
+                title += ` (${submission.grade})`;
+            }
+            setPageTitle(`${title} ${pageTitleSep} ${submission.created_at}`);
+
+            if (this.initialLoad) {
+                this.initialLoad = false;
+                return;
+            }
+
+            this.fileId = undefined;
+            this.$router.push({
+                name: 'submission',
+                params: {
+                    courseId: this.courseId,
+                    assignmentId: this.assignmentId,
+                    submissionId: submission.id,
+                },
+            });
+
+            this.loading = true;
+            this.getSubmissionData().then(() => {
+                this.loading = false;
+            });
         },
     },
 
@@ -97,47 +151,26 @@ export default {
             course_id: this.courseId,
         }).then(([canGrade, canSeeGrade]) => {
             this.editable = canGrade;
-            this.canSeeFeedback = canSeeGrade || (this.assignment.state === assignmentState.DONE);
+            this.canSeeFeedback = canSeeGrade;
         });
 
+        this.loading = true;
         Promise.all([
-            this.getSubmission(),
-            this.getFileTree(),
-            this.getRubric(),
             this.getAssignment(),
             this.getAllSubmissions(),
-        ]).then(([submission, fileTree, rubric, assignment, allSubmissions]) => {
-            this.loading = false;
+            this.getSubmissionData(),
+        ]).then(([assignment, submissions]) => {
+            this.assignment = assignment;
+            this.canSeeFeedback = this.canSeeFeedback ||
+                (assignment.state === assignmentState.DONE);
 
-            Object.assign(this, {
-                submission,
-                fileTree,
-                rubric,
-                assignment,
-                allSubmissions,
-            });
+            this.submissions = submissions;
+            this.submission = submissions.find(sub =>
+                sub.id === this.submissionId);
 
-            let title = assignment.name;
-            if (submission.grade) {
-                title += ` (${submission.grade})`;
-            }
-            setTitle(`${title} ${titleSep} ${submission.created_at}`);
-
-            if (!this.fileId) {
-                this.$router.replace({
-                    name: 'submission_file',
-                    params: {
-                        fileId: getFirstFile(fileTree).id,
-                    },
-                });
-            }
-        }, (err) => {
-            // eslint-disable-next-line
-            console.dir(err);
-        });
-
-        this.loadData().then(() => {
             this.setPageCSS();
+
+            this.loading = false;
         });
     },
 
@@ -146,51 +179,40 @@ export default {
     },
 
     methods: {
-        loadData() {
+        getAssignment() {
+            return this.$http.get(
+                `/api/v1/assignments/${this.assignmentId}`,
+            ).then(({ data }) => data);
+        },
+
+        getAllSubmissions() {
+            return this.$http.get(
+                `/api/v1/assignments/${this.assignmentId}/submissions/`,
+            ).then(({ data }) => data);
+        },
+
+        getSubmissionData() {
             return Promise.all([
-                this.getSubmission(),
                 this.getFileTree(),
                 this.getRubric(),
-                this.getAssignment(),
-                this.getAllSubmissions(),
-            ]).then(([submission, fileTree, rubric, assignment, submissions]) => {
-                this.loading = false;
+            ]).then(([fileTree, rubric]) => {
+                this.fileTree = fileTree;
 
-                Object.assign(this, {
-                    submission,
-                    fileTree,
-                    rubric,
-                    assignment,
-                    submissions,
-                });
-
-                let title = assignment.name;
-                if (submission.grade) {
-                    title += ` (${submission.grade})`;
-                }
-                setTitle(`${title} ${titleSep} ${submission.created_at}`);
+                this.rubric = rubric;
 
                 if (!this.fileId) {
-                    this.$router.replace({
-                        name: 'submission_file',
-                        params: {
-                            fileId: getFirstFile(fileTree).id,
-                        },
-                    });
+                    const firstFile = getFirstFile(fileTree);
+                    if (firstFile) {
+                        this.$router.replace({
+                            name: 'submission_file',
+                            params: { fileId: firstFile.id },
+                        });
+                    }
                 }
             }, (err) => {
                 // eslint-disable-next-line
                 console.dir(err);
             });
-        },
-        getSubmission() {
-            return this.$http.get(
-                `/api/v1/submissions/${this.submissionId}`,
-            ).then(
-                ({ data }) => data,
-            ).catch(
-                () => ({}),
-            );
         },
 
         getFileTree() {
@@ -205,59 +227,58 @@ export default {
             ).then(({ data }) => data);
         },
 
-        getAssignment() {
-            return this.$http.get(
-                `/api/v1/assignments/${this.assignmentId}`,
-            ).then(({ data }) => data);
-        },
-
-        getAllSubmissions() {
-            return this.$http.get(
-                `/api/v1/assignments/${this.assignmentId}/submissions/`,
-            ).then(({ data }) => data);
-        },
-
         getFileMetadata() {
-            if (this.fileId === undefined || Number.isNaN(this.fileId)) {
+            if (this.fileId == null || Number.isNaN(this.fileId)) {
                 return Promise.resolve(null);
             }
 
             this.fileExtension = '';
-            return this.$http.get(`/api/v1/code/${this.fileId}?type=metadata`).then((response) => {
+            return this.$http.get(
+                `/api/v1/code/${this.fileId}?type=metadata`,
+            ).then((response) => {
                 this.fileExtension = response.data.extension;
+            }, (err) => {
+                // eslint-disable-next-line
+                console.dir(err);
             });
         },
 
-        gradeChange(grade) {
-            this.$set(this.submission, 'grade', Number(grade));
+        filterSubmissions(submissions) {
+            const userId = this.$store.state.user.id;
+
+            const filterLatest = this.submission.user.id !== userId;
+            const filterAssignee = this.submission.assignee &&
+                this.submission.assignee.id === userId;
+
+            const seen = [];
+            return submissions.filter((sub) => {
+                if (filterLatest && seen[sub.user.id]) {
+                    return false;
+                }
+                seen[sub.user.id] = true;
+
+                if (filterAssignee) {
+                    return sub.assignee && sub.assignee.id === userId;
+                }
+                return true;
+            });
+        },
+
+        downloadArchive() {
+            window.open(`/api/v1/submissions/${this.submissionId}?type=zip`);
+        },
+
+        downloadFeedback() {
+            window.open(`/api/v1/submissions/${this.submissionId}?type=feedback`);
+        },
+
+        gradeUpdated(grade) {
+            this.$set(this.submission, 'grade', grade);
 
             if (this.submissions) {
-                let i = 0;
-                for (const len = this.submissions.length; i < len; i += 1) {
-                    if (this.submissions[i].id === this.submission.id) {
-                        break;
-                    }
-                }
-                const sub = this.submissions[i];
-                this.$set(sub, 'grade', Number(grade));
-                this.$set(this.submissions, i, sub);
+                this.$set(this.submissions, this.submissions.indexOf(this.submission),
+                    this.submission);
             }
-        },
-
-        getSubmissionFiles() {
-            return this.$http.get(`/api/v1/submissions/${this.submissionId}/files/`).then((data) => {
-                this.fileTree = data.data;
-                this.$router.replace({
-                    name: 'submission_file',
-                    params: {
-                        fileId: this.fileId ? this.fileId : getFirstFile(this.fileTree).id,
-                    },
-                });
-            });
-        },
-
-        reloadSubmission() {
-            this.loadData();
         },
 
         ...mapActions({
@@ -319,11 +340,12 @@ export default {
 
     components: {
         CodeViewer,
-        FileTreeContainer,
+        FileTree,
         GradeViewer,
         Loader,
         PdfViewer,
         SubmissionNavBar,
+        Icon,
     },
 };
 </script>
@@ -366,6 +388,22 @@ export default {
 .pdfobject-container,
 .grade-viewer {
     margin-bottom: 1rem;
+}
+
+.file-tree-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.button-bar {
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
+.file-tree {
+    flex-grow: 0;
+    flex-shrink: 1;
+    overflow: auto;
 }
 
 .loader {

@@ -3,11 +3,10 @@
                :show="showError && state == 'failure'"
                placement="top"
                :content="err">
-        <b-button
-            :disabled="pending || disabled"
-            :variant="variants[state]"
-            :size="size"
-            @click="$emit('click', $event)">
+        <b-button :disabled="pending || disabled"
+                  :variant="variants[state]"
+                  :size="size"
+                  @click="$emit('click', $event)">
             <loader :scale="1" v-if="pending"/>
             <span v-else-if="label">{{ label }}</span>
             <slot v-else/>

@@ -1,8 +1,6 @@
 <template>
-    <b-alert variant="danger" show v-if="error">
-        <center>
-            <span>{{ error }}</span>
-        </center>
+    <b-alert class="error" variant="danger" show v-if="error">
+        <div v-html="error"></div>
     </b-alert>
     <loader class="text-center" v-else-if="loading"></loader>
     <ol class="code-viewer form-control" v-else
@@ -52,6 +50,14 @@ export default {
             type: Object,
             default: null,
         },
+        submission: {
+            type: Object,
+            default: null,
+        },
+        fileId: {
+            type: Number,
+            default: null,
+        },
         editable: {
             type: Boolean,
             default: false,
@@ -75,21 +81,13 @@ export default {
         };
     },
 
-    computed: {
-        courseId() { return Number(this.$route.params.courseId); },
-        assignmentId() { return Number(this.$route.params.assignmentId); },
-        submissionId() { return Number(this.$route.params.submissionId); },
-        fileId() { return Number(this.$route.params.fileId); },
-    },
-
     mounted() {
         this.getCode();
     },
 
     watch: {
-        fileId() {
-            this.loading = true;
-            this.getCode();
+        fileId(id) {
+            if (id) this.getCode();
         },
 
         tree() {
@@ -99,21 +97,33 @@ export default {
 
     methods: {
         getCode() {
-            this.error = false;
+            this.loading = true;
+            this.error = '';
+
+            const addError = (err) => {
+                let errVal = escape(err);
+
+                if (this.error) {
+                    errVal = `<br>${errVal}`;
+                }
+
+                this.error += errVal;
+            };
 
             // Split in two promises so that highlighting can begin before we
             // have feedback as this is not needed anyway.
             Promise.all([
                 Promise.all([
-                    this.$http.get(`/api/v1/code/${this.fileId}`),
+                    this.$http.get(`/api/v1/code/${this.fileId}`, { responseType: 'text' }),
                     this.$http.get(`/api/v1/code/${this.fileId}?type=metadata`),
                 ]).then(([file, metadata]) => {
                     this.code = file.data;
                     this.codeLines = this.code.split('\n');
                     this.highlightCode(metadata.data.extension);
-                }, ({ response }) => {
-                    this.error = response.data.message;
-                    return Promise.reject();
+                    this.linkFiles();
+                }, ({ response: { data: { message } } }) => {
+                    addError(message);
+                    throw message;
                 }),
 
                 Promise.all([
@@ -122,14 +132,15 @@ export default {
                 ]).then(([feedback, linterFeedback]) => {
                     this.linterFeedback = linterFeedback.data;
                     this.feedback = feedback.data;
-                }, ({ response }) => {
-                    this.error = response.data.message;
-                    return Promise.reject();
+                }, ({ response: { data: { message } } }) => {
+                    addError(message);
+                    throw message;
                 }),
             ]).then(() => {
-                this.linkFiles();
                 this.loading = false;
-                this.error = false;
+            }, (err) => {
+                // eslint-disable-next-line
+                console.dir(err);
             });
         },
 
@@ -221,9 +232,9 @@ export default {
                 this.$router.push({
                     name: 'submission_file',
                     params: {
-                        courseId: this.courseId,
-                        assignmentId: this.assignmentId,
-                        submissionId: this.submissionId,
+                        courseId: this.assignment.course.id,
+                        assignmentId: this.assignment.id,
+                        submissionId: this.submission.id,
                         fileId,
                     },
                 });

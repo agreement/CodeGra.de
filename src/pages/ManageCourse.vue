@@ -14,7 +14,7 @@
 import { ManageCourse, Loader } from '@/components';
 import moment from 'moment';
 
-import { setTitle } from './title';
+import { setPageTitle } from './title';
 
 export default {
     name: 'manage-course-page',
@@ -44,7 +44,7 @@ export default {
         });
 
         this.$http.get(`/api/v1/courses/${this.courseId}`).then(({ data }) => {
-            setTitle(data.name);
+            setPageTitle(data.name);
         });
     },
 

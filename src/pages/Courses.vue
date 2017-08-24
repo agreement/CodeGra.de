@@ -11,7 +11,7 @@
 <script>
 import { CourseList, Loader } from '@/components';
 
-import { setTitle } from './title';
+import { setPageTitle } from './title';
 
 export default {
     name: 'course-list-page',
@@ -24,7 +24,7 @@ export default {
     },
 
     mounted() {
-        setTitle('Courses');
+        setPageTitle('Courses');
 
         Promise.all([
             this.$http.get('/api/v1/courses/'), this.$http.get('/api/v1/permissions/', {

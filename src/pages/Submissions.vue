@@ -31,14 +31,14 @@ import moment from 'moment';
 import FileUploader from '@/components/FileUploader';
 import * as assignmentState from '../store/assignment-states';
 
-import { setTitle, titleSep } from './title';
+import { setPageTitle, pageTitleSep } from './title';
 
 export default {
     name: 'submissions-page',
 
     data() {
         return {
-            loading: false,
+            loading: true,
             submissions: [],
             canUpload: false,
             assignment: null,
@@ -61,6 +61,7 @@ export default {
     },
 
     mounted() {
+        this.loading = true;
         Promise.all([
             this.$http.get(`/api/v1/courses/${this.courseId}`),
             this.$http.get(`/api/v1/assignments/${this.assignmentId}`),
@@ -86,7 +87,7 @@ export default {
                 }
             });
 
-            setTitle(`${assignment.name} ${titleSep} Submissions`);
+            setPageTitle(`${assignment.name} ${pageTitleSep} Submissions`);
 
             submissions.forEach((sub) => {
                 sub.created_at = moment.utc(sub.created_at, moment.ISO_8601).local().format('YYYY-MM-DD HH:mm');

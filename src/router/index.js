@@ -4,7 +4,7 @@ import store from '@/store';
 import { LTILaunch, Assignments, Courses, Home, Login, ManageCourse, Submission, Submissions, User } from '@/pages';
 import { NewCourse, UsersManager, RubricEditor } from '@/components';
 
-import { setTitle } from '@/pages/title';
+import { setPageTitle } from '@/pages/title';
 
 Vue.use(Router);
 
@@ -92,7 +92,7 @@ let restorePath = '';
 router.beforeEach((to, from, next) => {
     // Unset page title. Pages will set  title,
     // this is mostly to catch pages that don't.
-    setTitle();
+    setPageTitle();
 
     const loggedIn = store.getters['user/loggedIn'];
     if (loggedIn && restorePath) {

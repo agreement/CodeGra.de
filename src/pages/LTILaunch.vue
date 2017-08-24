@@ -13,7 +13,7 @@
 import { Loader } from '@/components';
 
 import * as types from '../store/mutation-types';
-import { setTitle } from './title';
+import { setPageTitle } from './title';
 
 export default {
     name: 'lti-launch-page',
@@ -27,7 +27,7 @@ export default {
     mounted() {
         this.$set(window, 'inLTI', true);
 
-        setTitle('LTI is launching, please wait');
+        setPageTitle('LTI is launching, please wait');
 
         this.$http.get('/api/v1/lti/launch/2', {
             headers: {

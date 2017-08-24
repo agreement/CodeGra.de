@@ -19,7 +19,7 @@
 import { mapGetters } from 'vuex';
 import { UserInfo, SnippetManager } from '@/components';
 
-import { setTitle } from './title';
+import { setPageTitle } from './title';
 
 export default {
     name: 'user-page',
@@ -30,7 +30,7 @@ export default {
     },
 
     mounted() {
-        setTitle('User info');
+        setPageTitle('User info');
     },
 
     computed: {
