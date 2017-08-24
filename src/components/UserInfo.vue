@@ -134,16 +134,12 @@ export default {
         submit() {
             this.error = '';
 
-            if (!this.oldPw) {
-                this.error = 'Please fill in your password.';
-                return;
-            }
             if (this.newPw !== this.confirmPw) {
                 this.error = 'New password doesn\'t match confirm password.';
                 return;
             }
             if (!validator.validate(this.email)) {
-                this.error = 'Invalid email address.';
+                this.error = 'The given email is not valid.';
                 return;
             }
 
@@ -155,18 +151,8 @@ export default {
             });
             req.then(() => {
                 this.resetParams();
-            }, (err) => {
-                switch (err.response.data.code) {
-                case 5:
-                    this.error = err.response.data.rest.name || err.response.data.rest.password;
-                    break;
-                case 12:
-                    this.error = err.response.data.message;
-                    break;
-                default:
-                    this.error = 'Unknown error';
-                    break;
-                }
+            }, ({ response }) => {
+                this.error = response.data.message;
             });
             this.$refs.submitButton.submit(req);
         },

@@ -117,8 +117,8 @@ const actions = {
         return axios.patch('/api/v1/login', {
             name,
             email,
-            o_password: oldPw,
-            n_password: newPw,
+            old_password: oldPw,
+            new_password: newPw,
         }).then(() => {
             commit(types.UPDATE_USER_INFO, { name, email });
         });

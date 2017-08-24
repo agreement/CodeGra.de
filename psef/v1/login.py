@@ -6,6 +6,7 @@ User object of the logged in user.
 import typing as t
 
 from flask import request
+from validate_email import validate_email
 
 import psef.auth as auth
 import psef.models as models
@@ -123,10 +124,8 @@ def get_user_update() -> EmptyResponse:
 
     :<json str email: The new email of the user.
     :<json str name: The new full name of the user.
-    :<json str o_password: The old password of the user.
-    :<json str n_password: The new password of the user.
-
-    .. todo:: Refactor this code so it doesn't always require an old password.
+    :<json str old_password: The old password of the user.
+    :<json str new_password: The new password of the user.
 
     :raises APIException: If not all required parameters ('email',
                           'o_password', 'name', 'n_password') were in the
@@ -144,44 +143,51 @@ def get_user_update() -> EmptyResponse:
     ensure_keys_in_dict(
         data, [
             ('email', str),
-            ('o_password', str),
+            ('old_password', str),
             ('name', str),
-            ('n_password', str)
+            ('new_password', str)
         ]
     )
     email = t.cast(str, data['email'])
-    o_password = t.cast(str, data['o_password'])
-    n_password = t.cast(str, data['n_password'])
+    old_password = t.cast(str, data['old_password'])
+    new_password = t.cast(str, data['new_password'])
     name = t.cast(str, data['name'])
 
-    user = current_user
+    def _ensure_password(
+        changed: str,
+        msg: str='To change your {} you need a correct old password.'
+    ) -> None:
+        if current_user.password != old_password:
+            raise APIException(
+                msg.format(changed), 'The given old password was not correct',
+                APICodes.INVALID_CREDENTIALS, 403
+            )
 
-    if user.password != o_password:
-        raise APIException(
-            'Incorrect password.', 'The supplied old password was incorrect',
-            APICodes.INVALID_CREDENTIALS, 422
-        )
+    if old_password != '':
+        _ensure_password('', 'The given old password is wrong')
 
-    auth.ensure_permission('can_edit_own_info')
+    if current_user.name != name:
+        if name == '':
+            raise APIException(
+                'Your new name cannot be empty',
+                'The given new name was empty', APICodes.INVALID_PARAM, 400
+            )
+        current_user.name = name
 
-    invalid_input = {'password': '', 'name': ''}
-    if n_password:
-        invalid_input['password'] = user.validate_password(n_password)
-    invalid_input['name'] = user.validate_name(name)
+    if current_user.email != email:
+        if not validate_email(email):
+            raise APIException(
+                'The given email is not valid.',
+                'The email "{email}" is not valid.',
+                APICodes.INVALID_PARAM,
+                400,
+            )
+        _ensure_password('email')
+        current_user.email = email
 
-    if invalid_input['password'] != '' or invalid_input['name'] != '':
-        raise APIException(
-            'Invalid password or name.',
-            'The supplied name or password did not meet the requirements',
-            APICodes.INVALID_PARAM,
-            422,
-            rest=invalid_input
-        )
-
-    user.name = name
-    user.email = email if email else user.email
-    if n_password:
-        user.password = n_password
+    if new_password != '':
+        _ensure_password('password')
+        current_user.password = new_password
 
     db.session.commit()
     return make_empty_response()
