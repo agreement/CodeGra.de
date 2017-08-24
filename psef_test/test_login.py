@@ -133,3 +133,65 @@ def test_get_roles(
             query={'type': 'roles'},
             result=result,
         )
+
+
+def test_login_duplicate_email(
+    test_client, session, error_template, request, app
+):
+    new_users = [
+        m.User(
+            name='NEW_USER',
+            email='a@a.nl',
+            password='a',
+            active=True,
+            username='a-the-awesome'
+        ),
+        m.User(
+            name='NEW_USER',
+            email='a@a.nl',
+            password='a',
+            active=True,
+            username='a-the-a-er'
+        )
+    ]
+    for new_user in new_users:
+        session.add(new_user)
+    session.commit()
+
+    for user_id in [u.id for u in new_users]:
+        user = m.User.query.get(user_id)
+
+        res = test_client.req(
+            'post',
+            f'/api/v1/login',
+            200,
+            data={'username': user.username,
+                  'password': 'a'},
+            result={
+                'user':
+                    {
+                        'email': 'a@a.nl',
+                        'id': int,
+                        'name': 'NEW_USER',
+                        'username': user.username,
+                    },
+                'access_token': str
+            }
+        )
+        access_token = res['access_token']
+
+        with app.app_context():
+            test_client.req(
+                'get',
+                '/api/v1/login',
+                200,
+                headers={'Authorization': f'Bearer {access_token}'},
+                result={
+                    'username': user.username,
+                    'id': int,
+                    'email': user.email,
+                    'name': user.name,
+                }
+            )
+
+        test_client.req('get', '/api/v1/login', 401)
