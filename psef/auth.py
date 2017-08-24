@@ -58,6 +58,23 @@ def _user_active() -> bool:
     return user is not None and user.is_active
 
 
+def login_required(fn: t.Callable) -> t.Callable:
+    """Make sure a valid user is logged in at this moment.
+
+    :raises PermissionException: If no user was logged in.
+    """
+
+    @wraps(fn)
+    def wrapper(*args: t.Any, **kwargs: t.Any) -> t.Any:
+        if _user_active():
+            return fn(*args, **kwargs)
+        else:
+            _raise_login_exception()
+
+    return wrapper
+
+
+@login_required
 def ensure_can_see_grade(work: 'psef.models.Work') -> None:
     """Ensure the current user can see the grade of the given work.
 
@@ -69,16 +86,70 @@ def ensure_can_see_grade(work: 'psef.models.Work') -> None:
     :raises PermissionException: If the user can not see the grade.
         (INCORRECT_PERMISSION)
     """
-    if _user_active():
-        if work.user_id != psef.current_user.id:
-            ensure_permission('can_see_others_work', work.assignment.course_id)
+    if work.user_id != psef.current_user.id:
+        ensure_permission('can_see_others_work', work.assignment.course_id)
 
-        if not work.assignment.is_done:
+    if not work.assignment.is_done:
+        ensure_permission(
+            'can_see_grade_before_open', work.assignment.course_id
+        )
+
+
+@login_required
+def ensure_can_edit_work(work: 'psef.models.Work') -> None:
+    """Make sure the current user can edit files in the given work.
+
+    :param work: The work the given user should be able to see edit files in.
+    :returns: Nothing.
+    :raises PermissionException: If the user should not be able te edit these
+        files.
+    """
+    if work.user_id == psef.current_user.id:
+        if work.assignment.is_open:
+            ensure_permission('can_submit_own_work', work.assignment.course_id)
+        else:
             ensure_permission(
-                'can_see_grade_before_open', work.assignment.course_id
+                'can_upload_after_deadline', work.assignment.course_id
             )
-        return
-    _raise_login_exception()
+    else:
+        if work.assignment.is_open:
+            raise APIException(
+                (
+                    'You cannot edit work as teacher'
+                    ' if the assignment is stil open!'
+                ),
+                f'The assignment "{work.assignment.id}" is still open.',
+                APICodes.INCORRECT_PERMISSION,
+                403,
+            )
+        ensure_permission('can_edit_others_work', work.assignment.course_id)
+
+
+def ensure_can_view_files(
+    work: 'psef.models.Work', teacher_files: bool
+) -> None:
+    """Make sure the current user can see files in the given work.
+
+    :param work: The work the given user should be able to see files in.
+    :param teacher_files: Should the user be able to see teacher files.
+    :returns: Nothing.
+    :raises PermissionException: If the user should not be able te see these
+        files.
+    """
+    if work.user_id != psef.current_user.id:
+        ensure_permission('can_see_others_work', work.assignment.course_id)
+
+    if teacher_files:
+        if work.user_id == psef.current_user.id and work.assignment.is_done:
+            ensure_permission(
+                'can_view_own_teacher_files', work.assignment.course_id
+            )
+        else:
+            # If the assignment is not done you can only view teacher files if
+            # you can edit somebodies work.
+            ensure_permission(
+                'can_edit_others_work', work.assignment.course_id
+            )
 
 
 _PERM_CACHE = {}  # type: t.MutableMapping[t.Tuple[str, t.Optional[int]], bool]
@@ -160,22 +231,6 @@ def permission_required(
         return decorated_function
 
     return decorator
-
-
-def login_required(fn: t.Callable) -> t.Callable:
-    """Make sure a valid user is logged in at this moment.
-
-    :raises PermissionException: If no user was logged in.
-    """
-
-    @wraps(fn)
-    def wrapper(*args: t.Any, **kwargs: t.Any) -> t.Any:
-        if _user_active():
-            return fn(*args, **kwargs)
-        else:
-            _raise_login_exception()
-
-    return wrapper
 
 
 class RequestValidatorMixin(object):

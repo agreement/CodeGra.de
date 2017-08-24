@@ -26,7 +26,6 @@ manager = Manager(app)
 
 manager.add_command('db', MigrateCommand)
 
-
 @manager.command
 def seed():
     with open(
@@ -114,16 +113,22 @@ def test_data():
                 u.password = c['name']
                 u.role = m.Role.query.filter_by(name=c['role']).first()
             else:
-                db.session.add(
-                    m.User(
-                        name=c['name'],
-                        courses=perms,
-                        email=c['name'].replace(' ', '_').lower() +
-                        '@example.com',
-                        password=c['name'],
-                        role=m.Role.query.filter_by(name=c['role']).first()
-                    )
+                u = m.User(
+                    name=c['name'],
+                    courses=perms,
+                    email=c['name'].replace(' ', '_').lower() + '@example.com',
+                    password=c['name'],
+                    role=m.Role.query.filter_by(name=c['role']).first()
                 )
+                db.session.add(u)
+                for course, role in courses.items():
+                    if role == 'Student':
+                        for assig in course.assignments:
+                            work = m.Work(assignment=assig, user=u)
+                            db.session.add(
+                                m.File(work=work, name='Top stub dir')
+                            )
+                            db.session.add(work)
     db.session.commit()
     with open(f'{os.path.dirname(__file__)}/test_data/rubrics.json', 'r') as c:
         cs = json.load(c)
@@ -148,7 +153,8 @@ def test_data():
                     for item in row['items']:
                         if not db.session.query(
                             m.RubricItem.query.filter_by(
-                                rubricrow_id=rubric_row.id, **item,
+                                rubricrow_id=rubric_row.id,
+                                **item,
                             ).exists()
                         ).scalar():
                             rubric_item = m.RubricItem(

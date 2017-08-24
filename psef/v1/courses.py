@@ -389,17 +389,7 @@ def get_all_course_assignments(
 
     course = helpers.get_or_404(models.Course, course_id)
 
-    if current_user.has_permission('can_see_hidden_assignments', course_id):
-        return jsonify(
-            sorted(course.assignments, key=lambda item: item.deadline)
-        )
-    else:
-        return jsonify(
-            sorted(
-                filter(lambda assig: not assig.is_hidden, course.assignments),
-                key=lambda item: item.deadline
-            )
-        )
+    return jsonify(course.get_all_visible_assignments())
 
 
 @api.route('/courses/', methods=['POST'])
@@ -442,15 +432,27 @@ def get_courses() -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
 
     :returns: A response containing the JSON serialized courses
 
+    :param str extended: If set to `true` all the assignments for each course
+        are also included under the key `assignments`.
+
     :>jsonarr str role: The name of the role the current user has in this
         course.
     :>jsonarr ``**rest``: JSON serialization of :py:class:`psef.models.Course`.
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
+
+    def _get_rest(course: models.Course) -> t.Mapping[str, t.Any]:
+        if request.args.get('extended') == 'true':
+            return {
+                'assignments': course.get_all_visible_assignments(),
+                **course.__to_json__(),
+            }
+        return course.__to_json__()
+
     return jsonify([{
         'role': c.name,
-        **c.course.__to_json__(),
+        **_get_rest(c.course),
     } for c in current_user.courses.values()])
 
 

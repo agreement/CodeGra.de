@@ -55,6 +55,21 @@ def test_get_all_courses(
             assert len(found) == len(res) == len(expected)
 
 
+def test_get_all_extended_courses(ta_user, test_client, logged_in):
+    with logged_in(ta_user):
+        res = test_client.req(
+            'get',
+            f'/api/v1/courses/',
+            200,
+            query={'extended': 'true'},
+            result=list,
+        )
+        assert len(res) == 3
+        for item in res:
+            assert 'assignments' in item
+            assert isinstance(item['assignments'], list)
+
+
 @pytest.mark.parametrize(
     'named_user,course_name,role', [
         ('Thomas Schaper', 'Programmeertalen', 'TA'),
@@ -87,10 +102,12 @@ def test_get_course_data(
             'get',
             f'/api/v1/courses/{course.id}',
             error or 200,
-            result=error_template
-            if error else {'role': role,
-                           'id': course.id,
-                           'name': course_name}
+            result=error_template if error else {
+                'role': role,
+                'id': course.id,
+                'name': course_name,
+                'created_at': str,
+            }
         )
 
 
@@ -125,8 +142,11 @@ def test_add_course(
             f'/api/v1/courses/',
             error or 200,
             data=data,
-            result=error_template if error else {'id': int,
-                                                 'name': name}
+            result=error_template if error else {
+                'id': int,
+                'name': name,
+                'created_at': str,
+            }
         )
 
         if not error:
@@ -134,9 +154,12 @@ def test_add_course(
                 'get',
                 f'/api/v1/courses/{course["id"]}',
                 200,
-                result={'role': 'Teacher',
-                        'id': course['id'],
-                        'name': name}
+                result={
+                    'role': 'Teacher',
+                    'id': course['id'],
+                    'name': name,
+                    'created_at': str,
+                }
             )
 
 
@@ -395,7 +418,8 @@ def test_get_courseroles(
                 'id': int,
                 'course': {
                     'name': course_n,
-                    'id': int
+                    'id': int,
+                    'created_at': str,
                 }
             }
             if extended:

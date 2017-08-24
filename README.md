@@ -136,18 +136,19 @@ create database codegrade_dev;
 \q
 ```
 
-### Deploying
+### Installing dependencies
 
 ```bash
-./deploy.sh
+make install_deps
 ```
 
 ### Starting dev server
 
-And later to start (false as command line argument to auto open the browser).
+And later to start the dev server do
 ```bash
-source env/bin/activate
-./start_dev.sh
+make start_dev_server
+# and in another terminal
+make start_dev_npm
 ```
 
 ### Resetting database
@@ -156,18 +157,9 @@ Sometimes just migrating is not enough and this will fail with a bunch of errors
 In this case we need to remove and add the database again:
 
 ```bash
-sudo -u postgres psql
+make reset_db
 ```
 
-```sql
-drop database codegrade_dev;
-create database codegrade_dev;
-\q
-```
-
-Remove the migrations directory and redeploy and restart the dev server.
-```bash
-rm -rf migrations/
-./deploy.sh
-./start_dev.sh
-```
+However you should never remove the `migrations` folder. If you added a field to
+the database you should do `make migrate` and edit the migration file as needed
+and include it in your commit.

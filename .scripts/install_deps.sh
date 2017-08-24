@@ -1,5 +1,4 @@
 #!/bin/bash
-
 install-pkg() {
     case "$OSTYPE" in
         linux*) sudo apt-get install "$*";;
@@ -33,4 +32,3 @@ git submodule update --init static/vendor/pdf.js >/dev/null
 
 echo "Initializing database"
 export CODEGRADE_DATABASE_URL="postgresql:///codegrade_dev"
-[[ -d migrations ]] || ./manage.py db init

@@ -1,5 +1,6 @@
 import io
 import zipfile
+import datetime
 
 import pytest
 
@@ -348,6 +349,7 @@ def test_get_dir_contents(
             )
 
 
+@pytest.mark.parametrize('user_type', ['student'])
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
@@ -364,7 +366,7 @@ def test_get_dir_contents(
 )
 def test_get_zip_file(
     test_client, logged_in, assignment_real_works, error_template, named_user,
-    request
+    request, user_type
 ):
     assignment, work = assignment_real_works
     work_id = work['id']
@@ -383,7 +385,8 @@ def test_get_zip_file(
             result=error_template
             if error else {'name': str,
                            'output_name': str},
-            query={'type': 'zip'},
+            query={'type': 'zip',
+                   'owner': user_type},
         )
 
         if not error:
@@ -403,4 +406,267 @@ def test_get_zip_file(
             )
 
             res = test_client.get(f'/api/v1/files/{file_name}')
-            res.status_code == 404
+            assert res.status_code == 404
+
+
+@pytest.mark.parametrize(
+    'filename', ['../test_submissions/multiple_dir_archive.zip'],
+    indirect=True
+)
+def test_get_teacher_zip_file(
+    test_client, logged_in, assignment_real_works, error_template, request,
+    ta_user, student_user, session
+):
+    def get_files(user, error):
+        with logged_in(user):
+            res = test_client.req(
+                'get',
+                f'/api/v1/submissions/{work_id}',
+                error or 200,
+                result=error_template
+                if error else {'name': str,
+                               'output_name': str},
+                query={'type': 'zip',
+                       'owner': 'teacher'},
+            )
+            if error:
+                return set()
+
+            file_name = res['name']
+            res = test_client.get(f'/api/v1/files/{file_name}')
+
+            assert res.status_code == 200
+            files = zipfile.ZipFile(io.BytesIO(res.get_data())).infolist()
+            files = set(f.filename for f in files)
+            return files
+
+    assignment, work = assignment_real_works
+    work_id = work['id']
+
+    assert get_files(ta_user, False) == set(
+        [
+            'multiple_dir_archive/dir/single_file_work',
+            'multiple_dir_archive/dir/single_file_work_copy',
+            'multiple_dir_archive/dir2/single_file_work',
+            'multiple_dir_archive/dir2/single_file_work_copy',
+        ]
+    )
+
+    get_files(student_user, 403)
+    m.File.query.filter_by(
+        work_id=work_id,
+        name="single_file_work",
+    ).filter(
+        m.File.parent != None,
+    ).update({
+        'fileowner': m.FileOwner.student
+    })
+    assert get_files(ta_user, False) == set(
+        [
+            'multiple_dir_archive/dir/single_file_work_copy',
+            'multiple_dir_archive/dir2/single_file_work_copy'
+        ]
+    )
+    m.Assignment.query.filter_by(
+        id=m.Work.query.get(work_id).assignment_id,
+    ).update(
+        {
+            'deadline': datetime.datetime.utcnow() -
+                        datetime.timedelta(days=1)
+        },
+    )
+    get_files(student_user, 403)
+
+    m.Assignment.query.filter_by(
+        id=m.Work.query.get(work_id).assignment_id,
+    ).update(
+        {
+            'state': m._AssignmentStateEnum.done,
+        },
+    )
+
+    assert get_files(student_user, False) == set(
+        [
+            'multiple_dir_archive/dir/single_file_work_copy',
+            'multiple_dir_archive/dir2/single_file_work_copy'
+        ]
+    )
+
+
+@pytest.mark.parametrize(
+    'named_user', [
+        'Thomas Schaper',
+        'Stupid1',
+        perm_error(error=401)('NOT_LOGGED_IN'),
+        perm_error(error=403)('admin'),
+        perm_error(error=403)('Stupid3'),
+    ],
+    indirect=True
+)
+@pytest.mark.parametrize(
+    'filename', ['../test_submissions/multiple_dir_archive.zip'],
+    indirect=True
+)
+@pytest.mark.parametrize(
+    'to_search', [
+        'multiple_dir_archive/dir/single_file_work',
+        '/multiple_dir_archive/dir/single_file_work',
+        'multiple_dir_archive/dir/single_file_work/',
+        '/multiple_dir_archive/dir/single_file_work/',
+        '/multiple_dir_archive/dir2/single_file_work/',
+        data_error(error=404)('/multiple_dir_archive/dir2/'),
+    ]
+)
+def test_search_file(
+    test_client, logged_in, assignment_real_works, error_template, named_user,
+    request, to_search
+):
+    assignment, work = assignment_real_works
+    work_id = work['id']
+
+    perm_err = request.node.get_marker('perm_error')
+    data_err = request.node.get_marker('data_error')
+    if perm_err:
+        error = perm_err.kwargs['error']
+    elif data_err:
+        error = data_err.kwargs['error']
+    else:
+        error = False
+
+    with logged_in(named_user):
+        test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/files/',
+            error or 200,
+            query={'path': to_search},
+            result=error_template if error else {
+                'is_directory': False,
+                'modification_date': int,
+                'size': int,
+                'id': int
+            },
+        )
+
+
+@pytest.mark.parametrize(
+    'filename', ['../test_submissions/single_dir_archive.zip'], indirect=True
+)
+def test_add_file(
+    test_client, logged_in, ta_user, assignment_real_works, error_template,
+    student_user, session
+):
+    assignment, work = assignment_real_works
+    work_id = work['id']
+
+    def get_file_by_id(file_id):
+        res = test_client.get(f'/api/v1/code/{file_id}')
+        assert res.status_code == 200
+        return res.get_data(as_text=True)
+
+    with logged_in(student_user):
+        test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/',
+            404,
+            result=error_template,
+            query={'path': '/non/existing/'}
+        )
+        test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/',
+            400,
+            result=error_template,
+            query={'path': '/too_short/'}
+        )
+        res = test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/',
+            200,
+            query={'path': '/dir/dir2/wow/',
+                   'is_directory': 'false'},
+            real_data='NEW_FILE',
+        )
+        assert res['entries'][0]['name'] == 'dir2'
+        new_file = res['entries'][0]['entries'][0]
+        assert new_file['name'] == 'wow'
+        assert 'entries' not in new_file
+        assert 'NEW_FILE' == get_file_by_id(new_file['id'])
+
+        test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/',
+            400,
+            query={'path': '/dir/dir2/wow/',
+                   'is_directory': 'false'},
+            result=error_template,
+            real_data='NEWER_FILE',
+        )
+        test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/',
+            400,
+            query={'path': '/dir/dir2/wow/dit/',
+                   'is_directory': 'false'},
+            result=error_template,
+            real_data='NEWER_FILE',
+        )
+    with logged_in(ta_user):
+        res = test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/',
+            403,
+            query={'path': '/dir/dir2/wow/',
+                   'is_directory': 'false'},
+            result=error_template,
+            real_data='TEAER_FILE',
+        )
+
+        session.query(m.Assignment).filter_by(
+            id=m.Work.query.get(work_id).assignment_id
+        ).update(
+            {
+                'deadline':
+                    datetime.datetime.utcnow() - datetime.timedelta(days=1)
+            }
+        )
+
+        res = test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/',
+            200,
+            query={'path': '/dir/dir2/wow2/',
+                   'is_directory': 'false'},
+            real_data='TEAEST_FILE',
+        )
+        assert res['entries'][0]['name'] == 'dir2'
+        assert len(res['entries']) == 3
+        new_file = res['entries'][0]['entries'][1]
+        assert new_file['name'] == 'wow2'
+        assert 'entries' not in new_file
+        assert 'TEAEST_FILE' == get_file_by_id(new_file['id'])
+
+        res = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/files/',
+            200,
+            query={'owner': 'student'},
+        )
+        assert len(res['entries'][0]['entries']) == 1
+        res = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/files/',
+            200,
+            query={'owner': 'teacher'},
+        )
+        assert len(res['entries'][0]['entries']) == 2
+
+    with logged_in(student_user):
+        res = test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/',
+            403,
+            query={'path': '/dir/dir2/wow2/',
+                   'is_directory': 'false'},
+            real_data='TEAEST_FILE',
+            result=error_template,
+        )

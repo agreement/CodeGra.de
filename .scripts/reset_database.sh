@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 fix_perms() {
     psql -d "codegrade_dev" -c 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA  public TO "www-data"'
     psql -d "codegrade_dev" -c 'GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO "www-data"'
@@ -25,7 +24,5 @@ if [[ "$1" = "prod" ]]; then
     fix_perms
 fi
 echo "Removing migrations and uploads directories"
-rm -r migrations/
 rm -fr uploads/
 echo "Deploying"
-./deploy.sh

@@ -108,7 +108,7 @@ def me() -> JSONResponse[t.Union[models.User, t.Mapping[int, str],
         )
     elif request.args.get('type') == 'extended':
         return jsonify(current_user.__extended_to_json__())
-    return jsonify(current_user.__to_json__())
+    return jsonify(current_user)
 
 
 @api.route('/login', methods=['PATCH'])

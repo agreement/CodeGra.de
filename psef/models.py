@@ -21,7 +21,7 @@ from psef.helpers import get_request_start_time
 UUID_LENGTH = 36
 
 if t.TYPE_CHECKING:  # pragma: no cover
-    T = t.TypeVar('T', bound='Base')
+    T = t.TypeVar('T')
 
     class Base:
         query = None  # type: t.ClassVar[t.Any]
@@ -460,10 +460,10 @@ class User(Base):
 
     role: Role = db.relationship('Role', foreign_keys=role_id, lazy='select')
 
-    def __eq__(self, other: t.Any) -> bool:
+    def __eq__(self, other: t.Any) -> bool:  # pragma: no cover
         return isinstance(other, User) and self.id == other.id
 
-    def __ne__(self, other: t.Any) -> bool:
+    def __ne__(self, other: t.Any) -> bool:  # pragma: no cover
         return not self.__eq__(other)
 
     def has_permission(
@@ -696,6 +696,10 @@ class Course(Base):
     id: int = db.Column('id', db.Integer, primary_key=True)
     name: str = db.Column('name', db.Unicode)
 
+    created_at: datetime.datetime = db.Column(
+        db.DateTime, default=datetime.datetime.utcnow
+    )
+
     # All stuff for LTI
     lti_course_id: str = db.Column(db.Unicode, unique=True)
 
@@ -722,11 +726,60 @@ class Course(Base):
 
     def __to_json__(self) -> t.Mapping[str, t.Any]:
         """Creates a JSON serializable representation of this object.
+
+        This object will look like this:
+
+        .. code:: python
+
+            {
+                'name': str, # The name of the course,
+                'id': int, # The id of this course.
+                'created_at': str, # ISO UTC date.
+            }
+
+        :returns: A object as described above.
         """
         return {
             'id': self.id,
             'name': self.name,
+            'created_at': self.created_at.isoformat(),
         }
+
+    def __extended_to_json__(self) -> t.Mapping[str, t.Any]:
+        """Creates an extended JSON serializable representation of this object.
+
+        This object will look like this:
+
+        .. code:: python
+
+            {
+                'assignments': t.List[Assignment], # All assignments the
+                                                   # current user can see
+                                                   # for this course.
+            }
+
+        :returns: A object as described above including all items from
+            :py:meth:`Course.__to_json__()`.
+        """
+        return {
+            'assignments': self.get_all_visible_assignments(),
+            **self.__to_json__(),
+        }
+
+    def get_all_visible_assignments(self) -> t.Sequence['Assignment']:
+        """Get all visible assignments for the current user for this course.
+
+        :returns: A list of assignments the currently logged in user may see.
+        """
+        if psef.current_user.has_permission(
+            'can_see_hidden_assignments', self.id
+        ):
+            return sorted(self.assignments, key=lambda item: item.deadline)
+        else:
+            return sorted(
+                (a for a in self.assignments if not a.is_hidden),
+                key=lambda item: item.deadline
+            )
 
 
 class Work(Base):
@@ -1018,6 +1071,26 @@ class Work(Base):
             self.selected_items.remove(rubricitem)
 
 
+@enum.unique
+class FileOwner(enum.IntEnum):
+    """Describes to which version of a submission (student's submission or
+    teacher's revision) a file belongs. When a student adds or changes a file
+    after the deadline for the assignment has passed, the original file's owner
+    is set `teacher` and the new file's to `student`.
+
+    :param student: The file is in the student's submission, but changed in the
+        teacher's revision.
+    :param teacher: The inverse of `student`. The file is added or changed in
+        the teacher's revision.
+    :param both: The file is not changed in the teacher's revision and belongs
+        to both versions.
+    """
+
+    student: int = 1
+    teacher: int = 2
+    both: int = 3
+
+
 class File(Base):
     """
     This object describes a file or directory that stored is stored on the
@@ -1036,15 +1109,31 @@ class File(Base):
     work_id: int = db.Column('Work_id', db.Integer, db.ForeignKey('Work.id'))
     extension: str = db.Column('extension', db.Unicode)
     name: str = db.Column('name', db.Unicode, nullable=False)
-    filename: t.Optional[str] = db.Column('path', db.Unicode, nullable=True)
+
+    # This is the filename for the original file on the disk
+    filename: t.Optional[str]
+    filename = db.Column('filename', db.Unicode, nullable=True)
+    modification_date = db.Column(
+        'modification_date', db.DateTime, default=datetime.datetime.utcnow
+    )
+
+    fileowner: FileOwner = db.Column(
+        'fileowner',
+        db.Enum(FileOwner),
+        default=FileOwner.both,
+        nullable=False
+    )
+
     is_directory: bool = db.Column('is_directory', db.Boolean)
     parent_id: int = db.Column(db.Integer, db.ForeignKey('File.id'))
 
     # This variable is generated from the backref from the parent
-    children: t.Sequence['File']
+    children: '_MyQuery[t.Sequence["File"]]'
 
     parent = db.relationship(
-        'File', remote_side=[id], backref=db.backref('children')
+        'File',
+        remote_side=[id],
+        backref=db.backref('children', lazy='dynamic')
     )  # type: 'File'
 
     work = db.relationship('Work', foreign_keys=work_id)  # type: 'Work'
@@ -1052,6 +1141,54 @@ class File(Base):
     __table_args__ = (
         db.CheckConstraint(or_(is_directory == false(), extension == null())),
     )
+
+    @staticmethod
+    @psef.auth.login_required
+    def get_exclude_owner(owner: t.Optional[str], course_id: int) -> FileOwner:
+        """Get the :class:`FileOwner` the current user does not want to see
+        files for.
+
+        The result will be decided like this, if the given str is not
+        `student`, `teacher` or `auto` the result will be `FileOwner.teacher`.
+        If the str is `student`, the result will be `FileOwner.teacher`, vica
+        versa for `teacher` as input. If the input is auto `student` will be
+        returned if the currently logged in user is a teacher, otherwise it
+        will be `student`.
+
+        :param owner: The owner that was given in the `GET` paramater.
+        :param course_id: The course for which the files are requested.
+        :returns: The object determined as described above.
+        """
+        teacher, student = FileOwner.teacher, FileOwner.student
+        if owner == 'student':
+            return teacher
+        elif owner == 'teacher':
+            return student
+        elif owner == 'auto':
+            if psef.current_user.has_permission(
+                'can_edit_others_work', course_id
+            ):
+                return student
+            else:
+                return teacher
+        else:
+            return teacher
+
+    def get_diskname(self) -> str:
+        """Get the absolute path on the disk for this file.
+
+        :returns: The absolute path.
+        """
+        assert not self.is_directory
+        return os.path.join(app.config['UPLOAD_DIR'], self.filename)
+
+    def delete_from_disk(self) -> None:
+        """Delete the file from disk if it is not a directory.
+
+        :returns: Nothing.
+        """
+        if not self.is_directory:
+            os.remove(self.get_diskname())
 
     def get_filename(self) -> str:
         """Get the real filename of the file.
@@ -1063,7 +1200,7 @@ class File(Base):
         else:
             return self.name
 
-    def list_contents(self) -> 'psef.files.FileTree':
+    def list_contents(self, exclude: FileOwner) -> 'psef.files.FileTree':
         """List the basic file info and the info of its children.
 
         If the file is a directory it will return a tree like this:
@@ -1093,24 +1230,28 @@ class File(Base):
         Otherwise it will formatted like one of the file children of the above
         tree.
 
+        :param exclude: The file owner to exclude from the tree.
+
         :returns: A tree as described above.
         """
         if not self.is_directory:
             return {"name": self.get_filename(), "id": self.id}
         else:
+            children = sorted(
+                (
+                    child.list_contents(exclude)
+                    for child in
+                    self.children.filter(File.fileowner != exclude).all()
+                ),
+                key=lambda el: el['name']
+            )
             return {
-                "name":
-                    self.get_filename(),
-                "id":
-                    self.id,
-                "entries":
-                    sorted(
-                        [child.list_contents() for child in self.children],
-                        key=lambda el: el['name']
-                    )
+                "name": self.get_filename(),
+                "id": self.id,
+                "entries": children,
             }
 
-    def __to_json__(self) -> t.Mapping[str, t.Union[str, bool]]:
+    def __to_json__(self) -> t.Mapping[str, t.Union[str, bool, int]]:
         """Creates a JSON serializable representation of this object.
 
 
@@ -1122,6 +1263,7 @@ class File(Base):
                 'name': str, # The name of the file or directory.
                 'extension': str, # The extension of the file,
                                   # '' if it has no extension.
+                'id': int, # The id of this file.
                 'is_directory': bool, # Is this file a directory.
             }
 
@@ -1131,6 +1273,7 @@ class File(Base):
             'name': self.name,
             'extension': self.extension if self.extension else '',
             'is_directory': self.is_directory,
+            'id': self.id,
         }
 
 

@@ -49,7 +49,6 @@ def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
     perm_can_see: models.Permission = models.Permission.query.filter_by(
         name='can_see_assignments'
     ).first()
-    print(current_user.id, current_user.name)
     courses = []
 
     for course_role in current_user.courses.values():

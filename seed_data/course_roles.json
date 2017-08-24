@@ -2,6 +2,7 @@
   "Student": {
     "permissions": [
       "can_submit_own_work",
+      "can_view_own_teacher_files",
       "can_see_assignments"
     ],
     "initial_role": false
@@ -10,13 +11,14 @@
     "permissions": [
       "can_grade_work",
       "can_see_others_work",
-      "can_view_files",
       "can_see_grade_before_open",
       "can_see_assignments",
       "can_manage_course",
       "can_use_linter",
       "can_see_assignee",
       "manage_rubrics",
+      "can_edit_others_work",
+      "can_view_own_teacher_files",
       "can_see_hidden_assignments"
     ],
     "initial_role": false
@@ -25,7 +27,6 @@
     "permissions": [
       "can_grade_work",
       "can_see_others_work",
-      "can_view_files",
       "can_see_grade_before_open",
       "can_see_assignments",
       "can_manage_course",
@@ -34,6 +35,8 @@
       "manage_rubrics",
       "can_see_hidden_assignments",
       "can_upload_after_deadline",
+      "can_edit_others_work",
+      "can_view_own_teacher_files",
       "can_submit_own_work"
     ],
     "initial_role": true
@@ -44,12 +47,12 @@
   },
   "Designer": {
     "permissions": [
-      "can_view_files",
       "can_see_grade_before_open",
       "can_manage_course",
       "can_use_linter",
       "can_see_assignee",
       "manage_rubrics",
+      "can_view_own_teacher_files",
       "can_see_hidden_assignments"
     ],
     "initial_role": false

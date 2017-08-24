@@ -10,7 +10,6 @@ selenium-debug.log
 env/
 *.pyc
 __pycache__/
-migrations/
 uploads/
 package-lock.json
 docs/_build/

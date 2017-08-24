@@ -6,6 +6,7 @@ import datetime
 import contextlib
 
 import pytest
+import flask_migrate
 from flask import _app_ctx_stack as ctx_stack
 from werkzeug.local import LocalProxy
 
@@ -143,7 +144,7 @@ def boolean(request):
 _TOKENS = []
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def logged_in():
     @contextlib.contextmanager
     def _login(user):
@@ -163,6 +164,7 @@ def logged_in():
         setattr(ctx_stack.top, 'jwt_user', None)
 
     yield _login
+    _TOKENS.clear()
 
     _TOKENS.clear()
 
@@ -227,7 +229,10 @@ def db(app, request):
         os.unlink(TESTDB_PATH)
 
     _db.app = app
-    _db.create_all()
+    if request.config.getoption('--postgresql'):
+        flask_migrate.upgrade()
+    else:
+        _db.create_all()
 
     connection = _db.engine.connect()
     options = dict(bind=connection, binds={})
@@ -244,7 +249,9 @@ def db(app, request):
     yield _db
 
     _db.drop_all()
-    if os.path.exists(TESTDB_PATH):
+    if request.config.getoption('--postgresql'):
+        _db.create_all()
+    else:
         os.unlink(TESTDB_PATH)
 
 

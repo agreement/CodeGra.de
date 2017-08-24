@@ -59,6 +59,37 @@ else:
 ExtractFileTree = t.MutableMapping[str, ExtractFileTreeValue]
 
 
+def get_stat_information(file: models.File) -> t.Mapping[str, t.Any]:
+    """Get stat information for a given :class:`.models.File`
+
+    The resulting object will look like this:
+
+    .. code:: python
+
+        {
+            'is_directory': bool, # Is the given file a directory
+            'modification_date':  int, # When was the file last modified, as
+                                       # unix timestamp in utc time.
+            'size': int, # The size on disk of the file or 0 if the file is a
+                         # directory.
+            'id': int, # The id of the given file.
+        }
+
+    :param file: The file to get the stat information for.
+    :returns: The information as described above.
+    """
+    mod_date = file.modification_date
+    filename = file.get_diskname() if file.is_directory else ''
+    size = os.stat(filename).st_size if file.is_directory else 0
+
+    return {
+        'is_directory': file.is_directory,
+        'modification_date': round(mod_date.timestamp()),
+        'size': size,
+        'id': file.id,
+    }
+
+
 def get_binary_contents(file: models.File) -> bytes:
     """Get the binary contents of a given :class:`.models.File`.
 
@@ -66,7 +97,7 @@ def get_binary_contents(file: models.File) -> bytes:
     :returns: The contents of the file
     """
 
-    filename = os.path.join(app.config['UPLOAD_DIR'], file.filename)
+    filename = file.get_diskname()
     with open(filename, 'rb') as codefile:
         return codefile.read()
 
@@ -88,7 +119,7 @@ def get_file_contents(code: models.File) -> str:
     try:
         if code.is_directory:
             _raise_err(' as it is a directory')
-        filename = os.path.join(app.config['UPLOAD_DIR'], code.filename)
+        filename = code.get_diskname()
         if os.path.islink(filename):
             raise APIException(
                 f'This file is a symlink to `{os.readlink(filename)}`.',
@@ -101,7 +132,11 @@ def get_file_contents(code: models.File) -> str:
         _raise_err()
 
 
-def restore_directory_structure(code: models.File, parent: str) -> FileTree:
+def restore_directory_structure(
+    code: models.File,
+    parent: str,
+    exclude: models.FileOwner=models.FileOwner.teacher
+) -> FileTree:
     """Restores the directory structure recursively for a code submission (a
     :class:`.models.Work`).
 
@@ -136,25 +171,24 @@ def restore_directory_structure(code: models.File, parent: str) -> FileTree:
 
     :param code: A file
     :param parent: Path to parent directory
+    :param exclude: The file owner to exclude.
     :returns: A tree as described
     """
     out = os.path.join(parent, code.get_filename())
     if code.is_directory:
         os.mkdir(out)
+        children = code.children.filter(models.File.fileowner != exclude).all()
+        children = [
+            restore_directory_structure(child, out, exclude)
+            for child in children
+        ]
         return {
-            "name":
-                code.get_filename(),
-            "id":
-                code.id,
-            "entries":
-                [
-                    restore_directory_structure(child, out)
-                    for child in code.children
-                ]
+            "name": code.get_filename(),
+            "id": code.id,
+            "entries": children,
         }
     else:  # this is a file
-        filename = os.path.join(app.config['UPLOAD_DIR'], code.filename)
-        shutil.copyfile(filename, out, follow_symlinks=False)
+        shutil.copyfile(code.get_diskname(), out, follow_symlinks=False)
         return {"name": code.get_filename(), "id": code.id}
 
 

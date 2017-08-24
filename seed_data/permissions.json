@@ -7,15 +7,15 @@
     "default_value": true,
     "course_permission": true
   },
+  "can_edit_others_work": {
+    "default_value": false,
+    "course_permission": true
+  },
   "can_grade_work": {
     "default_value": false,
     "course_permission": true
   },
   "can_see_grade_before_open": {
-    "default_value": false,
-    "course_permission": true
-  },
-  "can_view_files": {
     "default_value": false,
     "course_permission": true
   },
@@ -61,6 +61,10 @@
   },
   "manage_rubrics": {
     "default_value": false,
+    "course_permission": true
+  },
+  "can_view_own_teacher_files": {
+    "default_value": true,
     "course_permission": true
   }
 }

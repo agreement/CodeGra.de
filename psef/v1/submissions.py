@@ -18,9 +18,10 @@ import psef.models as models
 import psef.helpers as helpers
 from psef import db, current_user
 from psef.errors import APICodes, APIException
+from psef.models import FileOwner
 from psef.helpers import (
     JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
-    ensure_keys_in_dict, make_empty_response
+    ensure_keys_in_dict, make_empty_response, filter_single_or_404
 )
 
 from . import api
@@ -48,6 +49,10 @@ def get_submission(
               specified otherwise
     :rtype: flask.Response
 
+    :query str owner: The type of files to list, if set to `teacher` only
+        teacher files will be listed, otherwise only student files will be
+        listed.
+
     :raises APIException: If the submission with given id does not exist.
                           (OBJECT_ID_NOT_FOUND)
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
@@ -64,7 +69,11 @@ def get_submission(
         )
 
     if request.args.get('type') == 'zip':
-        return jsonify(get_zip(work))
+        exclude_owner = models.File.get_exclude_owner(
+            request.args.get('owner'),
+            work.assignment.course_id,
+        )
+        return jsonify(get_zip(work, exclude_owner))
     elif request.args.get('type') == 'feedback':
         auth.ensure_can_see_grade(work)
         return jsonify(get_feedback(work))
@@ -123,10 +132,14 @@ def get_feedback(work: models.Work) -> t.Mapping[str, str]:
     return {'name': name, 'output_name': filename}
 
 
-def get_zip(work: models.Work) -> t.Mapping[str, str]:
+def get_zip(work: models.Work,
+            exclude_owner: FileOwner) -> t.Mapping[str, str]:
     """Return a :class:`.models.Work` as a zip file.
 
     :param work: The submission which should be returns as zip file.
+    :param exclude_owner: The owner to exclude from the files in the zip. So if
+        this is `teacher` only files owned by `student` and `both` will be in
+        the zip.
     :returns: A object with two keys: ``name`` where the value is the name
         which can be given to ``GET - /api/v1/files/<name>`` and
         ``output_name`` which is the resulting file should be named.
@@ -136,8 +149,7 @@ def get_zip(work: models.Work) -> t.Mapping[str, str]:
                                  user and the user can not view files in the
                                  attached course. (INCORRECT_PERMISSION)
     """
-    if (work.user_id != current_user.id):
-        auth.ensure_permission('can_view_files', work.assignment.course_id)
+    auth.ensure_can_view_files(work, exclude_owner == FileOwner.student)
 
     code = helpers.filter_single_or_404(
         models.File,
@@ -150,7 +162,7 @@ def get_zip(work: models.Work) -> t.Mapping[str, str]:
     with open(path, 'w+b') as fp:
         with tempfile.TemporaryDirectory() as tmpdir:
             # Restore the files to tmpdir
-            psef.files.restore_directory_structure(code, tmpdir)
+            psef.files.restore_directory_structure(code, tmpdir, exclude_owner)
 
             zipf = zipfile.ZipFile(fp, 'w', compression=zipfile.ZIP_DEFLATED)
             for root, dirs, files in os.walk(tmpdir):
@@ -277,9 +289,113 @@ def patch_submission(submission_id: int) -> EmptyResponse:
     return make_empty_response()
 
 
+@api.route("/submissions/<int:submission_id>/files/", methods=['POST'])
+def create_new_file(submission_id: int) -> JSONResponse[psef.files.FileTree]:
+    """Create a new file or directory for the given submission.
+
+    .. :quickref: Submission; Create a new file or directory for a submission.
+
+    :param str path: The path of the new file to create.
+    :param str is_directory: If this value is `true` the new file will be a
+        directory and the body of the post is ignored.
+
+    :returns: The new file tree for this assignment.
+    """
+    work = helpers.get_or_404(models.Work, submission_id)
+    exclude_owner = models.File.get_exclude_owner(
+        'auto', work.assignment.course_id
+    )
+
+    auth.ensure_can_edit_work(work)
+    if exclude_owner == FileOwner.teacher:  # we are a student
+        assig = work.assignment
+        new_owner = FileOwner.both if assig.is_open else FileOwner.student
+    else:
+        new_owner = FileOwner.teacher
+
+    is_directory = request.args.get('is_directory', None) == 'true'
+    ensure_keys_in_dict(request.args, [('path', str)])
+
+    pathname = request.args.get('path', None)
+    pathname = pathname[1:] if pathname[0] == '/' else pathname
+    pathname = pathname[:-1] if pathname[-1] == '/' else pathname
+    patharr = pathname.split('/')
+    print(new_owner, exclude_owner, pathname)
+
+    if len(patharr) < 2:
+        raise APIException(
+            'Path should contain at least a two parts',
+            f'"{pathname}" only contains {len(patharr)} parts',
+            APICodes.INVALID_PARAM, 400
+        )
+
+    parent = helpers.filter_single_or_404(
+        models.File,
+        models.File.work_id == submission_id,
+        models.File.fileowner != exclude_owner,
+        models.File.name == patharr[0],
+        models.File.parent_id == None,  # NOQA
+    )
+
+    code = None
+    for idx, part in enumerate(patharr[1:]):
+        code = models.File.query.filter(
+            models.File.fileowner != exclude_owner,
+            models.File.name == part,
+            models.File.parent == parent,
+        ).first()
+        end_idx = idx + 1
+        if code is None:
+            break
+        parent = code
+
+    def _is_last(idx: int) -> bool:
+        return end_idx + idx + 1 == len(patharr)
+
+    if _is_last(-1) or not parent.is_directory:
+        raise APIException(
+            'All part did already exist',
+            f'The path "{pathname}" did already exist',
+            APICodes.INVALID_STATE,
+            400,
+        )
+
+    for idx, part in enumerate(patharr[end_idx:]):
+        if _is_last(idx) and not is_directory:
+            is_dir = False
+            name, ext = os.path.splitext(part)
+            d_filename, filename = psef.files.random_file_path()
+            with open(d_filename, 'w') as f:
+                f.write(request.get_data(as_text=True))
+        else:
+            is_dir, name, ext, filename = True, part, None, None
+        code = models.File(
+            work_id=submission_id,
+            extension=ext,
+            name=name,
+            filename=filename,
+            is_directory=is_dir,
+            parent=parent,
+            fileowner=new_owner,
+        )
+        db.session.add(code)
+        parent = code
+    db.session.commit()
+
+    return jsonify(
+        helpers.filter_single_or_404(
+            models.File,
+            models.File.work_id == submission_id,
+            models.File.parent_id == None,  # NOQA
+        ).list_contents(exclude_owner)
+    )
+
+
 @api.route("/submissions/<int:submission_id>/files/", methods=['GET'])
 @auth.login_required
-def get_dir_contents(submission_id: int) -> JSONResponse[psef.files.FileTree]:
+def get_dir_contents(submission_id: int
+                     ) -> t.Union[JSONResponse[psef.files.FileTree],
+                                  JSONResponse[t.Mapping[str, t.Any]]]:
     """Return the file directory info of a file of the given submission
     (:class:`.models.Work`).
 
@@ -291,10 +407,16 @@ def get_dir_contents(submission_id: int) -> JSONResponse[psef.files.FileTree]:
     :param int submission_id: The id of the submission
     :returns: A response with the JSON serialized directory structure as
         content and return code 200. For the exact structure see
-        :py:meth:`.File.list_contents`.
+        :py:meth:`.File.list_contents`. If path is given the return value will
+        be stat datastructure, see :py:func:`files.get_stat_information`.
 
     :query int file_id: The file id of the directory to get. If this is not
         given the parent directory for the specified submission is used.
+    :query str path: The path that should be searched. The ``file_id`` query
+        parameter is used if both ``file_id`` and ``path`` are present.
+    :query str owner: The type of files to list, if set to `teacher` only
+        teacher files will be listed, otherwise only student files will be
+        listed.
 
     :raise APIException: If the submission with the given id does not exist or
                          when a file id was specified no file with this id
@@ -311,10 +433,15 @@ def get_dir_contents(submission_id: int) -> JSONResponse[psef.files.FileTree]:
     """
     work = helpers.get_or_404(models.Work, submission_id)
 
-    if (work.user_id != current_user.id):
-        auth.ensure_permission('can_view_files', work.assignment.course_id)
+    file_id = request.args.get('file_id', False)
+    path = request.args.get('path', False)
 
-    file_id = request.args.get('file_id')
+    exclude_owner = models.File.get_exclude_owner(
+        request.args.get('owner', None),
+        work.assignment.course_id,
+    )
+
+    auth.ensure_can_view_files(work, exclude_owner == FileOwner.student)
 
     if file_id:
         file = helpers.filter_single_or_404(
@@ -322,11 +449,15 @@ def get_dir_contents(submission_id: int) -> JSONResponse[psef.files.FileTree]:
             models.File.id == file_id,
             models.File.work_id == work.id,
         )
+    elif path:
+        found_file = search_file(submission_id, path, exclude_owner)
+        return jsonify(psef.files.get_stat_information(found_file))
     else:
         file = helpers.filter_single_or_404(
             models.File,
             models.File.work_id == submission_id,
-            models.File.parent_id == None  # NOQA
+            models.File.parent_id == None,  # NOQA
+            models.File.fileowner != exclude_owner
         )
 
     if not file.is_directory:
@@ -336,4 +467,50 @@ def get_dir_contents(submission_id: int) -> JSONResponse[psef.files.FileTree]:
             APICodes.OBJECT_WRONG_TYPE, 400
         )
 
-    return jsonify(file.list_contents())
+    return jsonify(file.list_contents(exclude_owner))
+
+
+def search_file(
+    submission_id: int,
+    pathname: str,
+    exclude: FileOwner,
+) -> models.File:
+    """Search for a file in the given submission with the given name.
+
+    :param submission_id: The id of the submission in which the file should be.
+    :param pathname: The path of the file to search for, this may contain
+        leading and trailing slashes which do not have any meaning.
+    :param exclude: The fileowner to exclude from search, like described in
+        :func:`get_zip`.
+    :returns: The found file.
+    """
+    pathname = pathname[1:] if pathname[0] == '/' else pathname
+    pathname = pathname[:-1] if pathname[-1] == '/' else pathname
+
+    patharr = pathname.split('/')
+
+    parent: t.Optional[t.Any] = None
+    for idx, pathpart in enumerate(patharr[:-1]):
+        if parent is not None:
+            parent = parent.c.id
+
+        parent = db.session.query(models.File.id).filter(
+            models.File.name == pathpart,
+            models.File.parent_id == parent,
+            models.File.work_id == submission_id,
+            models.File.is_directory == True,  # NOQA
+        ).subquery(f'parent_{idx}')
+
+    filename, ext = os.path.splitext(patharr[-1])
+
+    if parent is not None:
+        parent = parent.c.id
+
+    return filter_single_or_404(
+        models.File,
+        models.File.extension == ext,
+        models.File.name == filename,
+        models.File.parent_id == parent,
+        models.File.fileowner != exclude,
+        models.File.is_directory == False,  # NOQA
+    )
