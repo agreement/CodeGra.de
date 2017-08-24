@@ -29,7 +29,7 @@ manager.add_command('db', MigrateCommand)
 @manager.command
 def seed():
     with open(
-        f'{os.path.dirname(__file__)}/seed_data/permissions.json', 'r'
+        f'{os.path.dirname(os.path.abspath(__file__))}/seed_data/permissions.json', 'r'
     ) as perms:
         perms = json.load(perms)
         for name, perm in perms.items():
@@ -40,7 +40,7 @@ def seed():
             else:
                 db.session.add(m.Permission(name=name, **perm))
 
-    with open(f'{os.path.dirname(__file__)}/seed_data/roles.json', 'r') as c:
+    with open(f'{os.path.dirname(os.path.abspath(__file__))}/seed_data/roles.json', 'r') as c:
         cs = json.load(c)
         for name, c in cs.items():
             perms = m.Permission.query.filter_by(course_permission=False).all()
@@ -62,14 +62,14 @@ def seed():
 def test_data():
     seed()
     db.session.commit()
-    with open(f'{os.path.dirname(__file__)}/test_data/courses.json', 'r') as c:
+    with open(f'{os.path.dirname(os.path.abspath(__file__))}/test_data/courses.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
             if m.Course.query.filter_by(name=c['name']).first() is None:
                 db.session.add(m.Course(name=c['name']))
     db.session.commit()
     with open(
-        f'{os.path.dirname(__file__)}/test_data/assignments.json', 'r'
+        f'{os.path.dirname(os.path.abspath(__file__))}/test_data/assignments.json', 'r'
     ) as c:
         cs = json.load(c)
         for c in cs:
@@ -92,7 +92,7 @@ def test_data():
                 assig.course = m.Course.query.filter_by(name=c['course']
                                                         ).first()
     db.session.commit()
-    with open(f'{os.path.dirname(__file__)}/test_data/users.json', 'r') as c:
+    with open(f'{os.path.dirname(os.path.abspath(__file__))}/test_data/users.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
             u = m.User.query.filter_by(name=c['name']).first()
@@ -133,7 +133,7 @@ def test_data():
                             )
                             db.session.add(work)
     db.session.commit()
-    with open(f'{os.path.dirname(__file__)}/test_data/rubrics.json', 'r') as c:
+    with open(f'{os.path.dirname(os.path.abspath(__file__))}/test_data/rubrics.json', 'r') as c:
         cs = json.load(c)
         for c in cs:
             for row in c['rows']:
