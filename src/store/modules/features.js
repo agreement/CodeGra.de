@@ -3,7 +3,7 @@ import * as types from '../mutation-types';
 
 // FIXME: Remove these useless getters.
 const getters = {
-    features: state => state.featues,
+    features: state => state.features,
     version: state => state.version,
 };
 
