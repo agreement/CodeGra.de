@@ -678,8 +678,9 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
             APICodes.INVALID_PARAM, 400
         )
     for submission_info, submission_tree in submissions:
-        user = models.User.query.filter_by(name=submission_info.student_name
-                                           ).first()
+        user = models.User.query.filter_by(
+            username=submission_info.student_id
+        ).first()
 
         if user is None:
             # TODO: Check if this role still exists
@@ -691,9 +692,10 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
             }
             user = models.User(
                 name=submission_info.student_name,
+                username=submission_info.student_id,
                 courses=perms,
-                email=submission_info.student_name + '@example.com',
-                password='password',
+                email='',
+                password=submission_info.student_id,
                 role=models.Role.query.filter_by(name='Student').first()
             )
 

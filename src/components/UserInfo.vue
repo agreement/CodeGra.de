@@ -4,6 +4,13 @@
         <div @keyup.enter="submit" @keyup.capture="error = ''" v-else>
             <b-form-fieldset>
                 <b-input-group left="Username">
+                    <b-popover placement="top" triggers="hover" content="You cannot change your username" style="width: 100%;">
+                        <b-form-input type="text" v-model="username" :disabled="true" style="border-top-left-radius: 0; border-bottom-left-radius: 0; width: 100%"/>
+                    </b-popover>
+                </b-input-group>
+            </b-form-fieldset>
+            <b-form-fieldset>
+                <b-input-group left="Full name">
                     <b-form-input type="text" v-model="name"></b-form-input>
                 </b-input-group>
             </b-form-fieldset>
@@ -80,6 +87,7 @@ export default {
     data() {
         return {
             name: '',
+            username: '',
             email: '',
             oldPw: '',
             newPw: '',
@@ -103,6 +111,7 @@ export default {
         this.loading = true;
         this.$http.get('/api/v1/login').then(({ data }) => {
             this.name = data.name;
+            this.username = data.username;
             this.email = data.email;
             this.loading = false;
         });

@@ -441,7 +441,14 @@ class User(Base):
         secondary=user_course,
         backref=db.backref('users', lazy='dynamic')
     )
-    email: str = db.Column('email', db.Unicode, unique=True)
+    username: str = db.Column(
+        'username',
+        db.Unicode,
+        unique=True,
+        nullable=False,
+        index=True,
+    )
+    email: str = db.Column('email', db.Unicode, unique=False, nullable=False)
     password: str = db.Column(
         'password',
         PasswordType(schemes=[
@@ -555,14 +562,16 @@ class User(Base):
                 'id':    int, # The id of this user.
                 'name':  str, # The full name of this user.
                 'email': str, # The email of this user.
+                'username': str, # The username of this user.
             }
 
         :returns: An object as described above.
         """
         return {
-            "id": self.id,
-            "name": self.name,
-            "email": self.email,
+            'id': self.id,
+            'name': self.name,
+            'email': self.email,
+            'username': self.username,
         }
 
     def __extended_to_json__(self) -> t.Mapping[str, t.Any]:

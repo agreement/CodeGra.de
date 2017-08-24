@@ -83,10 +83,15 @@ class LTI:
         return self.launch_params['lis_person_contact_email_primary']
 
     @property
-    def user_name(self) -> str:
-        """The name or username of the current LTI user.
+    def users_name(self) -> str:
+        """The name of the current LTI user.
         """
         return self.launch_params['lis_person_name_full']
+
+    @property
+    def username(self) -> str:
+        """The username of the current LTI user."""
+        return self.launch_params['user_id']
 
     @property
     def course_id(self) -> str:  # pragma: no cover
@@ -182,6 +187,7 @@ class LTI:
         elif is_logged_in and current_user.lti_user_id is None:
             # TODO show some sort of screen if this linking is wanted
             current_user.lti_user_id = self.user_id
+            db.session.commit()
             user = current_user
         else:
             # New LTI user id is found and no user is logged in or the current
@@ -189,10 +195,11 @@ class LTI:
             # logged in.
             user = models.User(
                 lti_user_id=self.user_id,
-                name=self.user_name,
+                name=self.users_name,
                 email=self.user_email,
                 active=True,
-                password=None
+                password=None,
+                username=self.username,
             )
             db.session.add(user)
             db.session.commit()
@@ -372,6 +379,10 @@ class LTI:
 class CanvasLTI(LTI):
     """The LTI class used for the Canvas LMS.
     """
+
+    @property
+    def username(self) -> str:
+        return self.launch_params['lis_person_sourcedid']
 
     @property
     def course_name(self) -> str:

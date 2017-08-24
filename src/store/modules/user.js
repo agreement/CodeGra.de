@@ -11,10 +11,10 @@ const getters = {
 };
 
 const actions = {
-    login({ commit, state }, { email, password }) {
+    login({ commit, state }, { username, password }) {
         state.jwtToken = null;
         return new Promise((resolve, reject) => {
-            axios.post('/api/v1/login', { email, password }).then((response) => {
+            axios.post('/api/v1/login', { username, password }).then((response) => {
                 commit(types.LOGIN, response.data);
                 resolve();
                 actions.refreshSnippets({ commit });
@@ -134,6 +134,7 @@ const mutations = {
         state.email = userdata.email;
         state.name = userdata.name;
         state.canSeeHidden = userdata.hidden;
+        state.usernmae = userdata.username;
     },
     [types.SNIPPETS](state, snippets) {
         state.snippets = snippets;
@@ -187,6 +188,7 @@ export default {
         snippets: null,
         permissions: null,
         canSeeHidden: false,
+        username: '',
     },
     getters,
     actions,

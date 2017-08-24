@@ -22,7 +22,11 @@ def test_lti_new_user_new_course(test_client, app, logged_in, ta_user):
     due_at = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 
     def do_lti_launch(
-        name='A the A-er', lti_id='USER_ID', source_id='', published='false'
+        name='A the A-er',
+        lti_id='USER_ID',
+        source_id='',
+        published='false',
+        username='a-the-a-er',
     ):
         with app.app_context():
             data = {
@@ -31,6 +35,7 @@ def test_lti_new_user_new_course(test_client, app, logged_in, ta_user):
                 'custom_canvas_assignment_id': 'MY_ASSIG_ID',
                 'custom_canvas_assignment_title': 'MY_ASSIG_TITLE',
                 'roles': 'instructor',
+                'lis_person_sourcedid': username,
                 'custom_canvas_course_title': 'Common Lisp',
                 'custom_canvas_due_at': due_at.isoformat(),
                 'custom_canvas_assignment_published': published,
@@ -75,11 +80,13 @@ def test_lti_new_user_new_course(test_client, app, logged_in, ta_user):
     _, token = do_lti_launch()
     out = get_user_info(token)
     assert out['name'] == 'A the A-er'
+    assert out['username'] == 'a-the-a-er'
     old_id = out['id']
 
     _, token = do_lti_launch()
     out = get_user_info(token)
     assert out['name'] == 'A the A-er'
+    assert out['username'] == 'a-the-a-er'
     assert out['id'] == old_id
 
     user = m.User.query.filter_by(name=out['name']).one()
@@ -88,23 +95,33 @@ def test_lti_new_user_new_course(test_client, app, logged_in, ta_user):
         assert token is None
         out = get_user_info(False)
         assert out['name'] == 'A the A-er'
+        assert out['username'] == 'a-the-a-er'
 
     with logged_in(ta_user):
         _, token = do_lti_launch()
         out = get_user_info(token)
         assert out['name'] == 'A the A-er'
+        assert out['username'] == 'a-the-a-er'
 
     with logged_in(ta_user):
-        assig, token = do_lti_launch(lti_id='THOMAS_SCHAPER', source_id='WOW')
+        assig, token = do_lti_launch(
+            lti_id='THOMAS_SCHAPER',
+            source_id='WOW',
+            username='SOMETHING_ELSE',
+        )
         assert token is None
         out = get_user_info(False)
         assert out['name'] == ta_user.name
+        assert out['username'] == ta_user.username
         assert m.User.query.get(ta_user.id).lti_user_id == 'THOMAS_SCHAPER'
 
         assert assig['id'] in ta_user.assignment_results
 
         assig, token = do_lti_launch(
-            lti_id='THOMAS_SCHAPER', source_id='WOW2', published='true'
+            lti_id='THOMAS_SCHAPER',
+            source_id='WOW2',
+            published='true',
+            username='WOW33',
         )
         out = get_user_info(False)
         assert ta_user.assignment_results[assig['id']].sourcedid == 'WOW2'

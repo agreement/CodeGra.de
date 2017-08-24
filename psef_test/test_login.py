@@ -14,23 +14,28 @@ does_have_permission = pytest.mark.does_have_permission
         data_error(None),
         data_error(5),
         'a',
-        data_error(wrong=True)('b'),
+        data_error(wrong=True)('b-the-wrong-password'),
     ]
 )
 @pytest.mark.parametrize(
-    'email', [
+    'username', [
         data_error(None),
         data_error(5),
-        'a@a.nl',
+        'a-the-a-er',
         data_error('b@b.nl'),
         data_error(wrong=True)('b'),
     ]
 )
 def test_login(
-    test_client, session, error_template, password, email, request, active, app
+    test_client, session, error_template, password, request, active, app,
+    username
 ):
     new_user = m.User(
-        name='NEW_USER', email='a@a.nl', password='a', active=active
+        name='NEW_USER',
+        email='a@a.nl',
+        password='a',
+        active=active,
+        username='a-the-a-er'
     )
     session.add(new_user)
     session.commit()
@@ -50,8 +55,8 @@ def test_login(
     data = {}
     if password is not None:
         data['password'] = password
-    if email is not None:
-        data['email'] = email
+    if username is not None:
+        data['username'] = username
 
     res = test_client.req(
         'post',
@@ -59,11 +64,13 @@ def test_login(
         error or 200,
         data=data,
         result=error_template if error else {
-            'user': {
-                'email': 'a@a.nl',
-                'id': int,
-                'name': 'NEW_USER'
-            },
+            'user':
+                {
+                    'email': 'a@a.nl',
+                    'id': int,
+                    'name': 'NEW_USER',
+                    'username': 'a-the-a-er',
+                },
             'access_token': str
         }
     )
@@ -101,6 +108,7 @@ def test_extended_get_login(test_client, named_user, logged_in, request):
                 'id': int,
                 'email': str,
                 'hidden': perm_true,
+                'username': str,
             }
         )
 

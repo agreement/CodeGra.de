@@ -107,11 +107,13 @@ def test_data():
                                              course_id=course.id).first()
                 for course, name in courses.items()
             }
+            username = c['name'].split(' ')[0].lower()
             if u is not None:
                 u.name = c['name']
                 u.courses = perms
                 u.email = c['name'].replace(' ', '_').lower() + '@example.com'
                 u.password = c['name']
+                u.username = username
                 u.role = m.Role.query.filter_by(name=c['role']).first()
             else:
                 db.session.add(
@@ -120,6 +122,7 @@ def test_data():
                         courses=perms,
                         email=c['name'].replace(' ', '_').lower() +
                         '@example.com',
+                        username=username,
                         password=c['name'],
                         role=m.Role.query.filter_by(name=c['role']).first()
                     )
