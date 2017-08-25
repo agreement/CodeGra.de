@@ -1,7 +1,7 @@
 <template>
     <div id="app">
         <nav-bar></nav-bar>
-        <loader v-if="loading"/>
+        <div v-if="loading"></div>
         <main class="container-fluid" v-else>
             <div class="row justify-content-center">
                 <router-view class="col-md-10"></router-view>

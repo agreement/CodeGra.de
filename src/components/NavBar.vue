@@ -1,7 +1,7 @@
 <template>
-    <div class="lti-navbar navbar" v-if="lti">
+    <b-navbar class="lti-navbar navbar" v-if="lti">
         <img class="logo" src="/static/img/codegrade-inv.svg">
-    </div>
+    </b-navbar>
     <b-navbar toggleable type="inverse" sticky="true" class="navbar" v-else>
         <b-nav-toggle target="nav_collapse"></b-nav-toggle>
 
