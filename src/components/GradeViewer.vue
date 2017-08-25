@@ -166,7 +166,7 @@ export default {
 
             const req = this.$http.patch(`/api/v1/submissions/${this.submission.id}`, {
                 grade,
-                feedback: this.feedback,
+                feedback: this.feedback || '',
             });
             req.then(() => {
                 this.grade = grade;

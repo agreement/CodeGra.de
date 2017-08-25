@@ -13,15 +13,15 @@
                 <code-viewer :assignment="assignment"
                              :submission="submission"
                              :fileId="+fileId"
-                             :editable="canGradeWork"
+                             :editable="editable"
                              :tree="fileTree"
                              v-else-if="fileId"/>
 
                 <grade-viewer :assignment="assignment"
                               :submission="submission"
                               :rubric="rubric"
-                              :editable="canGradeWork"
-                              v-if="canGradeWork || assignment.state === assignmentState.DONE"
+                              :editable="editable"
+                              v-if="editable || assignment.state === assignmentState.DONE"
                               @gradeUpdated="gradeUpdated"/>
             </div>
 
@@ -96,7 +96,6 @@ export default {
             fileTree: null,
             submissions: null,
             rubric: null,
-            canGradeWork: false,
             fileExtension: '',
             loading: true,
             initialLoad: true,
