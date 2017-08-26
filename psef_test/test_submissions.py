@@ -27,6 +27,7 @@ data_error = pytest.mark.data_error
         data_error('err'),
         data_error(None),
         4,
+        4.5,
     ]
 )
 @pytest.mark.parametrize(

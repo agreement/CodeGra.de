@@ -269,12 +269,9 @@ def patch_submission(submission_id: int) -> EmptyResponse:
 
     auth.ensure_permission('can_grade_work', work.assignment.course_id)
 
-    ensure_keys_in_dict(
-        content, [('grade', numbers.Rational),
-                  ('feedback', str)]
-    )
+    ensure_keys_in_dict(content, [('grade', numbers.Real), ('feedback', str)])
     feedback = t.cast(str, content['feedback'])
-    grade = float(t.cast(numbers.Rational, content['grade']))
+    grade = float(t.cast(numbers.Real, content['grade']))
 
     if not 0 <= grade <= 10:
         raise APIException(
