@@ -129,7 +129,9 @@ def test_data():
                         for assig in course.assignments:
                             work = m.Work(assignment=assig, user=u)
                             db.session.add(
-                                m.File(work=work, name='Top stub dir')
+                                m.File(work=work,
+                                       name='Top stub dir',
+                                       is_directory=True)
                             )
                             db.session.add(work)
     db.session.commit()
