@@ -22,16 +22,16 @@
             </template>
             <template slot="actions" scope="item">
                 <div class="row">
-                    <b-tooltip placement="bottom" :delay="500" content="View assignments">
+                    <b-popover placement="left" content="View assignments" triggers="hover">
                         <b-btn size="sm" variant="success" @click.stop="gotoCourse(item.item)">
                             <icon name="list"></icon>
                         </b-btn>
-                    </b-tooltip>
-                    <b-tooltip placement="bottom" :delay="500" content="Manage course">
+                    </b-popover>
+                    <b-popover placement="right" content="Manage course" triggers="hover">
                         <b-btn v-if="item.item.manageable" @click.stop="gotoCourseEdit(item.item) "size="sm" variant="warning">
                             <icon name="pencil"></icon>
                         </b-btn>
-                    </b-tooltip>
+                    </b-popover>
                 </div>
             </template>
             <template slot="empty">

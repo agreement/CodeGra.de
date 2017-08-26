@@ -3,7 +3,8 @@
     <div class="page submission-list" v-else>
         <h1>
             Submissions for {{ assignment.name }} in
-            <router-link :to="{ name: 'assignments', query: { q: course.name }}">
+            <router-link :to="{ name: canManage ? 'courses' : 'assignments',
+                              query: { q: course.name }}">
                 {{ course.name }}
             </router-link>
         </h1>
@@ -44,6 +45,7 @@ export default {
             assignment: null,
             course: null,
             canDownload: false,
+            canManage: true,
             inLTI: window.inLTI,
         };
     },
@@ -74,9 +76,13 @@ export default {
             this.submissions = submissions;
 
             this.hasPermission([
-                'can_submit_own_work', 'can_see_others_work', 'can_see_grade_before_open',
-            ]).then(([submit, others, before]) => {
+                'can_submit_own_work',
+                'can_see_others_work',
+                'can_see_grade_before_open',
+                'can_manage_course',
+            ]).then(([submit, others, before, manage]) => {
                 this.canUpload = submit && this.assignment.state === assignmentState.SUBMITTING;
+                this.canManage = manage;
 
                 if (others) {
                     if (this.assignment.state === assignmentState.DONE) {
