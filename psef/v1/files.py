@@ -85,8 +85,14 @@ def get_file(file_name: str) -> werkzeug.wrappers.Response:
         return response
 
     try:
+        mimetype = request.args.get('mime', None)
+        as_attachment = request.args.get('not_as_attachment', None) is None
         return send_from_directory(
-            directory, file_name, attachment_filename=name, as_attachment=True
+            directory,
+            file_name,
+            attachment_filename=name,
+            as_attachment=as_attachment,
+            mimetype=mimetype
         )
     except NotFound:
         error = True

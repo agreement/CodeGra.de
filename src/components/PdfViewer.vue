@@ -8,12 +8,7 @@ import PDFObject from 'pdfobject';
 export default {
     name: 'pdf-viewer',
 
-    props: {
-        id: {
-            type: Number,
-            required: true,
-        },
-    },
+    props: ['id'],
 
     watch: {
         id() {
@@ -40,7 +35,10 @@ export default {
                     PDFJS_URL: '/static/vendor/pdf.js/web/viewer.html',
                 };
             }
-            PDFObject.embed(this.url, '#pdf-viewer', options);
+            this.$http.get(this.url).then(({ data }) => {
+                const pdfUrl = data.name;
+                PDFObject.embed(`/api/v1/files/${pdfUrl}?not_as_attachment&mime=application/pdf`, '#pdf-viewer', options);
+            });
         },
     },
 };

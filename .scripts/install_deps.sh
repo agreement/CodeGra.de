@@ -29,6 +29,8 @@ pip install -r requirements.txt > /dev/null
 echo "Installing NPM requirements"
 npm install > /dev/null
 git submodule update --init static/vendor/pdf.js >/dev/null
+cd static/vendor/pdf.js
+npm install > /dev/null
 
 echo "Initializing database"
 export CODEGRADE_DATABASE_URL="postgresql:///codegrade_dev"

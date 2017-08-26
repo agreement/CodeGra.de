@@ -27,12 +27,12 @@
 
             <div class="col-lg-3 file-tree-container">
                 <b-form-fieldset class="button-bar">
-                    <b-button @click="downloadArchive()"
+                    <b-button @click="downloadType('zip')"
                               variant="primary">
                         <icon name="download"/>
                         Archive
                     </b-button>
-                    <b-button @click="downloadFeedback()"
+                    <b-button @click="downloadType('feedback')"
                               v-if="assignment.state === assignmentState.DONE"
                               variant="primary">
                         <icon name="download"/>
@@ -169,7 +169,9 @@ export default {
 
             this.setPageCSS();
 
-            this.loading = false;
+            this.getFileMetadata().then(() => {
+                this.loading = false;
+            });
         });
     },
 
@@ -263,12 +265,12 @@ export default {
             });
         },
 
-        downloadArchive() {
-            window.open(`/api/v1/submissions/${this.submissionId}?type=zip`);
-        },
-
-        downloadFeedback() {
-            window.open(`/api/v1/submissions/${this.submissionId}?type=feedback`);
+        downloadType(type) {
+            this.$http.get(`/api/v1/submissions/${this.submissionId}?type=${type}`).then(({ data }) => {
+                const params = new URLSearchParams();
+                params.append('name', data.output_name);
+                window.open(`/api/v1/files/${data.name}?${params.toString()}`);
+            });
         },
 
         gradeUpdated(grade) {

@@ -5,6 +5,7 @@ APIs are used to manipulate student submitted code and the related feedback.
 :license: AGPLv3, see LICENSE for details.
 """
 
+import shutil
 import typing as t
 
 from flask import request, make_response
@@ -118,10 +119,10 @@ def remove_comment(id: int, line: int) -> EmptyResponse:
 
 @api.route("/code/<int:file_id>", methods=['GET'])
 @auth.login_required
-def get_code(
-    file_id: int
-) -> t.Union['werkzeug.wrappers.Response',
-             JSONResponse[t.Union[models.File, _FeedbackMapping]]]:
+def get_code(file_id: int
+             ) -> t.Union['werkzeug.wrappers.Response', JSONResponse[
+                 t.Union[t.Mapping[str, str], models.File, _FeedbackMapping]
+             ]]:
     """Get data from the :class:`.models.File` with the given id.
 
     .. :quickref: Code; Get code or its metadata
@@ -130,10 +131,11 @@ def get_code(
     argument type in the request different functions are called.
 
     - If ``type == 'metadata'`` the JSON serialized :class:`.models.File` is
-      returned.
-    - If ``type == 'pdf'`` see :py:func:`get_pdf_file`
+        returned.
+    - If ``type == 'pdf'`` a object with a single key, `name`, with as value
+        the return values of :py:func:`get_pdf_file`.
     - If ``type == 'feedback'`` or ``type == 'linter-feedback'`` see
-      :py:func:`get_feedback`
+        :py:func:`get_feedback`
     - Otherwise the content of the file is returned as plain text.
 
     :param int file_id: The id of the file
@@ -156,7 +158,7 @@ def get_code(
     elif request.args.get('type') == 'feedback':
         return jsonify(get_feedback(file, linter=False))
     elif request.args.get('type') == 'pdf':
-        return get_pdf_file(file)
+        return jsonify({'name': get_pdf_file(file)})
     elif request.args.get('type') == 'linter-feedback':
         return jsonify(get_feedback(file, linter=True))
     else:
@@ -166,19 +168,18 @@ def get_code(
         return res
 
 
-def get_pdf_file(file: models.File) -> 'werkzeug.wrappers.Response':
-    """Creates a response with the content of the given :class:`.models.File`
-    as inline pdf.
+def get_pdf_file(file: models.File) -> str:
+    """Copies the given file to the mirror uploads folder and returns its name.
+
+    To get this file, see the :func:`psef.v1.files.get_file` function.
 
     :param file: The file object
-    :returns: A response containing a pdf file
+    :returns: The name of the newly created file (the copy).
     """
-    file_data = psef.files.get_binary_contents(file)
-    response = make_response(file_data)
-    response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = 'inline; filename=' + file.name
+    path, name = psef.files.random_file_path('MIRROR_UPLOAD_DIR')
+    shutil.copyfile(file.get_diskname(), path)
 
-    return response
+    return name
 
 
 def get_feedback(file: models.File, linter: bool=False) -> _FeedbackMapping:

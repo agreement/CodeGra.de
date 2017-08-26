@@ -90,18 +90,6 @@ def get_stat_information(file: models.File) -> t.Mapping[str, t.Any]:
     }
 
 
-def get_binary_contents(file: models.File) -> bytes:
-    """Get the binary contents of a given :class:`.models.File`.
-
-    :param file: The file object to read.
-    :returns: The contents of the file
-    """
-
-    filename = file.get_diskname()
-    with open(filename, 'rb') as codefile:
-        return codefile.read()
-
-
 def get_file_contents(code: models.File) -> str:
     """Get the contents of the given :class:`.models.File`.
 

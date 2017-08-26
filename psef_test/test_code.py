@@ -197,13 +197,19 @@ def test_get_pdf(
                 result=error_template
             )
         else:
-            res = test_client.get(
+            res = test_client.req(
+                'get',
                 f'/api/v1/code/{res["entries"][0]["id"]}',
-                query_string={'type': 'pdf'}
+                200,
+                query={'type': 'pdf'},
+                result={'name': str},
+            )
+            res = test_client.get(
+                f'/api/v1/files/{res["name"]}',
+                query_string={'mime': 'application/pdf'}
             )
             assert res.status_code == 200
             assert res.headers['Content-Type'] == 'application/pdf'
-            assert res.headers['Content-Disposition'].startswith('inline')
 
 
 @pytest.mark.parametrize(
