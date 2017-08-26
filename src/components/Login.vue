@@ -1,7 +1,7 @@
 <template>
     <div class="login" @keyup.enter="login">
         <b-form-fieldset>
-            <b-form-input type="text" placeholder="username" v-model="username"></b-form-input>
+            <b-form-input type="text" placeholder="username" v-model="username" ref="username"></b-form-input>
             <b-alert variant="danger" :show="submitted && !username">
                 Please enter a non empty username
             </b-alert>
@@ -36,6 +36,10 @@ export default {
             error: '',
             submitted: false,
         };
+    },
+
+    mounted() {
+        this.$refs.username.focus();
     },
 
     methods: {
