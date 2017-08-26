@@ -102,7 +102,7 @@ def _filter_or_404(model: t.Type[Y], get_all: bool,
     obj = query.all() if get_all else query.one_or_none()
     if not obj:
         raise psef.errors.APIException(
-            f'The requested "{model.__name__}" was not found',
+            f'The requested {model.__name__.lower()} was not found',
             f'There is no "{model.__name__}" when filtering with {criteria}',
             psef.errors.APICodes.OBJECT_ID_NOT_FOUND, 404
         )

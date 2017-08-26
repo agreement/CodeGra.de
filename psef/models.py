@@ -744,6 +744,7 @@ class Course(Base):
                 'name': str, # The name of the course,
                 'id': int, # The id of this course.
                 'created_at': str, # ISO UTC date.
+                'is_lti': bool, # Is the this course a LTI course,
             }
 
         :returns: A object as described above.
@@ -752,6 +753,7 @@ class Course(Base):
             'id': self.id,
             'name': self.name,
             'created_at': self.created_at.isoformat(),
+            'is_lti': self.lti_course_id is not None,
         }
 
     def __extended_to_json__(self) -> t.Mapping[str, t.Any]:

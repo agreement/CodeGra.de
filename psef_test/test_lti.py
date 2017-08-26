@@ -90,6 +90,8 @@ def test_lti_new_user_new_course(test_client, app, logged_in, ta_user):
     assert out['id'] == old_id
 
     user = m.User.query.filter_by(name=out['name']).one()
+    assert len(user.courses) == 1
+    assert list(user.courses.values())[0].name == 'Teacher'
     with logged_in(user):
         _, token = do_lti_launch()
         assert token is None
@@ -125,3 +127,77 @@ def test_lti_new_user_new_course(test_client, app, logged_in, ta_user):
         )
         out = get_user_info(False)
         assert ta_user.assignment_results[assig['id']].sourcedid == 'WOW2'
+
+
+def test_lti_no_course_roles(test_client, app, logged_in, ta_user):
+    due_at = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+
+    def do_lti_launch(
+        username='A the A-er',
+        lti_id='USER_ID',
+        source_id='',
+        published='false'
+    ):
+        with app.app_context():
+            data = {
+                'custom_canvas_course_name': 'NEW_COURSE',
+                'custom_canvas_course_id': 'MY_COURSE_ID',
+                'custom_canvas_assignment_id': 'MY_ASSIG_ID',
+                'custom_canvas_assignment_title': 'MY_ASSIG_TITLE',
+                'roles': 'administrator,non_existing',
+                'lis_person_sourcedid': username,
+                'custom_canvas_course_title': 'Common Lisp',
+                'custom_canvas_due_at': due_at.isoformat(),
+                'custom_canvas_assignment_published': published,
+                'user_id': lti_id,
+                'lis_person_contact_email_primary': 'a@a.nl',
+                'lis_person_name_full': username,
+                'context_id': 'NO_CONTEXT',
+                'context_title': 'WRONG_TITLE',
+                'oauth_consumer_key': 'my_lti',
+                'lis_outcome_service_url': source_id,
+            }
+            if source_id:
+                data['lis_result_sourcedid'] = source_id
+            res = test_client.post('/api/v1/lti/launch/1', data=data)
+
+            url = urllib.parse.urlparse(res.headers['Location'])
+            jwt = urllib.parse.parse_qs(url.query)['jwt'][0]
+            lti_res = test_client.req(
+                'get',
+                '/api/v1/lti/launch/2',
+                200,
+                headers={'Jwt': jwt},
+            )
+            if published == 'false':
+                assert lti_res['assignment']['state'] == 'hidden'
+            else:
+                assert m.Assignment.query.get(
+                    lti_res['assignment']['id']
+                ).state == m._AssignmentStateEnum.open
+            assert lti_res['assignment']['course']['name'] == 'NEW_COURSE'
+            return lti_res['assignment'], lti_res.get('access_token', None)
+
+    def get_user_info(token):
+        with app.app_context():
+            return test_client.req(
+                'get',
+                '/api/v1/login',
+                200,
+                headers={'Authorization': f'Bearer {token}'} if token else {}
+            )
+
+    _, token = do_lti_launch()
+    out = get_user_info(token)
+    assert out['name'] == 'A the A-er'
+    old_id = out['id']
+
+    _, token = do_lti_launch()
+    out = get_user_info(token)
+    assert out['name'] == 'A the A-er'
+    assert out['id'] == old_id
+
+    user = m.User.query.filter_by(name=out['name']).one()
+    assert user.role.name == 'Admin'
+    assert len(user.courses) == 1
+    assert list(user.courses.values())[0].name == 'non_existing'

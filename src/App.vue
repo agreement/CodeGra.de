@@ -14,6 +14,7 @@
 <script>
 import { mapGetters, mapActions } from 'vuex';
 import { FooterBar, NavBar } from '@/components';
+import Loader from './components/Loader';
 
 export default {
     name: 'app',
@@ -21,6 +22,7 @@ export default {
     components: {
         FooterBar,
         NavBar,
+        Loader,
     },
 
     data() {

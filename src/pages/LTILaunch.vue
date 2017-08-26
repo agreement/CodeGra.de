@@ -44,6 +44,19 @@ export default {
                     assignmentId: data.assignment.id,
                 },
             });
+            if (data.new_role_created) {
+                this.$toasted.info(
+                    `You do not have any permissions yet, please ask your teacher to enabled them for your role "${data.new_role_created}"`,
+                    {
+                        position: 'bottom-center',
+                        action: {
+                            text: '✖',
+                            onClick: (e, toastObject) => {
+                                toastObject.goAway(0);
+                            },
+                        },
+                    });
+            }
         }).catch(() => {
             this.error = true;
         });

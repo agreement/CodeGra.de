@@ -1,64 +1,67 @@
 <template>
     <loader v-if="loading"/>
-    <div class="users-manager" v-else>
+    <div class="permission-manager" v-else>
         <b-form-fieldset>
             <b-form-input v-model="filter"
                           placeholder="Type to Search"
                           v-on:keyup.enter="submit"/>
         </b-form-fieldset>
-        <b-table striped hover
-                 class="permissions-table"
-                 :fields="fields"
-                 :items="items"
-                 :filter="filter"
-                 :response="true">
+        <div class="table-wrapper">
+            <b-table striped
+                    class="permissions-table"
+                    :fields="fields"
+                    :items="items"
+                    :filter="filter"
+                    :response="true">
 
-            <template slot="name" scope="item">
-                <b v-if="item.value === 'Remove'">{{ item.value }}</b>
-                <span v-else>{{ item.value }}</span>
-            </template>
-            <template v-for="(_, field) in fields" :slot="field === 'name' ? `|||____$name$__||||${Math.random()}` : field" scope="item" v-if="field != 'name'">
-                <b-input-group v-if="item.item.name !== 'Remove'">
-                    <loader :scale="1"
-                            v-if="item.item[field] === 'loading'"/>
-                    <b-popover content="You cannot disable this permission for yourself"
-                               triggers="hover"
-                               v-else-if="item.item.name === 'can_manage_course' && fields[field].own">
+                <template slot="name" scope="item">
+                    <b v-if="item.value === 'Remove'">{{ item.value }}</b>
+                    <span v-else>{{ item.value }}</span>
+                </template>
+                <template v-for="(_, field) in fields" :slot="field === 'name' ? `|||____$name$__||||${Math.random()}` : field" scope="item" v-if="field != 'name'">
+                    <b-input-group v-if="item.item.name !== 'Remove'">
+                        <loader :scale="1"
+                                v-if="item.item[field] === 'loading'"/>
+                        <b-popover content="You cannot disable this permission for yourself"
+                                triggers="hover"
+                                v-else-if="item.item.name === 'can_manage_course' && fields[field].own">
+                            <b-form-checkbox :checked="item.item[field]"
+                                            disabled class="disabled"/>
+                        </b-popover>
                         <b-form-checkbox :checked="item.item[field]"
-                                         disabled class="disabled"/>
-                    </b-popover>
-                    <b-form-checkbox :checked="item.item[field]"
-                                     @change="changeButton(item.item.name, field)"
-                                     v-else/>
-                </b-input-group>
-                <b-input-group v-else>
-                    <b-popover :show="!!errors[field]"
-                               :content="errors[field] ? errors[field] : ''">
-                        <b-button class="delete"
-                                  :variant="deleted[field] ? 'success' : 'danger'"
-                                  @click="removeRole(field)">
-                            <loader :scale="1" v-if="deleting[field]"/>
-                            <span v-else>Remove</span>
-                        </b-button>
-                    </b-popover>
-                </b-input-group>
-            </template>
-        </b-table>
+                                        @change="changeButton(item.item.name, field)"
+                                        v-else/>
+                    </b-input-group>
+                    <b-input-group v-else>
+                        <b-popover :show="!!errors[field]"
+                                :content="errors[field] ? errors[field] : ''">
+                            <b-button class="delete"
+                                    :variant="deleted[field] ? 'success' : 'danger'"
+                                    @click="removeRole(field)">
+                                <loader :scale="1" v-if="deleting[field]"/>
+                                <span v-else>Remove</span>
+                            </b-button>
+                        </b-popover>
+                    </b-input-group>
+                </template>
+            </b-table>
+        </div>
         <b-form-fieldset class="add-role">
             <b-input-group>
                 <b-form-input v-model="newRoleName"
-                              placeholder="Name of new role"/>
+                              placeholder="Name of new role"
+                              @keyup.native.ctrl.enter="addRole"/>
 
                 <b-popover :show="addError !== ''" :content="addError">
-                <b-button-group>
-                    <b-button :variant="done ? 'success' : 'primary'"
-                              @click="addRole">
-                        <loader :scale="1"
-                                class=""
-                                v-if="adding"/>
-                        <span v-else>Add</span>
-                    </b-button>
-                </b-button-group>
+                    <b-button-group>
+                        <b-button :variant="done ? 'success' : 'primary'"
+                                  @click="addRole">
+                            <loader :scale="1"
+                                    class=""
+                                    v-if="adding"/>
+                            <span v-else>Add</span>
+                        </b-button>
+                    </b-button-group>
                 </b-popover>
             </b-input-group>
         </b-form-fieldset>
@@ -246,5 +249,10 @@ table.permissions-table {
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
     }
+}
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    margin-bottom: 0.3em;
 }
 </style>

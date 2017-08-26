@@ -281,8 +281,6 @@ def set_course_permission_user(
         ensure_keys_in_dict(content, [('user_id', int)])
         user_id = t.cast(int, content['user_id'])
 
-        print(user_id, isinstance(user_id, int))
-
         user = helpers.get_or_404(models.User, user_id)
 
         if user.id == current_user.id:
@@ -293,11 +291,11 @@ def set_course_permission_user(
             )
 
         res = make_empty_response()
-    elif 'user_email' in content:
-        ensure_keys_in_dict(content, [('user_email', str)])
+    elif 'username' in content:
+        ensure_keys_in_dict(content, [('username', str)])
 
         user = helpers.filter_single_or_404(
-            models.User, models.User.email == content['user_email']
+            models.User, models.User.username == content['username']
         )
 
         if course_id in user.courses:

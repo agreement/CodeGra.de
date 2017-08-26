@@ -298,7 +298,7 @@ class LTI:
                 if role not in LTI_ROLE_LOOKUPS:
                     continue
                 role_lookup = LTI_ROLE_LOOKUPS[role]
-                if role_lookup['course_role']:
+                if role_lookup['course_role']:  # This is a course role
                     continue
                 user.role = models.Role.query.filter_by(
                     name=role_lookup['role']
@@ -308,31 +308,47 @@ class LTI:
                 name=app.config['DEFAULT_ROLE']
             ).one()
 
-    def set_user_course_role(
-        self, user: models.User, course: models.Course
-    ) -> None:
+    def set_user_course_role(self, user: models.User,
+                             course: models.Course) -> t.Union[str, bool]:
         """Set the course role for the given course and user if there is no
         such role just yet.
 
-        The mapping is done using :py:data:`.LTI_ROLE_LOOKUPS`
+        The mapping is done using :py:data:`.LTI_ROLE_LOOKUPS`. If no role
+        could be found a new role is created with the default permissions.
 
         :param models.User user: The user to set the course role  for.
         :param models.Course course: The course to connect to user to.
-        :rtype: None
-        :returns: Nothing
-        :raises ValueError: When the LTI role could not be converted.
+        :returns: True if a new role was created.
         """
         if course.id not in user.courses:
+            unkown_roles = []
             for role in self.roles:
-                role_lookup = LTI_ROLE_LOOKUPS[role]
-                if not role_lookup['course_role']:
+                if role not in LTI_ROLE_LOOKUPS:
+                    unkown_roles.append(role)
                     continue
+                role_lookup = LTI_ROLE_LOOKUPS[role]
+                if not role_lookup['course_role']:  # This is not a course role
+                    continue
+
                 crole = models.CourseRole.query.filter_by(
                     course_id=course.id, name=role_lookup['role']
                 ).one()
                 user.courses[course.id] = crole
-                return
-            raise ValueError('Got an unkown or no course roles')
+                return False
+
+            # Add a new course role
+            new_created: t.Union[bool, str] = False
+            new_role = (unkown_roles + ['New LTI Role'])[0]
+            existing_role = models.CourseRole.query.filter_by(
+                course_id=course.id, name=new_role
+            ).first()
+            if existing_role is None:
+                existing_role = models.CourseRole(course=course, name=new_role)
+                db.session.add(existing_role)
+                new_created = new_role
+            user.courses[course.id] = existing_role
+            return new_created
+        return False
 
     def has_result_sourcedid(self) -> bool:  # pragma: no cover
         """Check if the current LTI request has a ``sourcedid`` field.
@@ -476,7 +492,8 @@ def launch_lti() -> t.Any:
 @app.route('/api/v1/lti/launch/2', methods=['GET'])
 @helpers.feature_required('LTI')
 def second_phase_lti_launch(
-) -> helpers.JSONResponse[t.Mapping[str, t.Union[str, models.Assignment]]]:
+) -> helpers.JSONResponse[t.Mapping[str, t.Union[str, models.Assignment, bool]]
+                          ]:
     launch_params = jwt.decode(
         flask.request.headers.get('Jwt', None),
         app.config['LTI_SECRET_KEY'],
@@ -488,11 +505,11 @@ def second_phase_lti_launch(
     course = lti.get_course()
     assig = lti.get_assignment(user)
     lti.set_user_role(user)
-    lti.set_user_course_role(user, course)
+    new_role_created = lti.set_user_course_role(user, course)
     db.session.commit()
 
-    result: t.Mapping[str, t.Union[str, models.Assignment]]
-    result = {'assignment': assig}
+    result: t.Mapping[str, t.Union[str, models.Assignment, bool]]
+    result = {'assignment': assig, 'new_role_created': new_role_created}
     if new_token is not None:
         result['access_token'] = new_token
 

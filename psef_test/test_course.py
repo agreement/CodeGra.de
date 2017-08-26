@@ -70,6 +70,7 @@ def test_get_all_extended_courses(ta_user, test_client, logged_in):
             assert isinstance(item['assignments'], list)
 
 
+@pytest.mark.parametrize('add_lti', [True, False])
 @pytest.mark.parametrize(
     'named_user,course_name,role', [
         ('Thomas Schaper', 'Programmeertalen', 'TA'),
@@ -85,7 +86,7 @@ def test_get_all_extended_courses(ta_user, test_client, logged_in):
 )
 def test_get_course_data(
     error_template, request, logged_in, test_client, named_user, course_name,
-    role, session
+    role, session, add_lti
 ):
     perm_err = request.node.get_marker('perm_error')
     data_err = request.node.get_marker('data_error')
@@ -98,15 +99,20 @@ def test_get_course_data(
 
     with logged_in(named_user):
         course = session.query(m.Course).filter_by(name=course_name).one()
+        course_id = course.id
+        if not error and add_lti:
+            course.lti_course_id = 5
+            session.commit()
         test_client.req(
             'get',
             f'/api/v1/courses/{course.id}',
             error or 200,
             result=error_template if error else {
                 'role': role,
-                'id': course.id,
+                'id': course_id,
                 'name': course_name,
                 'created_at': str,
+                'is_lti': add_lti,
             }
         )
 
@@ -146,6 +152,7 @@ def test_add_course(
                 'id': int,
                 'name': name,
                 'created_at': str,
+                'is_lti': False,
             }
         )
 
@@ -159,6 +166,7 @@ def test_add_course(
                     'id': course['id'],
                     'name': name,
                     'created_at': str,
+                    'is_lti': False,
                 }
             )
 
@@ -257,20 +265,20 @@ def test_get_course_users(
 )
 @pytest.mark.parametrize(
     'to_add', [
-        data_error(error=400)('thomas_schaper@example.com'),
-        data_error(error=400)('stupid1@example.com'),
+        data_error(error=400)('thomas'),
+        data_error(error=400)('stupid1'),
         data_error(error=404)('non_existing'),
         data_error(error=404)('non_existing@example.com'),
         data_error(error=400)(1),
-        ('admin@example.com'),
+        ('admin'),
     ]
 )
 @pytest.mark.parametrize('role_n', ['Student', 'Teacher'])
 @pytest.mark.parametrize('include_role', [True, missing_error(False)])
-@pytest.mark.parametrize('include_email', [True, missing_error(False)])
+@pytest.mark.parametrize('include_username', [True, missing_error(False)])
 def test_add_user_to_course(
     named_user, test_client, logged_in, request, session, course_n, role_n,
-    include_role, include_email, to_add, error_template
+    include_role, include_username, to_add, error_template
 ):
     course = session.query(m.Course).filter_by(name=course_n).one()
     role = session.query(m.CourseRole).filter_by(
@@ -291,12 +299,12 @@ def test_add_user_to_course(
 
     with logged_in(named_user):
         data = {}
-        if include_email:
-            data['user_email'] = to_add
+        if include_username:
+            data['username'] = to_add
         if include_role:
             data['role_id'] = role.id
 
-        test_client.req(
+        res = test_client.req(
             'put',
             f'/api/v1/courses/{course.id}/users/',
             error or 201,
@@ -306,6 +314,8 @@ def test_add_user_to_course(
                 'CourseRole': dict,
             }
         )
+        if error == 404:
+            assert res['message'] == 'The requested user was not found'
 
         if not error:
             res = test_client.req(
@@ -313,7 +323,7 @@ def test_add_user_to_course(
                 f'/api/v1/courses/{course.id}/users/',
                 200,
             )
-            res = [r for r in res if r['User']['email'] == to_add]
+            res = [r for r in res if r['User']['username'] == to_add]
             assert len(res) == 1
             assert res[0]['CourseRole']['name'] == role_n
 
@@ -416,11 +426,13 @@ def test_get_courseroles(
             item = {
                 'name': crole.name,
                 'id': int,
-                'course': {
-                    'name': course_n,
-                    'id': int,
-                    'created_at': str,
-                }
+                'course':
+                    {
+                        'name': course_n,
+                        'id': int,
+                        'created_at': str,
+                        'is_lti': False,
+                    }
             }
             if extended:
                 item['perms'] = dict

@@ -6,7 +6,7 @@
             </b-alert>
         </div>
         <loader v-if="loading"></loader>
-        <manage-course v-else :assignments="assignments"></manage-course>
+        <manage-course v-else :assignments="assignments" :course="course"/>
     </div>
 </template>
 
@@ -24,6 +24,7 @@ export default {
             assignments: [],
             loading: true,
             created: false,
+            course: null,
         };
     },
 
@@ -34,17 +35,22 @@ export default {
     mounted() {
         this.created = this.$route.query.created;
 
-        this.$http.get(`/api/v1/courses/${this.courseId}/assignments/`).then(({ data }) => {
-            this.loading = false;
+        Promise.all([
+            this.$http.get(`/api/v1/courses/${this.courseId}/assignments/`),
+            this.$http.get(`/api/v1/courses/${this.courseId}`),
+        ]).then(([assignments, course]) => {
+            let data = assignments.data;
             for (let i = 0, len = data.length; i < len; i += 1) {
                 data[i].deadline = moment.utc(data[i].deadline, moment.ISO_8601).local().format('YYYY-MM-DDTHH:mm');
                 data[i].created_at = moment.utc(data[i].created_at, moment.ISO_8601).local().format('YYYY-MM-DDTHH:mm');
             }
             this.assignments = data;
-        });
 
-        this.$http.get(`/api/v1/courses/${this.courseId}`).then(({ data }) => {
+            data = course.data;
+            this.course = data;
             setPageTitle(data.name);
+
+            this.loading = false;
         });
     },
 

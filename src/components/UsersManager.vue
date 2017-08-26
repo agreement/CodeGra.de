@@ -6,7 +6,7 @@
                           placeholder="Type to Search"
                           v-on:keyup.enter="submit"/>
         </b-form-fieldset>
-        <b-table striped hover
+        <b-table striped
                  class="users-table"
                  :items="users"
                  :fields="fields"
@@ -14,14 +14,14 @@
                  :response="true">
 
             <template slot="User" scope="item">
-                <span>{{item.value.name}}</span>
+                <span>{{item.value.name}} ({{item.value.username}})</span>
             </template>
 
             <template slot="CourseRole" scope="item">
                 <loader :scale="1" v-if="updating[item.item.User.id]"/>
                 <b-popover content="You cannot change your own role"
                            triggers="hover"
-                           v-if="item.item.User.name == userName">
+                           v-else-if="item.item.User.name == userName">
                     <b-dropdown :text="item.value.name"
                                 disabled/>
                 </b-popover>
@@ -38,32 +38,33 @@
             </template>
         </b-table>
 
-        <b-form-fieldset class="add-student">
-            <b-input-group>
-                <b-form-input v-model="newStudentEmail"
-                              placeholder="New students e-mail"/>
+        <b-popover class="new-user-popover"
+                :triggers="course.is_lti ? 'hover' : ''"
+                content="You cannot add users to a lti course.">
+            <b-form-fieldset class="add-student">
+                <b-input-group>
+                    <b-form-input v-model="newStudentUsername"
+                                placeholder="New students username"
+                                :disabled="course.is_lti"
+                                @keyup.native.ctrl.enter="addUser"/>
 
-                <b-dropdown class="drop" :text="newRole ? newRole.name : 'Role'">
-                    <b-dropdown-item v-for="role in roles"
-                                     v-on:click="() => {newRole = role; error = '';}"
-                                     :key="role.id">
-                        {{ role.name }}
-                    </b-dropdown-item>
-                </b-dropdown>
+                    <b-dropdown class="drop"
+                                :text="newRole ? newRole.name : 'Role'"
+                                :disabled="course.is_lti">
+                        <b-dropdown-item v-for="role in roles"
+                                        v-on:click="() => {newRole = role; error = '';}"
+                                        :key="role.id">
+                            {{ role.name }}
+                        </b-dropdown-item>
+                    </b-dropdown>
 
-                <b-popover :show="error !== ''" :content="error">
-                <b-button-group>
-                    <b-button :variant="done ? 'success' : 'primary'"
-                              @click="addUser">
-                        <loader :scale="1"
-                                class=""
-                                v-if="adding"/>
-                        <span v-else>Add</span>
-                    </b-button>
-                </b-button-group>
-                </b-popover>
-            </b-input-group>
-        </b-form-fieldset>
+                    <b-input-group-button>
+                            <submit-button label="Add" ref="addUserButton" @click="addUser" :disabled="course.is_lti"/>
+                            </b-button>
+                    </b-input-group-button>
+                </b-input-group>
+            </b-form-fieldset>
+        </b-popover>
 
     </div>
 </template>
@@ -77,11 +78,11 @@ import 'vue-awesome/icons/floppy-o';
 import 'vue-awesome/icons/ban';
 
 import Loader from './Loader';
-
-const validator = require('email-validator');
+import SubmitButton from './SubmitButton';
 
 export default {
     name: 'users-manager',
+    props: ['course'],
 
     data() {
         return {
@@ -91,11 +92,9 @@ export default {
             loading: true,
             filter: '',
             updating: {},
-            newStudentEmail: '',
+            newStudentUsername: '',
             newRole: '',
             error: '',
-            done: false,
-            adding: false,
             fields: {
                 User: {
                     label: 'Name',
@@ -147,34 +146,23 @@ export default {
             });
         },
         addUser() {
-            this.done = false;
-            const clearErr = out => this.$nextTick(() => setTimeout(() => {
-                this.error = '';
-            }, out));
+            const btn = this.$refs.addUserButton;
+
             if (this.newRole === '') {
-                this.error = 'You have to select a role!';
-            } else if (!validator.validate(this.newStudentEmail)) {
-                this.error = 'You have to add a valid email!';
-                clearErr(4000);
+                btn.fail('You have to select a role!');
+            } else if (this.newStudentUsername === '') {
+                btn.fail('You have to add a non empty username!');
             } else {
-                this.error = '';
-                this.adding = true;
-                this.$http.put(`/api/v1/courses/${this.courseId}/users/`, {
-                    user_email: this.newStudentEmail,
+                btn.submit(this.$http.put(`/api/v1/courses/${this.courseId}/users/`, {
+                    username: this.newStudentUsername,
                     role_id: this.newRole.id,
                 }).then(({ data }) => {
-                    this.adding = false;
                     this.newRole = '';
-                    this.newStudentEmail = '';
+                    this.newStudentUsername = '';
                     this.users.push(data);
-                    this.done = true;
-                    this.$nextTick(() => setTimeout(() => {
-                        this.done = false;
-                    }, 1000));
-                }).catch(({ response }) => {
-                    this.error = `${response.data.message}!`;
-                    clearErr(6000);
-                });
+                }, (({ response }) => {
+                    throw response.data.message;
+                })));
             }
         },
     },
@@ -191,6 +179,7 @@ export default {
     components: {
         Icon,
         Loader,
+        SubmitButton,
     },
 };
 </script>
@@ -226,6 +215,11 @@ table.users-table .dropdown {
 
 .add-student .drop .btn {
     border-radius: 0;
+}
+
+.new-user-popover button {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
 }
 </style>
 
