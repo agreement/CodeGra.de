@@ -105,6 +105,13 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
 
     .. :quickref: Assignment; Update assignment information.
 
+    :<json str state: The new state of the assignment, can be `hidden`, `open`
+        or `done`. (OPTIONAL)
+    :<json str name: The new name of the assignment, this string should not be
+        empty. (OPTIONAL)
+    :<json str deadline: The new deadline of the assignment. This should be a
+        ISO 8061 date without timezone information. (OPTIONAL)
+
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
 
@@ -120,22 +127,23 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
     auth.ensure_permission('can_manage_course', assig.course_id)
 
     content = ensure_json_dict(request.get_json())
-    ensure_keys_in_dict(content, [('state', str)])
-    state = t.cast(str, content['state'])
 
-    if state in ['hidden', 'open', 'done']:
-        assig.set_state(state)
-    else:
-        raise APIException(
-            'The selected state is not valid',
-            'The state {} is not a valid state'.format(content['state']),
-            APICodes.INVALID_PARAM, 400
-        )
+    if 'state' in content:
+        ensure_keys_in_dict(content, [('state', str)])
+        state = t.cast(str, content['state'])
 
-    if 'name' in content or 'deadline' in content:
-        ensure_keys_in_dict(content, [('name', str), ('deadline', str)])
+        if state in ['hidden', 'open', 'done']:
+            assig.set_state(state)
+        else:
+            raise APIException(
+                'The selected state is not valid',
+                'The state {} is not a valid state'.format(content['state']),
+                APICodes.INVALID_PARAM, 400
+            )
+
+    if 'name' in content:
+        ensure_keys_in_dict(content, [('name', str)])
         name = t.cast(str, content['name'])
-        deadline = t.cast(str, content['deadline'])
 
         if not name:
             raise APIException(
@@ -146,6 +154,10 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
             )
 
         assig.name = name
+
+    if 'deadline' in content:
+        ensure_keys_in_dict(content, [('deadline', str)])
+        deadline = t.cast(str, content['deadline'])
 
         try:
             assig.deadline = dateutil.parser.parse(deadline)

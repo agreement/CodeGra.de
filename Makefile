@@ -1,6 +1,6 @@
 TEST_FILE?=
 TEST_FLAGS?=
-PYTHONPATH=$(CURDIR)
+export PYTHONPATH=$(CURDIR)
 
 .PHONY: test_setup
 test_setup:
@@ -46,3 +46,7 @@ start_dev_server:
 .PHONY: start_dev_npm
 start_dev_npm:
 	./.scripts/start_dev.sh npm
+
+.PHONY: format
+format:
+	yapf -rip ./psef ./psef_test

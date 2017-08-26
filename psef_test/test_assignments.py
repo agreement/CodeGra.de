@@ -161,20 +161,25 @@ def test_update_assignment(
 ):
     with logged_in(ta_user):
         data = copy.deepcopy(update_data)
-        data.update(changes)
         assig_id = assignment.id
 
-        if not keep_state:
-            data.pop('state')
-            err_code = 400
+        for val, name in [
+            (keep_state, 'state'), (keep_name, 'name'),
+            (keep_deadline, 'deadline')
+        ]:
+            if not val:
+                data.pop(name)
+                if name in changes:
+                    changes.pop(name)
 
-        if keep_name + keep_deadline == 1:
-            for keep, name in zip(
-                [keep_name, keep_deadline], ['name', 'deadline']
-            ):
-                if not keep:
-                    data.pop(name)
-                    err_code = 400
+        if not changes:
+            err_code = False
+
+        data.update(changes)
+
+        old_state = assignment.state.name
+        old_name = assignment.name
+        old_deadline = assignment.deadline
 
         test_client.req(
             'patch',
@@ -185,10 +190,17 @@ def test_update_assignment(
         )
         if not err_code:
             new_assig = psef.helpers.get_or_404(m.Assignment, assig_id)
-            if keep_name and keep_deadline:
-                assert new_assig.deadline.isoformat() == data['deadline']
+            if keep_state:
+                assert new_assig.state.name == data['state']
+            if keep_name:
                 assert new_assig.name == data['name']
-            assert new_assig.state.name == data['state']
+            if keep_deadline:
+                assert new_assig.deadline.isoformat() == data['deadline']
+        else:
+            new_assig = psef.helpers.get_or_404(m.Assignment, assig_id)
+            assert new_assig.state.name == old_state
+            assert new_assig.name == old_name
+            assert new_assig.deadline == old_deadline
 
 
 @pytest.mark.parametrize(
