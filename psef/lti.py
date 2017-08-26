@@ -254,6 +254,7 @@ class LTI:
                 description=''
             )
             db.session.add(assignment)
+            db.session.flush()
 
         if self.has_result_sourcedid():
             if assignment.id in user.assignment_results:
@@ -454,16 +455,14 @@ class CanvasLTI(LTI):
         self, default: datetime.datetime=None
     ) -> datetime.datetime:
         try:
-            return dateutil.parser.parse(
+            deadline = dateutil.parser.parse(
                 self.launch_params['custom_canvas_assignment_due_at']
             )
+            deadline = deadline.astimezone(datetime.timezone.utc)
+            return deadline.replace(tzinfo=None)
         except:
-            if default is None:
-                return (
-                    datetime.datetime.utcnow() + datetime.timedelta(days=365)
-                )
-            else:
-                return default
+            return (datetime.datetime.utcnow() + datetime.timedelta(days=365)
+                    ) if default is None else default
 
 
 @app.route('/api/v1/lti/launch/1', methods=['POST'])
