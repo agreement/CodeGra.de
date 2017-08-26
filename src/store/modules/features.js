@@ -26,7 +26,7 @@ export default {
     namespaced: true,
     state: {
         version: 0,
-        featues: {},
+        features: {},
     },
     getters,
     actions,

@@ -176,6 +176,10 @@ const mutations = {
     [types.UPDATE_ACCESS_TOKEN](state, data) {
         state.jwtToken = data.access_token;
     },
+    [types.CLEAR_CACHE](state) {
+        state.permissions = null;
+        state.snippets = null;
+    },
 };
 
 export default {
