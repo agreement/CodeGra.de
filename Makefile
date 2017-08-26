@@ -50,3 +50,7 @@ start_dev_npm:
 .PHONY: format
 format:
 	yapf -rip ./psef ./psef_test
+
+.PHONY: shrinkwrap
+shrinkwrap:
+	npm shrinkwrap --dev
