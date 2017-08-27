@@ -20,6 +20,10 @@ const mutations = {
         state.version = data.version;
         state.features = data.features;
     },
+    [types.CLEAR_CACHE](state) {
+        state.version = 0;
+        state.features = {};
+    },
 };
 
 export default {

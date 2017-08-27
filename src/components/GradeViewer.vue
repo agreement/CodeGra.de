@@ -113,7 +113,7 @@ export default {
 
     computed: {
         showRubric() {
-            return this.rubric.rubrics.length;
+            return this.rubric && this.rubric.rubrics.length;
         },
     },
 

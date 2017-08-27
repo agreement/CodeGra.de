@@ -85,5 +85,6 @@ const app = new Vue({
 document.addEventListener('keydown', (event) => {
     if (event.code === 'F5' && event.ctrlKey) {
         app.$store.commit(`user/${mutationTypes.CLEAR_CACHE}`);
+        app.$store.commit(`features/${mutationTypes.CLEAR_CACHE}`);
     }
 }, true);
