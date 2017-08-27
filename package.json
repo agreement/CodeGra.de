@@ -17,7 +17,7 @@
     "axios": "^0.16.2",
     "babyparse": "^0.4.6",
     "bootstrap": "^4.0.0-alpha.6",
-    "bootstrap-vue": "wheldring/bootstrap-vue-compiled",
+    "bootstrap-vue": "github:CodeGra-de/bootstrap-vue-compiled",
     "highlightjs": "^9.10.0",
     "moment": "^2.18.1",
     "pdfobject": "^2.0.201604172",
