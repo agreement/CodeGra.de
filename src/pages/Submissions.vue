@@ -1,13 +1,14 @@
 <template>
     <loader :class="`col-md-12 text-center`" v-if="loading"/>
     <div class="page submission-list" v-else>
-        <h1>
+        <h4>
             Submissions for {{ assignment.name }} in
-            <router-link :to="{ name: canManage ? 'courses' : 'assignments',
-                              query: { q: course.name }}">
+            <router-link :to="courseRoute"
+                         v-if="canManage || !inLTI">
                 {{ course.name }}
             </router-link>
-        </h1>
+            <span v-else>{{ course.name }}</span>
+        </h4>
         <submission-list
             :assignment="assignment"
             :submissions="submissions"
@@ -57,8 +58,11 @@ export default {
         courseId() {
             return this.$route.params.courseId;
         },
-        courseLink() {
-            return `/assignments?q=${this.course.name}`;
+        courseRoute() {
+            if (this.canManage) {
+                return { name: 'assignment_manage', params: { courseId: this.course.id } };
+            }
+            return { name: 'assignments', query: { q: this.course.name } };
         },
     },
 

@@ -7,7 +7,7 @@
 
             <b-button-group @click.native="updateState">
                 <b-popover placement="top" triggers="hover" content="Hidden or open, managed by LTI" v-if="assignment.is_lti">
-                    <b-button class="larger" size="sm" value="hidden"
+                    <b-button class="state-button larger" size="sm" value="hidden"
                               :variant="assignment.state !== assignmentState.DONE ? 'primary': 'outline-primary'">
                         <loader :scale="1" v-if="pendingState === assignmentState.HIDDEN"></loader>
                         <b-button-group v-else>
@@ -17,14 +17,14 @@
                 </b-popover>
                 <b-button-group v-else>
                     <b-popover placement="top" triggers="hover" content="Hidden">
-                        <b-button size="sm" value="hidden"
+                        <b-button class="state-button" size="sm" value="hidden"
                                   :variant="assignment.state === assignmentState.HIDDEN ? 'danger' : 'outline-danger'">
                             <loader :scale="1" v-if="pendingState === assignmentState.HIDDEN"></loader>
                             <icon name="eye-slash" v-else></icon>
                         </b-button>
                     </b-popover>
                     <b-popover placement="top" triggers="hover" content="Open">
-                        <b-button size="sm" value="open"
+                        <b-button class="state-button" size="sm" value="open"
                                   :variant="[assignmentState.SUBMITTING, assignmentState.GRADING, 'open'].indexOf(assignment.state) > -1 ? 'warning' : 'outline-warning'">
                             <loader :scale="1" v-if="[assignmentState.SUBMITTING, assignmentState.GRADING, 'open'].indexOf(pendingState) > -1"></loader>
                             <icon name="clock-o" v-else></icon>
@@ -32,13 +32,16 @@
                     </b-popover>
                 </b-button-group>
                 <b-popover placement="top" triggers="hover" content="Done">
-                    <b-button size="sm" value="done"
+                    <b-button class="state-button" size="sm" value="done"
                               :variant="assignment.state === assignmentState.DONE ? 'success' : 'outline-success'">
                         <loader :scale="1" v-if="pendingState === assignmentState.DONE"></loader>
                         <icon name="check" v-else></icon>
                     </b-button>
                 </b-popover>
             </b-button-group>
+            <b-button class="submissions-button" @click="goToSubmissions">
+                Submissions
+            </b-button>
         </div>
 
         <b-collapse :id="`assignment-${assignment.id}`">
@@ -181,6 +184,16 @@ export default {
                 throw err.response.data.message;
             }));
         },
+
+        goToSubmissions() {
+            this.$router.push({
+                name: 'assignment_submissions',
+                params: {
+                    courseId: this.assignment.course.id,
+                    assignmentId: this.assignment.id,
+                },
+            });
+        },
     },
 
     components: {
@@ -210,11 +223,11 @@ export default {
         /* Make the entire header clickable. */
         @hpad: 1.25rem;
         @vpad: .75rem;
-        padding: @vpad 0 @vpad @hpad;
+        padding: (@vpad + .5rem) 0 @vpad @hpad;
         margin: -@vpad 0 -@vpad -@hpad;;
     }
 
-    button.larger {
+    .state-button.larger {
         width: 3.5em;
         .btn-group {
             display: block;
@@ -225,9 +238,10 @@ export default {
         margin-left: 0;
     }
 
-    button {
+    .state-button {
         width: 1.75em;
         height: 1.75em;
+        margin-top: .5em;
         margin-left: .375em;
         border-radius: 50%;
         border: 0;
@@ -237,6 +251,10 @@ export default {
             width: 1em;
             height: 1em;
         }
+    }
+
+    .submissions-button {
+        margin-left: .75em;
     }
 }
 
