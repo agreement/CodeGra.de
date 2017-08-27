@@ -97,7 +97,7 @@ export default {
 
     methods: {
         rubricUpdated({ rubrics, selected, points }) {
-            this.rubrics = rubrics;
+            this.rubrics = this.sortRubricItems(rubrics);
 
             if (selected) {
                 const allItems = rubrics.reduce((arr, { items }) => arr.concat(items), []);
@@ -109,6 +109,13 @@ export default {
             }
 
             this.$refs.rubricContainer.style.width = `${rubrics.length * 100}%`;
+        },
+
+        sortRubricItems(rubrics) {
+            return rubrics.map((rubric) => {
+                rubric.items.sort((x, y) => x.points - y.points);
+                return rubric;
+            });
         },
 
         select(row, item) {
