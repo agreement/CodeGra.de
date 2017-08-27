@@ -368,7 +368,7 @@ class LTI:
     def passback_grade(
         key: str,
         secret: str,
-        grade: float,
+        grade: t.Optional[float],
         service_url: str,
         sourcedid: str,
         text: str=None,
@@ -378,7 +378,8 @@ class LTI:
 
         :param key: The oauth key to use.
         :param secret: The oauth secret to use.
-        :param numbers.Rational grade: The grade to pass back.
+        :param grade: The grade to pass back, between 0 and
+            10. If it is `None` the grade will be deleted.
         :param service_url: The url used for grade passback.
         :param sourcedid: The ``sourcedid`` used in the grade passback.
         :param text: The text used as general feedback to the student.
@@ -401,7 +402,11 @@ class LTI:
             opts = {'text': text}
         elif url is not None:
             opts = {'url': url}
-        return req.post_replace_result(str(grade), result_data=opts)
+
+        if grade is None:
+            return req.post_delete_result()
+        else:
+            return req.post_replace_result(str(grade / 10), result_data=opts)
 
 
 class CanvasLTI(LTI):
@@ -751,7 +756,7 @@ class OutcomeRequest:
         )
         message_identifier.text = self.message_identifier
         body = etree.SubElement(root, 'imsx_POXBody')
-        request = etree.SubElement(body, '%s%s' % (self.operation, 'Request'))
+        request = etree.SubElement(body, f'{self.operation}Request')
         record = etree.SubElement(request, 'resultRecord')
 
         guid = etree.SubElement(record, 'sourcedGUID')

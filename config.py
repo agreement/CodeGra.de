@@ -16,6 +16,7 @@ if 'CODEGRADE_DATABASE_URL' not in os.environ:
 else:
     SQLALCHEMY_DATABASE_URI = os.environ['CODEGRADE_DATABASE_URL']
 DATABASE_CONNECT_OPTIONS = {}
+_USING_SQLITE = SQLALCHEMY_DATABASE_URI.startswith('sqlite:///')
 
 # Application threads. A common general assumption is
 # using 2 per available processor cores - to handle

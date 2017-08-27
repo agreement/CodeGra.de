@@ -43,8 +43,10 @@ def app(request):
         print('Running with postgres!')
         pdb = request.config.getoption('--postgresql')
         settings_override['SQLALCHEMY_DATABASE_URI'] = f'postgresql:///{pdb}'
+        settings_override['_USING_SQLITE'] = False
     else:
         settings_override['SQLALCHEMY_DATABASE_URI'] = TEST_DATABASE_URI
+        settings_override['_USING_SQLITE'] = True
     app = psef.create_app(settings_override)
 
     # Establish an application context before running the tests.

@@ -899,7 +899,7 @@ class Work(Base):
             LTI.passback_grade(
                 lti_provider.key,
                 lti_provider.secret,
-                self.grade / 10,
+                self.grade,
                 self.assignment.lti_outcome_service_url,
                 self.assignment.assignment_results[self.user_id].sourcedid,
                 url=(
@@ -1606,9 +1606,15 @@ class Assignment(Base):
     linters: t.Iterable['AssignmentLinter']
 
     def _submit_grades(self) -> None:
-        with futures.ThreadPoolExecutor() as pool:
+        if app.config['_USING_SQLITE']:
             for sub in self.get_all_latest_submissions():
-                pool.submit(sub.passback_grade)
+                sub.passback_grade()
+        # This line is covered using the postgresql tests, however that data
+        # won't be send to coveralls so we ignore it.
+        else:  # pragma: no cover
+            with futures.ThreadPoolExecutor() as pool:
+                for sub in self.get_all_latest_submissions():
+                    pool.submit(sub.passback_grade)
 
     @property
     def max_rubric_points(self) -> float:

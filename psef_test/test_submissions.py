@@ -63,9 +63,9 @@ def test_patch_submission(
         test_client.req(
             'patch',
             f'/api/v1/submissions/{work_id}',
-            error or 204,
+            error or 200,
             data=data,
-            result=error_template if error else None,
+            result=error_template if error else dict,
         )
 
     with logged_in(ta_user):
@@ -80,6 +80,46 @@ def test_patch_submission(
                 'created_at': str,
                 'grade': None if error else grade,
                 'comment': None if error else feedback,
+            }
+        )
+
+
+@pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
+def test_delete_grade_submission(
+    ta_user, test_client, logged_in, assignment_real_works
+):
+    assignment, work = assignment_real_works
+    work_id = work['id']
+
+    with logged_in(ta_user):
+        res = test_client.req(
+            'patch',
+            f'/api/v1/submissions/{work_id}',
+            200,
+            data={'grade': 5,
+                  'feedback': ''},
+            result=dict
+        )
+        assert res['grade'] == 5
+        res = test_client.req(
+            'patch',
+            f'/api/v1/submissions/{work_id}',
+            200,
+            data={'grade': None},
+            result=dict
+        )
+        assert res['grade'] is None
+        res = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}',
+            200,
+            result={
+                'id': work_id,
+                'assignee': None,
+                'user': dict,
+                'created_at': str,
+                'grade': None,
+                'comment': '',
             }
         )
 

@@ -31,6 +31,16 @@
                                   :disabled="!editable"
                                   v-model="gradeAndRubricPoints"
                                   v-else/>
+                    <b-input-group-button v-if="editable && grade">
+                        <b-popover triggers="hover" placement="top" :content="showRubric ?
+                                                                              'Reset the grade to the grade from the rubric' :
+                                                                              'Delete grade'">
+                            <submit-button @click="deleteGrade"
+                                           ref="deleteButton"
+                                           default="danger"
+                                           label='✖'/>
+                        </b-popover>
+                    </b-input-group-button>
 
                     <b-input-group-button v-if="showRubric">
                         <b-popover placement="top"
@@ -108,10 +118,6 @@ export default {
     },
 
     watch: {
-        grade(grade) {
-            this.$emit('gradeUpdated', grade);
-        },
-
         submission() {
             this.feedback = this.submission.comment || '';
             this.grade = this.submission.grade || 0;
@@ -157,6 +163,17 @@ export default {
             }
         },
 
+        deleteGrade() {
+            const req = this.$http.patch(`/api/v1/submissions/${this.submission.id}`, { grade: null });
+            req.then(({ data }) => {
+                this.$emit('gradeUpdated', data.grade);
+                this.grade = data.grade;
+            });
+            this.$refs.deleteButton.submit(req.catch((err) => {
+                throw err.response.data.message;
+            }));
+        },
+
         putFeedback() {
             const grade = parseFloat(this.grade);
             if (!(grade >= 0 && grade <= 10)) {
@@ -169,6 +186,7 @@ export default {
                 feedback: this.feedback || '',
             });
             req.then(() => {
+                this.$emit('gradeUpdated', grade);
                 this.grade = grade;
             });
             this.$refs.submitButton.submit(req.catch((err) => {

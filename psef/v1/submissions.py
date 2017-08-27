@@ -244,7 +244,7 @@ def select_rubric_item(submission_id: int, rubricitem_id: int
 
 
 @api.route("/submissions/<int:submission_id>", methods=['PATCH'])
-def patch_submission(submission_id: int) -> EmptyResponse:
+def patch_submission(submission_id: int) -> JSONResponse[models.Work]:
     """Update the given submission (:class:`.models.Work`) if it already
     exists.
 
@@ -252,6 +252,12 @@ def patch_submission(submission_id: int) -> EmptyResponse:
 
     :param int submission_id: The id of the submission
     :returns: Empty response with return code 204
+
+    :>json float grade: The new grade, if this is not `null` it should be a
+        float and feedback is then also required. If it is `null` the grade
+        will be cleared or reset to the rubric grade.
+    :>json str feedback: The feedback for the student. This is required if
+        grade is not `null`, it will be ignored if grade is `null`.
 
     :raise APIException: If the submission with the given id does not exist
         (OBJECT_ID_NOT_FOUND)
@@ -269,22 +275,29 @@ def patch_submission(submission_id: int) -> EmptyResponse:
 
     auth.ensure_permission('can_grade_work', work.assignment.course_id)
 
-    ensure_keys_in_dict(content, [('grade', numbers.Real), ('feedback', str)])
-    feedback = t.cast(str, content['feedback'])
-    grade = float(t.cast(numbers.Real, content['grade']))
-
-    if not 0 <= grade <= 10:
-        raise APIException(
-            'Grade submitted not between 0 and 10',
-            'Grade for work with id {} is {} which is not between 0 and 10'.
-            format(submission_id,
-                   content['grade']), APICodes.INVALID_PARAM, 400
+    if 'grade' in content and content['grade'] is None:
+        work.grade = None
+    else:
+        ensure_keys_in_dict(
+            content, [('grade', numbers.Real),
+                      ('feedback', str)]
         )
+        feedback = t.cast(str, content['feedback'])
+        grade = float(t.cast(numbers.Real, content['grade']))
 
-    work.grade = grade
-    work.comment = feedback
+        if not 0 <= grade <= 10:
+            raise APIException(
+                'Grade submitted not between 0 and 10',
+                f'Grade for work with id {submission_id} '
+                f'is {content["grade"]} which is not between 0 and 10',
+                APICodes.INVALID_PARAM, 400
+            )
+
+        work.grade = grade
+        work.comment = feedback
+
     db.session.commit()
-    return make_empty_response()
+    return jsonify(work)
 
 
 @api.route("/submissions/<int:submission_id>/files/", methods=['POST'])

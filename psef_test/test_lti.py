@@ -1,3 +1,4 @@
+import os
 import urllib
 import datetime
 
@@ -5,6 +6,7 @@ import pytz
 import pytest
 import dateutil.parser
 
+import psef.lti as lti
 import psef.auth as auth
 import psef.models as m
 
@@ -214,3 +216,130 @@ def test_lti_no_course_roles(test_client, app, logged_in, ta_user):
     assert user.role.name == 'Admin'
     assert len(user.courses) == 1
     assert list(user.courses.values())[0].name == 'non_existing'
+
+
+@pytest.mark.parametrize('filename', [
+    ('correct.tar.gz'),
+])
+def test_lti_grade_passback(
+    test_client, app, logged_in, ta_user, filename, monkeypatch
+):
+    due_at = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+
+    class Patch:
+        def __init__(self):
+            self.called = False
+
+        def __call__(self, *args, **kwargs):
+            self.called = True
+
+    patch_delete = Patch()
+    patch_replace = Patch()
+
+    monkeypatch.setattr(lti.OutcomeRequest, 'post_delete_result', patch_delete)
+    monkeypatch.setattr(
+        lti.OutcomeRequest, 'post_replace_result', patch_replace
+    )
+
+    def do_lti_launch(
+        username='A the A-er',
+        lti_id='USER_ID',
+        source_id='NON_EXISTING2!',
+        published='false'
+    ):
+        with app.app_context():
+            data = {
+                'custom_canvas_course_name': 'NEW_COURSE',
+                'custom_canvas_course_id': 'MY_COURSE_ID_100',
+                'custom_canvas_assignment_id': 'MY_ASSIG_ID_100',
+                'custom_canvas_assignment_title': 'MY_ASSIG_TITLE',
+                'roles': 'administrator,instructor',
+                'lis_person_sourcedid': username,
+                'custom_canvas_course_title': 'Common Lisp',
+                'custom_canvas_due_at': due_at.isoformat(),
+                'custom_canvas_assignment_published': published,
+                'user_id': lti_id,
+                'lis_person_contact_email_primary': 'a@a.nl',
+                'lis_person_name_full': username,
+                'context_id': 'NO_CONTEXT!!',
+                'context_title': 'WRONG_TITLE!!',
+                'oauth_consumer_key': 'my_lti',
+                'lis_outcome_service_url': source_id,
+            }
+            if source_id:
+                data['lis_result_sourcedid'] = source_id
+            res = test_client.post('/api/v1/lti/launch/1', data=data)
+
+            url = urllib.parse.urlparse(res.headers['Location'])
+            jwt = urllib.parse.parse_qs(url.query)['jwt'][0]
+            lti_res = test_client.req(
+                'get',
+                '/api/v1/lti/launch/2',
+                200,
+                headers={'Jwt': jwt},
+            )
+            if published == 'false':
+                assert lti_res['assignment']['state'] == 'hidden'
+            else:
+                assert m.Assignment.query.get(
+                    lti_res['assignment']['id']
+                ).state == m._AssignmentStateEnum.open
+            assert lti_res['assignment']['course']['name'] == 'NEW_COURSE'
+            return lti_res['assignment'], lti_res.get('access_token', None)
+
+    def get_upload_file(token, assig_id):
+        full_filename = (
+            f'{os.path.dirname(__file__)}/'
+            f'../test_data/test_blackboard/{filename}'
+        )
+        with app.app_context():
+            test_client.req(
+                'post',
+                f'/api/v1/assignments/{assig_id}/submission',
+                201,
+                real_data={'file': (full_filename, 'bb.tar.gz')},
+                headers={'Authorization': f'Bearer {token}'},
+            )
+            res = test_client.req(
+                'get', f'/api/v1/assignments/{assig_id}/submissions/', 200
+            )
+            assert len(res) == 1
+            return res[0]
+
+    def set_grade(token, grade, work_id):
+        with app.app_context():
+            test_client.req(
+                'patch',
+                f'/api/v1/submissions/{work_id}',
+                200,
+                data={'grade': grade,
+                      'feedback': 'feedback'},
+                headers={'Authorization': f'Bearer {token}'},
+            )
+
+    assig, token = do_lti_launch()
+    work = get_upload_file(token, assig['id'])
+    set_grade(token, 5.0, work['id'])
+    assert not patch_delete.called
+    assert not patch_replace.called
+
+    with app.app_context():
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assig["id"]}',
+            204,
+            data={
+                'state': 'done',
+            },
+            headers={'Authorization': f'Bearer {token}'},
+        )
+
+    assert patch_replace.called
+    assert not patch_delete.called
+    patch_replace.called = False
+    patch_delete.called = False
+
+    set_grade(token, None, work['id'])
+
+    assert not patch_replace.called
+    assert patch_delete.called
