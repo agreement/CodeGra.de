@@ -793,6 +793,61 @@ class Course(Base):
             )
 
 
+class GradeHistory(Base):
+    """This object is a item in a grade history of a :class:`Work`.
+
+    :ivar changed_at: When was this grade added.
+    :ivar is_rubric: Was this grade added as a result of a rubric.
+    :ivar passed_back: Was this grade passed back to the LMS through LTI.
+    :ivar work: What work does this grade belong to.
+    :ivar user: What user added this grade.
+    """
+    if t.TYPE_CHECKING:  # pragma: no cover
+        query = Base.query  # type: t.ClassVar[_MyQuery['GradeHistory']]
+    __tablename__ = "GradeHistory"
+    id: int = db.Column('id', db.Integer, primary_key=True)
+    changed_at: datetime.datetime = db.Column(
+        db.DateTime, default=datetime.datetime.utcnow
+    )
+    is_rubric: bool = db.Column('is_rubric', db.Boolean)
+    grade: float = db.Column('grade', db.Float)
+    passed_back: bool = db.Column('passed_back', db.Boolean, default=False)
+
+    work_id: int = db.Column('Work_id', db.Integer, db.ForeignKey('Work.id'))
+    user_id: int = db.Column(
+        'User_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
+    )
+
+    work = db.relationship('Work', foreign_keys=work_id)  # type: 'Work'
+    user = db.relationship('User', foreign_keys=user_id)  # type: User
+
+    def __to_json__(self) -> t.Mapping[str, t.Any]:
+        """Converts a rubric of a work to a object that is JSON serializable.
+
+        The resulting object will look like this:
+
+        .. code:: python
+
+            {
+                'changed_at': str, # The date the history was added.
+                'is_rubric': bool, # Was this history items added by a rubric
+                                   # grade.
+                'grade': float, # The new grade, -1 if the grade was deleted.
+                'passed_back': bool, # Is this grade given back to LTI.
+                'user': User, # The user that added this grade.
+            }
+
+        :returns: A object as described above.
+        """
+        return {
+            'changed_at': self.changed_at.isoformat(),
+            'is_rubric': self.is_rubric,
+            'grade': self.grade,
+            'passed_back': self.passed_back,
+            'user': self.user,
+        }
+
+
 class Work(Base):
     """This object describes a single work or submission of a :class:`User` for
     an :class:`Assignment`.
@@ -869,18 +924,29 @@ class Work(Base):
             return (selected / self.assignment.max_rubric_points) * 10
         return self._grade
 
-    @grade.setter
-    def grade(self, new_grade: float) -> None:
-        """Set the grade to the new grade
+    def set_grade(self, new_grade: float, user: User) -> None:
+        """Set the grade to the new grade.
 
         .. note:: This also passes back the grade to LTI if this is necessary
             (see :py:func:`passback_grade`).
 
         :param new_grade: The new grade to set
+        :param user: The user setting the new grade.
         :returns: Nothing
         """
         self._grade = new_grade
-        if self.assignment and self.assignment.should_passback:
+        passback = self.assignment and self.assignment.should_passback
+        grade = self.grade
+        history = GradeHistory(
+            is_rubric=self._grade is None and grade is not None,
+            grade=-1 if grade is None else grade,
+            passed_back=False,
+            work=self,
+            user=user
+        )
+        db.session.add(history)
+        db.session.flush()
+        if passback:
             self.passback_grade()
 
     @property
@@ -910,8 +976,20 @@ class Work(Base):
                     self.assignment_id, self.id
                 )
             )
+            sq = db.session.query(GradeHistory.id).filter_by(
+                work_id=self.id
+            ).order_by(
+                GradeHistory.changed_at.desc(),  # type: ignore
+            ).limit(1).with_for_update()
+            db.session.query(GradeHistory).filter_by(
+                id=sq.as_scalar(),
+            ).update(
+                {
+                    'passed_back': True
+                }, synchronize_session='fetch'
+            )
 
-    def select_rubric_item(self, item: 'RubricItem') -> None:
+    def select_rubric_item(self, item: 'RubricItem', user: User) -> None:
         """ Selects the given :class:`RubricItem`.
 
         .. note:: This also passes back the grade to LTI if this is necessary.
@@ -919,10 +997,11 @@ class Work(Base):
         .. note:: This also sets the actual grade field to `None`.
 
         :param item: The item to add.
+        :param user: The user selecting the item.
         :returns: Nothing
         """
         self.selected_items.append(item)
-        self._grade = None
+        self.set_grade(None, user)
         if self.assignment.should_passback:
             self.passback_grade()
 

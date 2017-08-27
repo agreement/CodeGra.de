@@ -24,6 +24,15 @@
     }
   },
   {
+    "name": "Robin",
+    "role": "Student",
+    "courses": {
+      "Project Software Engineering": "TA",
+      "Besturingssystemen": "Teacher",
+      "Programmeertalen": "Teacher"
+    }
+  },
+  {
     "name": "Thomas Schaper",
     "role": "Student",
     "courses": {

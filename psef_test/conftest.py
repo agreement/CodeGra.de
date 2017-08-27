@@ -184,6 +184,11 @@ def student_user(session):
 
 
 @pytest.fixture
+def teacher_user(session):
+    return LocalProxy(session.query(m.User).filter_by(name="Robin").one)
+
+
+@pytest.fixture
 def ta_user(session):
     return LocalProxy(
         session.query(m.User).filter_by(name="Thomas Schaper").one

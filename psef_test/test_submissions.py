@@ -11,6 +11,113 @@ data_error = pytest.mark.data_error
 
 
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
+@pytest.mark.parametrize('grade', [
+    4.5,
+])
+@pytest.mark.parametrize('feedback', [
+    'Goed gedaan!',
+])
+def test_get_grade_history(
+    assignment_real_works, ta_user, test_client, logged_in, request, grade,
+    feedback, error_template, teacher_user
+):
+    assignment, work = assignment_real_works
+    work_id = work['id']
+
+    data = {}
+    data['grade'] = grade
+    data['feedback'] = feedback
+
+    with logged_in(teacher_user):
+        test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/grade_history/',
+            200,
+            result=[]
+        )
+
+    with logged_in(ta_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{work_id}',
+            200,
+            data=data,
+            result=dict,
+        )
+        data['grade'] = grade + 1
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{work_id}',
+            200,
+            data=data,
+            result=dict,
+        )
+        test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/grade_history/',
+            403,
+            result=error_template
+        )
+
+    with logged_in(teacher_user):
+        test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/grade_history/',
+            200,
+            result=[
+                {
+                    'changed_at': str,
+                    'is_rubric': False,
+                    'grade': grade + 1,
+                    'passed_back': False,
+                    'user': dict,
+                }, {
+                    'changed_at': str,
+                    'is_rubric': False,
+                    'grade': grade,
+                    'passed_back': False,
+                    'user': dict,
+                }
+            ]
+        )
+
+        res = test_client.req(
+            'patch',
+            f'/api/v1/submissions/{work_id}',
+            200,
+            data={'grade': None},
+            result=dict
+        )
+
+        test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/grade_history/',
+            200,
+            result=[
+                {
+                    'changed_at': str,
+                    'is_rubric': False,
+                    'grade': -1,
+                    'passed_back': False,
+                    'user': dict,
+                }, {
+                    'changed_at': str,
+                    'is_rubric': False,
+                    'grade': grade + 1,
+                    'passed_back': False,
+                    'user': dict,
+                }, {
+                    'changed_at': str,
+                    'is_rubric': False,
+                    'grade': grade,
+                    'passed_back': False,
+                    'user': dict,
+                }
+            ]
+        )
+
+
+@pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',

@@ -130,6 +130,7 @@ export default {
                     max: data.points.max,
                     grade: (data.points.selected / data.points.max) * 10,
                 });
+                this.$emit('gradeUpdated', (data.points.selected / data.points.max) * 10);
             }, (err) => {
                 // eslint-disable-next-line
                 console.dir(err);

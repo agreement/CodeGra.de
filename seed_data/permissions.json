@@ -66,5 +66,9 @@
   "can_view_own_teacher_files": {
     "default_value": true,
     "course_permission": true
+  },
+  "can_see_grade_history": {
+    "default_value": false,
+    "course_permission": true
   }
 }

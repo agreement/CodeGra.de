@@ -218,11 +218,12 @@ def test_lti_no_course_roles(test_client, app, logged_in, ta_user):
     assert list(user.courses.values())[0].name == 'non_existing'
 
 
+@pytest.mark.parametrize('patch', [True, False])
 @pytest.mark.parametrize('filename', [
     ('correct.tar.gz'),
 ])
 def test_lti_grade_passback(
-    test_client, app, logged_in, ta_user, filename, monkeypatch
+    test_client, app, logged_in, ta_user, filename, monkeypatch, patch
 ):
     due_at = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 
@@ -235,6 +236,9 @@ def test_lti_grade_passback(
 
     patch_delete = Patch()
     patch_replace = Patch()
+
+    if patch:
+        monkeypatch.setitem(app.config, '_USING_SQLITE', True)
 
     monkeypatch.setattr(lti.OutcomeRequest, 'post_delete_result', patch_delete)
     monkeypatch.setattr(
@@ -320,6 +324,7 @@ def test_lti_grade_passback(
     assig, token = do_lti_launch()
     work = get_upload_file(token, assig['id'])
     set_grade(token, 5.0, work['id'])
+
     assert not patch_delete.called
     assert not patch_replace.called
 
@@ -334,8 +339,25 @@ def test_lti_grade_passback(
             headers={'Authorization': f'Bearer {token}'},
         )
 
-    assert patch_replace.called
-    assert not patch_delete.called
+        assert patch_replace.called
+        assert not patch_delete.called
+
+        if patch:
+            test_client.req(
+                'get',
+                f'/api/v1/submissions/{work["id"]}/grade_history/',
+                200,
+                result=[
+                    {
+                        'changed_at': str,
+                        'is_rubric': False,
+                        'grade': float,
+                        'passed_back': True,
+                        'user': dict,
+                    }
+                ],
+                headers={'Authorization': f'Bearer {token}'},
+            )
     patch_replace.called = False
     patch_delete.called = False
 

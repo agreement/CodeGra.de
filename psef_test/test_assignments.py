@@ -870,6 +870,11 @@ def test_get_all_graders(
                     'divided': 'Devin Hillenius' in with_assignees
                 },
                 {
+                    'name': 'Robin',
+                    'id': int,
+                    'divided': False,
+                },
+                {
                     'name': 'Thomas Schaper',
                     'id': int,
                     'divided': 'Thomas Schaper' in with_assignees

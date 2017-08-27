@@ -1,13 +1,13 @@
 <template>
     <div class="grade-viewer">
-        <b-collapse
-            id="rubric-collapse"
-            v-if="showRubric">
+        <b-collapse id="rubric-collapse"
+                    v-if="showRubric">
             <rubric-viewer
                 v-model="rubricPoints"
                 :editable="editable"
                 :submission="submission"
                 :rubric="rubric"
+                @gradeUpdated="gradeUpdated"
                 ref="rubricViewer">
             </rubric-viewer>
         </b-collapse>
@@ -53,6 +53,11 @@
                         </b-popover>
                     </b-input-group-button>
                 </b-input-group>
+                <grade-history v-if="gradeHistory"
+                               style="margin-top: 0.5em; width: 100%;"
+                               ref="gradeHistory"
+                               :submissionId="submission.id"
+                               :isLTI="assignment.course.is_lti"/>
             </div>
             <div class="col-6">
                 <b-input-group>
@@ -77,8 +82,8 @@ import 'vue-awesome/icons/bars';
 import 'vue-awesome/icons/refresh';
 import { mapActions, mapGetters } from 'vuex';
 import RubricViewer from './RubricViewer';
-
 import SubmitButton from './SubmitButton';
+import GradeHistory from './GradeHistory';
 
 export default {
     name: 'grade-viewer',
@@ -108,6 +113,7 @@ export default {
             grade: this.submission.grade,
             rubricPoints: {},
             gradeAndRubricPoints: '',
+            gradeHistory: false,
         };
     },
 
@@ -143,6 +149,9 @@ export default {
         if (this.showRubric) {
             this.rubric.points.grade = this.grade;
         }
+        this.hasPermission({ name: 'can_see_grade_history', course_id: this.assignment.course.id }).then((val) => {
+            this.gradeHistory = val;
+        });
     },
 
     methods: {
@@ -163,11 +172,18 @@ export default {
             }
         },
 
+        gradeUpdated() {
+            if (this.$refs.gradeHistory) {
+                this.$refs.gradeHistory.updateHistory();
+            }
+            this.$emit('gradeUpdated', this.grade);
+        },
+
         deleteGrade() {
             const req = this.$http.patch(`/api/v1/submissions/${this.submission.id}`, { grade: null });
             req.then(({ data }) => {
-                this.$emit('gradeUpdated', data.grade);
                 this.grade = data.grade;
+                this.gradeUpdated(data.grade);
             });
             this.$refs.deleteButton.submit(req.catch((err) => {
                 throw err.response.data.message;
@@ -186,8 +202,8 @@ export default {
                 feedback: this.feedback || '',
             });
             req.then(() => {
-                this.$emit('gradeUpdated', grade);
                 this.grade = grade;
+                this.gradeUpdated(grade);
             });
             this.$refs.submitButton.submit(req.catch((err) => {
                 throw err.response.data.message;
@@ -196,6 +212,7 @@ export default {
 
         ...mapActions({
             refreshSnippets: 'user/refreshSnippets',
+            hasPermission: 'user/hasPermission',
         }),
 
         ...mapGetters({
@@ -206,6 +223,7 @@ export default {
     components: {
         Icon,
         SubmitButton,
+        GradeHistory,
         RubricViewer,
     },
 };

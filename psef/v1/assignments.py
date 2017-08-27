@@ -719,9 +719,10 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
             assignment_id=assignment.id,
             user=user,
             created_at=submission_info.created_at,
-            grade=submission_info.grade
         )
         db.session.add(work)
+        db.session.flush()
+        work.set_grade(submission_info.grade, current_user)
         work.add_file_tree(db.session, submission_tree)
 
     db.session.commit()

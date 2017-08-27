@@ -237,7 +237,7 @@ def select_rubric_item(submission_id: int, rubricitem_id: int
         )
 
     work.remove_selected_rubric_item(rubric_item.rubricrow_id)
-    work.select_rubric_item(rubric_item)
+    work.select_rubric_item(rubric_item, current_user)
     db.session.commit()
 
     return jsonify(work.__rubric_to_json__(), status_code=201)
@@ -276,7 +276,7 @@ def patch_submission(submission_id: int) -> JSONResponse[models.Work]:
     auth.ensure_permission('can_grade_work', work.assignment.course_id)
 
     if 'grade' in content and content['grade'] is None:
-        work.grade = None
+        work.set_grade(None, current_user)
     else:
         ensure_keys_in_dict(
             content, [('grade', numbers.Real),
@@ -293,11 +293,37 @@ def patch_submission(submission_id: int) -> JSONResponse[models.Work]:
                 APICodes.INVALID_PARAM, 400
             )
 
-        work.grade = grade
+        work.set_grade(grade, current_user)
         work.comment = feedback
 
     db.session.commit()
     return jsonify(work)
+
+
+@api.route('/submissions/<int:submission_id>/grade_history/', methods=['GET'])
+def get_grade_history(submission_id: int
+                      ) -> JSONResponse[t.Sequence[models.GradeHistory]]:
+    """Get the grade history for the given submission.
+
+    .. quickref:: Submission; Get the grade history for the given submission.
+
+    :returns: A list of :class:`.models.GradeHistory` object serialized to
+        json for the given assignment.
+    :raises PermissionException: If the current user has no permission to see
+        the grade history. (INCORRECT_PERMISSION)
+    """
+    work = helpers.get_or_404(models.Work, submission_id)
+
+    auth.ensure_permission('can_see_grade_history', work.assignment.course_id)
+
+    hist: t.MutableSequence[models.GradeHistory]
+    hist = db.session.query(models.GradeHistory).filter_by(
+        work_id=work.id
+    ).order_by(
+        models.GradeHistory.changed_at.desc(),  # type: ignore
+    ).all()
+
+    return jsonify(hist)
 
 
 @api.route("/submissions/<int:submission_id>/files/", methods=['POST'])
