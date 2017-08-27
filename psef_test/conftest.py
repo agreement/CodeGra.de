@@ -38,6 +38,9 @@ def app(request):
         'UPLOAD_DIR': f'/tmp/psef/uploads',
         'MIRROR_UPLOAD_DIR': f'/tmp/psef/mirror_uploads',
         'MAX_UPLOAD_SIZE': 2 ** 20,  # 1mb
+        'LTI_CONSUMER_KEY_SECRETS': {
+            'my_lti': '12345678'
+        },
     }
     if request.config.getoption('--postgresql'):
         print('Running with postgres!')

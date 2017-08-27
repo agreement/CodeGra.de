@@ -39,6 +39,7 @@ before_script:
   - mkdir -p /tmp/psef/mirror_uploads
   - python --version
   - export PYTHONPATH="$PYTHONPATH:$(pwd)"
+  - export DEBUG_ON=True
   - psql -c 'create database travis_ci_test;' -U postgres
 
 script:

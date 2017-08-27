@@ -11,6 +11,7 @@ Welcome to CodeGra.de's documentation!
 
    manual
    code
+   running
 
 About Codegrade
 ---------------

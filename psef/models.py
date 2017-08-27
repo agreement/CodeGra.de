@@ -291,7 +291,7 @@ class CourseRole(Base):
         :returns: A course role that should be the role for the user creating
             the course.
         """
-        for name, c in app.config['DEFAULT_COURSE_ROLES'].items():
+        for name, c in app.config['_DEFAULT_COURSE_ROLES'].items():
             if c['initial_role']:
                 return cls.query.filter_by(name=name, course=course).one()
         raise ValueError('No initial course role found')
@@ -318,7 +318,7 @@ class CourseRole(Base):
             example.
         """
         res = {}
-        for name, c in app.config['DEFAULT_COURSE_ROLES'].items():
+        for name, c in app.config['_DEFAULT_COURSE_ROLES'].items():
             perms: t.Sequence[Permission] = (
                 Permission.query.
                 filter_by(  # type: ignore
@@ -1233,7 +1233,7 @@ class File(Base):
     )
 
     @staticmethod
-    @psef.auth.login_required
+    @auth.login_required
     def get_exclude_owner(owner: t.Optional[str], course_id: int) -> FileOwner:
         """Get the :class:`FileOwner` the current user does not want to see
         files for.

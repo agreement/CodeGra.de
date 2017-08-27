@@ -27,7 +27,7 @@ def about(
     }
     return jsonify(
         {
-            'version': psef.app.config['VERSION'],
+            'version': psef.app.config['_VERSION'],
             'features': features,
         },
     )

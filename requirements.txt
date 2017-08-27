@@ -28,6 +28,7 @@ git+https://github.com/i-kiwamu/python3-oauth2.git
 click==6.7
 lxml==3.6.0
 pyflakes==1.5.0
+sphinx-rtd-theme==0.2.4
 Sphinx==1.6.3
 git+https://github.com/libre-man/HTTPdomain#subdirectory=httpdomain
 git+https://github.com/libre-man/sphinx-autodoc-typehints

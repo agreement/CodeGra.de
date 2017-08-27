@@ -9,21 +9,17 @@ test_setup:
 
 .PHONY: test_quick
 test_quick: test_setup
-	env/bin/pytest --cov psef --cov-report term-missing psef_test/$(TEST_FILE) -vvvvv -x $(TEST_FLAGS)
+	DEBUG_ON=True env/bin/pytest --cov psef --cov-report term-missing psef_test/$(TEST_FILE) -vvvvv -x $(TEST_FLAGS)
 
 .PHONY: test
 test: test_setup
-	env/bin/pytest --cov psef --cov-report term-missing psef_test/$(TEST_FILE) -vvvvv $(TEST_FLAGS)
+	DEBUG_ON=True env/bin/pytest --cov psef --cov-report term-missing psef_test/$(TEST_FILE) -vvvvv $(TEST_FLAGS)
 
 .PHONY: reset_db
 reset_db:
 	./.scripts/reset_database.sh
 	$(MAKE) db_upgrade
 	$(MAKE) test_data
-
-.PHONY: install_deps
-install_deps:
-	./.scripts/install_deps.sh
 
 .PHONY: migrate
 migrate:
@@ -41,11 +37,18 @@ test_data:
 
 .PHONY: start_dev_server
 start_dev_server:
-	./.scripts/start_dev.sh python
+	DEBUG_ON=True ./.scripts/start_dev.sh python
 
 .PHONY: start_dev_npm
 start_dev_npm:
 	./.scripts/start_dev.sh npm
+
+build_front-end:
+	npm run build
+
+.PHONY: seed_data
+seed:
+	env/bin/python3.6 $(CURDIR)/manage.py seed
 
 .PHONY: format
 format:

@@ -18,7 +18,7 @@ def test_about_features(test_client, app, features, monkeypatch):
         '/api/v1/about',
         200,
         result={
-            'version': app.config['VERSION'],
+            'version': app.config['_VERSION'],
             'features': {
                 k: bool(v)
                 for k, v in app.config['FEATURES'].items()
