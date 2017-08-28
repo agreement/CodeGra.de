@@ -261,8 +261,6 @@ def patch_submission(submission_id: int) -> JSONResponse[models.Work]:
 
     :raise APIException: If the submission with the given id does not exist
         (OBJECT_ID_NOT_FOUND)
-    :raise APIException: If the request does not contain the parameters "grade"
-        and/or "feedback" (MISSING_REQUIRED_PARAM)
     :raise APIException: If the value of the "grade" parameter is not a float
         (INVALID_PARAM)
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
@@ -270,7 +268,6 @@ def patch_submission(submission_id: int) -> JSONResponse[models.Work]:
         given id (INCORRECT_PERMISSION)
     """
     work = helpers.get_or_404(models.Work, submission_id)
-    work = db.session.query(models.Work).get(submission_id)
     content = ensure_json_dict(request.get_json())
 
     auth.ensure_permission('can_grade_work', work.assignment.course_id)
@@ -298,6 +295,63 @@ def patch_submission(submission_id: int) -> JSONResponse[models.Work]:
 
     db.session.commit()
     return jsonify(work)
+
+
+@api.route("/submissions/<int:submission_id>/grader", methods=['PATCH'])
+def update_submission_grader(submission_id: int) -> EmptyResponse:
+    """Change the assigned grader of the given submission.
+
+    .. :quickref: Submission; Update grader for the submission.
+
+    :returns: Empty response and a 204 status.
+
+    :>json int user_id: Id of the new grader. This is a required parameter.
+
+    :raises PermissionException: If the logged in user cannot manage the
+        course of the submission. (INCORRECT_PERMISSION)
+    :raises APIException: If the new grader does not have the correct
+        permission to grade this submission. (INCORRECT_PERMISSION)
+    """
+    work = helpers.get_or_404(models.Work, submission_id)
+    content = ensure_json_dict(request.get_json())
+    ensure_keys_in_dict(content, [('user_id', int)])
+    user_id = t.cast(int, content['user_id'])
+
+    auth.ensure_permission('can_manage_course', work.assignment.course_id)
+
+    grader = helpers.get_or_404(models.User, user_id)
+    if not grader.has_permission('can_grade_work', work.assignment.course_id):
+        raise APIException(
+            f'User "{grader.name}" doesn\'t have the required permission',
+            f'User "{grader.name}" doesn\'t have permission "can_grade_work"',
+            APICodes.INCORRECT_PERMISSION, 400
+        )
+
+    work.assignee = grader
+    db.session.commit()
+
+    return make_empty_response()
+
+
+@api.route("/submissions/<int:submission_id>/grader", methods=['DELETE'])
+def delete_submission_grader(submission_id: int) -> EmptyResponse:
+    """Change the assigned grader of the given submission.
+
+    .. :quickref: Submission; Delete grader for the submission.
+
+    :returns: Empty response and a 204 status.
+
+    :raises PermissionException: If the logged in user cannot manage the
+        course of the submission. (INCORRECT_PERMISSION)
+    """
+    work = helpers.get_or_404(models.Work, submission_id)
+
+    auth.ensure_permission('can_manage_course', work.assignment.course_id)
+
+    work.assignee = None
+    db.session.commit()
+
+    return make_empty_response()
 
 
 @api.route('/submissions/<int:submission_id>/grade_history/', methods=['GET'])

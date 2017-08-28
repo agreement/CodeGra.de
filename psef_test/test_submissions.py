@@ -6,6 +6,7 @@ import pytest
 
 import psef.models as m
 
+http_error = pytest.mark.http_error
 perm_error = pytest.mark.perm_error
 data_error = pytest.mark.data_error
 
@@ -818,3 +819,108 @@ def test_add_file(
             real_data='TEAEST_FILE',
             result=error_template,
         )
+
+
+@pytest.mark.parametrize(
+    'filename', ['../test_submissions/single_dir_archive.zip'], indirect=True
+)
+@pytest.mark.parametrize(
+    'named_user', ['Thomas Schaper',
+                   http_error(error=403)('Stupid1')],
+    indirect=True
+)
+@pytest.mark.parametrize('graders', [(['Thomas Schaper', 'Devin Hillenius'])])
+def test_change_grader(
+    graders, named_user, logged_in, test_client, error_template, request,
+    assignment_real_works, ta_user
+):
+    marker = request.node.get_marker('http_error')
+    code = 204 if marker is None else marker.kwargs['error']
+    res = None if marker is None else error_template
+
+    assignment, _ = assignment_real_works
+
+    grader_ids = []
+    for grader in graders:
+        if isinstance(grader, int):
+            grader_ids.append(grader)
+        else:
+            grader_ids.append(m.User.query.filter_by(name=grader).one().id)
+
+    with logged_in(named_user):
+        with logged_in(ta_user):
+            test_client.req(
+                'patch',
+                f'/api/v1/assignments/{assignment.id}/divide',
+                204,
+                data={'graders': grader_ids}
+            )
+            submission = test_client.req(
+                'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
+            )[0]
+
+        old_grader = submission['assignee']['name']
+
+        if marker is None:
+            test_client.req(
+                'patch',
+                f'/api/v1/submissions/{submission["id"]}/grader',
+                404,
+                result=error_template,
+                data={'user_id': 100000}
+            )
+            with logged_in(ta_user):
+                submission = test_client.req(
+                    'get', f'/api/v1/assignments/{assignment.id}/submissions/',
+                    200
+                )[0]
+            assert submission['assignee']['name'] == old_grader
+
+            stupid1_id = m.User.query.filter_by(name='Stupid1').first().id
+            test_client.req(
+                'patch',
+                f'/api/v1/submissions/{submission["id"]}/grader',
+                400,
+                result=error_template,
+                data={'user_id': stupid1_id}
+            )
+            with logged_in(ta_user):
+                submission = test_client.req(
+                    'get', f'/api/v1/assignments/{assignment.id}/submissions/',
+                    200
+                )[0]
+            assert submission['assignee']['name'] == old_grader
+
+        new_grader = [grader for grader in graders if grader != old_grader][0]
+        new_grader_id = m.User.query.filter_by(name=new_grader).first().id
+
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{submission["id"]}/grader',
+            code,
+            result=res,
+            data={'user_id': new_grader_id}
+        )
+        with logged_in(ta_user):
+            submission = test_client.req(
+                'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
+            )[0]
+        if marker is None:
+            assert submission['assignee']['name'] == new_grader
+        else:
+            assert submission['assignee']['name'] == old_grader
+
+        test_client.req(
+            'delete',
+            f'/api/v1/submissions/{submission["id"]}/grader',
+            code,
+            result=res
+        )
+        with logged_in(ta_user):
+            submission = test_client.req(
+                'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
+            )[0]
+        if marker is None:
+            assert submission['assignee'] is None
+        else:
+            assert submission['assignee']['name'] == old_grader

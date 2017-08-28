@@ -9,10 +9,13 @@
             </router-link>
             <span v-else>{{ course.name }}</span>
         </h4>
+
         <submission-list
             :assignment="assignment"
             :submissions="submissions"
-            :canDownload="canDownload"/>
+            :canDownload="canDownload"
+            @assigneeUpdated="updateAssignee"/>
+
         <b-popover
             placement="top"
             :triggers="assignment.is_lti && !inLTI ? ['hover'] : []"
@@ -117,6 +120,15 @@ export default {
             this.$router.push({
                 name: 'submission',
                 params: { submissionId: submission.id },
+            });
+        },
+
+        updateAssignee(submission, assignee) {
+            this.submissions = this.submissions.map((sub) => {
+                if (sub.id === submission.id) {
+                    sub.assignee = assignee;
+                }
+                return sub;
             });
         },
 
