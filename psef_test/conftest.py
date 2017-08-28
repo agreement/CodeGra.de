@@ -242,6 +242,7 @@ def db(app, request):
     if request.config.getoption('--postgresql'):
         flask_migrate.upgrade()
     else:
+        psef._patch_sqlite()
         _db.create_all()
 
     connection = _db.engine.connect()

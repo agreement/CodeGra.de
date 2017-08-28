@@ -174,6 +174,7 @@ const mutations = {
         state.email = email;
     },
     [types.UPDATE_ACCESS_TOKEN](state, data) {
+        mutations[types.LOGOUT](state);
         state.jwtToken = data.access_token;
     },
     [types.CLEAR_CACHE](state) {

@@ -920,8 +920,9 @@ class Work(Base):
         if self._grade is None:
             if not self.selected_items:
                 return None
+            max_points = self.assignment.max_rubric_points
             selected = sum(item.points for item in self.selected_items)
-            return (selected / self.assignment.max_rubric_points) * 10
+            return max((selected / max_points) * 10, 0)
         return self._grade
 
     def set_grade(self, new_grade: float, user: User) -> None:
@@ -1696,7 +1697,16 @@ class Assignment(Base):
                     pool.submit(sub.passback_grade)
 
     @property
-    def max_rubric_points(self) -> float:
+    def max_rubric_points(self) -> t.Optional[float]:
+        """Get the maximum amount of points possible for the rubric
+
+        .. note::
+
+          This is always higher than zero (so also not zero).
+
+
+        :returns: The maximum amount of points.
+        """
         sub = db.session.query(func.max(RubricItem.points).label('max_val')
                                ).join(
                                    RubricRow,

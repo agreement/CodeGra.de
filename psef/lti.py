@@ -415,7 +415,7 @@ class CanvasLTI(LTI):
 
     @property
     def username(self) -> str:
-        return self.launch_params['lis_person_sourcedid']
+        return self.launch_params['custom_canvas_user_login_id']
 
     @property
     def course_name(self) -> str:

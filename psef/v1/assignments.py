@@ -234,27 +234,39 @@ def add_assignment_rubric(assignment_id: int) -> EmptyResponse:
     rows = t.cast(list, content['rows'])
 
     row: JSONType
-    for row in rows:
-        # Check for object of form:
-        # {
-        #   'description': str,
-        #   'header': str,
-        #   'items': list
-        # }
-        row = ensure_json_dict(row)
-        ensure_keys_in_dict(
-            row, [('description', str),
-                  ('header', str),
-                  ('items', list)]
-        )
-        header = t.cast(str, row['header'])
-        description = t.cast(str, row['description'])
-        items = t.cast(list, row['items'])
+    with db.session.begin_nested():
+        for row in rows:
+            # Check for object of form:
+            # {
+            #   'description': str,
+            #   'header': str,
+            #   'items': list
+            # }
+            row = ensure_json_dict(row)
+            ensure_keys_in_dict(
+                row, [('description', str),
+                      ('header', str),
+                      ('items', list)]
+            )
+            header = t.cast(str, row['header'])
+            description = t.cast(str, row['description'])
+            items = t.cast(list, row['items'])
 
-        if 'id' in row:
-            patch_rubric_row(assig, header, description, row['id'], items)
-        else:
-            add_new_rubric_row(assig, header, description, items)
+            if 'id' in row:
+                patch_rubric_row(assig, header, description, row['id'], items)
+            else:
+                add_new_rubric_row(assig, header, description, items)
+
+        db.session.flush()
+        max_points = assig.max_rubric_points
+
+        if max_points <= 0:
+            raise APIException(
+                'The max amount of points you can '
+                'score should be higher than 0',
+                f'The max amount of points was {max_points} which is <= 0',
+                APICodes.INVALID_STATE, 400
+            )
 
     db.session.commit()
     return make_empty_response()

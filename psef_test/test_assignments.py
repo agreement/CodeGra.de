@@ -263,7 +263,7 @@ err400 = http_err(error=400)
     ]
 )
 @pytest.mark.parametrize('item_description', [None, 'new idesc', err400(5)])
-@pytest.mark.parametrize('item_points', [None, 5.3, -1, err400('Wow')])
+@pytest.mark.parametrize('item_points', [None, 5.3, 11, err400('Wow')])
 @pytest.mark.parametrize('row_description', [None, 'new rdesc', err400(5)])
 @pytest.mark.parametrize('row_header', [None, 'new rheader', err400(5)])
 @pytest.mark.parametrize('update_item', [True, False])
@@ -345,7 +345,7 @@ def test_update_rubric_row(
                          err400(5)]
 )
 @pytest.mark.parametrize(
-    'item_points', [err400(None), 5.3, 5, -1,
+    'item_points', [err400(None), 5.3, 5, 11,
                     err400('Wow')]
 )
 @pytest.mark.parametrize(
@@ -539,6 +539,147 @@ def test_update_add_rubric_wrong_permissions(
         res['code'] = (
             APICodes.NOT_LOGGED_IN
             if marker.kwargs['error'] == 401 else APICodes.INCORRECT_PERMISSION
+        )
+
+
+def test_creating_wrong_rubric(
+    request,
+    test_client,
+    logged_in,
+    error_template,
+    ta_user,
+    assignment,
+    session,
+    course_name,
+):
+    assig_id = assignment.id
+
+    with logged_in(ta_user):
+        rubric = {
+            'rows': [{
+                'header': 'My header',
+                'description': 'My description',
+                'items': [{
+                    'description': '5points',
+                    'points': 5
+                }, {
+                    'description': '10points',
+                    'points': 10,
+                }]
+            }, {
+                'header': 'My header2',
+                'description': 'My description',
+                'items': [{
+                    'description': '5points',
+                    'points': -15
+                }, {
+                    'description': '10points',
+                    'points': -10,
+                }],
+            }]
+        }  # yapf: disable
+        test_client.req(
+            'put',
+            f'/api/v1/assignments/{assig_id}/rubrics/',
+            400,
+            data=rubric,
+            result=error_template,
+        )
+        test_client.req(
+            'get',
+            f'/api/v1/assignments/{assig_id}/rubrics/',
+            404,
+            result=error_template,
+        )
+        rubric = {
+            'rows': [{
+                'header': 'My header',
+                'description': 'My description',
+                'items': [{
+                    'description': '5points',
+                    'points': -5
+                }, {
+                    'description': '10points',
+                    'points': -10,
+                }]
+            }]
+        }  # yapf: disable
+        test_client.req(
+            'put',
+            f'/api/v1/assignments/{assig_id}/rubrics/',
+            400,
+            data=rubric,
+            result=error_template,
+        )
+        test_client.req(
+            'get',
+            f'/api/v1/assignments/{assig_id}/rubrics/',
+            404,
+            result=error_template,
+        )
+
+
+def test_updating_wrong_rubric(
+    request,
+    test_client,
+    logged_in,
+    error_template,
+    ta_user,
+    assignment,
+    session,
+    course_name,
+):
+    assig_id = assignment.id
+    with logged_in(ta_user):
+        rubric = {
+            'rows': [{
+                'header': 'My header',
+                'description': 'My description',
+                'items': [{
+                    'description': '5points',
+                    'points': 5
+                }, {
+                    'description': '10points',
+                    'points': 10,
+                }]
+            }]
+        }  # yapf: disable
+        test_client.req(
+            'put',
+            f'/api/v1/assignments/{assig_id}/rubrics/',
+            204,
+            data=rubric,
+        )
+        rubric = test_client.req(
+            'get',
+            f'/api/v1/assignments/{assig_id}/rubrics/',
+            200,
+        )
+        server_rubric = copy.deepcopy(rubric)
+
+        rubric[0]['items'][1]['points'] = 7
+        rubric.append(
+            {
+                'header': 'head',
+                'description': '22',
+                'items': [{
+                    'description': '-7points',
+                    'points': -7,
+                }]
+            }
+        )
+        test_client.req(
+            'put',
+            f'/api/v1/assignments/{assig_id}/rubrics/',
+            400,
+            data=rubric,
+            result=error_template,
+        )
+        rubric = test_client.req(
+            'get',
+            f'/api/v1/assignments/{assig_id}/rubrics/',
+            200,
+            result=server_rubric
         )
 
 

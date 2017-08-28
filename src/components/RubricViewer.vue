@@ -125,10 +125,11 @@ export default {
             this.$http.patch(
                 `/api/v1/submissions/${this.submission.id}/rubricitems/${item.id}`,
             ).then(({ data }) => {
+                const grade = (data.points.selected / data.points.max) * 10;
                 this.$emit('input', {
                     selected: data.points.selected,
                     max: data.points.max,
-                    grade: (data.points.selected / data.points.max) * 10,
+                    grade,
                 });
                 this.$emit('gradeUpdated', (data.points.selected / data.points.max) * 10);
             }, (err) => {

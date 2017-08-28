@@ -29,6 +29,25 @@ _db = SQLAlchemy(
 db = LocalProxy(lambda: _db)
 
 
+def _patch_sqlite() -> None:
+    from sqlalchemy import event
+
+    @event.listens_for(_db.engine, "connect")
+    def do_connect(dbapi_connection: t.Any, connection_record: t.Any) -> None:
+        # disable pysqlite's emitting of the BEGIN statement entirely.
+        # also stops it from emitting COMMIT before any DDL.
+        dbapi_connection.isolation_level = None
+
+    @event.listens_for(_db.engine, "begin")
+    def do_begin(conn: t.Any) -> None:
+        # emit our own BEGIN
+        conn.execute("BEGIN")
+
+
+if app.config['_USING_SQLITE']:
+    _patch_sqlite()
+
+
 @app.before_request
 def set_request_start_time() -> None:
     g.request_start_time = datetime.datetime.utcnow()
@@ -38,7 +57,8 @@ def set_request_start_time() -> None:
 @flask_jwt.jwt_optional
 def set_current_user() -> None:
     # This code is necessary to make `flask_jwt_extended` understand that we
-    # always want to try to load the given JWT token.
+    # always want to try to load the given JWT token. The function body SHOULD
+    # be empty here.
     pass
 
 
@@ -85,8 +105,8 @@ app.register_blueprint(api_v1_blueprint, url_prefix='/api/v1')
 
 @app.teardown_request
 def teardown_request(exception: t.Type[Exception]) -> None:
-    db.session.expire_all()
     if exception:  # pragma: no cover
+        db.session.expire_all()
         db.session.rollback()
 
 

@@ -3,6 +3,7 @@ from enum import IntEnum, unique
 
 from flask import Response, jsonify
 
+import psef
 from psef import app
 
 
@@ -77,4 +78,5 @@ def handle_api_error(error: APIException) -> Response:
     """
     response = jsonify(error)
     response.status_code = error.status_code
+    psef.db.session.expire_all()
     return response
