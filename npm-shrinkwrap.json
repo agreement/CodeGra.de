@@ -6757,11 +6757,6 @@
         "sha.js": "2.4.8"
       }
     },
-    "pdfobject": {
-      "version": "2.0.201604172",
-      "resolved": "https://registry.npmjs.org/pdfobject/-/pdfobject-2.0.201604172.tgz",
-      "integrity": "sha1-ES7fk7mL4SGl54Cwbn9feK0xqz8="
-    },
     "pend": {
       "version": "1.2.0",
       "resolved": "https://registry.npmjs.org/pend/-/pend-1.2.0.tgz",

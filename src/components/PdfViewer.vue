@@ -1,14 +1,43 @@
 <template>
-    <div id="pdf-viewer"></div>
+    <div class="pdf-viewer">
+        <loader v-if="loading"/>
+        <object :data="pdfURL"
+                type="application/pdf"
+                width="100%"
+                height="100%"
+                v-else-if="pdfURL !== ''">
+            <b-alert variant="danger" :show="true">
+                Your browser doesn't support the PDF viewer. Please download
+                the PDF <a class="alert-link" :href="pdfURL">here</a>.
+            </b-alert>
+        </object>
+        <b-alert variant="danger"
+                 :show="error !== ''">
+            {{ error }}
+        </b-alert>
+    </div>
 </template>
 
 <script>
-import PDFObject from 'pdfobject';
+import Loader from './Loader';
 
 export default {
     name: 'pdf-viewer',
 
-    props: ['id'],
+    props: {
+        id: {
+            type: Number,
+            default: -1,
+        },
+    },
+
+    data() {
+        return {
+            pdfURL: '',
+            loading: true,
+            error: '',
+        };
+    },
 
     watch: {
         id() {
@@ -20,32 +49,33 @@ export default {
         this.embedPdf();
     },
 
-    computed: {
-        url() {
-            return `/api/v1/code/${this.id}?type=pdf`;
+    methods: {
+        embedPdf() {
+            this.loading = true;
+            this.error = '';
+            this.$http.get(`/api/v1/code/${this.id}?type=pdf`).then(({ data }) => {
+                this.loading = false;
+                this.pdfURL = `/api/v1/files/${data.name}?not_as_attachment&mime=application/pdf`;
+            }, ({ response }) => {
+                this.error = `An error occurred while loading the PDF: ${response.data.message}.`;
+            });
         },
     },
 
-    methods: {
-        embedPdf() {
-            let options = {};
-            if (!PDFObject.supportsPDFs) {
-                options = {
-                    forcePDFJS: true,
-                    PDFJS_URL: '/static/vendor/pdf.js/web/viewer.html',
-                };
-            }
-            this.$http.get(this.url).then(({ data }) => {
-                const pdfUrl = data.name;
-                PDFObject.embed(`/api/v1/files/${pdfUrl}?not_as_attachment&mime=application/pdf`, '#pdf-viewer', options);
-            });
-        },
+    components: {
+        Loader,
     },
 };
 </script>
 
-<style>
-.pdfobject-container {
+<style lang="less" scoped>
+.pdf-viewer {
+    position: relative;
+}
+
+object {
+    position: absolute;
+    width: 100%;
     height: 100%;
 }
 </style>

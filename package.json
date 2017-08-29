@@ -20,7 +20,6 @@
     "bootstrap-vue": "github:CodeGra-de/bootstrap-vue-compiled",
     "highlightjs": "^9.10.0",
     "moment": "^2.18.1",
-    "pdfobject": "^2.0.201604172",
     "request": "^2.81.0",
     "tether": "latest",
     "vue": "^2.3.3",

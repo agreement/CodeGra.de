@@ -8,7 +8,7 @@
                                     :submissions="submissions"
                                     :filter="filterSubmissions"/>
 
-                <pdf-viewer :id="fileId"
+                <pdf-viewer :id="+fileId"
                             v-if="fileExtension === 'pdf'"/>
                 <code-viewer :assignment="assignment"
                              :submission="submission"
@@ -379,7 +379,7 @@ export default {
     flex-direction: column;
 }
 
-.pdfobject-container {
+.pdf-viewer {
     flex-grow: 1;
     flex-shrink: 1;
 }
@@ -395,7 +395,7 @@ export default {
 }
 
 .code-viewer,
-.pdfobject-container,
+.pdf-viewer,
 .grade-viewer {
     margin-bottom: 1rem;
 }
