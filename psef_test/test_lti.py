@@ -144,14 +144,18 @@ def test_lti_new_user_new_course(test_client, app, logged_in, ta_user):
         assert ta_user.assignment_results[assig['id']].sourcedid == 'WOW2'
 
 
-def test_lti_no_course_roles(test_client, app, logged_in, ta_user):
+def test_lti_no_course_roles(
+    test_client, app, logged_in, ta_user, monkeypatch
+):
     due_at = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 
     def do_lti_launch(
         username='A the A-er',
         lti_id='USER_ID',
         source_id='',
-        published='false'
+        published='false',
+        parse=True,
+        code=200
     ):
         with app.app_context():
             data = {
@@ -181,9 +185,12 @@ def test_lti_no_course_roles(test_client, app, logged_in, ta_user):
             lti_res = test_client.req(
                 'get',
                 '/api/v1/lti/launch/2',
-                200,
+                code,
                 headers={'Jwt': jwt},
             )
+            if not parse:
+                return lti_res
+
             if published == 'false':
                 assert lti_res['assignment']['state'] == 'hidden'
             else:
@@ -191,7 +198,9 @@ def test_lti_no_course_roles(test_client, app, logged_in, ta_user):
                     lti_res['assignment']['id']
                 ).state == m._AssignmentStateEnum.open
             assert lti_res['assignment']['course']['name'] == 'NEW_COURSE'
-            return lti_res['assignment'], lti_res.get('access_token', None)
+            return lti_res['assignment'], lti_res.get(
+                'access_token', None
+            ), lti_res
 
     def get_user_info(token):
         with app.app_context():
@@ -202,12 +211,13 @@ def test_lti_no_course_roles(test_client, app, logged_in, ta_user):
                 headers={'Authorization': f'Bearer {token}'} if token else {}
             )
 
-    _, token = do_lti_launch()
+    _, token, res = do_lti_launch()
     out = get_user_info(token)
     assert out['name'] == 'A the A-er'
+    assert res['new_role_created']
     old_id = out['id']
 
-    _, token = do_lti_launch()
+    _, token, __ = do_lti_launch()
     out = get_user_info(token)
     assert out['name'] == 'A the A-er'
     assert out['id'] == old_id
@@ -216,6 +226,14 @@ def test_lti_no_course_roles(test_client, app, logged_in, ta_user):
     assert user.role.name == 'Admin'
     assert len(user.courses) == 1
     assert list(user.courses.values())[0].name == 'non_existing'
+
+    monkeypatch.setitem(app.config['FEATURES'], 'AUTOMATIC_LTI_ROLE', False)
+
+    _, __, res = do_lti_launch(username='NEW_USERNAME')
+    assert not res['new_role_created']
+
+    res = do_lti_launch(username='NEW_USER', lti_id='5', code=400, parse=False)
+    assert res['message'].startswith('The given LTI role was not')
 
 
 @pytest.mark.parametrize('patch', [True, False])

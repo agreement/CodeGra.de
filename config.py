@@ -91,6 +91,9 @@ FEATURES = {
     # Should rubrics be enabled. This means rubrics can be created by teachers
     # and used for grading purposes.
     'RUBRICS': _enabled,
+    # Should we automatically create a default role for LTI launches with roles
+    # that are not known.
+    'AUTOMATIC_LTI_ROLE': _enabled,
     # Should LTI be enabled.
     'LTI': _enabled,
 }

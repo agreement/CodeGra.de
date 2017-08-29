@@ -3,7 +3,8 @@
         <p style="text-align: center; font-size: 1.3em;">
             Something went wrong during the LTI launch!
             <br>
-            Please try again.
+            <span v-if="errorMsg">{{ errorMsg }}</span>
+            <span v-else>Please try again.</span>
         </p>
     </b-alert>
     <loader v-else/>
@@ -21,6 +22,7 @@ export default {
     data() {
         return {
             error: false,
+            errorMsg: false,
         };
     },
 
@@ -57,8 +59,12 @@ export default {
                         },
                     });
             }
-        }).catch(() => {
-            this.error = true;
+        }).catch((err) => {
+            try {
+                this.errorMsg = err.response.data.message;
+            } finally {
+                this.error = true;
+            }
         });
     },
 

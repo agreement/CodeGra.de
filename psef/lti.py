@@ -17,6 +17,7 @@ import psef.models as models
 import psef.helpers as helpers
 from psef import LTI_ROLE_LOOKUPS, db, app, current_user
 from psef.auth import _user_active
+from psef.errors import APICodes, APIException
 
 
 class LTI:
@@ -187,7 +188,7 @@ class LTI:
         elif is_logged_in and current_user.lti_user_id is None:
             # TODO show some sort of screen if this linking is wanted
             current_user.lti_user_id = self.user_id
-            db.session.commit()
+            db.session.flush()
             user = current_user
         else:
             # New LTI user id is found and no user is logged in or the current
@@ -212,7 +213,7 @@ class LTI:
                 username=_get_username(),
             )
             db.session.add(user)
-            db.session.commit()
+            db.session.flush()
 
             token = psef.jwt.create_access_token(
                 identity=user.id,
@@ -233,7 +234,7 @@ class LTI:
             db.session.add(course)
 
         course.lti_provider = self.lti_provider
-        db.session.commit()
+        db.session.flush()
 
         return course
 
@@ -277,7 +278,7 @@ class LTI:
             default=assignment.deadline
         )
 
-        db.session.commit()
+        db.session.flush()
 
         return assignment
 
@@ -336,6 +337,14 @@ class LTI:
                 ).one()
                 user.courses[course.id] = crole
                 return False
+
+            if not psef.app.config['FEATURES']['AUTOMATIC_LTI_ROLE']:
+                raise APIException(
+                    'The given LTI role was not valid found, please '
+                    'ask your instructor or site admin.',
+                    f'No role in "{list(self.roles)}" is a known LTI role',
+                    APICodes.INVALID_STATE, 400
+                )
 
             # Add a new course role
             new_created: t.Union[bool, str] = False
