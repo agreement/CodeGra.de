@@ -54,6 +54,12 @@
                     v-else/>
             </template>
         </b-table>
+
+        <b-alert variant="warning"
+                 :dismissable="true"
+                 :show="error !== ''">
+            {{ error }}
+        </b-alert>
     </div>
 </template>
 
@@ -109,6 +115,7 @@ export default {
             canChangeAssignee: false,
             assignees: [],
             assigneeUpdating: [],
+            error: '',
         };
     },
 
@@ -131,18 +138,20 @@ export default {
 
     mounted() {
         this.hasPermission({
-            name: ['can_manage_course'],
+            name: 'can_manage_course',
             course_id: this.assignment.course.id,
-        }).then(([canChangeAssignee]) => {
-            this.canChangeAssignee = canChangeAssignee;
-            return this.$http.get(`/api/v1/assignments/${this.assignment.id}/graders/`);
-        }).then(({ data }) => {
-            const assignees = data.map(ass => ({ value: ass.id, text: ass.name, data: ass }));
-            assignees.unshift({ value: null, text: '-', data: null });
-            this.assignees = assignees;
-        }).then(({ response }) => {
-            // eslint-disable-next-line
-            console.log(response.data);
+        }).then((canChangeAssignee) => {
+            if (canChangeAssignee) {
+                this.$http.get(`/api/v1/assignments/${this.assignment.id}/graders/`).then((res) => {
+                    const assignees = res.data.map(ass =>
+                        ({ value: ass.id, text: ass.name, data: ass }));
+                    assignees.unshift({ value: null, text: '-', data: null });
+                    this.assignees = assignees;
+                    this.canChangeAssignee = canChangeAssignee;
+                }, ({ response }) => {
+                    this.error = `There was an issue loading the graders from the server: ${response.data.message}`;
+                });
+            }
         });
 
         this.assigneeFilter = this.submissions.some(s => s.assignee &&
@@ -249,8 +258,20 @@ export default {
 
 <style lang="less">
 .submissions-table {
-    td:last-child, th:last-child {
-        width: 20em;
+    td, th {
+        // grade
+        &:nth-child(2) {
+            width: 10em;
+        }
+
+        // student
+        // created at
+        // assignee
+        &:nth-child(1),
+        &:nth-child(3),
+        &:nth-child(4) {
+            width: 20em;
+        }
     }
 }
 
