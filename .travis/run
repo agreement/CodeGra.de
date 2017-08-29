@@ -11,7 +11,7 @@ fi
 set -o xtrace
 
 case "$TO_RUN" in
-    "coveralls")
+    "coverage")
         pytest --cov psef --cov-report term-missing "$(pwd)/psef_test/" -vvvv
         res="$?"
         set +o xtrace

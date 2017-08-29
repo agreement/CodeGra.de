@@ -16,6 +16,10 @@
     <img src="https://img.shields.io/coveralls/CodeGra-de/CodeGra.de.svg"
       alt="Coverage Status" title="Coverage Status">
   </a>
+  <a href="https://codecov.io/gh/CodeGra-de/CodeGra.de/branch/master">
+    <img src="https://codecov.io/gh/CodeGra-de/CodeGra.de/branch/master/graph/badge.svg"
+      alt="Coverage Status" title="Coverage Status">
+  </a>
   <a href="https://github.com/CodeGra-de/CodeGra.de">
     <img src="https://5ezz6jithh.execute-api.us-east-1.amazonaws.com/prod/lambda-shield-redirect?user=CodeGra-de&repo=CodeGra.de"
       alt="Source Lines of Code" title="Source Lines of Code">

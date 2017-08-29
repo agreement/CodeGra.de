@@ -15,7 +15,7 @@ cache: pip
 matrix:
   include:
     - python: "3.6-dev" # 3.6 development branch
-      env: TO_RUN="coveralls"
+      env: TO_RUN="coverage"
     - python: "3.6-dev" # 3.7 development branch
       env: TO_RUN="postgres-test"
     - python: "3.7-dev" # 3.7 development branch
@@ -32,6 +32,7 @@ matrix:
 install:
   - pip install -U wheel
   - pip install coveralls pytest-cov
+  - pip install codecov
   - pip install -r requirements.txt
 
 before_script:
@@ -46,4 +47,4 @@ script:
   - bash ./.travis/run
 
 after_success:
-  "[[ $TO_RUN = 'coveralls' ]] && coveralls"
+  "[[ $TO_RUN = 'coverage' ]] && ( coveralls; codecov; )"
