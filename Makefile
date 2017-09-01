@@ -17,23 +17,23 @@ test: test_setup
 
 .PHONY: reset_db
 reset_db:
-	./.scripts/reset_database.sh
+	DEBUG_ON=True ./.scripts/reset_database.sh
 	$(MAKE) db_upgrade
 	$(MAKE) test_data
 
 .PHONY: migrate
 migrate:
-	env/bin/python3.6 manage.py db migrate
-	env/bin/python3.6 manage.py db edit
+	DEBUG_ON=True env/bin/python3.6 manage.py db migrate
+	DEBUG_ON=True env/bin/python3.6 manage.py db edit
 	$(MAKE) db_upgrade
 
 .PHONY: db_upgrade
 db_upgrade:
-	env/bin/python3.6 manage.py db upgrade
+	DEBUG_ON=True env/bin/python3.6 manage.py db upgrade
 
 .PHONY: test_data
 test_data:
-	env/bin/python3.6 $(CURDIR)/manage.py test_data
+	DEBUG_ON=True env/bin/python3.6 $(CURDIR)/manage.py test_data
 
 .PHONY: start_dev_server
 start_dev_server:
@@ -41,14 +41,14 @@ start_dev_server:
 
 .PHONY: start_dev_npm
 start_dev_npm:
-	./.scripts/start_dev.sh npm
+	DEBUG_ON=True ./.scripts/start_dev.sh npm
 
 build_front-end:
 	npm run build
 
 .PHONY: seed_data
 seed:
-	env/bin/python3.6 $(CURDIR)/manage.py seed
+	DEBUG_ON=True env/bin/python3.6 $(CURDIR)/manage.py seed
 
 .PHONY: format
 format:

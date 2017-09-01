@@ -1,17 +1,17 @@
 <template>
     <div class="divide-submissions">
         <loader class="text-center" v-if="loading"></loader>
-        <b-form-fieldset label="Divide submissions" v-else>
+        <div v-else>
             <div class="form-control">
                 <div v-for="grader in graders">
                     <b-form-checkbox v-model="grader.divided">
                         {{ grader.name }}
                     </b-form-checkbox>
                 </div>
-                <submit-button label="Divide submissions" @click="divideAssignments" ref="submitButton" v-if="graders.length"/>
+                <submit-button label="Divide" @click="divideAssignments" ref="submitButton" v-if="graders.length"/>
                 <span v-else>No graders found for this assignment</span>
             </div>
-        </b-form-fieldset>
+        </div>
     </div>
 </template>
 

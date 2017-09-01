@@ -133,7 +133,7 @@ def test_get_grade_history(
         data_error(-1),
         data_error(11),
         data_error('err'),
-        data_error(None),
+        None,
         4,
         4.5,
     ]
@@ -141,7 +141,8 @@ def test_get_grade_history(
 @pytest.mark.parametrize(
     'feedback', [
         data_error(1),
-        data_error(None),
+        None,
+        '',
         'Goed gedaan!',
     ]
 )
@@ -213,7 +214,8 @@ def test_delete_grade_submission(
             'patch',
             f'/api/v1/submissions/{work_id}',
             200,
-            data={'grade': None},
+            data={'grade': None,
+                  'feedback': 'ww'},
             result=dict
         )
         assert res['grade'] is None
@@ -227,7 +229,7 @@ def test_delete_grade_submission(
                 'user': dict,
                 'created_at': str,
                 'grade': None,
-                'comment': '',
+                'comment': 'ww',
             }
         )
 
@@ -277,9 +279,11 @@ def test_selecting_rubric(
             'description': 'My description',
             'items': [{
                 'description': '5points',
+                'header': 'bladie',
                 'points': 5
             }, {
                 'description': '10points',
+                'header': 'bladie',
                 'points': 10,
             }]
         }, {
@@ -287,9 +291,11 @@ def test_selecting_rubric(
             'description': 'My description2',
             'items': [{
                 'description': '1points',
+                'header': 'bladie',
                 'points': 1
             }, {
                 'description': '2points',
+                'header': 'bladie',
                 'points': 2,
             }]
         }]
@@ -300,7 +306,7 @@ def test_selecting_rubric(
         rubric = test_client.req(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
-            204,
+            200,
             data=rubric
         )
         rubric = test_client.req(
@@ -336,16 +342,24 @@ def test_selecting_rubric(
             test_client.req(
                 'patch',
                 f'/api/v1/submissions/{work_id}/rubricitems/{item["id"]}',
-                error if error else 201,
-                result=error_template if error else {
-                    'rubrics': rubric,
-                    'selected': list,
-                    'points': {
-                        'max': max_points,
-                        'selected': point
-                    }
-                }
+                error if error else 204,
+                result=error_template if error else None
             )
+            with logged_in(ta_user):
+                test_client.req(
+                    'get',
+                    f'/api/v1/submissions/{work_id}/rubrics/',
+                    200,
+                    result={
+                        'rubrics': rubric,
+                        'selected': list,
+                        'points':
+                            {
+                                'max': max_points,
+                                'selected': 0 if error else point
+                            }
+                    }
+                )
 
         res = {'rubrics': rubric}
         if not error:
@@ -376,6 +390,193 @@ def test_selecting_rubric(
                 result_point / max_points * 10
             )
 
+        if not error:
+            with logged_in(ta_user):
+                rubric = test_client.req(
+                    'delete',
+                    f'/api/v1/assignments/{assignment.id}/rubrics/',
+                    204,
+                )
+            res = test_client.req(
+                'get',
+                f'/api/v1/submissions/{work_id}',
+                200 if can_get_rubric else error,
+            )
+            assert res['grade'] is None
+            res = test_client.req(
+                'get',
+                f'/api/v1/submissions/{work_id}/rubrics/',
+                200,
+            )
+            assert res['selected'] == []
+
+
+@pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
+@pytest.mark.parametrize(
+    'named_user', [
+        'Thomas Schaper',
+        perm_error(error=401)('NOT_LOGGED_IN'),
+        perm_error(error=403)('admin'),
+        perm_error(error=403)('Stupid1'),
+    ],
+    indirect=True
+)
+def test_clearing_rubric(
+    named_user, request, test_client, logged_in, error_template, ta_user,
+    assignment_real_works, session
+):
+    assignment, work = assignment_real_works
+    work_id = work['id']
+
+    perm_err = request.node.get_marker('perm_error')
+    if perm_err:
+        error = perm_err.kwargs['error']
+    else:
+        error = False
+
+    rubric = {
+        'rows': [{
+            'header': 'My header',
+            'description': 'My description',
+            'items': [{
+                'description': '5points',
+                'header': 'bladie',
+                'points': 5
+            }, {
+                'description': '10points',
+                'header': 'bladie',
+                'points': 10,
+            }]
+        }, {
+            'header': 'My header2',
+            'description': 'My description2',
+            'items': [{
+                'description': '1points',
+                'header': 'bladie',
+                'points': 1
+            }, {
+                'description': '2points',
+                'header': 'bladie',
+                'points': 2,
+            }]
+        }]
+    }  # yapf: disable
+    max_points = 12
+
+    def get_rubric_item(head, desc):
+        for row in rubric:
+            if row['header'] == head:
+                for item in row['items']:
+                    if item['description'] == desc:
+                        return item
+
+    with logged_in(ta_user):
+        rubric = test_client.req(
+            'put',
+            f'/api/v1/assignments/{assignment.id}/rubrics/',
+            200,
+            data=rubric
+        )
+        rubric = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/rubrics/',
+            200,
+            result={
+                'rubrics': rubric,
+                'selected': [],
+                'points': {
+                    'max': max_points,
+                    'selected': 0
+                }
+            }
+        )['rubrics']
+
+        to_select = get_rubric_item('My header', '10points')
+        to_select2 = get_rubric_item('My header2', '1points')
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{work_id}/rubricitems/{to_select["id"]}',
+            204,
+        )
+        test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/rubrics/',
+            200,
+            result={
+                'rubrics': rubric,
+                'selected': list,
+                'points': {
+                    'max': max_points,
+                    'selected': 10,
+                }
+            }
+        )
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{work_id}/rubricitems/{to_select2["id"]}',
+            204,
+        )
+        test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/rubrics/',
+            200,
+            result={
+                'rubrics': rubric,
+                'selected': list,
+                'points': {
+                    'max': max_points,
+                    'selected': 11,
+                }
+            }
+        )
+
+    with logged_in(ta_user):
+        res = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}',
+            200,
+        )
+        assert res['grade'] == pytest.approx(11 / max_points * 10)
+        selected = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/rubrics/',
+            200,
+        )['selected']
+        assert len(selected) == 2
+
+    with logged_in(named_user):
+        test_client.req(
+            'delete',
+            f'/api/v1/submissions/{work_id}/rubricitems/{selected[0]["id"]}',
+            error or 204,
+            result=error_template if error else None,
+        )
+        # Make sure invalid items can't be deselected
+        test_client.req(
+            'delete',
+            f'/api/v1/submissions/{work_id}/rubricitems/10000000000',
+            error or 400,
+            result=error_template,
+        )
+
+    with logged_in(ta_user):
+        res = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}',
+            200,
+        )
+        if error:
+            assert res['grade'] == pytest.approx(11 / max_points * 10)
+        else:
+            assert res['grade'] == pytest.approx(1 / max_points * 10)
+        assert len(
+            test_client.req(
+                'get',
+                f'/api/v1/submissions/{work_id}/rubrics/',
+                200,
+            )['selected']
+        ) == (2 if error else 1)
+
 
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
 def test_selecting_wrong_rubric(
@@ -389,7 +590,6 @@ def test_selecting_wrong_rubric(
     course_name,
 ):
     assignment, work = assignment_real_works
-    work_id = work['id']
     course = m.Course.query.filter_by(name=course_name).one()
 
     other_assignment = m.Assignment(name='OTHER ASSIGNMENT', course=course)
@@ -405,9 +605,11 @@ def test_selecting_wrong_rubric(
             'description': 'My description',
             'items': [{
                 'description': '5points',
+                'header': 'bladie',
                 'points': 5
             }, {
                 'description': '10points',
+                'header': 'bladie',
                 'points': 10,
             }]
         }]
@@ -417,14 +619,9 @@ def test_selecting_wrong_rubric(
         rubric = test_client.req(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
-            204,
+            200,
             data=rubric
         )
-        rubric = test_client.req(
-            'get',
-            f'/api/v1/submissions/{work_id}/rubrics/',
-            200,
-        )['rubrics']
 
         test_client.req(
             'patch',

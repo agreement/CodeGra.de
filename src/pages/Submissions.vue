@@ -14,6 +14,7 @@
             :assignment="assignment"
             :submissions="submissions"
             :canDownload="canDownload"
+            :rubric="rubric"
             @assigneeUpdated="updateAssignee"/>
 
         <b-popover
@@ -50,6 +51,7 @@ export default {
             course: null,
             canDownload: false,
             canManage: true,
+            rubric: null,
             inLTI: window.inLTI,
         };
     },
@@ -75,12 +77,20 @@ export default {
             this.$http.get(`/api/v1/courses/${this.courseId}`),
             this.$http.get(`/api/v1/assignments/${this.assignmentId}`),
             this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`),
-        ]).then(([{ data: course }, { data: assignment }, { data: submissions }]) => {
-            this.loading = false;
-
+            this.$http.get(`/api/v1/assignments/${this.assignmentId}/rubrics/`).catch(() => ({ data: null })),
+        ]).then(([
+            { data: course },
+            { data: assignment },
+            { data: submissions },
+            { data: rubric },
+        ]) => {
+            let done = false;
             this.course = course;
             this.assignment = assignment;
             this.submissions = submissions;
+            this.rubric = rubric;
+
+            setPageTitle(`${assignment.name} ${pageTitleSep} Submissions`);
 
             this.hasPermission([
                 'can_submit_own_work',
@@ -98,13 +108,17 @@ export default {
                         this.canDownload = before;
                     }
                 }
-            });
 
-            setPageTitle(`${assignment.name} ${pageTitleSep} Submissions`);
+                if (done) this.loading = false;
+                done = true;
+            });
 
             submissions.forEach((sub) => {
                 sub.created_at = moment.utc(sub.created_at, moment.ISO_8601).local().format('YYYY-MM-DD HH:mm');
             });
+
+            if (done) this.loading = false;
+            done = true;
         }, (err) => {
             // eslint-disable-next-line
             console.dir(err);

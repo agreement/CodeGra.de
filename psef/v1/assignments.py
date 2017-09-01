@@ -185,9 +185,9 @@ def get_assignment_rubric(assignment_id: int
     :returns: A list of JSON of :class:`models.RubricRows` items
 
     :raises APIException: If no assignment with given id exists.
-                          (OBJECT_ID_NOT_FOUND)
+        (OBJECT_ID_NOT_FOUND)
     :raises APIException: If the assignment has no rubric.
-                          (OBJECT_ID_NOT_FOUND)
+        (OBJECT_ID_NOT_FOUND)
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the user is not allowed to see this is
                                  assignment. (INCORRECT_PERMISSION)
@@ -205,9 +205,43 @@ def get_assignment_rubric(assignment_id: int
     return jsonify(assig.rubric_rows)
 
 
+@api.route('/assignments/<int:assignment_id>/rubrics/', methods=['DELETE'])
+@helpers.feature_required('RUBRICS')
+def delete_rubric(assignment_id: int) -> EmptyResponse:
+    """Delete the rubric for the given assignment.
+
+    .. :quickref: Assignment; Delete the rubric of an assignment.
+
+    :param assignment_id: The id of the :class:`models.Assignment` whose rubric
+        should be deleted.
+    :returns: Nothing.
+
+    :raises PermissionException: If the user does not have the
+        ``manage_rubrics`` permission (INCORRECT_PERMISSION).
+    :raises APIException: If the assignment has no rubric.
+        (OBJECT_ID_NOT_FOUND)
+    """
+    assig = helpers.get_or_404(models.Assignment, assignment_id)
+    auth.ensure_permission('manage_rubrics', assig.course_id)
+
+    if not assig.rubric_rows:
+        raise APIException(
+            'Assignment has no rubric',
+            'The assignment with id "{}" has no rubric'.format(assignment_id),
+            APICodes.OBJECT_ID_NOT_FOUND, 404
+        )
+
+    assig.rubric_rows = []
+
+    db.session.commit()
+
+    return make_empty_response()
+
+
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['PUT'])
 @helpers.feature_required('RUBRICS')
-def add_assignment_rubric(assignment_id: int) -> EmptyResponse:
+def add_assignment_rubric(assignment_id: int
+                          ) -> JSONResponse[t.Sequence[models.RubricRow]]:
     """Add or update rubric of an assignment.
 
     .. :quickref: Assignment; Add a rubric to an assignment.
@@ -235,6 +269,8 @@ def add_assignment_rubric(assignment_id: int) -> EmptyResponse:
 
     row: JSONType
     with db.session.begin_nested():
+        seen = set()
+        wrong_rows = []
         for row in rows:
             # Check for object of form:
             # {
@@ -253,14 +289,39 @@ def add_assignment_rubric(assignment_id: int) -> EmptyResponse:
             items = t.cast(list, row['items'])
 
             if 'id' in row:
-                patch_rubric_row(assig, header, description, row['id'], items)
+                seen.add(row['id'])
+                n = patch_rubric_row(
+                    assig, header, description, row['id'], items
+                )
             else:
-                add_new_rubric_row(assig, header, description, items)
+                n = add_new_rubric_row(assig, header, description, items)
+
+            if n == 0:
+                wrong_rows.append(header)
+
+        if wrong_rows:
+            single = len(wrong_rows) == 1
+            raise APIException(
+                'The row{s} {rows} do{es} not contain at least one item.'.
+                format(
+                    rows=', and '.join(wrong_rows),
+                    s='' if single else 's',
+                    es='es' if single else '',
+                ), 'Not all rows contain at least one '
+                'item after updating the rubric.', APICodes.INVALID_STATE, 400
+            )
+
+        assig.rubric_rows = list(
+            filter(
+                lambda row: row is None or row.id in seen,
+                assig.rubric_rows,
+            )
+        )
 
         db.session.flush()
         max_points = assig.max_rubric_points
 
-        if max_points <= 0:
+        if max_points is None or max_points <= 0:
             raise APIException(
                 'The max amount of points you can '
                 'score should be higher than 0',
@@ -269,7 +330,7 @@ def add_assignment_rubric(assignment_id: int) -> EmptyResponse:
             )
 
     db.session.commit()
-    return make_empty_response()
+    return jsonify(assig.rubric_rows)
 
 
 def add_new_rubric_row(
@@ -277,7 +338,7 @@ def add_new_rubric_row(
     header: str,
     description: str,
     items: t.Sequence[JSONType]
-) -> None:
+) -> int:
     """Add new rubric row to the assignment.
 
     :param assig: The assignment to add the rubric row to
@@ -285,12 +346,12 @@ def add_new_rubric_row(
     :param description: The description of the new rubric row.
     :param items: The items (:py:class:`models.RubricItem`) that should be
         added to the new rubric row, the JSONType should be a dictionary with
-        the keys ``description`` (:py:class:`str`) and ``points``
-        (:py:class:`float`).
-    :returns: Nothing.
+        the keys ``description`` (:py:class:`str`), ``header``
+        (:py:class:`str`) and ``points`` (:py:class:`float`).
+    :returns: The amount of items in this row.
 
     :raises APIException: If `description` or `points` fields are not in
-                          `item`. (INVALID_PARAM)
+        `item`. (INVALID_PARAM)
     """
     rubric_row = models.RubricRow(
         assignment_id=assig.id, header=header, description=description
@@ -298,19 +359,25 @@ def add_new_rubric_row(
     for item in items:
         item = ensure_json_dict(item)
         ensure_keys_in_dict(
-            item, [('description', str),
-                   ('points', numbers.Real)]
+            item,
+            [('description', str),
+             ('header', str),
+             ('points', numbers.Real)]
         )
         description = t.cast(str, item['description'])
+        header = t.cast(str, item['header'])
         points = t.cast(numbers.Real, item['points'])
-        rubric_row.items.append(
-            models.RubricItem(
-                rubricrow_id=rubric_row.id,
-                description=description,
-                points=points
-            )
+        rubric_item = models.RubricItem(
+            rubricrow_id=rubric_row.id,
+            header=header,
+            description=description,
+            points=points
         )
+        db.session.add(rubric_item)
+        rubric_row.items.append(rubric_item)
     db.session.add(rubric_row)
+
+    return len(items)
 
 
 def patch_rubric_row(
@@ -319,8 +386,13 @@ def patch_rubric_row(
     description: str,
     rubric_row_id: t.Any,
     items: t.Sequence[JSONType]
-) -> None:
+) -> int:
     """Update a rubric row of the assignment.
+
+    .. note::
+
+      All items not present in the given ``items`` array will be deleted from
+      the rubric row.
 
     :param models.Assignment assig: The assignment to add the rubric row to
     :param rubric_row_id: The id of the rubric row that should be updated.
@@ -328,72 +400,54 @@ def patch_rubric_row(
         added or updated. The format should be the same as in
         :py:func:`add_new_rubric_row` with the addition that if ``id`` is in
         the item the item will be updated instead of added.
-    :returns: Nothing.
+    :returns: The amount of items in the resulting row.
 
-    :raises APIException: If no rubric row with given id exists.
-                          (OBJECT_ID_NOT_FOUND)
     :raises APIException: If `description` or `points` fields are not in
-                          `item`. (INVALID_PARAM)
+        `item`. (INVALID_PARAM)
     :raises APIException: If no rubric item with given id exists.
-                          (OBJECT_ID_NOT_FOUND)
+        (OBJECT_ID_NOT_FOUND)
     """
     rubric_row = helpers.get_or_404(models.RubricRow, rubric_row_id)
 
     rubric_row.header = header
     rubric_row.description = description
 
+    seen = set()
+
     for item in items:
         item = ensure_json_dict(item)
         ensure_keys_in_dict(
-            item, [('description', str),
-                   ('points', numbers.Real)]
+            item,
+            [('description', str),
+             ('points', numbers.Real),
+             ('header', str)]
         )
         description = t.cast(str, item['description'])
+        header = t.cast(str, item['header'])
         points = t.cast(numbers.Real, item['points'])
 
-        if 'id' not in item:
-            rubric_row.items.append(
-                models.RubricItem(
-                    rubricrow_id=rubric_row.id,
-                    description=description,
-                    points=points
-                )
-            )
-        else:
+        if 'id' in item:
+            seen.add(item['id'])
             rubric_item = helpers.get_or_404(models.RubricItem, item['id'])
 
+            rubric_item.header = header
             rubric_item.description = description
             rubric_item.points = float(points)
+        else:
+            rubric_item = models.RubricItem(
+                rubricrow_id=rubric_row.id,
+                description=description,
+                header=header,
+                points=points
+            )
+            db.session.add(rubric_item)
+            rubric_row.items.append(rubric_item)
 
+    rubric_row.items = [
+        item for item in rubric_row.items if item.id is None or item.id in seen
+    ]
 
-@api.route(
-    '/assignments/<int:assignment_id>/rubrics/<int:rubric_row>',
-    methods=['DELETE']
-)
-@helpers.feature_required('RUBRICS')
-def delete_rubricrow(assignment_id: int, rubric_row: int) -> EmptyResponse:
-    """Delete rubric row of the assignment.
-
-    .. :quickref: Assignment; Delete a rubric row of an assignment.
-
-    :param int assignment_id: The id of the assignment
-    :param int rubric_row: The id of the rubric row
-    :returns: An empty response with return code 204
-
-    :raises APIException: If no rubric row with given id exists.
-                          (OBJECT_ID_NOT_FOUND)
-    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
-    :raises PermissionException: If the user is not allowed to manage rubrics.
-                                 (INCORRECT_PERMISSION)
-    """
-    row = helpers.get_or_404(models.RubricRow, rubric_row)
-
-    auth.ensure_permission('manage_rubrics', row.assignment.course_id)
-
-    db.session.delete(row)
-    db.session.commit()
-
-    return make_empty_response()
+    return len(rubric_row.items)
 
 
 @api.route("/assignments/<int:assignment_id>/submission", methods=['POST'])

@@ -118,7 +118,7 @@ export default {
 
             let title = this.assignment.name;
             if (submission.grade) {
-                title += ` (${submission.grade})`;
+                title += ` (${parseFloat(submission.grade).toFixed(2)})`;
             }
             setPageTitle(`${title} ${pageTitleSep} ${submission.created_at}`);
 
@@ -234,7 +234,7 @@ export default {
             }
             return this.$http.get(
                 `/api/v1/submissions/${this.submissionId}/rubrics/`,
-            ).then(({ data }) => data);
+            ).then(({ data }) => data).catch(() => null);
         },
 
         getFileMetadata() {

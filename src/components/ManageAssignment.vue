@@ -68,35 +68,35 @@
             </b-popover>
 
             <div class="row">
-                <divide-submissions class="col-md-6" :assignment="assignment"></divide-submissions>
-                <linters class="col-md-6" :assignment="assignment"></linters>
+                <div class="col-lg-4 divide-comp-wrapper">
+                    <h5>Divide submissions</h5>
+                    <divide-submissions :assignment="assignment"></divide-submissions>
+                </div>
+                <div class="col-lg-8 linter-comp-wrapper">
+                    <h5>Linters</h5>
+                    <linters :assignment="assignment"></linters>
+                </div>
             </div>
 
-            <div class="row" v-if="features.BLACKBOARD_ZIP_UPLOAD || features.RUBRICS">
-                <div class="col-md-6" v-if="features.BLACKBOARD_ZIP_UPLOAD">
-                    <b-form-fieldset label="Upload blackboard zip">
-                        <b-popover
-                            placement="top"
-                            :triggers="assignment.is_lti ? ['hover'] : []"
-                            content="Not available for LTI assignments">
-                            <file-uploader
-                                :url="`/api/v1/assignments/${assignment.id}/submissions/`"
-                                :disabled="assignment.is_lti"/>
-                        </b-popover>
-                    </b-form-fieldset>
-                </div>
+            <div class="col-md-12 rubric-editor-comp-wrapper" v-if="features.RUBRICS">
+                <h5>Rubric</h5>
+                    <rubric-editor :assignmentId="assignment.id"
+                                   ref="rubricEditor"
+                                   :editable="true"/>
+                </b-form-fieldset>
+            </div>
 
-                <div class="col-md-6" v-if="features.RUBRICS">
-                    <b-form-fieldset label="Misc.">
-                        <b-button-toolbar>
-                            <b-button
-                                variant="primary"
-                                @click="$emit('showRubric', assignment.id)">
-                                Rubric
-                            </b-button>
-                        </b-button-toolbar>
-                    </b-form-fieldset>
-                </div>
+            <div class="col-md-12" v-if="features.BLACKBOARD_ZIP_UPLOAD">
+                <h5>Upload blackboard zip</h5>
+                    <b-popover
+                        placement="top"
+                        :triggers="assignment.is_lti ? ['hover'] : []"
+                        content="Not available for LTI assignments">
+                        <file-uploader
+                            :url="`/api/v1/assignments/${assignment.id}/submissions/`"
+                            :disabled="assignment.is_lti"/>
+                    </b-popover>
+                </b-form-fieldset>
             </div>
         </b-collapse>
     </div>
@@ -115,6 +115,7 @@ import FileUploader from './FileUploader';
 import Linters from './Linters';
 import Loader from './Loader';
 import SubmitButton from './SubmitButton';
+import RubricEditor from './RubricEditor';
 
 import * as assignmentState from '../store/assignment-states';
 
@@ -203,6 +204,7 @@ export default {
         Loader,
         SubmitButton,
         Icon,
+        RubricEditor,
     },
 };
 </script>
@@ -256,6 +258,12 @@ export default {
     .submissions-button {
         margin-left: .75em;
     }
+}
+
+.rubric-editor-comp-wrapper,
+.linter-comp-wrapper,
+.divide-comp-wrapper {
+    margin-bottom: 1em;
 }
 
 [id^="assignment-"] {

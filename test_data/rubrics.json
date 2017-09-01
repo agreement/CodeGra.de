@@ -1,120 +1,138 @@
 [
-    {
-        "assignment": "Shell",
-        "rows": [
-            {
-                "header": "Style",
-                "description": "The style of the code is conform to the styleguide.",
-                "items": [
-                    {
-                        "description": "Expert",
-                        "points": 3
-                    },
-                    {
-                        "description": "Competent",
-                        "points": 2
-                    },
-                    {
-                        "description": "Novice",
-                        "points": 1
-                    }
-                ]
-            },
-            {
-                "header": "Documentation",
-                "description": "The documentation of the code is well written and complete.",
-                "items": [
-                    {
-                        "description": "Expert",
-                        "points": 2
-                    },
-                    {
-                        "description": "Competent",
-                        "points": 1.5
-                    },
-                    {
-                        "description": "Novice",
-                        "points": 1
-                    }
-                ]
-            },
-            {
-                "header": "Code structure",
-                "description": "The code is strutured well and logical design choices were made.",
-                "items": [
-                    {
-                        "description": "Expert",
-                        "points": 4
-                    },
-                    {
-                        "description": "Competent",
-                        "points": 2.5
-                    },
-                    {
-                        "description": "Novice",
-                        "points": 1
-                    }
-                ]
-            }
+  {
+    "assignment": "Shell",
+    "rows": [
+      {
+        "header": "Style",
+        "description": "The style of the code is conform to the styleguide.",
+        "items": [
+          {
+            "header": "Expert",
+            "description": "You know how to use some tools.",
+            "points": 3
+          },
+          {
+            "header": "Competent",
+            "description": "You don't know how to use some tools.",
+            "points": 2
+          },
+          {
+            "header": "Novice",
+            "description": "You have no style.",
+            "points": 1
+          }
         ]
-    },
-    {
-        "assignment": "Python",
-        "rows": [
-            {
-                "header": "Style",
-                "description": "The style of the code is conform to the styleguide.",
-                "items": [
-                    {
-                        "description": "Expert",
-                        "points": 3
-                    },
-                    {
-                        "description": "Competent",
-                        "points": 2
-                    },
-                    {
-                        "description": "Novice",
-                        "points": 1
-                    }
-                ]
-            },
-            {
-                "header": "Documentation",
-                "description": "The documentation of the code is well written and complete.",
-                "items": [
-                    {
-                        "description": "Expert",
-                        "points": 2
-                    },
-                    {
-                        "description": "Competent",
-                        "points": 1.5
-                    },
-                    {
-                        "description": "Novice",
-                        "points": 1
-                    }
-                ]
-            },
-            {
-                "header": "Code structure",
-                "description": "The code is strutured well and logical design choices were made.",
-                "items": [
-                    {
-                        "description": "Expert",
-                        "points": 4
-                    },
-                    {
-                        "description": "Competent",
-                        "points": 2.5
-                    },
-                    {
-                        "description": "Novice",
-                        "points": 1
-                    }
-                ]
-            }
+      },
+      {
+        "header": "Documentation",
+        "description": "The documentation of the code is well written and complete.",
+        "items": [
+          {
+            "header": "Expert",
+            "description": "You typed a lot of things.",
+            "points": 2
+          },
+          {
+            "header": "Competent",
+            "description": "You typed a lot of things, some wrong.",
+            "points": 1.5
+          },
+          {
+            "header": "Novice",
+            "description": "You typed a lot of wrong things.",
+            "points": 1
+          }
         ]
-    }
+      },
+      {
+        "header": "Code structure",
+        "description": "The code is strutured well and logical design choices were made.",
+        "items": [
+          {
+            "header": "Expert",
+            "description": "You know to use enter and space.",
+            "points": 4
+          },
+          {
+            "header": "Competent",
+            "description": "You know to use enter but not space.",
+            "points": 2.5
+          },
+          {
+            "header": "Novice",
+            "description": "You don't know to use enter or space.",
+            "points": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "assignment": "Python",
+    "rows": [
+      {
+        "header": "Style",
+        "description": "The style of the code is conform to the styleguide.",
+        "items": [
+          {
+            "header": "Expert",
+            "description": "You read the style guide.",
+            "points": 3
+          },
+          {
+            "header": "Competent",
+            "description": "You skimmed the style guide.",
+            "points": 2
+          },
+          {
+            "header": "Novice",
+            "description": "You didn't read the style guide.",
+            "points": 1
+          }
+        ]
+      },
+      {
+        "header": "Documentation",
+        "description": "The documentation of the code is well written and complete.",
+        "items": [
+          {
+            "header": "Expert",
+            "description": "You typed a lot of things.",
+            "points": 2
+          },
+          {
+            "header": "Competent",
+            "description": "You typed a lot of things, some wrong.",
+            "points": 1.5
+          },
+          {
+            "header": "Novice",
+            "description": "You typed a lot of wrong things.",
+            "points": 1
+          }
+        ]
+      },
+      {
+        "header": "Code structure",
+        "description": "The code is strutured well and logical design choices were made.",
+        "items": [
+          {
+            "header": "Expert",
+            "description": "You know to use enter and space.",
+            "points": 4
+          },
+          {
+            "header": "Competent",
+            "description": "You know to use enter but not space.",
+            "points": 2.5
+          },
+          {
+            "header": "Novice",
+            "description": "You don't know to use enter or space.",
+            "points": 1
+          }
+        ]
+      }
+    ]
+  }
 ]

@@ -23,16 +23,6 @@
                     </b-list-group-item>
                 </b-list-group>
             </b-collapse>
-
-            <b-modal
-                class="rubric-modal"
-                size="lg"
-                :visible="!!this.assignmentId"
-                @hidden="assignmentId = null">
-                <rubric-editor
-                    :assignmentId="assignmentId"/>
-            </b-modal>
-
         </div>
 
         <div class="collapse-wrapper">
@@ -54,7 +44,6 @@
 import UsersManager from './UsersManager';
 import PermissionsManager from './PermissionsManager';
 import ManageAssignment from './ManageAssignment';
-import RubricEditor from './RubricEditor';
 
 export default {
     name: 'manage-course',
@@ -99,21 +88,12 @@ export default {
     },
 
     components: {
-        RubricEditor,
         ManageAssignment,
         UsersManager,
         PermissionsManager,
     },
 };
 </script>
-
-<style lang="less">
-@media (min-width: 992px) {
-    .rubric-modal .modal-lg {
-        max-width: 1280px;
-    }
-}
-</style>
 
 <style lang="less" scoped>
 .collapse-wrapper {

@@ -163,7 +163,8 @@ def test_data():
                             ).exists()
                         ).scalar():
                             rubric_item = m.RubricItem(
-                                description=item['description'],
+                                description=item['description'] * 5,
+                                header=item['header'],
                                 points=item['points'],
                                 rubricrow=rubric_row
                             )

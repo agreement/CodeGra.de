@@ -3,8 +3,7 @@
     <div class="row justify-content-md-center" v-if="loading">
         <loader/>
     </div>
-    <div class="" v-else>
-        <div class="col-6">Linters</div>
+    <div v-else>
         <table class="table table-striped">
             <thead>
                 <tr>

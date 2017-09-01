@@ -16,11 +16,28 @@
             </b-input-group>
         </b-form-fieldset>
 
-        <submissions-exporter v-if="canDownload && submissions.length"
-          :table="getTable"
-          :filename="exportFilename">
-            Export feedback
-        </submissions-exporter>
+        <div>
+            <submit-button label="Show Rubric"
+                           @click="showRubricModal = !showRubricModal"
+                           style="float: right;"
+                           v-if="rubric"/>
+            <submissions-exporter v-if="canDownload && submissions.length"
+                                  :table="getTable"
+                                  :filename="exportFilename">
+                Export feedback
+            </submissions-exporter>
+        </div>
+
+        <b-modal v-if="rubric"
+                 v-model="showRubricModal"
+                 :ok-only="true"
+                 ok-title="Close"
+                 :hide-header="true">
+            <rubric-editor :editable="false"
+                           :defaultRubric="rubric"
+                           :assignmentId="assignment.id"/>
+        </b-modal>
+
 
         <b-table striped hover
             ref="table"
@@ -67,6 +84,8 @@
 import { mapActions, mapGetters } from 'vuex';
 import SubmissionsExporter from './SubmissionsExporter';
 import Loader from './Loader';
+import SubmitButton from './SubmitButton';
+import RubricEditor from './RubricEditor';
 
 export default {
     name: 'submission-list',
@@ -84,10 +103,14 @@ export default {
             type: Boolean,
             default: false,
         },
+        rubric: {
+            default: null,
+        },
     },
 
     data() {
         return {
+            showRubricModal: false,
             latestOnly: this.$route.query.latest !== 'false',
             mineOnly: this.$route.query.mine !== 'false',
             currentPage: 1,
@@ -251,6 +274,8 @@ export default {
 
     components: {
         Loader,
+        SubmitButton,
+        RubricEditor,
         SubmissionsExporter,
     },
 };
@@ -282,5 +307,10 @@ export default {
 
 .submissions-table td .loader {
     padding: 0.7rem;
+}
+
+.modal-dialog.modal-md {
+    max-width: 1550px;
+    width: 100%;
 }
 </style>

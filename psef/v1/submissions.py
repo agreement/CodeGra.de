@@ -202,20 +202,56 @@ def get_rubric(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
 
 
 @api.route(
+    '/submissions/<int:submission_id>/rubricitems/<int:rubric_item_id>',
+    methods=['DELETE']
+)
+@helpers.feature_required('RUBRICS')
+def unselect_rubric_items(
+    submission_id: int, rubric_item_id: int
+) -> EmptyResponse:
+    """Unselect the given rubric item for the given submission.
+
+    .. :quickref: Submission; Unselect the given rubric item.
+
+    :param submission_id: The submission to unselect the item for.
+    :param rubric_item_id: The rubric items id to unselect.
+    :returns: Nothing.
+    """
+    submission = helpers.get_or_404(models.Work, submission_id)
+
+    auth.ensure_permission('can_grade_work', submission.assignment.course_id)
+
+    new_items = [
+        item for item in submission.selected_items if item.id != rubric_item_id
+    ]
+    if len(new_items) == len(submission.selected_items):
+        raise APIException(
+            'Selected rubric item was not selected for this submission',
+            f'The item {rubric_item_id} is not selected for {submission_id}',
+            APICodes.INVALID_PARAM, 400
+        )
+
+    submission.selected_items = new_items
+    db.session.commit()
+
+    return make_empty_response()
+
+
+@api.route(
     "/submissions/<int:submission_id>/rubricitems/<int:rubricitem_id>",
     methods=['PATCH']
 )
-def select_rubric_item(submission_id: int, rubricitem_id: int
-                       ) -> JSONResponse[t.Mapping[str, t.Any]]:
+@helpers.feature_required('RUBRICS')
+def select_rubric_item(
+    submission_id: int, rubricitem_id: int
+) -> EmptyResponse:
     """Select a rubric item of the given submission (:class:`.models.Work`).
 
     .. :quickref: Submission; Select a rubric item.
 
     :param int submission_id: The id of the submission
     :param int rubricitem_id: The id of the rubric item
-    :returns: A response containing the JSON serialized rubric and a status
-        code of 201. The rubric is serialized as described in
-        :py:meth:`.Work.__rubric_to_json__()`.
+    :returns: Nothing.
 
     :raises APIException: If either the submission or rubric item with the
                           given ids does not exist. (OBJECT_ID_NOT_FOUND)
@@ -240,7 +276,7 @@ def select_rubric_item(submission_id: int, rubricitem_id: int
     work.select_rubric_item(rubric_item, current_user)
     db.session.commit()
 
-    return jsonify(work.__rubric_to_json__(), status_code=201)
+    return make_empty_response()
 
 
 @api.route("/submissions/<int:submission_id>", methods=['PATCH'])
@@ -253,11 +289,9 @@ def patch_submission(submission_id: int) -> JSONResponse[models.Work]:
     :param int submission_id: The id of the submission
     :returns: Empty response with return code 204
 
-    :>json float grade: The new grade, if this is not `null` it should be a
-        float and feedback is then also required. If it is `null` the grade
-        will be cleared or reset to the rubric grade.
-    :>json str feedback: The feedback for the student. This is required if
-        grade is not `null`, it will be ignored if grade is `null`.
+    :>json float grade: The new grade, this can be null or float where null
+        resets the grade or clears it. This field is optional
+    :>json str feedback: The feedback for the student. This field is optional.
 
     :raise APIException: If the submission with the given id does not exist
         (OBJECT_ID_NOT_FOUND)
@@ -272,17 +306,17 @@ def patch_submission(submission_id: int) -> JSONResponse[models.Work]:
 
     auth.ensure_permission('can_grade_work', work.assignment.course_id)
 
-    if 'grade' in content and content['grade'] is None:
-        work.set_grade(None, current_user)
-    else:
-        ensure_keys_in_dict(
-            content, [('grade', numbers.Real),
-                      ('feedback', str)]
-        )
+    if 'feedback' in content:
+        ensure_keys_in_dict(content, [('feedback', str)])
         feedback = t.cast(str, content['feedback'])
-        grade = float(t.cast(numbers.Real, content['grade']))
 
-        if not 0 <= grade <= 10:
+        work.comment = feedback
+
+    if 'grade' in content:
+        ensure_keys_in_dict(content, [('grade', (numbers.Real, type(None)))])
+        grade = t.cast(t.Optional[float], content['grade'])
+
+        if not (grade is None or (0 <= float(grade) <= 10)):
             raise APIException(
                 'Grade submitted not between 0 and 10',
                 f'Grade for work with id {submission_id} '
@@ -291,7 +325,6 @@ def patch_submission(submission_id: int) -> JSONResponse[models.Work]:
             )
 
         work.set_grade(grade, current_user)
-        work.comment = feedback
 
     db.session.commit()
     return jsonify(work)

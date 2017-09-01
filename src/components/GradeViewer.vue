@@ -7,7 +7,6 @@
                 :editable="editable"
                 :submission="submission"
                 :rubric="rubric"
-                @gradeUpdated="gradeUpdated"
                 ref="rubricViewer">
             </rubric-viewer>
         </b-collapse>
@@ -24,21 +23,30 @@
                                   max="10"
                                   :disabled="!editable"
                                   placeholder="Grade"
-                                  @keyup.enter="putFeedback"
-                                  v-model="grade"
-                                  v-if="!showRubric"/>
-                    <b-form-input class="text-right"
-                                  :disabled="!editable"
-                                  v-model="gradeAndRubricPoints"
-                                  v-else/>
-                    <b-input-group-button v-if="editable && grade">
-                        <b-popover triggers="hover" placement="top" :content="showRubric ?
-                                                                              'Reset the grade to the grade from the rubric' :
-                                                                              'Delete grade'">
+                                  @keydown.native.enter="putFeedback"
+                                  v-model="grade"/>
+
+                    <div :class="`text-right input-group-addon
+                                 ${rubricOverridden ? 'rubric-overridden' : ''}`"
+                         style="text-align: center !important; display: inline;"
+                         v-if="showRubric">
+                        <b-popover triggers="click"
+                                   placement="top"
+                                   content="Rubric grade was overridden."
+                                   v-if="rubricOverridden">
+                            {{ rubricScore }}
+                        </b-popover>
+                        <span v-else>{{ rubricScore }}</span>
+                    </div>
+                    <b-input-group-button class="delete-button-group">
+                        <b-popover :triggers="showDeleteButton ? 'hover' : ''" placement="top" :content="deleteButtonText">
                             <submit-button @click="deleteGrade"
                                            ref="deleteButton"
                                            default="danger"
-                                           label='✖'/>
+                                           :disabled="!showDeleteButton"
+                                           class="delete-button"
+                                           style="height: 100%;"
+                                           :label="rubricOverridden ? '↩' : '✖'"/>
                         </b-popover>
                     </b-input-group-button>
 
@@ -79,6 +87,7 @@
 <script>
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/bars';
+import 'vue-awesome/icons/info';
 import 'vue-awesome/icons/refresh';
 import { mapActions, mapGetters } from 'vuex';
 import RubricViewer from './RubricViewer';
@@ -112,14 +121,46 @@ export default {
             feedback: this.submission.comment,
             grade: this.submission.grade,
             rubricPoints: {},
-            gradeAndRubricPoints: '',
+            rubricHasSelectedItems: false,
             gradeHistory: false,
         };
     },
 
     computed: {
+        deleteButtonText() {
+            if (this.showRubric) {
+                if (this.rubricOverridden) {
+                    return 'Reset the grade to the grade from the rubric';
+                }
+                return 'Clear the rubric';
+            }
+            return 'Delete grade';
+        },
+        showDeleteButton() {
+            if (!this.editable) {
+                return false;
+            }
+            if (this.showRubric) {
+                return this.rubricHasSelectedItems || this.rubricOverridden;
+            }
+            return this.grade !== null;
+        },
         showRubric() {
             return this.rubric && this.rubric.rubrics.length;
+        },
+
+        rubricOverridden() {
+            if (!this.showRubric || this.grade === null) {
+                return false;
+            }
+            const rubricGrade = ((this.rubricPoints.selected / this.rubricPoints.max)
+                                 * 10)
+                  .toFixed(2);
+            return this.grade !== rubricGrade;
+        },
+
+        rubricScore() {
+            return `${this.rubricPoints.selected} / ${this.rubricPoints.max}`;
         },
     },
 
@@ -136,12 +177,11 @@ export default {
         },
 
         rubricPoints({ selected, max, grade }) {
-            if (grade) this.grade = Number(grade.toFixed(2));
-            this.gradeAndRubricPoints = `${this.grade} ( ${selected} / ${max} )`;
-        },
-
-        gradeAndRubricPoints(value) {
-            this.grade = parseFloat(value);
+            this.grade = grade ? parseFloat(grade).toFixed(2) : grade;
+            this.rubricHasSelectedItems = this.$refs.rubricViewer.hasSelectedItems;
+            this.rubricSelected = selected;
+            this.rubricTotal = max;
+            this.gradeUpdated();
         },
     },
 
@@ -180,9 +220,16 @@ export default {
         },
 
         deleteGrade() {
-            const req = this.$http.patch(`/api/v1/submissions/${this.submission.id}`, { grade: null });
+            let req;
+            if (this.showRubric && !this.rubricOverridden) {
+                req = this.$refs.rubricViewer.clearSelected().then(() => ({
+                    data: { grade: null },
+                }));
+            } else {
+                req = this.$http.patch(`/api/v1/submissions/${this.submission.id}`, { grade: null });
+            }
             req.then(({ data }) => {
-                this.grade = data.grade;
+                this.grade = data.grade ? parseFloat(data.grade).toFixed(2) : data.grade;
                 this.gradeUpdated(data.grade);
             });
             this.$refs.deleteButton.submit(req.catch((err) => {
@@ -197,12 +244,14 @@ export default {
                 return;
             }
 
+            const overrideGrade = this.rubricOverridden || !this.showRubric;
+
             const req = this.$http.patch(`/api/v1/submissions/${this.submission.id}`, {
-                grade,
+                grade: overrideGrade ? grade : null,
                 feedback: this.feedback || '',
             });
             req.then(() => {
-                this.grade = grade;
+                if (overrideGrade) this.grade = grade;
                 this.gradeUpdated(grade);
             });
             this.$refs.submitButton.submit(req.catch((err) => {
@@ -238,10 +287,22 @@ textarea {
         cursor: text;
     }
 }
+
+.rubric-overridden {
+    background: fade(#f0ad4e, 50%) !important;
+    cursor: help;
+}
 </style>
 
 <style lang="less">
 .grade-viewer .grade-submit .loader {
     height: 1.25rem;
+}
+
+.grade-viewer .delete-button-group > div {
+    height: 100%;
+    .delete-button button {
+        height: 100%;
+    }
 }
 </style>

@@ -15,6 +15,53 @@ http_err = pytest.mark.http_err
 perm_error = pytest.mark.perm_error
 
 
+@pytest.fixture
+def original_rubric_data():
+    yield {
+        'rows':
+            [
+                {
+                    'header':
+                        'My header',
+                    'description':
+                        'My description',
+                    'items':
+                        [
+                            {
+                                'description': 'item description',
+                                'header': 'header',
+                                'points': 5,
+                            }, {
+                                'description': 'item description',
+                                'header': 'header',
+                                'points': 4,
+                            }
+                        ]
+                }
+            ]
+    }
+
+
+@pytest.fixture
+def rubric(logged_in, ta_user, test_client, original_rubric_data, assignment):
+    with logged_in(ta_user):
+        original = original_rubric_data
+        yield test_client.req(
+            'put',
+            f'/api/v1/assignments/{assignment.id}/rubrics/',
+            200,
+            data=original,
+            result=[
+                {
+                    'header': original['rows'][0]['header'],
+                    'description': original['rows'][0]['description'],
+                    'id': int,
+                    'items': list,
+                }
+            ]
+        )
+
+
 @pytest.mark.parametrize(
     'named_user,hidden', [
         ('Thomas Schaper', True),
@@ -241,108 +288,136 @@ err400 = http_err(error=400)
 
 
 @pytest.mark.parametrize(
-    'original', [
-        {
-            'rows':
-                [
-                    {
-                        'header':
-                            'My header',
-                        'description':
-                            'My description',
-                        'items':
-                            [
-                                {
-                                    'description': 'item description',
-                                    'points': 5,
-                                }
-                            ]
-                    }
-                ]
-        }
-    ]
+    'item_description', [err400(None), 'new idesc',
+                         err400(5)]
 )
-@pytest.mark.parametrize('item_description', [None, 'new idesc', err400(5)])
-@pytest.mark.parametrize('item_points', [None, 5.3, 11, err400('Wow')])
-@pytest.mark.parametrize('row_description', [None, 'new rdesc', err400(5)])
-@pytest.mark.parametrize('row_header', [None, 'new rheader', err400(5)])
-@pytest.mark.parametrize('update_item', [True, False])
-def test_update_rubric_row(
+@pytest.mark.parametrize('item_header', [err400(None), 'new ihead', err400(5)])
+@pytest.mark.parametrize('item_points', [err400(None), 5.3, 11, err400('Wow')])
+@pytest.mark.parametrize(
+    'row_description', [err400(None), 'new rdesc',
+                        err400(5)]
+)
+@pytest.mark.parametrize(
+    'row_header', [err400(None), 'new rheader',
+                   err400(5)]
+)
+def test_add_rubric_row(
     item_description, item_points, row_description, row_header, assignment,
-    ta_user, logged_in, test_client, error_template, request, original,
-    update_item
+    ta_user, logged_in, test_client, error_template, request, item_header,
+    rubric
 ):
     row = {}
     if row_header is not None:
         row['header'] = row_header
     if row_description is not None:
         row['description'] = row_description
+
     item = {}
+    if item_header is not None:
+        item['header'] = item_header
     if item_description is not None:
         item['description'] = item_description
     if item_points is not None:
         item['points'] = item_points
+
+    row['items'] = [item, item]
+
     marker = request.node.get_marker('http_err')
-    code = 204 if marker is None else marker.kwargs['error']
+    code = 200 if marker is None else marker.kwargs['error']
+
     with logged_in(ta_user):
-        test_client.req(
+        data = test_client.req(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
-            204,
-            data=original
+            status_code=code,
+            data={'rows': rubric + [row]},
+            result=error_template if marker else rubric + [dict],
         )
-        res = test_client.req(
-            'get',
-            f'/api/v1/assignments/{assignment.id}/rubrics/',
-            200,
-            result=[
-                {
-                    'header': original['rows'][0]['header'],
-                    'description': original['rows'][0]['description'],
-                    'id': int,
-                    'items': list,
-                }
-            ]
-        )
-        orig_row = res[0]
-        res = copy.deepcopy(res)
-        orig_items = orig_row['items']
-        if update_item:
-            orig_items[0].update(item)
+        if marker is None:
+            assert len(data) == len(rubric) + 1
+            assert data[-1]['header'] == row_header
+            assert data[-1]['description'] == row_description
+            assert len(data[-1]['items']) == 2
+            assert data[-1]['items'][0]['id'] > 0
+            assert data[-1]['items'][0]['points'] == item_points
         else:
-            if item_points is None or item_description is None:
-                marker = True
-                code = 400
-            orig_items[0]['points'] = 6
-            orig_items.append(item)
-        orig_row.update(row)
-        orig_items = orig_items
-        test_client.req(
+            test_client.req(
+                'get',
+                f'/api/v1/assignments/{assignment.id}/rubrics/',
+                status_code=200,
+                result=rubric,
+            )
+
+
+@pytest.mark.parametrize(
+    'item_description', [err400(None), 'new idesc',
+                         err400(5)]
+)
+@pytest.mark.parametrize('item_header', [err400(None), 'new ihead', err400(5)])
+@pytest.mark.parametrize('item_points', [err400(None), 5.3, 11, err400('Wow')])
+@pytest.mark.parametrize('row_description', [None, 'new rdesc', err400(5)])
+@pytest.mark.parametrize('row_header', [None, 'new rheader', err400(5)])
+def test_update_rubric_row(
+    item_description, item_points, row_description, row_header, assignment,
+    ta_user, logged_in, test_client, error_template, request, item_header,
+    rubric
+):
+    row = {}
+    if row_header is not None:
+        row['header'] = row_header
+    if row_description is not None:
+        row['description'] = row_description
+
+    item = {}
+    if item_header is not None:
+        item['header'] = item_header
+    if item_description is not None:
+        item['description'] = item_description
+    if item_points is not None:
+        item['points'] = item_points
+
+    row['items'] = [item, item]
+
+    marker = request.node.get_marker('http_err')
+    code = 200 if marker is None else marker.kwargs['error']
+
+    with logged_in(ta_user):
+        new_rubric = copy.deepcopy(rubric)
+        new_rubric[0].update(row)
+
+        data = test_client.req(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
-            code,
-            data={'rows': [orig_row]},
+            status_code=code,
+            data={'rows': new_rubric},
+            result=error_template if marker else [dict],
         )
-        if 'id' not in orig_items[-1]:
-            orig_items[-1]['id'] = int
-        test_client.req(
-            'get',
-            f'/api/v1/assignments/{assignment.id}/rubrics/',
-            200,
-            result=[
-                {
-                    'header': orig_row['header'],
-                    'description': orig_row['description'],
-                    'id': orig_row['id'],
-                    'items': orig_items,
-                }
-            ] if marker is None else res,
-        )
+        if marker is None:
+            assert len(data) == len(rubric)
+            assert data[0]['header'] == row_header or rubric[0]['header']
+            assert data[0]['description'
+                           ] == row_description or rubric[0]['description']
+            assert len(data[0]['items']) == 2
+            assert data[0]['items'][0]['id'] > 0
+            assert data[0]['items'][0]['points'] == item_points
+            assert data[0]['items'][0]['header'] == item_header
+            assert data[0]['items'][0]['description'] == item_description
+        else:
+            test_client.req(
+                'get',
+                f'/api/v1/assignments/{assignment.id}/rubrics/',
+                status_code=200,
+                result=rubric,
+            )
 
 
 @pytest.mark.parametrize(
     'item_description', [err400(None), 'You did well',
                          err400(5)]
+)
+@pytest.mark.parametrize(
+    'item_header', [err400(None), 'You very well',
+                    err400(5)]
 )
 @pytest.mark.parametrize(
     'item_points', [err400(None), 5.3, 5, 11,
@@ -358,7 +433,7 @@ def test_update_rubric_row(
 )
 def test_get_and_add_rubric_row(
     item_description, item_points, row_description, row_header, assignment,
-    ta_user, logged_in, test_client, error_template, request
+    ta_user, logged_in, test_client, error_template, request, item_header
 ):
     row = {}
     if row_header is not None:
@@ -366,6 +441,8 @@ def test_get_and_add_rubric_row(
     if row_description is not None:
         row['description'] = row_description
     item = {}
+    if item_header is not None:
+        item['header'] = item_header
     if item_description is not None:
         item['description'] = item_description
     if item_points is not None:
@@ -374,8 +451,28 @@ def test_get_and_add_rubric_row(
         if item is not None:
             row['items'] = [item]
         marker = request.node.get_marker('http_err')
-        code = 204 if marker is None else marker.kwargs['error']
-        res = None if marker is None else error_template
+        code = 200 if marker is None else marker.kwargs['error']
+        res = [
+            {
+                'id':
+                    int,
+                'header':
+                    row['header'],
+                'description':
+                    row['description'],
+                'items':
+                    [
+                        {
+                            'id': int,
+                            'description': item['description'],
+                            'header': item['header'],
+                            'points': item['points'],
+                        }
+                    ],
+            }
+        ] if marker is None else error_template
+        res = res if marker is None else error_template
+
         with logged_in(ta_user):
             test_client.req(
                 'put',
@@ -384,24 +481,6 @@ def test_get_and_add_rubric_row(
                 result=res,
                 data={'rows': [row]}
             )
-            res = [
-                {
-                    'id':
-                        int,
-                    'header':
-                        row['header'],
-                    'description':
-                        row['description'],
-                    'items':
-                        [
-                            {
-                                'id': int,
-                                'description': item['description'],
-                                'points': item['points'],
-                            }
-                        ]
-                }
-            ] if marker is None else error_template
             test_client.req(
                 'get',
                 f'/api/v1/assignments/{assignment.id}/rubrics/',
@@ -411,76 +490,49 @@ def test_get_and_add_rubric_row(
 
 
 @pytest.mark.parametrize(
-    'named_user', ['Thomas Schaper',
-                   http_err(error=403)('Stupid1')],
+    'named_user', [
+        'Thomas Schaper',
+        http_err(error=403)('Stupid1'),
+        http_err(error=401)('NOT_LOGGED_IN')
+    ],
     indirect=True
 )
-def test_delete_rubric_row(
-    named_user, test_client, ta_user, logged_in, assignment, request,
-    error_template
+def test_delete_rubric(
+    assignment, named_user, logged_in, test_client, error_template, request,
+    ta_user, rubric
 ):
-    rubrics = []
-    to_add = 2
-    for i in range(to_add):
-        rubrics.append(
-            {
-                'header':
-                    f'My header {i}',
-                'description':
-                    f'My description {i}',
-                'items':
-                    [
-                        {
-                            'description': f'item description {i}',
-                            'points': 5 * (i + to_add),
-                        }, {
-                            'description': f'item description-2 {i}',
-                            'points': 6 * (i + to_add),
-                        }
-                    ]
-            }
-        )
-    with logged_in(ta_user):
-        test_client.req(
-            'put',
-            f'/api/v1/assignments/{assignment.id}/rubrics/',
-            204,
-            data={'rows': rubrics}
-        )
-        res = test_client.req(
-            'get',
-            f'/api/v1/assignments/{assignment.id}/rubrics/',
-            200,
-        )
-        assert len(res) == len(rubrics)
-        for rubric, res_rubric in zip(rubrics, res):
-            assert len(rubric['items']) == len(res_rubric['items'])
-            assert rubric['header'] == res_rubric['header']
-        assert len(res) == to_add == len(rubrics)
-        rubrics = res
-
     marker = request.node.get_marker('http_err')
+    code = 204 if marker is None else marker.kwargs['error']
 
-    for i in range(2):
+    with logged_in(named_user):
+        test_client.req(
+            'delete',
+            f'/api/v1/assignments/{assignment.id}/rubrics/',
+            code,
+            result=marker if marker is None else error_template,
+        )
+    if marker is None:
         with logged_in(named_user):
-            test_client.req(
-                'delete',
-                f'/api/v1/assignments/'
-                f'{assignment.id}/rubrics/{rubrics[0]["id"]}',
-                204 if marker is None else marker.kwargs['error'],
-            )
-            if marker is None and rubrics:
-                rubrics.pop(0)
             test_client.req(
                 'get',
                 f'/api/v1/assignments/{assignment.id}/rubrics/',
-                200 if rubrics else 404,
-                result=rubrics if rubrics else error_template
+                404,
+                result=error_template,
             )
-    if marker is None:
-        assert not rubrics
+            test_client.req(
+                'delete',
+                f'/api/v1/assignments/{assignment.id}/rubrics/',
+                404,
+                result=error_template,
+            )
     else:
-        assert len(rubrics) == to_add
+        with logged_in(ta_user):
+            test_client.req(
+                'get',
+                f'/api/v1/assignments/{assignment.id}/rubrics/',
+                200,
+                result=rubric
+            )
 
 
 @pytest.mark.parametrize(
@@ -500,14 +552,18 @@ def test_update_add_rubric_wrong_permissions(
 ):
     marker = request.node.get_marker('http_err')
     rubric = {
-        'header': f'My header',
-        'description': f'My description',
-        'items': [
-            {
-                'description': f'item description',
-                'points': 2,
-            },
-        ]
+        'header':
+            f'My header',
+        'description':
+            f'My description',
+        'items':
+            [
+                {
+                    'header': 'The header',
+                    'description': f'item description',
+                    'points': 2,
+                },
+            ]
     }
     with logged_in(named_user):
         res = test_client.req(
@@ -522,10 +578,10 @@ def test_update_add_rubric_wrong_permissions(
             if marker.kwargs['error'] == 401 else APICodes.INCORRECT_PERMISSION
         )
     with logged_in(ta_user):
-        res = test_client.req(
+        rubric = test_client.req(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
-            204,
+            200,
             data={'rows': [rubric]}
         )
     with logged_in(named_user):
@@ -539,6 +595,13 @@ def test_update_add_rubric_wrong_permissions(
         res['code'] = (
             APICodes.NOT_LOGGED_IN
             if marker.kwargs['error'] == 401 else APICodes.INCORRECT_PERMISSION
+        )
+    with logged_in(ta_user):
+        test_client.req(
+            'get',
+            f'/api/v1/assignments/{assignment.id}/rubrics/',
+            200,
+            result=rubric
         )
 
 
@@ -617,6 +680,42 @@ def test_creating_wrong_rubric(
             404,
             result=error_template,
         )
+        rubric = {
+            'rows': [{
+                'header': 'My header',
+                'description': 'My description',
+                'items': []
+            }]
+        }  # yapf: disable
+        test_client.req(
+            'put',
+            f'/api/v1/assignments/{assig_id}/rubrics/',
+            400,
+            data=rubric,
+            result=error_template,
+        )
+        test_client.req(
+            'get',
+            f'/api/v1/assignments/{assig_id}/rubrics/',
+            404,
+            result=error_template,
+        )
+        rubric = {
+            'rows': []
+        }  # yapf: disable
+        test_client.req(
+            'put',
+            f'/api/v1/assignments/{assig_id}/rubrics/',
+            400,
+            data=rubric,
+            result=error_template,
+        )
+        test_client.req(
+            'get',
+            f'/api/v1/assignments/{assig_id}/rubrics/',
+            404,
+            result=error_template,
+        )
 
 
 def test_updating_wrong_rubric(
@@ -637,23 +736,20 @@ def test_updating_wrong_rubric(
                 'description': 'My description',
                 'items': [{
                     'description': '5points',
+                    'header': 'head5',
                     'points': 5
                 }, {
                     'description': '10points',
+                    'header': 'head10',
                     'points': 10,
                 }]
             }]
         }  # yapf: disable
-        test_client.req(
+        rubric = test_client.req(
             'put',
             f'/api/v1/assignments/{assig_id}/rubrics/',
-            204,
-            data=rubric,
-        )
-        rubric = test_client.req(
-            'get',
-            f'/api/v1/assignments/{assig_id}/rubrics/',
             200,
+            data=rubric,
         )
         server_rubric = copy.deepcopy(rubric)
 

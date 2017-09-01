@@ -1679,7 +1679,10 @@ class Assignment(Base):
     )
 
     rubric_rows = db.relationship(
-        'RubricRow', backref=db.backref('assignment')
+        'RubricRow',
+        backref=db.backref('assignment'),
+        cascade='delete-orphan, delete',
+        order_by="RubricRow.created_at"
     )  # type: t.MutableSequence['RubricRow']
 
     # This variable is available through a backref
@@ -1899,8 +1902,11 @@ class RubricRow(Base):
     )
     header: str = db.Column('header', db.Unicode)
     description: str = db.Column('description', db.Unicode, default='')
+    created_at: datetime.datetime = db.Column(
+        db.DateTime, default=datetime.datetime.utcnow
+    )
     items = db.relationship(
-        "RubricItem", backref="rubricrow"
+        "RubricItem", backref="rubricrow", cascade='delete-orphan, delete'
     )  # type: t.MutableSequence[RubricItem]
 
     # This is for the type checker and is available because of a backref.
@@ -1931,6 +1937,7 @@ class RubricItem(Base):
         'Rubricrow_id', db.Integer,
         db.ForeignKey('RubricRow.id', ondelete='CASCADE')
     )
+    header: str = db.Column('header', db.Unicode, default='')
     description: str = db.Column('description', db.Unicode, default='')
     points: float = db.Column('points', db.Float)
 
@@ -1943,6 +1950,7 @@ class RubricItem(Base):
         return {
             'id': self.id,
             'description': self.description,
+            'header': self.header,
             'points': self.points,
         }
 

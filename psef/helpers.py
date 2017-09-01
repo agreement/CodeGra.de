@@ -170,7 +170,8 @@ def get_or_404(model: t.Type[Y], object_id: t.Any) -> Y:
 
 
 def ensure_keys_in_dict(
-    mapping: t.Mapping[T, t.Any], keys: t.Sequence[t.Tuple[T, t.Type]]
+    mapping: t.Mapping[T, t.Any],
+    keys: t.Sequence[t.Tuple[T, t.Union[t.Type, t.Tuple[t.Type, ...]]]]
 ) -> None:
     """Ensure that the given keys are in the given mapping.
 
@@ -183,6 +184,13 @@ def ensure_keys_in_dict(
     :raises psef.errors.APIException: If a key from ``keys`` is missing in
         ``mapping`` (MISSING_REQUIRED_PARAM)
     """
+
+    def _get_type_name(t: t.Union[t.Type, t.Tuple[t.Type, ...]]) -> str:
+        if isinstance(t, tuple):
+            return ', '.join(ty.__name__ for ty in t)
+        else:
+            return t.__name__
+
     missing: t.List[t.Union[T, str]] = []
     type_wrong = False
     for key, check_type in keys:
@@ -192,13 +200,15 @@ def ensure_keys_in_dict(
               ) or (check_type == int and isinstance(mapping[key], bool)):
             missing.append(
                 f'{str(key)} was of wrong type'
-                f' (should be a "{check_type.__name__}"'
+                f' (should be a "{_get_type_name(check_type)}"'
                 f', was a "{type(mapping[key]).__name__}")'
             )
             type_wrong = True
     if missing:
         msg = 'The given object does not contain all required keys'
-        key_type = ', '.join(f"\'{k[0]}\': {k[1].__name__}" for k in keys)
+        key_type = ', '.join(
+            f"\'{k[0]}\': {_get_type_name(k[1])}" for k in keys
+        )
         raise psef.errors.APIException(
             msg + (' or the type was wrong' if type_wrong else ''),
             '"{}" is missing required keys "{}" of all required keys "{}{}{}"'.
