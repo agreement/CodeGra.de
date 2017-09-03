@@ -1,8 +1,7 @@
 <template>
     <div id="app">
         <nav-bar></nav-bar>
-        <div v-if="loading"></div>
-        <main class="container-fluid" v-else>
+        <main class="container-fluid">
             <div class="row justify-content-center">
                 <router-view class="col-md-10"></router-view>
             </div>
@@ -12,9 +11,7 @@
 </template>
 
 <script>
-import { mapGetters, mapActions } from 'vuex';
 import { FooterBar, NavBar } from '@/components';
-import Loader from './components/Loader';
 
 export default {
     name: 'app',
@@ -22,37 +19,7 @@ export default {
     components: {
         FooterBar,
         NavBar,
-        Loader,
     },
-
-    data() {
-        return {
-            loading: true,
-        };
-    },
-
-    computed: {
-        ...mapGetters('user', {
-            loggedIn: 'loggedIn',
-        }),
-        ...mapGetters('features', {
-            features: 'features',
-        }),
-    },
-
-    mounted() {
-        if ((!this.features) || Object.keys(this.features).length === 0 || Math.random() < 0.01) {
-            this.refreshFeatures().then(() => { this.loading = false; });
-        } else {
-            this.loading = false;
-        }
-    },
-    methods: {
-        ...mapActions({
-            refreshFeatures: 'features/refreshFeatures',
-        }),
-    },
-
 };
 </script>
 

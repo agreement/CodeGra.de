@@ -8,6 +8,8 @@ import flask_jwt_extended as flask_jwt
 import datetime
 import json
 
+import config
+
 from werkzeug.local import LocalProxy
 
 from flask_sqlalchemy import SQLAlchemy
@@ -15,7 +17,7 @@ from flask_sqlalchemy import SQLAlchemy
 app = Flask(__name__)
 
 # Configurations
-app.config.from_object('config')
+app.config.update(config.CONFIG)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 jwt = flask_jwt.JWTManager(app)

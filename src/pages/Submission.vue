@@ -53,7 +53,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from 'vuex';
+import { mapActions } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/download';
 
@@ -179,12 +179,6 @@ export default {
         this.restorePageCSS();
     },
 
-    computed: {
-        ...mapGetters('features', {
-            features: 'features',
-        }),
-    },
-
     methods: {
         getAssignment() {
             return this.$http.get(
@@ -229,7 +223,7 @@ export default {
         },
 
         getRubric() {
-            if (!this.features.RUBRICS) {
+            if (!UserConfig.features.rubrics) {
                 return Promise.resolve(null);
             }
             return this.$http.get(
