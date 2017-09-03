@@ -25,6 +25,7 @@ import SubmissionNavBar from './SubmissionNavBar';
 import NewCourse from './NewCourse';
 import CourseList from './CourseList';
 import RubricEditor from './RubricEditor';
+import PrivacyNote from './PrivacyNote';
 
 export {
     Linters,
@@ -54,4 +55,5 @@ export {
     NewCourse,
     CourseList,
     RubricEditor,
+    PrivacyNote,
 };

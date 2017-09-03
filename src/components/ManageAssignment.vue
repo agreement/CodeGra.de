@@ -78,7 +78,7 @@
                 </div>
             </div>
 
-            <div class="col-md-12 rubric-editor-comp-wrapper" v-if="features.RUBRICS">
+            <div class="col-md-12 rubric-editor-comp-wrapper" v-if="UserConfig.features.rubrics">
                 <h5>Rubric</h5>
                     <rubric-editor :assignmentId="assignment.id"
                                    ref="rubricEditor"
@@ -86,7 +86,7 @@
                 </b-form-fieldset>
             </div>
 
-            <div class="col-md-12" v-if="features.BLACKBOARD_ZIP_UPLOAD">
+            <div class="col-md-12" v-if="UserConfig.features.blackboard_zip_upload">
                 <h5>Upload blackboard zip</h5>
                     <b-popover
                         placement="top"
@@ -107,8 +107,6 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/eye-slash';
 import 'vue-awesome/icons/clock-o';
 import 'vue-awesome/icons/check';
-
-import { mapGetters } from 'vuex';
 
 import DivideSubmissions from './DivideSubmissions';
 import FileUploader from './FileUploader';
@@ -133,6 +131,7 @@ export default {
         return {
             assignmentState,
             pendingState: '',
+            UserConfig,
         };
     },
 
@@ -140,9 +139,6 @@ export default {
         assignmentUrl() {
             return `/api/v1/assignments/${this.assignment.id}`;
         },
-        ...mapGetters('features', {
-            features: 'features',
-        }),
     },
 
     methods: {
