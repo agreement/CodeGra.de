@@ -1,5 +1,4 @@
 TEST_FILE?=
-SHELL=/bin/bash
 TEST_FLAGS?=
 export PYTHONPATH=$(CURDIR)
 
@@ -10,11 +9,11 @@ test_setup:
 
 .PHONY: test_quick
 test_quick: test_setup
-	DEBUG=on env/bin/pytest --cov psef --cov-report term-missing psef_test/$(TEST_FILE) -vvvvv -x $(TEST_FLAGS)
+	DEBUG_ON=True env/bin/pytest --cov psef --cov-report term-missing psef_test/$(TEST_FILE) -vvvvv -x $(TEST_FLAGS)
 
 .PHONY: test
 test: test_setup
-	DEBUG=on env/bin/pytest --cov psef --cov-report term-missing psef_test/$(TEST_FILE) -vvvvv $(TEST_FLAGS)
+	DEBUG_ON=True env/bin/pytest --cov psef --cov-report term-missing psef_test/$(TEST_FILE) -vvvvv $(TEST_FLAGS)
 
 .PHONY: reset_db
 reset_db:
@@ -38,18 +37,13 @@ test_data:
 
 .PHONY: start_dev_server
 start_dev_server:
-	DEBUG=on ./.scripts/start_dev.sh python
+	DEBUG_ON=True ./.scripts/start_dev.sh python
 
 .PHONY: start_dev_npm
 start_dev_npm:
-	./.scripts/generate_privacy.py
-	DEBUG=on ./.scripts/start_dev.sh npm
-
-privacy_statement:
-	./.scripts/generate_privacy.py
+	DEBUG_ON=True ./.scripts/start_dev.sh npm
 
 build_front-end:
-	./.scripts/generate_privacy.py
 	npm run build
 
 .PHONY: seed_data

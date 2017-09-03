@@ -1,9 +1,7 @@
 var path = require('path')
 var utils = require('./utils')
-var webpack = require('webpack')
 var config = require('../config')
 var vueLoaderConfig = require('./vue-loader.conf')
-var userConfig = require('./userConfig')
 
 function resolve (dir) {
   return path.join(__dirname, '..', dir)
@@ -73,10 +71,5 @@ module.exports = {
   },
   node: {
     fs: 'empty'
-  },
-  plugins: [
-    new webpack.DefinePlugin({
-        'UserConfig': JSON.stringify(userConfig),
-    }),
-  ],
+  }
 }

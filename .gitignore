@@ -16,4 +16,3 @@ docs/_build/
 .mypy_cache/
 .cache/
 .coverage
-/src/components/PrivacyNote.vue

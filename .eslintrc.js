@@ -39,8 +39,5 @@ module.exports = {
 
         // allow vuex
         'no-param-reassign': ["error", { 'props': false }],
-    },
-    globals: {
-        'UserConfig': true,
-    },
+    }
 }

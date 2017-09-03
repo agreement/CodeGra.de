@@ -19,7 +19,6 @@
     "bootstrap": "^4.0.0-alpha.6",
     "bootstrap-vue": "github:CodeGra-de/bootstrap-vue-compiled",
     "highlightjs": "^9.10.0",
-    "ini": "^1.3.4",
     "moment": "^2.18.1",
     "request": "^2.81.0",
     "tether": "latest",
