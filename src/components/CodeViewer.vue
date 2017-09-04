@@ -14,7 +14,7 @@
             <code v-html="line"></code>
 
             <feedback-area :editing="editing[i] === true" :feedback='feedback[i].msg' :editable='editable'
-                :line='i' :fileId='fileId' v-on:feedbackChange="val => { feedbackChange(i, val); }"
+                :line='i' :fileId='file.id' v-on:feedbackChange="val => { feedbackChange(i, val); }"
                 v-on:cancel='onChildCancel' v-if="feedback[i] != null">
             </feedback-area>
 
@@ -54,8 +54,8 @@ export default {
             type: Object,
             default: null,
         },
-        fileId: {
-            type: Number,
+        file: {
+            type: Object,
             default: null,
         },
         editable: {
@@ -86,8 +86,8 @@ export default {
     },
 
     watch: {
-        fileId(id) {
-            if (id) this.getCode();
+        file(f) {
+            if (f) this.getCode();
         },
 
         tree() {
@@ -113,13 +113,15 @@ export default {
             // Split in two promises so that highlighting can begin before we
             // have feedback as this is not needed anyway.
             Promise.all([
-                Promise.all([
-                    this.$http.get(`/api/v1/code/${this.fileId}`, { responseType: 'text' }),
-                    this.$http.get(`/api/v1/code/${this.fileId}?type=metadata`),
-                ]).then(([file, metadata]) => {
-                    this.code = file.data;
+                this.$http.get(`/api/v1/code/${this.file.id}`, {
+                    responseType: 'text',
+                }).then((code) => {
+                    this.code = code.data;
                     this.codeLines = this.code.split('\n');
-                    this.highlightCode(metadata.data.extension);
+
+                    const fileParts = this.file.name.split('.');
+                    const ext = fileParts.length > 1 ? fileParts[fileParts.length - 1] : null;
+                    this.highlightCode(ext);
                     this.linkFiles();
                 }, ({ response: { data: { message } } }) => {
                     addError(message);
@@ -127,8 +129,8 @@ export default {
                 }),
 
                 Promise.all([
-                    this.$http.get(`/api/v1/code/${this.fileId}?type=feedback`),
-                    this.$http.get(`/api/v1/code/${this.fileId}?type=linter-feedback`),
+                    this.$http.get(`/api/v1/code/${this.file.id}?type=feedback`),
+                    this.$http.get(`/api/v1/code/${this.file.id}?type=linter-feedback`),
                 ]).then(([feedback, linterFeedback]) => {
                     this.linterFeedback = linterFeedback.data;
                     this.feedback = feedback.data;

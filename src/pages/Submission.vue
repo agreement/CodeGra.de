@@ -8,14 +8,17 @@
                                     :submissions="submissions"
                                     :filter="filterSubmissions"/>
 
-                <pdf-viewer :id="+fileId"
-                            v-if="fileExtension === 'pdf'"/>
+                <div v-if="currentFile == null" class="no-file">
+                    <loader/>
+                </div>
+                <pdf-viewer :id="currentFile.id"
+                            v-else-if="currentFile.extension === 'pdf'"/>
                 <code-viewer :assignment="assignment"
                              :submission="submission"
-                             :fileId="+fileId"
+                             :file="currentFile"
                              :editable="editable"
                              :tree="fileTree"
-                             v-else-if="fileId"/>
+                             v-else/>
 
                 <grade-viewer :assignment="assignment"
                               :submission="submission"
@@ -26,7 +29,7 @@
             </div>
 
             <div class="col-lg-3 file-tree-container">
-                <b-form-fieldset class="button-bar">
+                <b-form-fieldset class="submission-button-bar">
                     <b-button @click="downloadType('zip')"
                               variant="primary">
                         <icon name="download"/>
@@ -38,6 +41,32 @@
                         <icon name="download"/>
                         Feedback
                     </b-button>
+                    <div v-if="canDeleteSubmission">
+                        <b-btn class="text-center"
+                                variant="danger"
+                                @click="$root.$emit('show::modal',`modal_delete`)">
+                            <icon name="times"/> Delete
+                        </b-btn>
+                        <b-modal :id="`modal_delete`" title="Are you sure?" :hide-footer="true">
+                            <p style="text-align: center;">
+                                By deleting all information about this submissions,
+                                including files, will be lost forever! So are you
+                                really sure?
+                            </p>
+                            <b-button-toolbar justify>
+                                <submit-button class="text-center delete-confirm"
+                                                ref="deleteButton"
+                                                default="outline-danger"
+                                                @click="deleteSubmission"
+                                                label="Yes"/>
+                                <b-btn class="text-center"
+                                        variant="success"
+                                        @click="$root.$emit('hide::modal', `modal_delete`)">
+                                    No!
+                                </b-btn>
+                            </b-button-toolbar>
+                        </b-modal>
+                    </div>
                 </b-form-fieldset>
 
                 <loader class="text-center"
@@ -56,31 +85,13 @@
 import { mapActions } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/download';
+import 'vue-awesome/icons/times';
 
-import { CodeViewer, FileTree, GradeViewer, Loader, PdfViewer, SubmissionNavBar } from '@/components';
+import { CodeViewer, FileTree, GradeViewer, Loader, PdfViewer, SubmissionNavBar, SubmitButton } from '@/components';
 
 import * as assignmentState from '@/store/assignment-states';
 
 import { setPageTitle, pageTitleSep } from '@/pages/title';
-
-function getFirstFile(fileTree) {
-    // Returns the first file in the file tree that is not a folder
-    // The file tree is searched with BFS
-    const queue = [fileTree];
-    let candidate = null;
-
-    while (queue.length > 0) {
-        candidate = queue.shift();
-
-        if (candidate.entries) {
-            queue.push(...candidate.entries);
-        } else {
-            return candidate;
-        }
-    }
-
-    return false;
-}
 
 export default {
     name: 'submission-page',
@@ -92,12 +103,12 @@ export default {
             assignment: null,
             submissionId: Number(this.$route.params.submissionId),
             submission: null,
-            fileId: Number(this.$route.params.fileId) || null,
             fileTree: null,
+            currentFile: null,
             submissions: null,
             rubric: null,
-            fileExtension: '',
             loading: true,
+            canDeleteSubmission: false,
             initialLoad: true,
             assignmentState,
             canSeeFeedback: false,
@@ -105,16 +116,8 @@ export default {
     },
 
     watch: {
-        $route(to) {
-            if (to.params.fileId) {
-                this.fileId = to.params.fileId;
-                this.getFileMetadata();
-            }
-        },
-
         submission(submission) {
             this.submissionId = submission.id;
-            this.fileId = this.$route.params.fileId;
 
             let title = this.assignment.name;
             if (submission.grade) {
@@ -122,56 +125,76 @@ export default {
             }
             setPageTitle(`${title} ${pageTitleSep} ${submission.created_at}`);
 
-            if (this.initialLoad) {
-                this.initialLoad = false;
-                return;
-            }
-
-            this.fileId = undefined;
-            this.$router.push({
-                name: 'submission',
-                params: {
-                    courseId: this.courseId,
-                    assignmentId: this.assignmentId,
-                    submissionId: submission.id,
-                },
-            });
-
             this.loading = true;
             this.getSubmissionData().then(() => {
                 this.loading = false;
             });
+
+            if (!this.initialLoad) {
+                this.$router.push({
+                    name: 'submission',
+                    params: {
+                        courseId: this.courseId,
+                        assignmentId: this.assignmentId,
+                        submissionId: submission.id,
+                    },
+                });
+            }
+
+            this.initialLoad = false;
+        },
+
+        $route(to) {
+            this.currentFile = this.searchTree(this.fileTree, to.params.fileId);
+        },
+
+        fileTree(tree) {
+            const fileId = Number(this.$route.params.fileId);
+
+            let file;
+            if (!Number.isNaN(fileId)) {
+                file = this.searchTree(tree, fileId);
+            } else {
+                file = this.getFirstFile(tree);
+                if (file != null) {
+                    this.$router.replace({
+                        name: 'submission_file',
+                        params: { fileId: file.id },
+                    });
+                }
+            }
+
+            this.currentFile = file;
+        },
+
+        currentFile(file) {
+            file.extension = '';
+            if (file != null) {
+                const nameparts = file.name.split('.');
+                if (nameparts.length > 1) {
+                    file.extension = nameparts[nameparts.length - 1];
+                }
+            }
         },
     },
 
     mounted() {
         this.hasPermission({
-            name: ['can_grade_work', 'can_see_grade_before_open'],
+            name: ['can_grade_work', 'can_see_grade_before_open', 'can_delete_submission'],
             course_id: this.courseId,
-        }).then(([canGrade, canSeeGrade]) => {
+        }).then(([canGrade, canSeeGrade, canDeleteSubmission]) => {
             this.editable = canGrade;
             this.canSeeFeedback = canSeeGrade;
+            this.canDeleteSubmission = canDeleteSubmission;
         });
 
         this.loading = true;
         Promise.all([
             this.getAssignment(),
             this.getAllSubmissions(),
-            this.getSubmissionData(),
-        ]).then(([assignment, submissions]) => {
-            this.assignment = assignment;
-            this.canSeeFeedback = this.canSeeFeedback ||
-                (assignment.state === assignmentState.DONE);
-
-            this.submissions = submissions;
-            this.submission = submissions.find(sub =>
-                sub.id === this.submissionId);
-
+        ]).then(() => {
             this.setPageCSS();
-
-            this.getFileMetadata().then(() => {
-                this.loading = false;
-            });
+            this.loading = false;
         });
     },
 
@@ -183,43 +206,52 @@ export default {
         getAssignment() {
             return this.$http.get(
                 `/api/v1/assignments/${this.assignmentId}`,
-            ).then(({ data }) => data);
+            ).then(({ data: assignment }) => {
+                this.assignment = assignment;
+                this.canSeeFeedback = this.canSeeFeedback ||
+                    (assignment.state === assignmentState.DONE);
+            });
         },
 
         getAllSubmissions() {
             return this.$http.get(
                 `/api/v1/assignments/${this.assignmentId}/submissions/`,
-            ).then(({ data }) => data);
+            ).then(({ data: submissions }) => {
+                this.submissions = submissions;
+                this.submission = submissions.find(sub =>
+                    sub.id === this.submissionId);
+            });
+        },
+
+        deleteSubmission() {
+            const req = this.$http.delete(`/api/v1/submissions/${this.submissionId}`);
+
+            this.$refs.deleteButton.submit(req.catch((err) => {
+                throw err.response.data.message;
+            })).then(() => {
+                this.$router.push({
+                    name: 'assignment_submissions',
+                    params: {
+                        courseId: this.assignment.course.id,
+                        assignmentId: this.assignment.id,
+                    },
+                });
+            });
         },
 
         getSubmissionData() {
             return Promise.all([
                 this.getFileTree(),
                 this.getRubric(),
-            ]).then(([fileTree, rubric]) => {
-                this.fileTree = fileTree;
-
-                this.rubric = rubric;
-
-                if (!this.fileId) {
-                    const firstFile = getFirstFile(fileTree);
-                    if (firstFile) {
-                        this.$router.replace({
-                            name: 'submission_file',
-                            params: { fileId: firstFile.id },
-                        });
-                    }
-                }
-            }, (err) => {
-                // eslint-disable-next-line
-                console.dir(err);
-            });
+            ]);
         },
 
         getFileTree() {
             return this.$http.get(
                 `/api/v1/submissions/${this.submissionId}/files/`,
-            ).then(({ data }) => data);
+            ).then(({ data: fileTree }) => {
+                this.fileTree = fileTree;
+            });
         },
 
         getRubric() {
@@ -228,23 +260,43 @@ export default {
             }
             return this.$http.get(
                 `/api/v1/submissions/${this.submissionId}/rubrics/`,
-            ).then(({ data }) => data).catch(() => null);
+            ).then(({ data: rubric }) => {
+                this.rubric = rubric;
+            }, () => null);
         },
 
-        getFileMetadata() {
-            if (this.fileId == null || Number.isNaN(this.fileId)) {
-                return Promise.resolve(null);
+        getFirstFile(fileTree) {
+            // Returns the first file in the file tree that is not a folder
+            // The file tree is searched with BFS
+            const queue = [fileTree];
+            let candidate = null;
+
+            while (queue.length > 0) {
+                candidate = queue.shift();
+
+                if (candidate.entries) {
+                    queue.push(...candidate.entries);
+                } else {
+                    return candidate;
+                }
             }
 
-            this.fileExtension = '';
-            return this.$http.get(
-                `/api/v1/code/${this.fileId}?type=metadata`,
-            ).then((response) => {
-                this.fileExtension = response.data.extension;
-            }, (err) => {
-                // eslint-disable-next-line
-                console.dir(err);
-            });
+            return null;
+        },
+
+        searchTree(tree, id) {
+            for (let i = 0; i < tree.entries.length; i += 1) {
+                const child = tree.entries[i];
+                if (child.id === id) {
+                    return child;
+                } else if (child.entries != null) {
+                    const match = this.searchTree(child, id);
+                    if (match != null) {
+                        return match;
+                    }
+                }
+            }
+            return null;
         },
 
         filterSubmissions(submissions) {
@@ -278,7 +330,6 @@ export default {
 
         gradeUpdated(grade) {
             this.$set(this.submission, 'grade', grade);
-
             if (this.submissions) {
                 this.$set(this.submissions, this.submissions.indexOf(this.submission),
                     this.submission);
@@ -349,6 +400,7 @@ export default {
         Loader,
         PdfViewer,
         SubmissionNavBar,
+        SubmitButton,
         Icon,
     },
 };
@@ -388,6 +440,7 @@ export default {
     flex-shrink: 0;
 }
 
+.no-file,
 .code-viewer,
 .pdf-viewer,
 .grade-viewer {
@@ -399,9 +452,12 @@ export default {
     flex-direction: column;
 }
 
-.button-bar {
+.submission-button-bar {
     flex-grow: 0;
     flex-shrink: 0;
+    button {
+        margin-bottom: 0.2em;
+    }
 }
 
 .file-tree {
@@ -415,7 +471,7 @@ export default {
 }
 </style>
 
-<style>
+<style lang="less">
 @media (max-width: 992px) {
     #app, html {
         height: inherit !important;

@@ -202,7 +202,7 @@ def test_linters(
         code_id = session.query(m.File.id).filter(
             m.File.work_id == single_work['id'],
             m.File.parent != None,  # NOQA
-            m.File.name != '__init__',
+            m.File.name != '__init__.py',
         ).first()[0]
 
         linters = {}
@@ -228,7 +228,7 @@ def test_linters(
 
             if get_work:
                 assert not res
-            else:
+            else:  # Check all codes are given
                 assert not any(linters.values())
 
         for linter in linter_result:
@@ -316,7 +316,7 @@ def test_lint_later_submission(
         code_id = session.query(m.File.id).filter(
             m.File.work_id == single_work['id'],
             m.File.parent != None,  # NOQA
-            m.File.name != '__init__',
+            m.File.name != '__init__.py',
         ).first()[0]
 
         res = sorted(

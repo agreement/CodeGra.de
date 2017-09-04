@@ -55,7 +55,6 @@ def test_get_code_metadata(
             error if error else 200,
             result=error_template if error else {
                 'name': 'test_flake8',
-                'extension': '',
                 'is_directory': True,
                 'id': int,
             },
@@ -67,8 +66,7 @@ def test_get_code_metadata(
             f'/api/v1/code/{res["entries"][0]["id"]}',
             error if error else 200,
             result=error_template if error else {
-                'name': 'test',
-                'extension': 'py',
+                'name': 'test.py',
                 'is_directory': False,
                 'id': int,
             },
@@ -144,6 +142,71 @@ def test_get_code_plaintext(
             res = test_client.get(f'/api/v1/code/{res["entries"][0]["id"]}')
             assert res.status_code == 200
             assert res.get_data(as_text=True) == content
+
+
+@pytest.mark.parametrize(
+    'filename', ['../test_submissions/single_dir_archive.zip']
+)
+def test_get_code_plaintext_revisions(
+    assignment_real_works, test_client, request, error_template, ta_user,
+    student_user, logged_in
+):
+    assignment, work = assignment_real_works
+    assignment_id = assignment.id
+    work_id = work['id']
+
+    with logged_in(ta_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment_id}',
+            204,
+            data={'state': 'done'},
+        )
+
+        files = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/files/',
+            200,
+        )
+        student_file_id = files['entries'][0]['id']
+
+        res = test_client.req(
+            'patch',
+            f'/api/v1/code/{student_file_id}',
+            200,
+            real_data='test',
+        )
+        teacher_file_id = res['id']
+
+    with logged_in(student_user):
+        res = test_client.get(
+            f'/api/v1/code/{student_file_id}',
+        )
+        assert res.status_code == 200
+
+        res = test_client.get(
+            f'/api/v1/code/{teacher_file_id}',
+        )
+        assert res.status_code == 200
+
+    with logged_in(ta_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment_id}',
+            204,
+            data={'state': 'open'},
+        )
+
+    with logged_in(student_user):
+        res = test_client.get(
+            f'/api/v1/code/{student_file_id}',
+        )
+        assert res.status_code == 200
+
+        res = test_client.get(
+            f'/api/v1/code/{teacher_file_id}',
+        )
+        assert res.status_code == 403
 
 
 @pytest.mark.parametrize(

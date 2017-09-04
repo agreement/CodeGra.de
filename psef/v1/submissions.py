@@ -115,17 +115,16 @@ def get_feedback(work: models.Work) -> t.Mapping[str, str]:
         )
         for comment in comments:
             fp.write(
-                '{}:{}:0: {}\n'.format(
-                    comment.file.get_filename(), comment.line, comment.comment
-                )
+                '{}:{}:0: {}\n'.
+                format(comment.file.name, comment.line, comment.comment)
             )
         fp.write('\nLinter comments:\n')
 
         for lcomment in linter_comments:
             fp.write(
                 '{}:{}:0: ({} {}) {}\n'.format(
-                    lcomment.file.get_filename(), lcomment.line, lcomment.
-                    linter.tester.name, lcomment.linter_code, lcomment.comment
+                    lcomment.file.name, lcomment.line, lcomment.linter.tester.
+                    name, lcomment.linter_code, lcomment.comment
                 )
             )
 
@@ -176,6 +175,36 @@ def get_zip(work: models.Work,
         'name': name,
         'output_name': f'{work.assignment.name}-{work.user.name}-archive.zip'
     }
+
+
+@api.route('/submissions/<int:submission_id>', methods=['DELETE'])
+def delete_submission(submission_id: int) -> EmptyResponse:
+    """Delete a submission and all its files.
+
+    .. :quickref: Submission; Delete a submission and all its files.
+
+    .. warning::
+
+        This is irreversible, so make sure the user really wants this!
+
+    :param submission_id: The submission to delete.
+    :returns: Nothing
+    """
+    submission = helpers.get_or_404(models.Work, submission_id)
+
+    auth.ensure_permission(
+        'can_delete_submission', submission.assignment.course_id
+    )
+
+    for sub_file in db.session.query(models.File).filter_by(
+        work_id=submission_id, is_directory=False
+    ).all():
+        sub_file.delete_from_disk()
+
+    db.session.delete(submission)
+    db.session.commit()
+
+    return make_empty_response()
 
 
 @api.route("/submissions/<int:submission_id>/rubrics/", methods=['GET'])
@@ -414,16 +443,17 @@ def get_grade_history(submission_id: int
 
 
 @api.route("/submissions/<int:submission_id>/files/", methods=['POST'])
-def create_new_file(submission_id: int) -> JSONResponse[psef.files.FileTree]:
+def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
     """Create a new file or directory for the given submission.
 
     .. :quickref: Submission; Create a new file or directory for a submission.
 
-    :param str path: The path of the new file to create.
-    :param str is_directory: If this value is `true` the new file will be a
-        directory and the body of the post is ignored.
+    :param str path: The path of the new file to create. If the path ends in
+        a forward slash a new directory is created and the body of the request
+        is ignored, otherwise a regular file is created.
 
-    :returns: The new file tree for this assignment.
+    :returns: Stat information about the new file, see
+        :py:func:`psef.files.get_stat_information`
     """
     work = helpers.get_or_404(models.Work, submission_id)
     exclude_owner = models.File.get_exclude_owner(
@@ -437,14 +467,11 @@ def create_new_file(submission_id: int) -> JSONResponse[psef.files.FileTree]:
     else:
         new_owner = FileOwner.teacher
 
-    is_directory = request.args.get('is_directory', None) == 'true'
     ensure_keys_in_dict(request.args, [('path', str)])
 
     pathname = request.args.get('path', None)
-    pathname = pathname[1:] if pathname[0] == '/' else pathname
-    pathname = pathname[:-1] if pathname[-1] == '/' else pathname
-    patharr = pathname.split('/')
-    print(new_owner, exclude_owner, pathname)
+    # `create_dir` means that the last file should be a dir or not.
+    patharr, create_dir = split_path(pathname)
 
     if len(patharr) < 2:
         raise APIException(
@@ -462,6 +489,7 @@ def create_new_file(submission_id: int) -> JSONResponse[psef.files.FileTree]:
     )
 
     code = None
+    end_idx = 0
     for idx, part in enumerate(patharr[1:]):
         code = models.File.query.filter(
             models.File.fileowner != exclude_owner,
@@ -472,6 +500,8 @@ def create_new_file(submission_id: int) -> JSONResponse[psef.files.FileTree]:
         if code is None:
             break
         parent = code
+    else:
+        end_idx += 1
 
     def _is_last(idx: int) -> bool:
         return end_idx + idx + 1 == len(patharr)
@@ -485,18 +515,16 @@ def create_new_file(submission_id: int) -> JSONResponse[psef.files.FileTree]:
         )
 
     for idx, part in enumerate(patharr[end_idx:]):
-        if _is_last(idx) and not is_directory:
+        if _is_last(idx) and not create_dir:
             is_dir = False
-            name, ext = os.path.splitext(part)
             d_filename, filename = psef.files.random_file_path()
             with open(d_filename, 'w') as f:
                 f.write(request.get_data(as_text=True))
         else:
-            is_dir, name, ext, filename = True, part, None, None
+            is_dir, filename = True, None
         code = models.File(
             work_id=submission_id,
-            extension=ext,
-            name=name,
+            name=part,
             filename=filename,
             is_directory=is_dir,
             parent=parent,
@@ -506,13 +534,7 @@ def create_new_file(submission_id: int) -> JSONResponse[psef.files.FileTree]:
         parent = code
     db.session.commit()
 
-    return jsonify(
-        helpers.filter_single_or_404(
-            models.File,
-            models.File.work_id == submission_id,
-            models.File.parent_id == None,  # NOQA
-        ).list_contents(exclude_owner)
-    )
+    return jsonify(psef.files.get_stat_information(code))
 
 
 @api.route("/submissions/<int:submission_id>/files/", methods=['GET'])
@@ -594,6 +616,29 @@ def get_dir_contents(submission_id: int
     return jsonify(file.list_contents(exclude_owner))
 
 
+def split_path(path: str) -> t.Tuple[t.Sequence[str], bool]:
+    """Split a path into an array of parts of a path.
+
+    This functions splits a forward slash separated path into an sequence of
+    the directories of this path. If the given path ends with a '/' it returns
+    that the given path ends with an directory, otherwise the last part is a
+    file, this information is returned as the last part of the returned tuple.
+
+    The given path may contain multiple consecutive forward slashes, these are
+    interpreted as a single slash. A leading forward slash is also optional.
+
+    :param path: The forward slash separated path to split.
+    :returns: A tuple where the first item is the splitted path and the second
+        item is a boolean indicating if the last item of the given path was a
+        directory.
+    """
+    is_dir = path[-1] == '/'
+
+    patharr = [item for item in path.split('/') if item]
+
+    return patharr, is_dir
+
+
 def search_file(
     submission_id: int,
     pathname: str,
@@ -608,10 +653,7 @@ def search_file(
         :func:`get_zip`.
     :returns: The found file.
     """
-    pathname = pathname[1:] if pathname[0] == '/' else pathname
-    pathname = pathname[:-1] if pathname[-1] == '/' else pathname
-
-    patharr = pathname.split('/')
+    patharr, is_dir = split_path(pathname)
 
     parent: t.Optional[t.Any] = None
     for idx, pathpart in enumerate(patharr[:-1]):
@@ -625,16 +667,13 @@ def search_file(
             models.File.is_directory == True,  # NOQA
         ).subquery(f'parent_{idx}')
 
-    filename, ext = os.path.splitext(patharr[-1])
-
     if parent is not None:
         parent = parent.c.id
 
     return filter_single_or_404(
         models.File,
-        models.File.extension == ext,
-        models.File.name == filename,
+        models.File.name == patharr[-1],
         models.File.parent_id == parent,
         models.File.fileowner != exclude,
-        models.File.is_directory == False,  # NOQA
+        models.File.is_directory == is_dir,  # NOQA
     )

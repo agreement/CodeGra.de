@@ -11,6 +11,7 @@ env/
 *.pyc
 __pycache__/
 uploads/
+mirror_uploads/
 package-lock.json
 docs/_build/
 .mypy_cache/

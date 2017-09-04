@@ -70,5 +70,9 @@
   "can_see_grade_history": {
     "default_value": false,
     "course_permission": true
+  },
+  "can_delete_submission": {
+    "default_value": false,
+    "course_permission": true
   }
 }

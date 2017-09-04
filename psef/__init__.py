@@ -39,6 +39,7 @@ def _patch_sqlite() -> None:
         # disable pysqlite's emitting of the BEGIN statement entirely.
         # also stops it from emitting COMMIT before any DDL.
         dbapi_connection.isolation_level = None
+        dbapi_connection.execute('pragma foreign_keys=ON')
 
     @event.listens_for(_db.engine, "begin")
     def do_begin(conn: t.Any) -> None:

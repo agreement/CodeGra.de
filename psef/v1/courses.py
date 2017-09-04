@@ -375,7 +375,9 @@ def get_all_course_assignments(
 
     :param int course_id: The id of the course
     :returns: A response containing the JSON serialized assignments sorted by
-        deadline of the assignment.
+        deadline of the assignment. See
+        :py:func:`models.Assignment.__to_json__` for the way assignments are
+        given.
 
     :raises APIException: If there is no course with the given id.
                           (OBJECT_ID_NOT_FOUND)

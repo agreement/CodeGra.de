@@ -79,8 +79,8 @@ def get_stat_information(file: models.File) -> t.Mapping[str, t.Any]:
     :returns: The information as described above.
     """
     mod_date = file.modification_date
-    filename = file.get_diskname() if file.is_directory else ''
-    size = os.stat(filename).st_size if file.is_directory else 0
+    filename = None if file.is_directory else file.get_diskname()
+    size = 0 if file.is_directory else os.stat(filename).st_size
 
     return {
         'is_directory': file.is_directory,
@@ -162,7 +162,7 @@ def restore_directory_structure(
     :param exclude: The file owner to exclude.
     :returns: A tree as described
     """
-    out = os.path.join(parent, code.get_filename())
+    out = os.path.join(parent, code.name)
     if code.is_directory:
         os.mkdir(out)
         children = code.children.filter(models.File.fileowner != exclude).all()
@@ -171,13 +171,13 @@ def restore_directory_structure(
             for child in children
         ]
         return {
-            "name": code.get_filename(),
+            "name": code.name,
             "id": code.id,
             "entries": children,
         }
     else:  # this is a file
         shutil.copyfile(code.get_diskname(), out, follow_symlinks=False)
-        return {"name": code.get_filename(), "id": code.id}
+        return {"name": code.name, "id": code.id}
 
 
 def rename_directory_structure(rootdir: str) -> ExtractFileTree:
