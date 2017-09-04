@@ -151,7 +151,7 @@ def get_code(file_id: int
     """
     file = helpers.filter_single_or_404(models.File, models.File.id == file_id)
 
-    auth.ensure_can_view_files(file.work, file.fileowner == FileOwner.student)
+    auth.ensure_can_view_files(file.work, file.fileowner == FileOwner.teacher)
 
     if request.args.get('type') == 'metadata':
         return jsonify(file)

@@ -8,14 +8,17 @@
                                     :submissions="submissions"
                                     :filter="filterSubmissions"/>
 
-                <pdf-viewer :id="+fileId"
-                            v-if="fileExtension === 'pdf'"/>
+                <div v-if="currentFile == null" class="no-file">
+                    <loader/>
+                </div>
+                <pdf-viewer :id="currentFile.id"
+                            v-else-if="currentFile.extension === 'pdf'"/>
                 <code-viewer :assignment="assignment"
                              :submission="submission"
-                             :fileId="+fileId"
+                             :file="currentFile"
                              :editable="editable"
                              :tree="fileTree"
-                             v-else-if="fileId"/>
+                             v-else/>
 
                 <grade-viewer :assignment="assignment"
                               :submission="submission"
@@ -90,25 +93,6 @@ import * as assignmentState from '@/store/assignment-states';
 
 import { setPageTitle, pageTitleSep } from '@/pages/title';
 
-function getFirstFile(fileTree) {
-    // Returns the first file in the file tree that is not a folder
-    // The file tree is searched with BFS
-    const queue = [fileTree];
-    let candidate = null;
-
-    while (queue.length > 0) {
-        candidate = queue.shift();
-
-        if (candidate.entries) {
-            queue.push(...candidate.entries);
-        } else {
-            return candidate;
-        }
-    }
-
-    return false;
-}
-
 export default {
     name: 'submission-page',
 
@@ -119,11 +103,10 @@ export default {
             assignment: null,
             submissionId: Number(this.$route.params.submissionId),
             submission: null,
-            fileId: Number(this.$route.params.fileId) || null,
             fileTree: null,
+            currentFile: null,
             submissions: null,
             rubric: null,
-            fileExtension: '',
             loading: true,
             canDeleteSubmission: false,
             initialLoad: true,
@@ -133,16 +116,8 @@ export default {
     },
 
     watch: {
-        $route(to) {
-            if (to.params.fileId) {
-                this.fileId = to.params.fileId;
-                this.getFileMetadata();
-            }
-        },
-
         submission(submission) {
             this.submissionId = submission.id;
-            this.fileId = this.$route.params.fileId;
 
             let title = this.assignment.name;
             if (submission.grade) {
@@ -150,25 +125,56 @@ export default {
             }
             setPageTitle(`${title} ${pageTitleSep} ${submission.created_at}`);
 
-            if (this.initialLoad) {
-                this.initialLoad = false;
-                return;
-            }
-
-            this.fileId = undefined;
-            this.$router.push({
-                name: 'submission',
-                params: {
-                    courseId: this.courseId,
-                    assignmentId: this.assignmentId,
-                    submissionId: submission.id,
-                },
-            });
-
             this.loading = true;
             this.getSubmissionData().then(() => {
                 this.loading = false;
             });
+
+            if (!this.initialLoad) {
+                this.$router.push({
+                    name: 'submission',
+                    params: {
+                        courseId: this.courseId,
+                        assignmentId: this.assignmentId,
+                        submissionId: submission.id,
+                    },
+                });
+            }
+
+            this.initialLoad = false;
+        },
+
+        $route(to) {
+            this.currentFile = this.searchTree(this.fileTree, to.params.fileId);
+        },
+
+        fileTree(tree) {
+            const fileId = Number(this.$route.params.fileId);
+
+            let file;
+            if (!Number.isNaN(fileId)) {
+                file = this.searchTree(tree, fileId);
+            } else {
+                file = this.getFirstFile(tree);
+                if (file != null) {
+                    this.$router.replace({
+                        name: 'submission_file',
+                        params: { fileId: file.id },
+                    });
+                }
+            }
+
+            this.currentFile = file;
+        },
+
+        currentFile(file) {
+            file.extension = '';
+            if (file != null) {
+                const nameparts = file.name.split('.');
+                if (nameparts.length > 1) {
+                    file.extension = nameparts[nameparts.length - 1];
+                }
+            }
         },
     },
 
@@ -186,21 +192,9 @@ export default {
         Promise.all([
             this.getAssignment(),
             this.getAllSubmissions(),
-            this.getSubmissionData(),
-        ]).then(([assignment, submissions]) => {
-            this.assignment = assignment;
-            this.canSeeFeedback = this.canSeeFeedback ||
-                (assignment.state === assignmentState.DONE);
-
-            this.submissions = submissions;
-            this.submission = submissions.find(sub =>
-                sub.id === this.submissionId);
-
+        ]).then(() => {
             this.setPageCSS();
-
-            this.getFileMetadata().then(() => {
-                this.loading = false;
-            });
+            this.loading = false;
         });
     },
 
@@ -212,13 +206,21 @@ export default {
         getAssignment() {
             return this.$http.get(
                 `/api/v1/assignments/${this.assignmentId}`,
-            ).then(({ data }) => data);
+            ).then(({ data: assignment }) => {
+                this.assignment = assignment;
+                this.canSeeFeedback = this.canSeeFeedback ||
+                    (assignment.state === assignmentState.DONE);
+            });
         },
 
         getAllSubmissions() {
             return this.$http.get(
                 `/api/v1/assignments/${this.assignmentId}/submissions/`,
-            ).then(({ data }) => data);
+            ).then(({ data: submissions }) => {
+                this.submissions = submissions;
+                this.submission = submissions.find(sub =>
+                    sub.id === this.submissionId);
+            });
         },
 
         deleteSubmission() {
@@ -241,30 +243,15 @@ export default {
             return Promise.all([
                 this.getFileTree(),
                 this.getRubric(),
-            ]).then(([fileTree, rubric]) => {
-                this.fileTree = fileTree;
-
-                this.rubric = rubric;
-
-                if (!this.fileId) {
-                    const firstFile = getFirstFile(fileTree);
-                    if (firstFile) {
-                        this.$router.replace({
-                            name: 'submission_file',
-                            params: { fileId: firstFile.id },
-                        });
-                    }
-                }
-            }, (err) => {
-                // eslint-disable-next-line
-                console.dir(err);
-            });
+            ]);
         },
 
         getFileTree() {
             return this.$http.get(
                 `/api/v1/submissions/${this.submissionId}/files/`,
-            ).then(({ data }) => data);
+            ).then(({ data: fileTree }) => {
+                this.fileTree = fileTree;
+            });
         },
 
         getRubric() {
@@ -273,23 +260,43 @@ export default {
             }
             return this.$http.get(
                 `/api/v1/submissions/${this.submissionId}/rubrics/`,
-            ).then(({ data }) => data).catch(() => null);
+            ).then(({ data: rubric }) => {
+                this.rubric = rubric;
+            }, () => null);
         },
 
-        getFileMetadata() {
-            if (this.fileId == null || Number.isNaN(this.fileId)) {
-                return Promise.resolve(null);
+        getFirstFile(fileTree) {
+            // Returns the first file in the file tree that is not a folder
+            // The file tree is searched with BFS
+            const queue = [fileTree];
+            let candidate = null;
+
+            while (queue.length > 0) {
+                candidate = queue.shift();
+
+                if (candidate.entries) {
+                    queue.push(...candidate.entries);
+                } else {
+                    return candidate;
+                }
             }
 
-            this.fileExtension = '';
-            return this.$http.get(
-                `/api/v1/code/${this.fileId}?type=metadata`,
-            ).then((response) => {
-                this.fileExtension = response.data.extension;
-            }, (err) => {
-                // eslint-disable-next-line
-                console.dir(err);
-            });
+            return null;
+        },
+
+        searchTree(tree, id) {
+            for (let i = 0; i < tree.entries.length; i += 1) {
+                const child = tree.entries[i];
+                if (child.id === id) {
+                    return child;
+                } else if (child.entries != null) {
+                    const match = this.searchTree(child, id);
+                    if (match != null) {
+                        return match;
+                    }
+                }
+            }
+            return null;
         },
 
         filterSubmissions(submissions) {
@@ -323,7 +330,6 @@ export default {
 
         gradeUpdated(grade) {
             this.$set(this.submission, 'grade', grade);
-
             if (this.submissions) {
                 this.$set(this.submissions, this.submissions.indexOf(this.submission),
                     this.submission);
@@ -434,6 +440,7 @@ export default {
     flex-shrink: 0;
 }
 
+.no-file,
 .code-viewer,
 .pdf-viewer,
 .grade-viewer {

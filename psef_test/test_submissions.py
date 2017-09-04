@@ -858,10 +858,12 @@ def test_get_teacher_zip_file(
     'to_search', [
         'multiple_dir_archive/dir/single_file_work',
         '/multiple_dir_archive/dir/single_file_work',
-        'multiple_dir_archive/dir/single_file_work/',
-        '/multiple_dir_archive/dir/single_file_work/',
-        '/multiple_dir_archive/dir2/single_file_work/',
-        data_error(error=404)('/multiple_dir_archive/dir2/'),
+        data_error(error=404)('multiple_dir_archive/dir/single_file_work/'),
+        data_error(error=404)('/multiple_dir_archive/dir/single_file_work/'),
+        '/multiple_dir_archive/dir2/',
+        'multiple_dir_archive/dir2/',
+        data_error(error=404)('/multiple_dir_archive/dir2'),
+        data_error(error=404)('multiple_dir_archive/dir2'),
     ]
 )
 def test_search_file(
@@ -880,6 +882,8 @@ def test_search_file(
     else:
         error = False
 
+    is_dir = to_search[-1] == '/'
+
     with logged_in(named_user):
         test_client.req(
             'get',
@@ -887,7 +891,7 @@ def test_search_file(
             error or 200,
             query={'path': to_search},
             result=error_template if error else {
-                'is_directory': False,
+                'is_directory': is_dir,
                 'modification_date': int,
                 'size': int,
                 'id': int
@@ -925,45 +929,64 @@ def test_add_file(
             result=error_template,
             query={'path': '/too_short/'}
         )
+
         res = test_client.req(
             'post',
             f'/api/v1/submissions/{work_id}/files/',
             200,
-            query={'path': '/dir/dir2/wow/',
-                   'is_directory': 'false'},
-            real_data='NEW_FILE',
+            query={'path': '/dir/dir2/wow/'},
         )
-        assert res['entries'][0]['name'] == 'dir2'
-        new_file = res['entries'][0]['entries'][0]
-        assert new_file['name'] == 'wow'
-        assert 'entries' not in new_file
-        assert 'NEW_FILE' == get_file_by_id(new_file['id'])
-
+        assert res['is_directory'] == True
         test_client.req(
             'post',
             f'/api/v1/submissions/{work_id}/files/',
             400,
-            query={'path': '/dir/dir2/wow/',
-                   'is_directory': 'false'},
+            query={'path': '/dir/dir2/wow/'},
             result=error_template,
-            real_data='NEWER_FILE',
         )
-        test_client.req(
-            'post',
-            f'/api/v1/submissions/{work_id}/files/',
-            400,
-            query={'path': '/dir/dir2/wow/dit/',
-                   'is_directory': 'false'},
-            result=error_template,
-            real_data='NEWER_FILE',
-        )
-    with logged_in(ta_user):
         res = test_client.req(
             'post',
             f'/api/v1/submissions/{work_id}/files/',
+            200,
+            query={'path': '/dir/dir2/wow/dit/'},
+        )
+        assert res['is_directory'] == True
+
+        res = test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/',
+            200,
+            query={'path': '/dir/dir2/file'},
+            real_data='NEW_FILE',
+        )
+        assert get_file_by_id(res['id']) == 'NEW_FILE'
+        assert res['size'] == len('NEW_FILE')
+        assert res['is_directory'] == False
+        test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/',
+            400,
+            query={'path': '/dir/dir2/file'},
+            real_data='NEWER_FILE',
+        )
+        assert get_file_by_id(res['id']) == 'NEW_FILE'
+        res = test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/',
+            200,
+            query={'path': '/dir/dir2/dir3/file'},
+            real_data='NEW_FILE',
+        )
+        assert get_file_by_id(res['id']) == 'NEW_FILE'
+        assert res['size'] == len('NEW_FILE')
+        assert res['is_directory'] == False
+
+    with logged_in(ta_user):
+        test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/',
             403,
-            query={'path': '/dir/dir2/wow/',
-                   'is_directory': 'false'},
+            query={'path': '/dir/dir2/file'},
             result=error_template,
             real_data='TEAER_FILE',
         )
@@ -977,45 +1000,183 @@ def test_add_file(
             }
         )
 
+        test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/',
+            400,
+            query={'path': '/dir/dir2/file',
+                   'owner': 'auto'},
+            real_data='TEAEST_FILE',
+        )
+
         res = test_client.req(
             'post',
             f'/api/v1/submissions/{work_id}/files/',
             200,
-            query={'path': '/dir/dir2/wow2/',
-                   'is_directory': 'false'},
+            query={'path': '/dir/dir2/file2'},
             real_data='TEAEST_FILE',
         )
-        assert res['entries'][0]['name'] == 'dir2'
-        assert len(res['entries']) == 3
-        new_file = res['entries'][0]['entries'][1]
-        assert new_file['name'] == 'wow2'
-        assert 'entries' not in new_file
-        assert 'TEAEST_FILE' == get_file_by_id(new_file['id'])
-
-        res = test_client.req(
-            'get',
-            f'/api/v1/submissions/{work_id}/files/',
-            200,
-            query={'owner': 'student'},
-        )
-        assert len(res['entries'][0]['entries']) == 1
-        res = test_client.req(
-            'get',
-            f'/api/v1/submissions/{work_id}/files/',
-            200,
-            query={'owner': 'teacher'},
-        )
-        assert len(res['entries'][0]['entries']) == 2
+        assert get_file_by_id(res['id']) == 'TEAEST_FILE'
+        assert res['size'] == len('TEAEST_FILE')
+        assert res['is_directory'] == False
 
     with logged_in(student_user):
-        res = test_client.req(
+        test_client.req(
             'post',
             f'/api/v1/submissions/{work_id}/files/',
             403,
-            query={'path': '/dir/dir2/wow2/',
-                   'is_directory': 'false'},
+            query={'path': '/dir/dir2/wow2/'},
             real_data='TEAEST_FILE',
             result=error_template,
+        )
+
+    with logged_in(ta_user):
+        session.query(m.Assignment).filter_by(
+            id=m.Work.query.get(work_id).assignment_id
+        ).update(
+            {
+                'deadline':
+                    datetime.datetime.utcnow() + datetime.timedelta(days=1)
+            }
+        )
+
+    with logged_in(student_user):
+        test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/',
+            200,
+            query={'path': '/dir/dir2/file2'},
+            real_data='STUDENT_FILE',
+        )
+
+        res = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/files/',
+            200,
+            result={
+                'name':
+                    'dir',
+                'id':
+                    int,
+                'entries':
+                    [
+                        {
+                            'name':
+                                'dir2',
+                            'id':
+                                int,
+                            'entries':
+                                [
+                                    {
+                                        'name':
+                                            'dir3',
+                                        'id':
+                                            int,
+                                        'entries':
+                                            [{
+                                                'name': 'file',
+                                                'id': int,
+                                            }],
+                                    }, {
+                                        'name': 'file',
+                                        'id': int,
+                                    }, {
+                                        'name': 'file2',
+                                        'id': int,
+                                    }, {
+                                        'name':
+                                            'wow',
+                                        'id':
+                                            int,
+                                        'entries':
+                                            [
+                                                {
+                                                    'name': 'dit',
+                                                    'id': int,
+                                                    'entries': [],
+                                                }
+                                            ],
+                                    }
+                                ],
+                        }, {
+                            'name': 'single_file_work',
+                            'id': int,
+                        }, {
+                            'name': 'single_file_work_copy',
+                            'id': int,
+                        }
+                    ],
+            }
+        )
+
+    with logged_in(ta_user):
+        res = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/files/',
+            200,
+            result={
+                'name':
+                    'dir',
+                'id':
+                    int,
+                'entries':
+                    [
+                        {
+                            'name':
+                                'dir2',
+                            'id':
+                                int,
+                            'entries':
+                                [
+                                    {
+                                        'name':
+                                            'dir3',
+                                        'id':
+                                            int,
+                                        'entries':
+                                            [{
+                                                'name': 'file',
+                                                'id': int,
+                                            }],
+                                    }, {
+                                        'name': 'file',
+                                        'id': int,
+                                    }, {
+                                        'name': 'file2',
+                                        'id': int,
+                                    }, {
+                                        'name':
+                                            'wow',
+                                        'id':
+                                            int,
+                                        'entries':
+                                            [
+                                                {
+                                                    'name': 'dit',
+                                                    'id': int,
+                                                    'entries': [],
+                                                }
+                                            ],
+                                    }
+                                ],
+                        }, {
+                            'name': 'single_file_work',
+                            'id': int,
+                        }, {
+                            'name': 'single_file_work_copy',
+                            'id': int,
+                        }
+                    ],
+            }
+        )
+
+        session.query(m.Assignment).filter_by(
+            id=m.Work.query.get(work_id).assignment_id
+        ).update(
+            {
+                'deadline':
+                    datetime.datetime.utcnow() + datetime.timedelta(days=1)
+            }
         )
 
 

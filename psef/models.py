@@ -756,27 +756,6 @@ class Course(Base):
             'is_lti': self.lti_course_id is not None,
         }
 
-    def __extended_to_json__(self) -> t.Mapping[str, t.Any]:
-        """Creates an extended JSON serializable representation of this object.
-
-        This object will look like this:
-
-        .. code:: python
-
-            {
-                'assignments': t.List[Assignment], # All assignments the
-                                                   # current user can see
-                                                   # for this course.
-            }
-
-        :returns: A object as described above including all items from
-            :py:meth:`Course.__to_json__()`.
-        """
-        return {
-            'assignments': self.get_all_visible_assignments(),
-            **self.__to_json__(),
-        }
-
     def get_all_visible_assignments(self) -> t.Sequence['Assignment']:
         """Get all visible assignments for the current user for this course.
 
@@ -1117,24 +1096,17 @@ class Work(Base):
         """
         for new_top, children in tree.items():
             new_top = File(
-                work=self,
-                is_directory=True,
-                name=new_top,
-                extension=None,
-                parent=top
+                work=self, is_directory=True, name=new_top, parent=top
             )
             session.add(new_top)
             for child in children:
                 if isinstance(child, t.MutableMapping):
                     self._add_file_tree(session, child, new_top)
                     continue
-                child, filename = child
-                name, ext = os.path.splitext(child)
-                ext = ext[1:]
+                name, filename = child
                 session.add(
                     File(
                         work=self,
-                        extension=ext,
                         name=name,
                         filename=filename,
                         is_directory=False,
@@ -1200,7 +1172,6 @@ class File(Base):
     work_id: int = db.Column(
         'Work_id', db.Integer, db.ForeignKey('Work.id', ondelete='CASCADE')
     )
-    extension: str = db.Column('extension', db.Unicode)
     name: str = db.Column('name', db.Unicode, nullable=False)
 
     # This is the filename for the original file on the disk
@@ -1230,10 +1201,6 @@ class File(Base):
     )  # type: 'File'
 
     work = db.relationship('Work', foreign_keys=work_id)  # type: 'Work'
-
-    __table_args__ = (
-        db.CheckConstraint(or_(is_directory == false(), extension == null())),
-    )
 
     @staticmethod
     @auth.login_required
@@ -1283,16 +1250,6 @@ class File(Base):
         if not self.is_directory:
             os.remove(self.get_diskname())
 
-    def get_filename(self) -> str:
-        """Get the real filename of the file.
-
-        :returns: The filename of the file
-        """
-        if self.extension is not None and self.extension != "":
-            return "{}.{}".format(self.name, self.extension)
-        else:
-            return self.name
-
     def list_contents(self, exclude: FileOwner) -> 'psef.files.FileTree':
         """List the basic file info and the info of its children.
 
@@ -1328,7 +1285,7 @@ class File(Base):
         :returns: A tree as described above.
         """
         if not self.is_directory:
-            return {"name": self.get_filename(), "id": self.id}
+            return {"name": self.name, "id": self.id}
         else:
             children = sorted(
                 (
@@ -1339,7 +1296,7 @@ class File(Base):
                 key=lambda el: el['name']
             )
             return {
-                "name": self.get_filename(),
+                "name": self.name,
                 "id": self.id,
                 "entries": children,
             }
@@ -1354,8 +1311,6 @@ class File(Base):
 
             {
                 'name': str, # The name of the file or directory.
-                'extension': str, # The extension of the file,
-                                  # '' if it has no extension.
                 'id': int, # The id of this file.
                 'is_directory': bool, # Is this file a directory.
             }
@@ -1364,7 +1319,6 @@ class File(Base):
         """
         return {
             'name': self.name,
-            'extension': self.extension if self.extension else '',
             'is_directory': self.is_directory,
             'id': self.id,
         }
