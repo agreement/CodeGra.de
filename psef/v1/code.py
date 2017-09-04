@@ -38,7 +38,7 @@ def put_comment(id: int, line: int) -> EmptyResponse:
     """Create or change a single :class:`.models.Comment` of a code
     :class:`.models.File`.
 
-    .. :quickref: Code; Add or change a comment
+    .. :quickref: Code; Add or change a comment.
 
     :param int id: The id of the code file
     :param int line: The line number of the comment
@@ -91,7 +91,7 @@ def remove_comment(id: int, line: int) -> EmptyResponse:
     """Removes the given :class:`.models.Comment` in the given
     :class:`.models.File`
 
-    .. :quickref: Code; Remove a comment
+    .. :quickref: Code; Remove a comment.
 
     :param int id: The id of the code file
     :param int line: The line number of the comment
@@ -125,7 +125,7 @@ def get_code(file_id: int
              ]]:
     """Get data from the :class:`.models.File` with the given id.
 
-    .. :quickref: Code; Get code or its metadata
+    .. :quickref: Code; Get code or its metadata.
 
     The are several options to change the data that is returned. Based on the
     argument type in the request different functions are called.
