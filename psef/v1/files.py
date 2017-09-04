@@ -62,7 +62,7 @@ def post_file() -> JSONResponse[str]:
 def get_file(file_name: str) -> werkzeug.wrappers.Response:
     """Serve some specific file in the uploads folder.
 
-    .. :quickref: File; Get a uploaded file directory
+    .. :quickref: File; Get an uploaded file directory.
 
     .. note::
         Only files uploaded using :py:func:`post_file` may be retrieved.

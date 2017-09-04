@@ -421,7 +421,7 @@ def get_grade_history(submission_id: int
                       ) -> JSONResponse[t.Sequence[models.GradeHistory]]:
     """Get the grade history for the given submission.
 
-    .. quickref:: Submission; Get the grade history for the given submission.
+    .. :quickref: Submission; Get the grade history for the given submission.
 
     :returns: A list of :class:`.models.GradeHistory` object serialized to
         json for the given assignment.
