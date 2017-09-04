@@ -1197,7 +1197,9 @@ class File(Base):
         query: t.ClassVar[_MyQuery['File']]
     __tablename__ = "File"
     id: int = db.Column('id', db.Integer, primary_key=True)
-    work_id: int = db.Column('Work_id', db.Integer, db.ForeignKey('Work.id'))
+    work_id: int = db.Column(
+        'Work_id', db.Integer, db.ForeignKey('Work.id', ondelete='CASCADE')
+    )
     extension: str = db.Column('extension', db.Unicode)
     name: str = db.Column('name', db.Unicode, nullable=False)
 

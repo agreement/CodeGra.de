@@ -133,11 +133,4 @@ export default {
         },
     },
 };
-
 </script>
-
-<style scoped>
-.exporter {
-    margin-bottom: 1rem;
-}
-</style>

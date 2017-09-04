@@ -25,6 +25,7 @@ import SubmissionNavBar from './SubmissionNavBar';
 import NewCourse from './NewCourse';
 import CourseList from './CourseList';
 import RubricEditor from './RubricEditor';
+import SubmitButton from './SubmitButton';
 import PrivacyNote from './PrivacyNote';
 
 export {
@@ -55,5 +56,6 @@ export {
     NewCourse,
     CourseList,
     RubricEditor,
+    SubmitButton,
     PrivacyNote,
 };

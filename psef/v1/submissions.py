@@ -178,6 +178,36 @@ def get_zip(work: models.Work,
     }
 
 
+@api.route('/submissions/<int:submission_id>', methods=['DELETE'])
+def delete_submission(submission_id: int) -> EmptyResponse:
+    """Delete a submission and all its files.
+
+    .. :quickref: Submission; Delete a submission and all its files.
+
+    .. warning::
+
+        This is irreversible, so make sure the user really wants this!
+
+    :param submission_id: The submission to delete.
+    :returns: Nothing
+    """
+    submission = helpers.get_or_404(models.Work, submission_id)
+
+    auth.ensure_permission(
+        'can_delete_submission', submission.assignment.course_id
+    )
+
+    for sub_file in db.session.query(models.File).filter_by(
+        work_id=submission_id, is_directory=False
+    ).all():
+        sub_file.delete_from_disk()
+
+    db.session.delete(submission)
+    db.session.commit()
+
+    return make_empty_response()
+
+
 @api.route("/submissions/<int:submission_id>/rubrics/", methods=['GET'])
 @helpers.feature_required('RUBRICS')
 def get_rubric(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:

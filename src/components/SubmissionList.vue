@@ -16,7 +16,7 @@
             </b-input-group>
         </b-form-fieldset>
 
-        <div>
+        <div style="margin-bottom: 1em; overflow: hidden;">
             <submit-button label="Show Rubric"
                            @click="showRubricModal = !showRubricModal"
                            style="float: right;"
@@ -309,7 +309,7 @@ export default {
     padding: 0.7rem;
 }
 
-.modal-dialog.modal-md {
+.submission-list .modal-dialog.modal-md {
     max-width: 1550px;
     width: 100%;
 }

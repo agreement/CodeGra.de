@@ -1,4 +1,5 @@
 import io
+import os
 import zipfile
 import datetime
 
@@ -1121,3 +1122,55 @@ def test_change_grader(
             assert submission['assignee'] is None
         else:
             assert submission['assignee']['name'] == old_grader
+
+
+@pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
+@pytest.mark.parametrize(
+    'named_user', [
+        'Robin',
+        perm_error(error=403)('Thomas Schaper'),
+        perm_error(error=401)('NOT_LOGGED_IN'),
+        perm_error(error=403)('admin'),
+        perm_error(error=403)('Stupid1'),
+    ],
+    indirect=True
+)
+def test_delete_submission(
+    named_user, request, test_client, logged_in, error_template, ta_user,
+    assignment_real_works, session
+):
+    assignment, work = assignment_real_works
+    work_id = work['id']
+
+    perm_err = request.node.get_marker('perm_error')
+    if perm_err:
+        error = perm_err.kwargs['error']
+    else:
+        error = False
+
+    files = [f.id for f in m.File.query.filter_by(work_id=work_id).all()]
+    assert files
+    diskname = m.File.query.filter_by(
+        work_id=work_id, is_directory=False
+    ).first().get_diskname()
+
+    assert os.path.isfile(diskname)
+
+    with logged_in(named_user):
+        test_client.req(
+            'delete',
+            f'/api/v1/submissions/{work_id}',
+            error or 204,
+            result=error_template if error else None
+        )
+
+    if error:
+        assert os.path.isfile(diskname)
+        for f in files:
+            assert m.File.query.get(f)
+        assert m.Work.query.get(work_id)
+    else:
+        assert not os.path.isfile(diskname)
+        assert m.Work.query.get(work_id) is None
+        for f in files:
+            assert m.File.query.get(f) is None

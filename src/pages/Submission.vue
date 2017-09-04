@@ -26,7 +26,7 @@
             </div>
 
             <div class="col-lg-3 file-tree-container">
-                <b-form-fieldset class="button-bar">
+                <b-form-fieldset class="submission-button-bar">
                     <b-button @click="downloadType('zip')"
                               variant="primary">
                         <icon name="download"/>
@@ -38,6 +38,32 @@
                         <icon name="download"/>
                         Feedback
                     </b-button>
+                    <div v-if="canDeleteSubmission">
+                        <b-btn class="text-center"
+                                variant="danger"
+                                @click="$root.$emit('show::modal',`modal_delete`)">
+                            <icon name="times"/> Delete
+                        </b-btn>
+                        <b-modal :id="`modal_delete`" title="Are you sure?" :hide-footer="true">
+                            <p style="text-align: center;">
+                                By deleting all information about this submissions,
+                                including files, will be lost forever! So are you
+                                really sure?
+                            </p>
+                            <b-button-toolbar justify>
+                                <submit-button class="text-center delete-confirm"
+                                                ref="deleteButton"
+                                                default="outline-danger"
+                                                @click="deleteSubmission"
+                                                label="Yes"/>
+                                <b-btn class="text-center"
+                                        variant="success"
+                                        @click="$root.$emit('hide::modal', `modal_delete`)">
+                                    No!
+                                </b-btn>
+                            </b-button-toolbar>
+                        </b-modal>
+                    </div>
                 </b-form-fieldset>
 
                 <loader class="text-center"
@@ -56,8 +82,9 @@
 import { mapActions } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/download';
+import 'vue-awesome/icons/times';
 
-import { CodeViewer, FileTree, GradeViewer, Loader, PdfViewer, SubmissionNavBar } from '@/components';
+import { CodeViewer, FileTree, GradeViewer, Loader, PdfViewer, SubmissionNavBar, SubmitButton } from '@/components';
 
 import * as assignmentState from '@/store/assignment-states';
 
@@ -98,6 +125,7 @@ export default {
             rubric: null,
             fileExtension: '',
             loading: true,
+            canDeleteSubmission: false,
             initialLoad: true,
             assignmentState,
             canSeeFeedback: false,
@@ -146,11 +174,12 @@ export default {
 
     mounted() {
         this.hasPermission({
-            name: ['can_grade_work', 'can_see_grade_before_open'],
+            name: ['can_grade_work', 'can_see_grade_before_open', 'can_delete_submission'],
             course_id: this.courseId,
-        }).then(([canGrade, canSeeGrade]) => {
+        }).then(([canGrade, canSeeGrade, canDeleteSubmission]) => {
             this.editable = canGrade;
             this.canSeeFeedback = canSeeGrade;
+            this.canDeleteSubmission = canDeleteSubmission;
         });
 
         this.loading = true;
@@ -190,6 +219,22 @@ export default {
             return this.$http.get(
                 `/api/v1/assignments/${this.assignmentId}/submissions/`,
             ).then(({ data }) => data);
+        },
+
+        deleteSubmission() {
+            const req = this.$http.delete(`/api/v1/submissions/${this.submissionId}`);
+
+            this.$refs.deleteButton.submit(req.catch((err) => {
+                throw err.response.data.message;
+            })).then(() => {
+                this.$router.push({
+                    name: 'assignment_submissions',
+                    params: {
+                        courseId: this.assignment.course.id,
+                        assignmentId: this.assignment.id,
+                    },
+                });
+            });
         },
 
         getSubmissionData() {
@@ -349,6 +394,7 @@ export default {
         Loader,
         PdfViewer,
         SubmissionNavBar,
+        SubmitButton,
         Icon,
     },
 };
@@ -399,9 +445,12 @@ export default {
     flex-direction: column;
 }
 
-.button-bar {
+.submission-button-bar {
     flex-grow: 0;
     flex-shrink: 0;
+    button {
+        margin-bottom: 0.2em;
+    }
 }
 
 .file-tree {
@@ -415,7 +464,7 @@ export default {
 }
 </style>
 
-<style>
+<style lang="less">
 @media (max-width: 992px) {
     #app, html {
         height: inherit !important;
