@@ -1,7 +1,7 @@
 <template>
     <div class="userinfo">
         <loader class="col-md-12 text-center" v-if="loading"></loader>
-        <div @keyup.enter="submit" @keyup.capture="error = ''" v-else>
+        <div @keyup.enter="submit" @keydown.capture="error = ''" v-else>
             <b-form-fieldset>
                 <b-input-group left="Username">
                     <b-popover placement="top" triggers="hover" content="You cannot change your username" style="width: 100%;">
