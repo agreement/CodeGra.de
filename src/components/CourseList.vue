@@ -21,18 +21,18 @@
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="actions" scope="item">
-                <div class="row">
-                    <b-popover placement="left" content="View assignments" triggers="hover">
+                <b-btn-group>
+                    <b-popover class="btn-popover" placement="top" content="View assignments" triggers="hover">
                         <b-btn size="sm" variant="success" @click.stop="gotoCourse(item.item)">
                             <icon name="list"></icon>
                         </b-btn>
                     </b-popover>
-                    <b-popover placement="right" content="Manage course" triggers="hover">
+                    <b-popover class="btn-popover" placement="top" content="Manage course" triggers="hover">
                         <b-btn v-if="item.item.manageable" @click.stop="gotoCourseEdit(item.item) "size="sm" variant="warning">
                             <icon name="pencil"></icon>
                         </b-btn>
                     </b-popover>
-                </div>
+                </b-btn-group>
             </template>
             <template slot="empty">
                 No results found.
@@ -114,8 +114,16 @@ export default {
 };
 </script>
 
-<style lang="less" scoped>
-    .btn {
-        margin-right: 10px;
+<style lang="less">
+.btn-popover {
+    &:not(:last-child) .btn {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
     }
+
+    &:not(:first-child) .btn {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+}
 </style>
