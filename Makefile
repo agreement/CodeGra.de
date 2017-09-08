@@ -53,7 +53,7 @@ build_front-end:
 	npm run build
 
 .PHONY: seed_data
-seed:
+seed_data:
 	DEBUG_ON=True env/bin/python3.6 $(CURDIR)/manage.py seed
 
 .PHONY: format

@@ -34,7 +34,7 @@
         <div class="collapse-wrapper">
             <h3 @click="toggleDiv('permissions-manager')">Roles</h3>
             <b-collapse id="permissions-manager">
-                <permissions-manager/>
+                <permissions-manager :courseId="course.id"/>
             </b-collapse>
         </div>
     </div>

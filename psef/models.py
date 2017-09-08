@@ -353,6 +353,20 @@ class Role(Base):
         backref=db.backref('roles', lazy='dynamic')
     )
 
+    def set_permission(self, perm: Permission, should_have: bool) -> None:
+        """Set the given :class:`Permission` to the given value.
+
+        :param should_have: If this role should have this permission
+        :param perm: The permission this role should (not) have
+        """
+        try:
+            if perm.default_value ^ should_have:
+                self._permissions[perm.name] = perm
+            else:
+                self._permissions.pop(perm.name)
+        except KeyError:
+            pass
+
     def has_permission(self, permission: t.Union[str, Permission]) -> bool:
         """Check whether this role has the specified :class:`Permission`.
 
@@ -392,8 +406,8 @@ class Role(Base):
         """Get all course permissions (:class:`Permission`) for this role.
 
         :returns: A name boolean mapping where the name is the name of the
-                  permission and the value indicates if this user has this
-                  permission.
+            permission and the value indicates if this user has this
+            permission.
         """
         perms: t.Sequence[Permission] = (
             Permission.query.
@@ -408,6 +422,25 @@ class Role(Base):
             else:
                 result[perm.name] = perm.default_value
         return result
+
+    def __to_json__(self) -> t.MutableMapping[str, t.Any]:
+        """Creates a JSON serializable representation of a role.
+
+        This object will look like this:
+
+        .. code:: python
+
+            {
+                'id':    int, # The id of this role.
+                'name':  str, # The name of this role.
+            }
+
+        :returns: An object as described above.
+        """
+        return {
+            'name': self.name,
+            'id': self.id,
+        }
 
 
 class User(Base):

@@ -15,8 +15,8 @@
                     :response="true">
 
                 <template slot="name" scope="item">
-                    <b v-if="item.value === 'Remove'">{{ item.value }}</b>
-                    <span v-else>{{ item.value }}</span>
+                    <span v-if="item.value !== 'Remove'">{{ item.value }}</span>
+                    <b v-else-if="showDeleteRole">{{ item.value }}</b>
                 </template>
                 <template v-for="(_, field) in fields" :slot="field === 'name' ? `|||____$name$__||||${Math.random()}` : field" scope="item" v-if="field != 'name'">
                     <b-input-group v-if="item.item.name !== 'Remove'">
@@ -24,7 +24,7 @@
                                 v-if="item.item[field] === 'loading'"/>
                         <b-popover content="You cannot disable this permission for yourself"
                                 triggers="hover"
-                                v-else-if="item.item.name === 'can_manage_course' && fields[field].own">
+                                v-else-if="item.item.name === fixedPermission && fields[field].own">
                             <b-form-checkbox :checked="item.item[field]"
                                             disabled class="disabled"/>
                         </b-popover>
@@ -32,7 +32,7 @@
                                         @change="changeButton(item.item.name, field)"
                                         v-else/>
                     </b-input-group>
-                    <b-input-group v-else>
+                    <b-input-group v-else-if="showDeleteRole">
                         <b-popover :show="!!errors[field]"
                                 :content="errors[field] ? errors[field] : ''">
                             <b-button class="delete"
@@ -46,7 +46,7 @@
                 </template>
             </b-table>
         </div>
-        <b-form-fieldset class="add-role">
+        <b-form-fieldset class="add-role" v-if="showAddRole">
             <b-input-group>
                 <b-form-input v-model="newRoleName"
                               placeholder="Name of new role"
@@ -80,9 +80,42 @@ import Loader from './Loader';
 export default {
     name: 'permissions-manager',
 
+    props: {
+        courseId: {},
+
+        fixedPermission: {
+            default: 'can_manage_course',
+            type: String,
+        },
+
+        showDeleteRole: {
+            type: Boolean,
+            default: true,
+        },
+
+        showAddRole: {
+            type: Boolean,
+            default: true,
+        },
+
+        getRetrieveUrl: {
+            type: Function,
+            default: courseId => `/api/v1/courses/${courseId}/roles/?with_roles=true`,
+        },
+
+        getChangePermUrl: {
+            type: Function,
+            default: (courseId, roleId) => `/api/v1/courses/${courseId}/roles/${roleId}`,
+        },
+
+        getDeleteRoleUrl: {
+            type: Function,
+            default: (courseId, roleId) => `/api/v1/courses/${courseId}/roles/${roleId}`,
+        },
+    },
+
     data() {
         return {
-            courseId: this.$route.params.courseId,
             loading: true,
             filter: '',
             roles: [],
@@ -100,7 +133,7 @@ export default {
 
     methods: {
         getAllPermissions() {
-            return this.$http.get(`/api/v1/courses/${this.courseId}/roles/?with_roles=true`).then(({ data }) => {
+            return this.$http.get(this.getRetrieveUrl(this.courseId)).then(({ data }) => {
                 this.roles = data;
                 this.fields = {
                     name: {
@@ -139,7 +172,7 @@ export default {
             const newValue = !item[field];
             item[field] = 'loading';
             this.$set(this.items, i, item);
-            this.$http.patch(`/api/v1/courses/${this.courseId}/roles/${this.fields[field].id}`, {
+            this.$http.patch(this.getChangePermUrl(this.courseId, this.fields[field].id), {
                 value: newValue,
                 permission: item.name,
             }).then(() => {
@@ -149,25 +182,26 @@ export default {
         },
         removeRole(perm) {
             this.$set(this.deleting, perm, true);
-            this.$http.delete(`/api/v1/courses/${this.courseId}/roles/${this.fields[perm].id}`).then(() => {
-                this.$set(this.deleting, perm, false);
-                delete this.deleting[perm];
-                this.$set(this.deleted, perm, true);
-                this.$nextTick(() => setTimeout(() => {
-                    this.$set(this.deleted, perm, false);
-                    this.$set(this.fields, perm, {});
-                    delete this.fields[perm];
-                }, 1000));
-            }).catch(({ response }) => {
-                this.$set(this.deleting, perm, false);
-                delete this.deleting[perm];
+            this.$http.delete(this.getDeleteRoleUrl(this.courseId, this.fields[perm].id))
+                .then(() => {
+                    this.$set(this.deleting, perm, false);
+                    delete this.deleting[perm];
+                    this.$set(this.deleted, perm, true);
+                    this.$nextTick(() => setTimeout(() => {
+                        this.$set(this.deleted, perm, false);
+                        this.$set(this.fields, perm, {});
+                        delete this.fields[perm];
+                    }, 1000));
+                }).catch(({ response }) => {
+                    this.$set(this.deleting, perm, false);
+                    delete this.deleting[perm];
 
-                this.$set(this.errors, perm, response.data.message);
+                    this.$set(this.errors, perm, response.data.message);
 
-                this.$nextTick(() => setTimeout(() => {
-                    this.$set(this.errors, perm, false);
-                }, 1000));
-            });
+                    this.$nextTick(() => setTimeout(() => {
+                        this.$set(this.errors, perm, false);
+                    }, 1000));
+                });
         },
         addRole() {
             this.done = false;

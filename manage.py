@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 import json
 import datetime
 
@@ -26,10 +27,24 @@ manager = Manager(app)
 
 manager.add_command('db', MigrateCommand)
 
+
 @manager.command
 def seed():
+    if not app.config['DEBUG']:
+        print(
+            'Seeding the database is NOT safe if there is data in'
+            ' the database, please use seed_force to seed anyway',
+            file=sys.stderr
+        )
+        return 1
+    return seed_force()
+
+
+@manager.command
+def seed_force():
     with open(
-        f'{os.path.dirname(os.path.abspath(__file__))}/seed_data/permissions.json', 'r'
+        f'{os.path.dirname(os.path.abspath(__file__))}/seed_data/permissions.json',
+        'r'
     ) as perms:
         perms = json.load(perms)
         for name, perm in perms.items():
@@ -40,7 +55,10 @@ def seed():
             else:
                 db.session.add(m.Permission(name=name, **perm))
 
-    with open(f'{os.path.dirname(os.path.abspath(__file__))}/seed_data/roles.json', 'r') as c:
+    with open(
+        f'{os.path.dirname(os.path.abspath(__file__))}/seed_data/roles.json',
+        'r'
+    ) as c:
         cs = json.load(c)
         for name, c in cs.items():
             perms = m.Permission.query.filter_by(course_permission=False).all()
@@ -60,16 +78,24 @@ def seed():
 
 @manager.command
 def test_data():
+    if not app.config['DEBUG']:
+        print('You can not add test data in production mode', file=sys.stderr)
+        return 1
+
     seed()
     db.session.commit()
-    with open(f'{os.path.dirname(os.path.abspath(__file__))}/test_data/courses.json', 'r') as c:
+    with open(
+        f'{os.path.dirname(os.path.abspath(__file__))}/test_data/courses.json',
+        'r'
+    ) as c:
         cs = json.load(c)
         for c in cs:
             if m.Course.query.filter_by(name=c['name']).first() is None:
                 db.session.add(m.Course(name=c['name']))
     db.session.commit()
     with open(
-        f'{os.path.dirname(os.path.abspath(__file__))}/test_data/assignments.json', 'r'
+        f'{os.path.dirname(os.path.abspath(__file__))}/test_data/assignments.json',
+        'r'
     ) as c:
         cs = json.load(c)
         for c in cs:
@@ -92,7 +118,10 @@ def test_data():
                 assig.course = m.Course.query.filter_by(name=c['course']
                                                         ).first()
     db.session.commit()
-    with open(f'{os.path.dirname(os.path.abspath(__file__))}/test_data/users.json', 'r') as c:
+    with open(
+        f'{os.path.dirname(os.path.abspath(__file__))}/test_data/users.json',
+        'r'
+    ) as c:
         cs = json.load(c)
         for c in cs:
             u = m.User.query.filter_by(name=c['name']).first()
@@ -129,13 +158,18 @@ def test_data():
                         for assig in course.assignments:
                             work = m.Work(assignment=assig, user=u)
                             db.session.add(
-                                m.File(work=work,
-                                       name='Top stub dir',
-                                       is_directory=True)
+                                m.File(
+                                    work=work,
+                                    name='Top stub dir',
+                                    is_directory=True
+                                )
                             )
                             db.session.add(work)
     db.session.commit()
-    with open(f'{os.path.dirname(os.path.abspath(__file__))}/test_data/rubrics.json', 'r') as c:
+    with open(
+        f'{os.path.dirname(os.path.abspath(__file__))}/test_data/rubrics.json',
+        'r'
+    ) as c:
         cs = json.load(c)
         for c in cs:
             for row in c['rows']:
