@@ -2,6 +2,7 @@ import Vue from 'vue';
 import Router from 'vue-router';
 import store from '@/store';
 import { LTILaunch, Assignments, Courses, Home, Login, ManageCourse, Submission, Submissions, User } from '@/pages';
+import { NewCourse, UsersManager, RubricEditor } from '@/components';
 
 import { setPageTitle } from '@/pages/title';
 
@@ -65,6 +66,21 @@ const router = new Router({
             path: '/courses/:courseId',
             name: 'assignment_manage',
             component: ManageCourse,
+        },
+        {
+            path: '/add-course',
+            name: 'new-course',
+            component: NewCourse,
+        },
+        {
+            path: '/manage-permissions/:courseId/',
+            name: 'manage-permissions',
+            component: UsersManager,
+        },
+        {
+            path: '/edit-rubric/:assignmentId',
+            name: 'edit-rubric',
+            component: RubricEditor,
         },
     ],
 });

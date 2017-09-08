@@ -6,7 +6,6 @@ are used to create courses and return information about courses.
 """
 
 import typing as t
-import datetime
 
 from flask import request
 from mypy_extensions import TypedDict
@@ -391,45 +390,6 @@ def get_all_course_assignments(
     course = helpers.get_or_404(models.Course, course_id)
 
     return jsonify(course.get_all_visible_assignments())
-
-
-@api.route('/courses/<int:course_id>/assignments/', methods=['POST'])
-def create_new_assignment(course_id: int) -> JSONResponse[models.Assignment]:
-    """Create a new course for the given assignment.
-
-    .. :quickref: Course; Create a new assignment in a course.
-
-    :param int course_id: The course to create an assignment in.
-
-    :>json str name: The name of the new assignment.
-
-    :returns: The newly created assignment.
-
-    :raises PermissionException: If the current user does not have the
-        ``can_manage_course`` permission (INCORRECT_PERMISSION).
-    """
-    auth.ensure_permission('can_manage_course', course_id)
-
-    content = ensure_json_dict(request.get_json())
-    ensure_keys_in_dict(content, [('name', str)])
-    name = t.cast(str, content['name'])
-
-    course = helpers.get_or_404(models.Course, course_id)
-
-    if course.lti_course_id is not None:
-        raise APIException(
-            'You cannot add assignments to a LTI course',
-            f'The course "{course_id}" is a LTI course',
-            APICodes.INVALID_STATE, 400
-        )
-
-    assig = models.Assignment(
-        name=name, course=course, deadline=datetime.datetime.utcnow()
-    )
-    db.session.add(assig)
-    db.session.commit()
-
-    return jsonify(assig)
 
 
 @api.route('/courses/', methods=['POST'])

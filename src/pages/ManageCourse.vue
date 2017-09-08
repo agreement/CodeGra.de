@@ -6,15 +6,12 @@
             </b-alert>
         </div>
         <loader v-if="loading"></loader>
-        <manage-course v-else
-                       :assignments="assignments"
-                       :course="course"
-                       @created="(assig) => { assignments.push(assig); }"/>
+        <manage-course v-else :assignments="assignments" :course="course"/>
     </div>
 </template>
 
 <script>
-import { ManageCourse, Loader  } from '@/components';
+import { ManageCourse, Loader } from '@/components';
 import moment from 'moment';
 
 import { setPageTitle } from './title';

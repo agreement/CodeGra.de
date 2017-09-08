@@ -1,7 +1,7 @@
 <template>
     <b-popover class="submission-popover"
                :show="showError && state == 'failure'"
-               :placement="popoverPlacement"
+               placement="top"
                :content="err">
         <b-button :disabled="pending || disabled"
                   :variant="variants[state]"
@@ -35,10 +35,6 @@ export default {
     },
 
     props: {
-        popoverPlacement: {
-            type: String,
-            default: 'top',
-        },
         disabled: {
             type: Boolean,
             default: false,

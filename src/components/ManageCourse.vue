@@ -22,10 +22,6 @@
                             @showRubric="showRubric"/>
                     </b-list-group-item>
                 </b-list-group>
-                <new-assignment v-if="!course.is_lti"
-                                style="margin-top: 15px;"
-                                :course-id="course.id"
-                                @created="(assig) => { $emit('created', assig); }"/>
             </b-collapse>
         </div>
 
@@ -48,7 +44,6 @@
 import UsersManager from './UsersManager';
 import PermissionsManager from './PermissionsManager';
 import ManageAssignment from './ManageAssignment';
-import NewAssignment from './NewAssignment';
 
 export default {
     name: 'manage-course',
@@ -93,7 +88,6 @@ export default {
     },
 
     components: {
-        NewAssignment,
         ManageAssignment,
         UsersManager,
         PermissionsManager,

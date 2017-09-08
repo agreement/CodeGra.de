@@ -1,65 +1,70 @@
 <template>
     <div id="newCourse">
-        <div @keyup.enter="submit">
-            <b-form-fieldset class="add-course">
-                <b-input-group>
-                    <b-form-input  type="text"
-                                   placeholder="New course name"
-                                   v-model="name"/>
-                    <b-button-group>
-                        <submit-button ref="submit"
-                                       @click="submit"
-                                       label="Add"
-                                       popover-placement="top"/>
-                    </b-button-group>
+        <loader class="text-center" v-if="loading"></loader>
+
+        <div v-else @keyup.enter="submit">
+            <b-form-fieldset>
+                <b-input-group left="Course Name">
+                    <b-form-input  type="text" v-model="name"></b-form-input>
                 </b-input-group>
+                <b-alert variant="danger" :show="true" v-if="error.length != 0">
+                    {{ error }}
+                </b-alert>
             </b-form-fieldset>
+
+            <b-button-toolbar justify>
+                <b-button variant="danger" @click="reset()">Cancel</b-button>
+                <b-button :variant="error.length != 0 ? 'danger' : done ? 'success' : 'primary'" @click="submit()">
+                    <icon name="refresh" spin v-if="submitted"></icon>
+                    <span v-else>Submit</span>
+                </b-button>
+            </b-button-toolbar>
         </div>
     </div>
 </template>
 
 <script>
 import Loader from './Loader';
-import SubmitButton from './SubmitButton';
 
 export default {
     name: 'new-course',
     data() {
         return {
             name: '',
-            submitted: false,
+            done: false,
+            error: '',
+            loading: false,
         };
     },
     components: {
-        SubmitButton,
         Loader,
     },
 
     methods: {
+        reset() {
+            this.done = false;
+            this.name = '';
+            this.error = '';
+        },
         submit() {
-            const button = this.$refs.submit;
-            if (this.name === '' || this.name == null) {
-                button.submit(Promise.reject('Please select a course name'));
+            if (this.name === '') {
+                this.error = 'Please select a course name';
                 return;
             }
-            const req = this.$http.post('/api/v1/courses/', { name: this.name })
-                  .then(({ data: assig }) => {
-                      window.location.href = `/courses/${assig.id}?created=true`;
-                  }).catch((err) => {
-                      throw err.response.data.message;
-                  });
-            button.submit(req);
+            this.loading = true;
+            this.$http.post('/api/v1/courses/', { name: this.name }).then(({ data }) => {
+                this.loading = false;
+                this.assignments = data;
+                window.location.href = `/courses/${data.id}?created=true`;
+            }).catch(
+                () => {
+                    this.error = 'An error occurred adding the course, try again please!';
+                    this.loading = false;
+                    this.done = false;
+                },
+            );
+            this.loading = false;
         },
     },
 };
 </script>
-
-<style lang="less">
-.add-course {
-    .btn {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-        height: 100%;
-    }
-}
-</style>
