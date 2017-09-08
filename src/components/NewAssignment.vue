@@ -1,10 +1,10 @@
 <template>
-    <div id="newCourse">
+    <div id="newAssignment">
         <div @keyup.enter="submit">
-            <b-form-fieldset class="add-course">
+            <b-form-fieldset class="add-assignment">
                 <b-input-group>
                     <b-form-input  type="text"
-                                   placeholder="New course name"
+                                   placeholder="New assignment name"
                                    v-model="name"/>
                     <b-button-group>
                         <submit-button ref="submit"
@@ -23,7 +23,9 @@ import Loader from './Loader';
 import SubmitButton from './SubmitButton';
 
 export default {
-    name: 'new-course',
+    name: 'new-assignment',
+    props: ['courseId'],
+
     data() {
         return {
             name: '',
@@ -39,15 +41,18 @@ export default {
         submit() {
             const button = this.$refs.submit;
             if (this.name === '' || this.name == null) {
-                button.submit(Promise.reject('Please select a course name'));
+                button.submit(Promise.reject('Please select a assignment name'));
                 return;
             }
-            const req = this.$http.post('/api/v1/courses/', { name: this.name })
-                  .then(({ data: assig }) => {
-                      window.location.href = `/courses/${assig.id}?created=true`;
-                  }).catch((err) => {
-                      throw err.response.data.message;
-                  });
+            const req = this.$http.post(`/api/v1/courses/${this.courseId}/assignments/`, {
+                name: this.name,
+            }).then(({ data: assig }) => {
+                this.name = '';
+                this.$emit('created', assig);
+            }).catch((err) => {
+                throw err.response.data.message;
+            });
+
             button.submit(req);
         },
     },
@@ -55,7 +60,7 @@ export default {
 </script>
 
 <style lang="less">
-.add-course {
+.add-assignment {
     .btn {
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
