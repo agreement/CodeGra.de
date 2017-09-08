@@ -172,6 +172,38 @@ def test_add_course(
 
 
 @pytest.mark.parametrize(
+    'named_user', [
+        'admin',
+        perm_error(error=403)('Thomas Schaper'),
+        perm_error(error=401)('NOT_LOGGED_IN'),
+    ],
+    indirect=['named_user']
+)
+def test_delete_course(
+    test_client, named_user, request, error_template, logged_in, session
+):
+    course = session.query(m.Course).filter_by(name='Programmeertalen').one()
+
+    perm_err = request.node.get_marker('perm_error')
+    if perm_err:
+        error = perm_err.kwargs['error']
+    else:
+        error = False
+
+    with logged_in(named_user):
+        res = test_client.req(
+            'delete',
+            f'/api/v1/courses/{course.id}',
+            error or 204,
+            result=error_template if error else None
+        )
+        if not error:
+            test_client.req('get', f'/api/v1/courses/{course.id}', 404)
+        elif named_user != 'NOT_LOGGED_IN':
+            test_client.req('get', f'/api/v1/courses/{course.id}', 200)
+
+
+@pytest.mark.parametrize(
     'named_user,expected', [
         ('Stupid1', ['Haskell', 'Shell', 'Python', 'Go']),
         ('Thomas Schaper', ['Haskell', 'Shell', 'Python', 'Go', 'Erlang']),

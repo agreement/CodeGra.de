@@ -422,6 +422,33 @@ def add_course() -> JSONResponse[models.Course]:
     return jsonify(new_course)
 
 
+@api.route('/courses/<int:course_id>', methods=['DELETE'])
+@auth.permission_required('can_create_courses')
+def delete_course(course_id) -> EmptyResponse:
+    """Delete a course and all associated assignments and submissions
+
+    .. :quickref: Course; Delete an existing course
+
+    .. warning::
+
+        This is irreversible, so make sure the user really wants this!
+
+    :param course_id: The course to delete.
+    :returns: Empty response
+
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If the user can not delete courses.
+        (INCORRECT_PERMISSION)
+    :raises APIException: If there is no course with the given id.
+        (OBJECT_ID_NOT_FOUND)
+    """
+    course = helpers.get_or_404(models.Course, course_id)
+    db.session.delete(course)
+    db.session.commit()
+
+    return make_empty_response()
+
+
 @api.route('/courses/', methods=['GET'])
 @auth.login_required
 def get_courses() -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:

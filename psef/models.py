@@ -202,7 +202,9 @@ class CourseRole(Base):
 
     # Old syntax used to please sphinx
     course = db.relationship(
-        'Course', foreign_keys=course_id, backref="roles"
+        'Course',
+        foreign_keys=course_id,
+        back_populates='roles',
     )  # type: Course
 
     def __to_json__(self) -> t.MutableMapping[str, t.Any]:
@@ -472,7 +474,7 @@ class User(Base):
         'CourseRole',
         collection_class=attribute_mapped_collection('course_id'),
         secondary=user_course,
-        backref=db.backref('users', lazy='dynamic')
+        backref=db.backref('users', lazy='dynamic'),
     )
     username: str = db.Column(
         'username',
@@ -754,6 +756,10 @@ class Course(Base):
         "Assignment", back_populates="course", cascade='all,delete'
     )  # type: t.MutableSequence[Assignment]
 
+    roles = db.relationship(
+        'CourseRole', back_populates="course", cascade='all,delete'
+    )  # type: t.MutableSequence[CourseRole]
+
     def __init__(
         self,
         name: str=None,
@@ -869,7 +875,8 @@ class Work(Base):
     __tablename__ = "Work"  # type: str
     id = db.Column('id', db.Integer, primary_key=True)  # type: int
     assignment_id: int = db.Column(
-        'Assignment_id', db.Integer, db.ForeignKey('Assignment.id')
+        'Assignment_id', db.Integer,
+        db.ForeignKey('Assignment.id', ondelete='CASCADE')
     )
     user_id: int = db.Column(
         'User_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
@@ -887,7 +894,9 @@ class Work(Base):
     )  # type: t.MutableSequence['RubricItem']
 
     assignment = db.relationship(
-        'Assignment', foreign_keys=assignment_id, lazy='joined'
+        'Assignment',
+        foreign_keys=assignment_id,
+        lazy='joined',
     )  # type: 'Assignment'
     user = db.relationship(
         'User', foreign_keys=user_id, lazy='joined'
