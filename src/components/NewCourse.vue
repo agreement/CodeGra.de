@@ -2,7 +2,7 @@
     <div id="newCourse">
         <loader class="text-center" v-if="loading"></loader>
 
-        <div v-else v-on:keyup.enter="submit()">
+        <div v-else @keyup.enter="submit">
             <b-form-fieldset>
                 <b-input-group left="Course Name">
                     <b-form-input  type="text" v-model="name"></b-form-input>

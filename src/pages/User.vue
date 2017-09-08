@@ -7,8 +7,20 @@
                 </b-card>
             </div>
             <div class="col-6">
-                <b-card header="Snippets">
+                <b-card header="Snippets" style="margin-bottom: 15px;">
                     <snippet-manager></snippet-manager>
+                </b-card>
+            </div>
+        </div>
+
+        <div class="row" v-if="manage">
+            <div class="col-12">
+                <b-card header="Manage site permissions">
+                    <permissions-manager :showAddRole="false"
+                                         fixedPermission="can_manage_site_users"
+                                         :showDeleteRole="false"
+                                         :getChangePermUrl="(_, roleId) => `/api/v1/roles/${roleId}`"
+                                         :getRetrieveUrl="() => '/api/v1/roles/'"/>
                 </b-card>
             </div>
         </div>
@@ -16,8 +28,8 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
-import { UserInfo, SnippetManager } from '@/components';
+import { mapGetters, mapActions } from 'vuex';
+import { UserInfo, SnippetManager, PermissionsManager } from '@/components';
 
 import { setPageTitle } from './title';
 
@@ -27,10 +39,27 @@ export default {
     components: {
         UserInfo,
         SnippetManager,
+        PermissionsManager,
+    },
+
+    data() {
+        return {
+            manage: false,
+        };
     },
 
     mounted() {
         setPageTitle('User info');
+        this.hasPermission({ name: 'can_manage_site_users' })
+            .then((manage) => {
+                this.manage = manage;
+            });
+    },
+
+    methods: {
+        ...mapActions({
+            hasPermission: 'user/hasPermission',
+        }),
     },
 
     computed: {
@@ -40,3 +69,9 @@ export default {
     },
 };
 </script>
+
+<style lang="less" scoped>
+.row:not(:last-child) {
+    margin-bottom: 15px;
+}
+</style>

@@ -74,5 +74,9 @@
   "can_delete_submission": {
     "default_value": false,
     "course_permission": true
+  },
+  "can_manage_site_users": {
+    "default_value": false,
+    "course_permission": false
   }
 }

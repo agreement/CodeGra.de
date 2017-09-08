@@ -62,8 +62,8 @@
             </b-alert>
 
             <b-button-toolbar justify>
-                <submit-button @click="submit" ref="submitButton" :showError="false"/>
                 <b-button variant="danger" @click="reset">Reset</b-button>
+                <submit-button @click="submit" ref="submitButton" :showError="false"/>
             </b-button-toolbar>
         </div>
     </div>

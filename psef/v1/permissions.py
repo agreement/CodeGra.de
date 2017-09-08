@@ -23,7 +23,7 @@ if t.TYPE_CHECKING:  # pragma: no cover
 
 @api.route('/permissions/', methods=['GET'])
 @auth.login_required
-def get_permissions(
+def get_course_permissions(
 ) -> JSONResponse[t.Union[t.Mapping[int, bool], t.Mapping[str, bool], bool]]:
     """Get the permissions (:class:`.models.Permission`) of the currently
     logged in :class:`.models.User`.
