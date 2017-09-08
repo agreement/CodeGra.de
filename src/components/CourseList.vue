@@ -69,7 +69,7 @@
                         <p style="text-align: center;">
                             By deleting this course, all related information
                             will be lost forever! This includes assignments,
-                            submissions etc. Are you reallysure you want to
+                            submissions etc. Are you really sure you want to
                             delete this course?
                         </p>
                         <b-button-toolbar justify>
