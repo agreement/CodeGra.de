@@ -436,11 +436,8 @@ def delete_course(course_id) -> EmptyResponse:
     :param course_id: The course to delete.
     :returns: Empty response
 
-    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the user can not delete courses.
         (INCORRECT_PERMISSION)
-    :raises APIException: If there is no course with the given id.
-        (OBJECT_ID_NOT_FOUND)
     """
     course = helpers.get_or_404(models.Course, course_id)
     db.session.delete(course)

@@ -78,7 +78,6 @@ def get_course_permissions(
 
     if 'permission' in request.args:
         perm = request.args['permission']
-        print(fun(perm))
         try:
             return jsonify(fun(perm))
         except KeyError:
