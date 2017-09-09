@@ -424,7 +424,7 @@ def add_course() -> JSONResponse[models.Course]:
 
 @api.route('/courses/<int:course_id>', methods=['DELETE'])
 @auth.permission_required('can_create_courses')
-def delete_course(course_id) -> EmptyResponse:
+def delete_course(course_id: int) -> EmptyResponse:
     """Delete a course and all associated assignments and submissions
 
     .. :quickref: Course; Delete an existing course
