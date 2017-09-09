@@ -6,7 +6,10 @@
             </b-alert>
         </div>
         <loader v-if="loading"></loader>
-        <manage-course v-else :assignments="assignments" :course="course"/>
+        <manage-course v-else
+                       :assignments="assignments"
+                       :course="course"
+                       @created="(assig) => { assignments.push(assig); }"/>
     </div>
 </template>
 

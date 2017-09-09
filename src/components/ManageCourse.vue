@@ -3,7 +3,7 @@
         <div class="assignment-manager collapse-wrapper">
             <h3 @click="toggleDiv('assignment-manager')">Assignments</h3>
             <b-collapse id="assignment-manager" visible>
-                <b-form-fieldset>
+                <b-form-fieldset v-if="assignments.length > 0">
                     <b-input-group>
                         <b-form-input
                             v-model="filter"
@@ -11,17 +11,24 @@
                             @keyup.enter="submit"/>
                     </b-input-group>
                 </b-form-fieldset>
-                <b-list-group
-                    class="manage-course">
+                <b-list-group class="manage-course">
                     <b-list-group-item
-                        v-if="shouldShowAssignment(a)"
-                        v-for="a in assignments"
+                        v-for="a in filteredAssignments"
                         :key="a.id">
                         <manage-assignment
                             :assignment="a"
                             @showRubric="showRubric"/>
                     </b-list-group-item>
+                    <b-list-group-item
+                        variant="warning"
+                        v-if="filteredAssignments.length === 0">
+                        No assignment found
+                    </b-list-group-item>
                 </b-list-group>
+                <new-assignment v-if="!course.is_lti"
+                                style="margin-top: 15px;"
+                                :course-id="course.id"
+                                @created="(assig) => { $emit('created', assig); }"/>
             </b-collapse>
         </div>
 
@@ -44,6 +51,7 @@
 import UsersManager from './UsersManager';
 import PermissionsManager from './PermissionsManager';
 import ManageAssignment from './ManageAssignment';
+import NewAssignment from './NewAssignment';
 
 export default {
     name: 'manage-course',
@@ -62,15 +70,32 @@ export default {
     data() {
         return {
             filter: this.$route.query.q,
+            filteredAssignments: [],
             assignmentId: null,
         };
     },
 
+    watch: {
+        assignments() {
+            this.filterAssignments();
+        },
+
+        filter() {
+            this.filterAssignments();
+        },
+    },
+
+    mounted() {
+        this.filterAssignments();
+    },
+
     methods: {
-        shouldShowAssignment(assignment) {
-            if (!this.filter) return true;
-            const name = assignment.name.toLowerCase();
-            return name.indexOf(this.filter.toLowerCase()) > -1;
+        filterAssignments() {
+            this.filteredAssignments = this.assignments.filter((ass) => {
+                if (!this.filter) return true;
+                const name = ass.name.toLowerCase();
+                return name.indexOf(this.filter.toLowerCase()) > -1;
+            });
         },
 
         submit() {
@@ -88,6 +113,7 @@ export default {
     },
 
     components: {
+        NewAssignment,
         ManageAssignment,
         UsersManager,
         PermissionsManager,

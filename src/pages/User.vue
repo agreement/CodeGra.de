@@ -13,10 +13,12 @@
             </div>
         </div>
 
-        <div class="row" v-if="manage">
+        <div class="row">
             <div class="col-12">
                 <b-card header="Manage site permissions">
-                    <permissions-manager :showAddRole="false"
+                    <permissions-manager v-if="manage"
+                                         style="margin-top: 1em;"
+                                         :showAddRole="false"
                                          fixedPermission="can_manage_site_users"
                                          :showDeleteRole="false"
                                          :getChangePermUrl="(_, roleId) => `/api/v1/roles/${roleId}`"
@@ -50,10 +52,9 @@ export default {
 
     mounted() {
         setPageTitle('User info');
-        this.hasPermission({ name: 'can_manage_site_users' })
-            .then((manage) => {
-                this.manage = manage;
-            });
+        this.hasPermission({ name: 'can_manage_site_users' }).then((manage) => {
+            this.manage = manage;
+        });
     },
 
     methods: {

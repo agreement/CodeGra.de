@@ -26,10 +26,15 @@ case "$TO_RUN" in
         res="$?"
         set +o xtrace
         ;;
-    "flake8")
+    "lint")
         flake8 "$(pwd)/psef/"
         res="$?"
-        set +o xtrace
+        make privacy_statement
+        npm install
+        if ! npm run lint; then
+            res="1"
+        fi
+        set +x xtrace
         ;;
     "yapf")
         out="$(yapf -rdp "$(pwd)/psef" "$(pwd)/psef_test")"

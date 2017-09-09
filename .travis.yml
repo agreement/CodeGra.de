@@ -10,7 +10,10 @@ branches:
   only:
     - master
 
-cache: pip
+cache:
+  pip: true
+  directories:
+    - node_modules
 
 matrix:
   include:
@@ -23,7 +26,7 @@ matrix:
     - python: "nightly" # currently points to 3.7-dev
       env: TO_RUN="tests"
     - python: "3.6-dev"
-      env: TO_RUN="flake8"
+      env: TO_RUN="lint"
     - python: "3.6-dev"
       env: TO_RUN="mypy"
     - python: "3.6-dev"
