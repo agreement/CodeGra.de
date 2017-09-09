@@ -1,4 +1,4 @@
-"""empty message
+"""Add ondelete='CASCADE' to Assignment foreign-key on Work class
 
 Revision ID: a5b9c7d6a3c7
 Revises: 1b14f6bef6a1
