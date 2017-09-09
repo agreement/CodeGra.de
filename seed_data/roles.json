@@ -5,13 +5,15 @@
   "Student": {
     "permissions": [
       "can_use_snippets",
-      "can_edit_own_info"
+      "can_edit_own_info",
+      "can_edit_own_password"
     ]
   },
   "Staff": {
     "permissions": [
       "can_use_snippets",
-      "can_edit_own_info"
+      "can_edit_own_info",
+      "can_edit_own_password"
     ]
   },
   "Admin": {
@@ -20,6 +22,7 @@
       "can_edit_own_info",
       "can_add_users",
       "can_create_courses",
+      "can_edit_own_password",
       "can_manage_site_users"
     ]
   }

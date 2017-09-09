@@ -5,6 +5,7 @@ import pytest
 import psef.models as m
 
 data_error = pytest.mark.data_error
+perm_error = pytest.mark.perm_error
 missing_error = pytest.mark.missing_error
 password_error = pytest.mark.password_error
 does_have_permission = pytest.mark.does_have_permission
@@ -228,16 +229,18 @@ def test_login_duplicate_email(
         missing_error(None),
     ]
 )
+@pytest.mark.parametrize('role', ['Admin', perm_error('Nobody')])
 def test_update_user_info(
     logged_in, test_client, session, new_password, email, name, old_password,
-    error_template, request
+    error_template, request, role
 ):
     user = m.User(
         name='NEW_USER',
         email='a@a.nl',
         password='a',
         active=True,
-        username='a-the-a-er'
+        username='a-the-a-er',
+        role=m.Role.query.filter_by(name=role).one(),
     )
     session.add(user)
     session.commit()
@@ -245,10 +248,13 @@ def test_update_user_info(
 
     missing_err = request.node.get_marker('missing_error')
     data_err = request.node.get_marker('data_error')
+    perm_err = request.node.get_marker('perm_error')
     password_err = request.node.get_marker('password_error')
     needs_pw = request.node.get_marker('needs_password')
     if missing_err:
         error = 400
+    elif perm_err:
+        error = 403
     elif password_err:
         error = 403
     elif data_err:
@@ -282,3 +288,114 @@ def test_update_user_info(
             assert new_user.email == email
         else:
             assert new_user.name != name
+
+
+def test_update_user_info_permissions(
+    logged_in, test_client, session, error_template, request
+):
+    new_role = m.Role(name='NEW_ROLE')
+    info_perm = m.Permission.query.filter_by(name='can_edit_own_info').one()
+    pw_perm = m.Permission.query.filter_by(name='can_edit_own_password').one()
+    new_role.set_permission(info_perm, False)
+    new_role.set_permission(pw_perm, False)
+
+    session.add(new_role)
+    user = m.User(
+        name='NEW_USER',
+        email='a@a.nl',
+        password='a',
+        active=True,
+        username='a-the-a-er',
+        role=new_role,
+    )
+    session.add(user)
+
+    session.commit()
+    user_id = user.id
+
+    data = {}
+    data['new_password'] = 'new_pw'
+    data['old_password'] = 'a'
+    data['email'] = 'new_email@email.com'
+    data['name'] = 'new_name'
+
+    with logged_in(user):
+        # This user has no permissions so it should not be possible to do this.
+        test_client.req(
+            'patch',
+            '/api/v1/login',
+            403,
+            data=data,
+            result=error_template,
+        )
+
+        pw_perm = m.Permission.query.filter_by(name='can_edit_own_password'
+                                               ).one()
+        m.User.query.get(user_id).role.set_permission(pw_perm, True)
+        session.commit()
+
+        # This user does not have the permission to change the name, so it
+        # should fail
+        test_client.req(
+            'patch',
+            '/api/v1/login',
+            403,
+            data=data,
+            result=error_template,
+        )
+        # However only password should be good
+        test_client.req(
+            'patch',
+            '/api/v1/login',
+            204,
+            data={
+                'name': 'NEW_USER',
+                'email': 'a@a.nl',
+                'old_password': 'a',
+                'new_password': 'b'
+            },
+        )
+
+        pw_perm = m.Permission.query.filter_by(name='can_edit_own_password'
+                                               ).one()
+        info_perm = m.Permission.query.filter_by(name='can_edit_own_info'
+                                                 ).one()
+        m.User.query.get(user_id).role.set_permission(pw_perm, False)
+        m.User.query.get(user_id).role.set_permission(info_perm, True)
+        session.commit()
+
+        # This user does not have the permission to change the pw, so it
+        # should fail
+        test_client.req(
+            'patch',
+            '/api/v1/login',
+            403,
+            data=data,
+            result=error_template,
+        )
+        # However only name should be good
+        test_client.req(
+            'patch',
+            '/api/v1/login',
+            204,
+            data={
+                'name': 'new_name1',
+                'email': 'a@a.nl',
+                'old_password': '',
+                'new_password': '',
+            },
+        )
+
+        pw_perm = m.Permission.query.filter_by(name='can_edit_own_password'
+                                               ).one()
+        m.User.query.get(user_id).role.set_permission(pw_perm, True)
+        session.commit()
+
+        # It now has both so this should work.
+        test_client.req(
+            'patch',
+            '/api/v1/login',
+            403,
+            data=data,
+            result=error_template,
+        )

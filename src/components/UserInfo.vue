@@ -11,29 +11,33 @@
             </b-form-fieldset>
             <b-form-fieldset>
                 <b-input-group left="Full name">
-                    <b-form-input type="text" v-model="name"></b-form-input>
+                    <b-form-input :disabled="!canEditInfo"
+                                  type="text"
+                                  v-model="name"/>
                 </b-input-group>
             </b-form-fieldset>
 
             <b-form-fieldset>
                 <b-input-group left="Email">
-                    <b-form-input type="text" v-model="email"></b-form-input>
+                    <b-form-input :disabled="!canEditInfo"
+                                  type="text"
+                                  v-model="email"/>
                 </b-input-group>
             </b-form-fieldset>
 
-            <b-form-fieldset>
+            <b-form-fieldset v-if="canEditPw || canEditInfo">
                 <b-input-group left="Old Password">
-                    <b-form-input  :type="oldPwVisible ? 'text' : 'password'" v-model="oldPw"></b-form-input>
+                    <b-form-input  :type="oldPwVisible ? 'text' : 'password'" v-model="oldPw"/>
                     <b-input-group-button slot="right">
                         <b-button @click="oldPwVisible = !oldPwVisible" >
-                            <icon v-if="!oldPwVisible" name="eye"></icon>
-                            <icon v-else name="eye-slash"></icon>
+                            <icon v-if="!oldPwVisible" name="eye"/>
+                            <icon v-else name="eye-slash"/>
                         </b-button>
                     </b-input-group-button>
                 </b-input-group>
             </b-form-fieldset>
 
-            <b-form-fieldset>
+            <b-form-fieldset v-if="canEditPw">
                 <b-input-group left="New Password">
                     <b-form-input :type="newPwVisible ? 'text' : 'password'" v-model="newPw"></b-form-input>
                     <b-input-group-button slot="right">
@@ -45,7 +49,7 @@
                 </b-input-group>
             </b-form-fieldset>
 
-            <b-form-fieldset>
+            <b-form-fieldset v-if="canEditPw">
                 <b-input-group left="Confirm Password">
                     <b-form-input :type="confirmPwVisible ? 'text' : 'password'" v-model="confirmPw"></b-form-input>
                     <b-input-group-button slot="right">
@@ -61,7 +65,7 @@
                 {{ error }}
             </b-alert>
 
-            <b-button-toolbar justify>
+            <b-button-toolbar justify v-if="canEditInfo || canEditPw">
                 <b-button variant="danger" @click="reset">Reset</b-button>
                 <submit-button @click="submit" ref="submitButton" :showError="false"/>
             </b-button-toolbar>
@@ -71,6 +75,8 @@
 
 <script>
 import validator from 'email-validator';
+
+import { mapActions } from 'vuex';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/check';
@@ -93,6 +99,8 @@ export default {
             newPw: '',
             confirmPw: '',
             loading: false,
+            canEditInfo: false,
+            canEditPw: false,
             oldPwVisible: false,
             newPwVisible: false,
             confirmPwVisible: false,
@@ -109,7 +117,14 @@ export default {
 
     mounted() {
         this.loading = true;
-        this.$http.get('/api/v1/login').then(({ data }) => {
+        Promise.all([
+            this.$http.get('/api/v1/login'),
+            this.hasPermission({ name: 'can_edit_own_info' }),
+            this.hasPermission({ name: 'can_edit_own_password' }),
+        ]).then(([{ data }, canEditInfo, canEditPw]) => {
+            this.canEditInfo = canEditInfo;
+            this.canEditPw = canEditPw;
+
             this.name = data.name;
             this.username = data.username;
             this.email = data.email;
@@ -118,6 +133,10 @@ export default {
     },
 
     methods: {
+        ...mapActions({
+            hasPermission: 'user/hasPermission',
+        }),
+
         reset() {
             this.name = this.$store.state.user.name;
             this.email = this.$store.state.user.email;

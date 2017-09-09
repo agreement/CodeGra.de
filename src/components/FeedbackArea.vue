@@ -5,9 +5,12 @@
         </div>
     </b-card>
     <div class="feedback-area" v-else>
-        <b-collapse class="collapsep" ref="snippetDialog" :id="`collapse${line}`">
+        <b-collapse class="collapsep"
+                    v-if="canUseSnippets"
+                    ref="snippetDialog"
+                    :id="`collapse${line}`">
             <b-input-group>
-                <b-form-input class="input" v-model="snippetKey" v-on:keydown.native.ctrl.enter="addSnippet"></b-form-input>
+                <b-form-input class="input" v-model="snippetKey" v-on:keydown.native.ctrl.enter="addSnippet"/>
                 <b-input-group-button>
                     <b-popover class="popover-btn" :placement="'top'" :show="error !== '' && $parent.show" :content="error">
                         <submit-button ref="addSnippetButton" label="" @click="addSnippet">
@@ -18,16 +21,18 @@
             </b-input-group>
         </b-collapse>
         <b-input-group>
-            <b-form-input
-                :textarea="true"
-                ref="field" v-model="internalFeedback"
-                :style="{'font-size': '1em'}"
-                v-on:keydown.native.tab.capture="expandSnippet"
-                v-on:keydown.native.ctrl.enter="submitFeedback"
-                v-on:keydown.native.esc="revertFeedback">
+            <b-form-input :textarea="true"
+                          ref="field" v-model="internalFeedback"
+                          :style="{'font-size': '1em'}"
+                          v-on:keydown.native.tab.capture="expandSnippet"
+                          v-on:keydown.native.ctrl.enter="submitFeedback"
+                          v-on:keydown.native.esc="revertFeedback">
             </b-form-input>
             <b-input-group-button class="minor-buttons">
-                <b-btn v-b-toggle="`collapse${line}`" variant="secondary" v-on:click="findSnippet">
+                <b-btn v-b-toggle="`collapse${line}`"
+                       variant="secondary"
+                       v-if="canUseSnippets"
+                       v-on:click="findSnippet">
                     <icon name="plus" aria-hidden="true"></icon>
                 </b-btn>
                 <b-button variant="danger" @click="cancelFeedback">
@@ -65,7 +70,7 @@ const entityMap = {
 
 export default {
     name: 'feedback-area',
-    props: ['line', 'editing', 'feedback', 'editable', 'fileId'],
+    props: ['line', 'editing', 'feedback', 'editable', 'fileId', 'canUseSnippets'],
     data() {
         return {
             internalFeedback: this.feedback,
@@ -144,10 +149,15 @@ export default {
             }
         },
         expandSnippet(event) {
+            event.preventDefault();
+
+            if (!this.canUseSnippets) {
+                return;
+            }
+
             const field = this.$refs.field;
             const end = field.$el.selectionEnd;
             if (field.$el.selectionStart === end) {
-                event.preventDefault();
                 const val = this.internalFeedback.slice(0, end);
                 const start = Math.max(val.lastIndexOf(' '), val.lastIndexOf('\n')) + 1;
                 const res = this.snippets()[val.slice(start, end)];
@@ -177,14 +187,11 @@ export default {
                 return;
             }
 
-            const req = this.$http.put('/api/v1/snippet', val);
-            req.then(({ data }) => {
+            const req = this.$http.put('/api/v1/snippet', val).then(({ data }) => {
                 val.id = data.id;
                 this.addSnippetToStore(val);
             }, (err) => {
-                // TODO: visual feedback
-                // eslint-disable-next-line
-                console.dir(err);
+                throw err.response.data.message;
             });
             this.$refs.addSnippetButton.submit(req).then((success) => {
                 if (success) {

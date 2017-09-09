@@ -13,8 +13,13 @@
 
             <code v-html="line"></code>
 
-            <feedback-area :editing="editing[i] === true" :feedback='feedback[i].msg' :editable='editable'
-                :line='i' :fileId='file.id' v-on:feedbackChange="val => { feedbackChange(i, val); }"
+            <feedback-area :editing="editing[i] === true"
+                           :feedback='feedback[i].msg'
+                           :editable='editable'
+                           :line='i'
+                           :fileId='file.id'
+                           :can-use-snippets="canUseSnippets"
+                           v-on:feedbackChange="val => { feedbackChange(i, val); }"
                 v-on:cancel='onChildCancel' v-if="feedback[i] != null">
             </feedback-area>
 
@@ -26,6 +31,7 @@
 <script>
 import { getLanguage, highlight } from 'highlightjs';
 import Vue from 'vue';
+import { mapActions } from 'vuex';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
@@ -78,11 +84,19 @@ export default {
             linterFeedback: {},
             clicks: {},
             error: false,
+            canUseSnippets: false,
         };
     },
 
     mounted() {
-        this.getCode();
+        Promise.all([
+            this.getCode(false),
+            this.hasPermission({ name: 'can_use_snippets' }),
+        ]).then(([, snips]) => {
+            console.log(snips);
+            this.canUseSnippets = snips;
+            this.loading = false;
+        });
     },
 
     watch: {
@@ -96,7 +110,7 @@ export default {
     },
 
     methods: {
-        getCode() {
+        getCode(setLoading = true) {
             this.loading = true;
             this.error = '';
 
@@ -112,7 +126,7 @@ export default {
 
             // Split in two promises so that highlighting can begin before we
             // have feedback as this is not needed anyway.
-            Promise.all([
+            return Promise.all([
                 this.$http.get(`/api/v1/code/${this.file.id}`, {
                     responseType: 'text',
                 }).then((code) => {
@@ -139,7 +153,7 @@ export default {
                     throw message;
                 }),
             ]).then(() => {
-                this.loading = false;
+                if (setLoading) this.loading = false;
             }, (err) => {
                 // eslint-disable-next-line
                 console.dir(err);
@@ -264,6 +278,10 @@ export default {
                 this.feedback[line] = feedback;
             }
         },
+
+        ...mapActions({
+            hasPermission: 'user/hasPermission',
+        }),
     },
 
     components: {

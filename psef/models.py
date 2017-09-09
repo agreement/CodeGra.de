@@ -690,38 +690,6 @@ class User(Base):
     def load_user(user_id: int) -> t.Optional['User']:
         return User.query.get(int(user_id))
 
-    @staticmethod
-    def validate_name(name: str) -> str:
-        """Check the validity of the name.
-
-        TODO: Refactor or remove me.
-
-        :param name: The name to check
-        :returns: An error message if the name is invalid, else an empty string
-        """
-        min_len = 3
-        if len(name) < min_len:
-            return ('use at least {} chars'.format(min_len))
-        else:
-            return ('')
-
-    @staticmethod
-    def validate_password(password: str) -> str:
-        """
-        Check the validity of the password.
-
-        TODO: Refactor or remove me.
-
-        :param password: The password to check
-        :returns: An error message if the password is invalid, else an empty
-                  string
-        """
-        min_len = 3
-        if len(password) < min_len:
-            return ('use at least {} chars'.format(min_len))
-        else:
-            return ('')
-
 
 class Course(Base):
     """This class describes a course.

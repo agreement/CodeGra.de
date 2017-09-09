@@ -114,7 +114,6 @@ def me() -> JSONResponse[t.Union[models.User, t.Mapping[int, str],
 
 
 @api.route('/login', methods=['PATCH'])
-@auth.login_required
 def get_user_update() -> EmptyResponse:
     """Change data of the current :class:`.models.User`.
 
@@ -167,6 +166,7 @@ def get_user_update() -> EmptyResponse:
         _ensure_password('', 'The given old password is wrong')
 
     if current_user.name != name:
+        auth.ensure_permission('can_edit_own_info')
         if name == '':
             raise APIException(
                 'Your new name cannot be empty',
@@ -175,6 +175,7 @@ def get_user_update() -> EmptyResponse:
         current_user.name = name
 
     if current_user.email != email:
+        auth.ensure_permission('can_edit_own_info')
         if not validate_email(email):
             raise APIException(
                 'The given email is not valid.',
@@ -187,6 +188,7 @@ def get_user_update() -> EmptyResponse:
 
     if new_password != '':
         _ensure_password('password')
+        auth.ensure_permission('can_edit_own_password')
         current_user.password = new_password
 
     db.session.commit()
