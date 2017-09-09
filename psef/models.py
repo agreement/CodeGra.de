@@ -875,7 +875,8 @@ class Work(Base):
     __tablename__ = "Work"  # type: str
     id = db.Column('id', db.Integer, primary_key=True)  # type: int
     assignment_id: int = db.Column(
-        'Assignment_id', db.Integer,
+        'Assignment_id',
+        db.Integer,
         db.ForeignKey('Assignment.id', ondelete='CASCADE'),
     )
     user_id: int = db.Column(
