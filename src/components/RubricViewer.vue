@@ -32,31 +32,29 @@
                                         :key="`rubric-${rubric.id}-${item.id}`"
                                         @click.native="selectOrUnselect(rubric, item)"
                                         :class="{ selected: selected[item.id] }">
-                                    <span>
-                                        <b-popover triggers="hover"
-                                                   :content="item.description"
-                                                   placement="top">
-                                            <div class="rubric-item-wrapper row">
-                                                <div :class="itemStates[item.id] ? 'col-10' : 'col-12'">
-                                                    <b>{{ item.points }}</b> - {{ item.header }}
-                                                </div>
-                                                <div v-if="itemStates[item.id] === '__LOADING__'"
-                                                     class="col-2">
-                                                    <loader :scale="1"/>
-                                                </div>
-                                                <div v-else-if="itemStates[item.id]"
-                                                     class="col-2">
-                                                    <b-popover show
-                                                               :content="itemStates[item.id]"
-                                                               placement="top">
-                                                        <icon name="times"
-                                                              :scale="1"
-                                                              style="color: red;"/>
-                                                    </b-popover>
-                                                </div>
+                                    <div class="rubric-item-wrapper row">
+                                        <div class="col-12"
+                                             style="position: relative;">
+                                            <b>{{ item.points }} - {{ item.header }}</b>
+                                            <div v-if="itemStates[item.id] === '__LOADING__'"
+                                                 class="rubric-icon">
+                                                <loader :scale="1"/>
                                             </div>
-                                        </b-popover>
-                                    </span>
+                                            <div v-else-if="itemStates[item.id]"
+                                                 class="rubric-icon">
+                                                <b-popover show
+                                                           :content="itemStates[item.id]"
+                                                           placement="top">
+                                                    <icon name="times"
+                                                          :scale="1"
+                                                          style="color: red;"/>
+                                                </b-popover>
+                                            </div>
+                                            <p class="item-description">
+                                                {{ item.description }}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </b-card>
                             </b-card-group>
                         </b-card>
@@ -228,7 +226,7 @@ export default {
                         this.$set(this.itemStates, item.id, false);
                         delete this.itemStates[item.id];
                     });
-                }, 1000);
+                }, 3000);
             });
         },
 
@@ -347,6 +345,20 @@ export default {
 
 .item-state {
     float: right;
+}
+
+.rubric-icon {
+    position: absolute;
+    top: 0;
+    right: 15px;
+}
+
+.item-description {
+    margin: 0;
+    max-height: 5em;
+    overflow-y: auto;
+    margin-top: 0.5em;
+    padding-right: 0.5em;
 }
 </style>
 
