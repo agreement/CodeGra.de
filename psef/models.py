@@ -970,7 +970,9 @@ class Work(Base):
                 }, synchronize_session='fetch'
             )
 
-    def select_rubric_item(self, item: 'RubricItem', user: User) -> None:
+    def select_rubric_items(
+        self, items: t.List['RubricItem'], user: User, override: bool=False
+    ) -> None:
         """ Selects the given :class:`RubricItem`.
 
         .. note:: This also passes back the grade to LTI if this is necessary.
@@ -981,7 +983,12 @@ class Work(Base):
         :param user: The user selecting the item.
         :returns: Nothing
         """
-        self.selected_items.append(item)
+        if override:
+            self.selected_items = []
+
+        for item in items:
+            self.selected_items.append(item)
+
         self.set_grade(None, user)
         if self.assignment.should_passback:
             self.passback_grade()

@@ -62,6 +62,11 @@
                 </div>
             </div>
         </b-input-group>
+        <b-alert :class="{closed: Object.keys(outOfSync).length === 0, 'out-of-sync-alert': true,}"
+                 show
+                 variant="warning">
+            <b>The rubric is not yet saved!</b>
+        </b-alert>
     </b-form-fieldset>
 </template>
 
@@ -95,6 +100,7 @@ export default {
     data() {
         return {
             rubrics: [],
+            outOfSync: {},
             selected: {},
             selectedPoints: 0,
             selectedRows: {},
@@ -125,17 +131,18 @@ export default {
     },
 
     mounted() {
-        this.rubricUpdated(this.rubric);
+        this.rubricUpdated(this.rubric, true);
     },
 
     methods: {
         clearSelected() {
-            return Promise.all(Object.keys(this.selected).map(
-                itemId => this.$http.delete(`/api/v1/submissions/${this.submission.id}/rubricitems/${itemId}`),
-            )).then(() => {
+            return this.$http.patch(`/api/v1/submissions/${this.submission.id}/rubricitems/`, {
+                items: [],
+            }).then(() => {
                 this.selected = {};
                 this.selectedRows = {};
                 this.selectedPoints = 0;
+                this.outOfSync = {};
                 this.$emit('input', {
                     selected: 0,
                     max: this.maxPoints,
@@ -144,7 +151,18 @@ export default {
             });
         },
 
-        rubricUpdated({ rubrics, selected, points }) {
+        submitAllItems() {
+            if (Object.keys(this.outOfSync).length === 0) {
+                return Promise.resolve();
+            }
+            return this.$http.patch(`/api/v1/submissions/${this.submission.id}/rubricitems/`, {
+                items: Object.keys(this.selected),
+            }).then(() => {
+                this.outOfSync = {};
+            });
+        },
+
+        rubricUpdated({ rubrics, selected, points }, initial = false) {
             this.rubrics = this.sortRubricItems(rubrics);
 
             if (selected) {
@@ -162,7 +180,9 @@ export default {
 
             if (points) {
                 this.maxPoints = points.max;
-                points.grade = this.grade;
+                if (!initial) {
+                    points.grade = this.grade;
+                }
                 this.$emit('input', points);
             }
 
@@ -182,8 +202,18 @@ export default {
 
             let req;
             const selectItem = !this.selected[item.id];
+            const doRequest = UserConfig.features.incremental_rubric_submission;
 
-            if (selectItem) {
+            if (!doRequest) {
+                req = Promise.resolve().then(() => {
+                    if (this.outOfSync[item.id]) {
+                        this.$set(this.outOfSync, item.id, false);
+                        delete this.outOfSync[item.id];
+                    } else {
+                        this.$set(this.outOfSync, item.id, true);
+                    }
+                });
+            } else if (selectItem) {
                 req = this.$http.patch(
                     `/api/v1/submissions/${this.submission.id}/rubricitems/${item.id}`,
                 );
@@ -345,6 +375,21 @@ export default {
 
 .item-state {
     float: right;
+}
+
+.out-of-sync-alert {
+    overflow-x: hidden;
+    max-height: 3em;
+
+    transition-property: all;
+    transition-duration: .5s;
+    transition-timing-function: cubic-bezier(0, 1, 0.5, 1);
+
+    &.closed {
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
 }
 
 .rubric-icon {

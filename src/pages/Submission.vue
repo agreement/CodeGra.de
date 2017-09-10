@@ -116,14 +116,26 @@ export default {
     },
 
     watch: {
+        assignment() {
+            if (this.submission) {
+                let title = this.assignment.name;
+                if (this.submission.grade) {
+                    title += ` (${parseFloat(this.submission.grade).toFixed(2)})`;
+                }
+                setPageTitle(`${title} ${pageTitleSep} ${this.submission.created_at}`);
+            }
+        },
+
         submission(submission) {
             this.submissionId = submission.id;
 
-            let title = this.assignment.name;
-            if (submission.grade) {
-                title += ` (${parseFloat(submission.grade).toFixed(2)})`;
+            if (this.assignment) {
+                let title = this.assignment.name;
+                if (submission.grade) {
+                    title += ` (${parseFloat(submission.grade).toFixed(2)})`;
+                }
+                setPageTitle(`${title} ${pageTitleSep} ${submission.created_at}`);
             }
-            setPageTitle(`${title} ${pageTitleSep} ${submission.created_at}`);
 
             this.loading = true;
             this.getSubmissionData().then(() => {

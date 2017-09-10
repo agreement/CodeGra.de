@@ -103,6 +103,12 @@
 # Should LTI be enabled.
 # LTI = true
 
+# Should rubrics be submitted incrementally, so if a user selects a item should
+# this be automatically be submitted to the server, or should it only be
+# possible to submit a complete rubric at once. This feature is useless if
+# `rubrics` is not set to `true`.
+# incremental_rubric_submission = true
+
 # All LTI consumer keys mapped to secret keys. Please add your own, these ARE
 # case sensitive.
 [LTI Consumer keys]

@@ -93,7 +93,6 @@ export default {
             this.getCode(false),
             this.hasPermission({ name: 'can_use_snippets' }),
         ]).then(([, snips]) => {
-            console.log(snips);
             this.canUseSnippets = snips;
             this.loading = false;
         });

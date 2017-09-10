@@ -230,12 +230,63 @@ def get_rubric(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
     return jsonify(work.__rubric_to_json__())
 
 
+@api.route('/submissions/<int:submission_id>/rubricitems/', methods=['PATCH'])
+@helpers.feature_required('RUBRICS')
+def select_rubric_items(
+    submission_id: int,
+) -> EmptyResponse:
+    """Select the given rubric items for the given submission.
+
+    .. :quickref: Submission; Select multiple rubric items.
+
+    :param submission_id: The submission to unselect the item for.
+
+    :>json array items: The ids of the rubric items you want to select.
+
+    :returns: Nothing.
+
+    :raises APIException: If the assignment of a given item does not belong to
+        the assignment of the given submission. of the submission
+        (INVALID_PARAM).
+    :raises PermissionException: If the current user cannot grace work
+        (INCORRECT_PERMISSION).
+    """
+    submission = helpers.get_or_404(models.Work, submission_id)
+
+    auth.ensure_permission('can_grade_work', submission.assignment.course_id)
+
+    content = ensure_json_dict(request.get_json())
+    ensure_keys_in_dict(content, [('items', list)])
+    item_ids = t.cast(list, content['items'])
+
+    items = []
+    for item_id in item_ids:
+        items.append(helpers.get_or_404(models.RubricItem, item_id))
+
+    if any(
+        item.rubricrow.assignment_id != submission.assignment_id
+        for item in items
+    ):
+        raise APIException(
+            'Selected rubric item is not coupled to the given submission',
+            f'A given item of "{", ".join(str(i) for i in item_ids)}"'
+            f' does not belong to assignment "{submission.assignment_id}"',
+            APICodes.INVALID_PARAM, 400
+        )
+
+    submission.select_rubric_items(items, current_user, True)
+    db.session.commit()
+
+    return make_empty_response()
+
+
 @api.route(
     '/submissions/<int:submission_id>/rubricitems/<int:rubric_item_id>',
     methods=['DELETE']
 )
 @helpers.feature_required('RUBRICS')
-def unselect_rubric_items(
+@helpers.feature_required('INCREMENTAL_RUBRIC_SUBMISSION')
+def unselect_rubric_item(
     submission_id: int, rubric_item_id: int
 ) -> EmptyResponse:
     """Unselect the given rubric item for the given submission.
@@ -271,6 +322,7 @@ def unselect_rubric_items(
     methods=['PATCH']
 )
 @helpers.feature_required('RUBRICS')
+@helpers.feature_required('INCREMENTAL_RUBRIC_SUBMISSION')
 def select_rubric_item(
     submission_id: int, rubricitem_id: int
 ) -> EmptyResponse:
@@ -302,7 +354,7 @@ def select_rubric_item(
         )
 
     work.remove_selected_rubric_item(rubric_item.rubricrow_id)
-    work.select_rubric_item(rubric_item, current_user)
+    work.select_rubric_items([rubric_item], current_user, False)
     db.session.commit()
 
     return make_empty_response()
@@ -352,6 +404,7 @@ def patch_submission(submission_id: int) -> JSONResponse[models.Work]:
                 f'is {content["grade"]} which is not between 0 and 10',
                 APICodes.INVALID_PARAM, 400
             )
+        print(content)
 
         work.set_grade(grade, current_user)
 
