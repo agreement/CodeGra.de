@@ -3,42 +3,87 @@
         <div v-html="error"></div>
     </b-alert>
     <loader class="text-center" v-else-if="loading"></loader>
-    <ol class="code-viewer form-control" v-else
-        :class="{ editable, 'lint-whitespace': assignment.whitespace_linter, }"
-        @click="onClick">
-        <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
-            :class="{ 'linter-feedback-outer': linterFeedback[i] }" v-bind:key="i">
+    <div class="code-viewer form-control" v-else>
+        <b-popover triggers="click"
+                   class="settings-popover"
+                   :popover-style="{'max-width': '80%', width: '35em'}"
+                   placement="right">
+            <b-btn class="settings-toggle"
+                   ref="settingsToggle">
+                <icon name="cog"/>
+            </b-btn>
+            <div slot="content">
+                <div class="settings-content"
+                     ref="settingsContent">
+                    <table class="table settings-table"
+                           style="margin-bottom: 0;">
+                        <tbody>
+                            <tr>
+                                <td>Whitespace</td>
+                                <td>
+                                    <toggle v-model="showWhitespace" label-on="show" label-off="hide"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Language</td>
+                                <td>
+                                    <multiselect v-model="selectedLanguage"
+                                                 :hide-selected="selectedLanguage === 'Default'"
+                                                 deselect-label="Reset language"
+                                                 select-label="Select language"
+                                                 :options="languages"/>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </b-popover>
+        <div class="scroller" ref="scroller">
+            <ol :class="{ editable, 'lint-whitespace': assignment.whitespace_linter, 'show-whitespace': showWhitespace }"
+                :style="{ paddingLeft: `${3 + Math.log10(codeLines.length) * 2/3}em` }"
+                @click="onClick">
+                <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
+                    :class="{ 'linter-feedback-outer': linterFeedback[i] }" v-bind:key="i">
 
-            <linter-feedback-area :feedback="linterFeedback[i]"></linter-feedback-area>
+                    <linter-feedback-area :feedback="linterFeedback[i]"
+                                          v-if="linterFeedback[i] != null"/>
 
-            <code v-html="line"></code>
+                    <code v-html="line"/>
 
-            <feedback-area :editing="editing[i] === true"
-                           :feedback='feedback[i].msg'
-                           :editable='editable'
-                           :line='i'
-                           :fileId='file.id'
-                           :can-use-snippets="canUseSnippets"
-                           v-on:feedbackChange="val => { feedbackChange(i, val); }"
-                v-on:cancel='onChildCancel' v-if="feedback[i] != null">
-            </feedback-area>
-
-            <icon name="plus" class="add-feedback" v-if="editable && feedback[i] == null" v-on:click="addFeedback($event, value)"></icon>
-        </li>
-    </ol>
+                    <feedback-area :editing="editing[i] === true"
+                                   :feedback='feedback[i].msg'
+                                   :editable='editable'
+                                   :line='i'
+                                   :fileId='file.id'
+                                   :can-use-snippets="canUseSnippets"
+                                   v-on:feedbackChange="val => { feedbackChange(i, val); }"
+                                   v-on:cancel='onChildCancel'
+                                   v-if="feedback[i] != null"/>
+                </li>
+            </ol>
+        </div>
+    </div>
 </template>
 
 <script>
-import { getLanguage, highlight } from 'highlightjs';
+import { getLanguage, highlight, listLanguages } from 'highlightjs';
 import Vue from 'vue';
 import { mapActions } from 'vuex';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
+import 'vue-awesome/icons/cog';
+import 'vue-multiselect/dist/vue-multiselect.min.css';
+
+import localforage from 'localforage';
+
+import Multiselect from 'vue-multiselect';
 
 import FeedbackArea from './FeedbackArea';
 import LinterFeedbackArea from './LinterFeedbackArea';
 import Loader from './Loader';
+import Toggle from './Toggle';
 
 const entityRE = /[&<>]/g;
 const entityMap = {
@@ -47,6 +92,14 @@ const entityMap = {
     '>': '&gt;',
 };
 const escape = text => String(text).replace(entityRE, entity => entityMap[entity]);
+
+localforage.setDriver(localforage.INDEXEDDB);
+const highlightLanguageStore = localforage.createInstance({
+    name: 'highlightLanguageStore',
+});
+const showWhitespaceStore = localforage.createInstance({
+    name: 'showWhitespaceStore',
+});
 
 export default {
     name: 'code-viewer',
@@ -75,8 +128,15 @@ export default {
     },
 
     data() {
+        const languages = listLanguages();
+        languages.push('plain');
+        languages.sort((a, b) =>
+            a.toLowerCase().localeCompare(b.toLowerCase()));
+        languages.unshift('Default');
         return {
+            selectedLanguage: 'Default',
             code: '',
+            rawCodeLines: [],
             codeLines: [],
             loading: true,
             editing: {},
@@ -84,33 +144,91 @@ export default {
             linterFeedback: {},
             clicks: {},
             error: false,
+            showSettings: false,
+            showWhitespace: true,
+            languages,
             canUseSnippets: false,
         };
     },
 
     mounted() {
         Promise.all([
-            this.getCode(false),
+            this.loadCodeWithSettings(false),
             this.hasPermission({ name: 'can_use_snippets' }),
         ]).then(([, snips]) => {
             this.canUseSnippets = snips;
             this.loading = false;
         });
+
+        this.clickHideSettings = (event) => {
+            let target = event.target;
+            while (target !== document.body) {
+                if (target === this.$refs.settingsContent ||
+                    target === this.$refs.settingsToggle.$el) {
+                    return;
+                }
+                target = target.parentNode;
+            }
+            this.$root.$emit('hide::popover');
+        };
+        document.body.addEventListener('click', this.clickHideSettings, true);
+        this.keyupHideSettings = (event) => {
+            if (event.key === 'Escape') {
+                this.$root.$emit('hide::popover');
+            }
+        };
+        document.body.addEventListener('keyup', this.keyupHideSettings);
+    },
+
+    destroyed() {
+        document.body.removeEventListener('click', this.clickHideSettings);
+        document.body.removeEventListener('keyup', this.keyupHideSettings);
     },
 
     watch: {
         file(f) {
-            if (f) this.getCode();
+            if (f) this.loadCodeWithSettings();
         },
 
         tree() {
-            this.linkFiles();
+            // FIXME
+            // this.linkFiles();
+        },
+
+        selectedLanguage(lang) {
+            if (lang === 'Default' || lang == null) {
+                highlightLanguageStore.removeItem(`${this.file.id}`);
+                const fileParts = this.file.name.split('.');
+                const ext = fileParts.length > 1 ? fileParts[fileParts.length - 1] : null;
+                this.highlightCode(ext);
+            } else {
+                highlightLanguageStore.setItem(`${this.file.id}`, lang);
+                this.highlightCode(lang);
+            }
+        },
+
+        showWhitespace(val) {
+            showWhitespaceStore.setItem(`${this.file.id}`, val);
         },
     },
 
     methods: {
+        loadCodeWithSettings(setLoading = true) {
+            return highlightLanguageStore.getItem(`${this.file.id}`).then((val) => {
+                if (val !== null) {
+                    this.selectedLanguage = val;
+                }
+                return Promise.all([
+                    this.getCode(setLoading),
+                    showWhitespaceStore.getItem(`${this.file.id}`).then((white) => {
+                        this.showWhitespace = white === null || white;
+                    }),
+                ]);
+            });
+        },
+
         getCode(setLoading = true) {
-            this.loading = true;
+            if (setLoading) this.loading = true;
             this.error = '';
 
             const addError = (err) => {
@@ -130,15 +248,15 @@ export default {
                     responseType: 'text',
                 }).then((code) => {
                     this.code = code.data;
-                    this.codeLines = this.code.split('\n');
+                    this.rawCodeLines = this.code.split('\n');
 
                     const fileParts = this.file.name.split('.');
                     const ext = fileParts.length > 1 ? fileParts[fileParts.length - 1] : null;
                     this.highlightCode(ext);
-                    this.linkFiles();
+                    // FIXME
+                    // this.linkFiles();
                 }, ({ response: { data: { message } } }) => {
                     addError(message);
-                    throw message;
                 }),
 
                 Promise.all([
@@ -149,27 +267,25 @@ export default {
                     this.feedback = feedback.data;
                 }, ({ response: { data: { message } } }) => {
                     addError(message);
-                    throw message;
                 }),
             ]).then(() => {
-                if (setLoading) this.loading = false;
-            }, (err) => {
-                // eslint-disable-next-line
-                console.dir(err);
+                if (setLoading) {
+                    this.loading = false;
+                }
             });
         },
 
         // Highlight this.codeLines.
-        highlightCode(lang) {
-            if (getLanguage(lang) === undefined) {
-                this.codeLines = this.codeLines.map(escape);
-                this.codeLines = this.codeLines.map(this.visualizeWhitespace);
+        highlightCode(language) {
+            if (getLanguage(language) === undefined) {
+                this.codeLines = this.rawCodeLines.map(escape);
+                this.codeLines = this.rawCodeLines.map(this.visualizeWhitespace);
                 return;
             }
 
             let state = null;
-            this.codeLines = this.codeLines.map((line) => {
-                const { top, value } = highlight(lang, line, true, state);
+            this.codeLines = this.rawCodeLines.map((line) => {
+                const { top, value } = highlight(language, line, true, state);
 
                 state = top;
                 return this.visualizeWhitespace(value);
@@ -177,16 +293,25 @@ export default {
         },
 
         visualizeWhitespace(line) {
-            function replacer(match) {
-                return match.replace(/( +)/g, spaces =>
-                    `<span class="whitespace space">${spaces.replace(/ /g, '&middot;')}</span>`,
-                ).replace(/(\t+)/g, tabs =>
-                    `<span class="whitespace tab">${tabs.replace(/\t/g, '&#10230;   ')}</span>`,
-                );
+            const newLine = [];
+            for (let i = 0; i < line.length;) {
+                const start = i;
+                if (line[i] === '<') {
+                    while (line[i] !== '>' && i < line.length) i += 1;
+                    newLine.push(line.slice(start, i + 1));
+                    i += 1;
+                } else if (line[i] === ' ') {
+                    while (line[i] === ' ' && i < line.length) i += 1;
+                    newLine.push(`<span class="whitespace space">${Array((i - start) + 1).join('&middot;')}</span>`);
+                } else if (line[i] === '\t') {
+                    while (line[i] === '\t' && i < line.length) i += 1;
+                    newLine.push(`<span class="whitespace tab">${Array((i - start) + 1).join('&#10230;   ')}</span>`);
+                } else {
+                    while (line[i] !== '<' && line[i] !== ' ' && line[i] !== '\t' && i < line.length) i += 1;
+                    newLine.push(line.slice(start, i));
+                }
             }
-
-            // Replace line start and line end
-            return line.replace(/^[ \t]*/g, replacer).replace(/[ \t]*$/g, replacer);
+            return newLine.join('');
         },
 
         // Given a file-tree object as returned by the API, generate an
@@ -223,6 +348,7 @@ export default {
 
         // Search for each file in this.files on each line, and
         // replace each occurrence with a link to the file.
+        // FIXME
         linkFiles() {
             const [fileIds, filePaths] = this.flattenFileTree(this.tree);
             if (!filePaths.length) {
@@ -286,19 +412,59 @@ export default {
     components: {
         Icon,
         FeedbackArea,
-        Loader,
         LinterFeedbackArea,
+        Loader,
+        Toggle,
+        Multiselect,
     },
 };
 </script>
 
 <style lang="less" scoped>
+.code-viewer {
+    position: relative;
+    padding: 0;
+    ol {
+        min-height: 5em;
+    }
+}
+
+.settings-toggle {
+    position: absolute;
+    top: -1px;
+    right: 0;
+    z-index: 10;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-right: 0;
+
+}
+
+.settings-content {
+    margin: -.75em -1em; padding: .75em 1em;
+
+    .table td {
+        vertical-align: middle;
+        text-align: left;
+    }
+    .toggle-container {
+        margin-bottom: -2px;
+        border-radius: 0;
+    }
+}
+
+.scroller {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
 ol {
     font-family: monospace;
     font-size: small;
     margin: 0;
     padding: 0;
-    padding-left: 4rem;
 }
 
 li {
@@ -306,8 +472,9 @@ li {
     padding-left: .75em;
     padding-right: .75em;
 
-    .editable & {
+    .editable &:hover {
         cursor: pointer;
+        text-decoration: underline;
     }
 }
 
@@ -331,5 +498,78 @@ code {
 .loader {
     margin-top: 2.5em;
     margin-bottom: 3em;
+}
+
+@media only screen and (min-width : 768px){
+    .settings-popover {
+        position: fixed;
+        .settings-toggle {
+            margin-right: 0px !important;
+            border-right: 0 !important;
+            margin-top: 0.5em;
+        }
+    }
+}
+
+.settings-popover {
+    .settings-toggle {
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        background: #f8f8f8;
+    }
+
+    .settings-toggle:focus {
+        box-shadow: none;
+    }
+}
+
+@media only screen and (max-width : 768px){
+    .code-viewer {
+        margin-top: 2.3rem;
+        overflow: visible !important;
+    }
+    .settings-popover {
+        position: relative;
+        .settings-toggle {
+            position: absolute;
+            left: 0;
+
+            margin-top: -2.4rem;
+            height: 2.4rem;
+            margin-left: 0.5em;
+
+            top: 0;
+            border-bottom: 0;
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+    }
+}
+</style>
+
+<style lang="less">
+.code-viewer {
+    .whitespace {
+        opacity: 0;
+    }
+
+    .show-whitespace .whitespace {
+        opacity: 1;
+    }
+}
+
+@color-primary: #2c3e50;
+.settings-content {
+    .multiselect__option--highlight {
+        background: @color-primary;
+        &::after {
+            background: @color-primary;
+        }
+        &.multiselect__option--selected {
+            background: #d9534f;
+            &::after {
+                background: #d9534f;
+            }
+        }
+    }
 }
 </style>

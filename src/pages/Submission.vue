@@ -1,7 +1,8 @@
 <template>
     <loader style="text-align: center; margin-top: 30px;" v-if="loading"/>
-    <div class="page submission" v-else>
-        <div class="row justify-content-center">
+    <div class="page submission outer-container"
+         v-else>
+        <div class="row justify-content-center inner-container">
             <div class="col-lg-9 code-and-grade">
                 <submission-nav-bar v-if="submissions"
                                     v-model="submission"
@@ -180,8 +181,8 @@ export default {
         },
 
         currentFile(file) {
-            file.extension = '';
             if (file != null) {
+                file.extension = '';
                 const nameparts = file.name.split('.');
                 if (nameparts.length > 1) {
                     file.extension = nameparts[nameparts.length - 1];
@@ -419,12 +420,17 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.page.submission {
+.outer-container {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
     flex-shrink: 1;
+    max-height: 100%;
     margin-bottom: 0;
+}
+
+.inner-container {
+    min-height: 0;
 }
 
 .row {
@@ -435,6 +441,7 @@ export default {
 .code-and-grade {
     display: flex;
     flex-direction: column;
+    max-height: 100%;
 }
 
 .pdf-viewer {
@@ -455,13 +462,26 @@ export default {
 .no-file,
 .code-viewer,
 .pdf-viewer,
-.grade-viewer {
+.grade-viewer,
+.file-tree {
     margin-bottom: 1rem;
 }
 
 .file-tree-container {
     display: flex;
     flex-direction: column;
+}
+
+@media (max-width: 992px) {
+    .file-tree-container {
+        margin-bottom: 1em;
+    }
+}
+
+@media (min-width: 992px) {
+    .file-tree-container {
+        height: 100%;
+    }
 }
 
 .submission-button-bar {
