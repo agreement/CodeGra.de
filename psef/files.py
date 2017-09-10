@@ -268,15 +268,20 @@ def extract_to_temp(file: FileStorage) -> str:
     :param file: The archive to extract.
     :returns: The pathname of the new temporary directory.
     """
-    tmpmode, tmparchive = tempfile.mkstemp()
-    os.remove(tmparchive)
-    tmparchive += os.path.basename(secure_filename('archive_' + file.filename))
-    tmpdir = tempfile.mkdtemp()
+    tmpfd, tmparchive = tempfile.mkstemp()
+
     try:
+        os.remove(tmparchive)
+        tmparchive += os.path.basename(
+            secure_filename('archive_' + file.filename)
+        )
+        tmpdir = tempfile.mkdtemp()
         file.save(tmparchive)
         archive.extract(tmparchive, to_path=tmpdir, method='safe')
     finally:
+        os.close(tmpfd)
         os.remove(tmparchive)
+
     return tmpdir
 
 
