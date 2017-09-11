@@ -158,7 +158,7 @@ export default {
         },
 
         $route(to) {
-            this.currentFile = this.searchTree(this.fileTree, to.params.fileId);
+            this.currentFile = this.searchTree(this.fileTree, Number(to.params.fileId));
         },
 
         fileTree(tree) {

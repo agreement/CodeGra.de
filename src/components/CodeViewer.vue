@@ -192,8 +192,7 @@ export default {
         },
 
         tree() {
-            // FIXME
-            // this.linkFiles();
+            this.linkFiles();
         },
 
         selectedLanguage(lang) {
@@ -254,8 +253,7 @@ export default {
                     const fileParts = this.file.name.split('.');
                     const ext = fileParts.length > 1 ? fileParts[fileParts.length - 1] : null;
                     this.highlightCode(ext);
-                    // FIXME
-                    // this.linkFiles();
+                    this.linkFiles();
                 }, ({ response: { data: { message } } }) => {
                     addError(message);
                 }),
@@ -349,18 +347,18 @@ export default {
 
         // Search for each file in this.files on each line, and
         // replace each occurrence with a link to the file.
-        // FIXME
         linkFiles() {
             const [fileIds, filePaths] = this.flattenFileTree(this.tree);
             if (!filePaths.length) {
                 return;
             }
             // Use a regex to match each file at most once.
-            const filesRegex = new RegExp(`\\b(${filePaths.join('|')}) \\b`, 'g');
+            const filesRegex = new RegExp(`\\b(${filePaths.join('|')})\\b`, 'g');
+            console.log(filesRegex);
             this.codeLines = this.codeLines.map(line =>
                 line.replace(filesRegex, (fileName) => {
                     const fileId = fileIds[fileName];
-                    return `< a href="${fileId}" data-file - id="${fileId}" style= "text-decoration: underline;" > ${fileName}</a > `;
+                    return `<a href="${fileId}" data-file-id="${fileId}" style="text-decoration: underline;">${fileName}</a>`;
                 }),
             );
         },
