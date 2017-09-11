@@ -164,7 +164,8 @@ export default {
             let target = event.target;
             while (target !== document.body) {
                 if (target === this.$refs.settingsContent ||
-                    target === this.$refs.settingsToggle.$el) {
+                    (this.$refs.settingsToggle &&
+                    target === this.$refs.settingsToggle.$el)) {
                     return;
                 }
                 target = target.parentNode;
