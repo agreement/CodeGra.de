@@ -1,10 +1,10 @@
 <template>
     <div class="file-tree" v-bind:class="{ collapsed: isCollapsed, }">
         <div v-on:click="toggle($event)">
-            <icon name="caret-right" v-if="isCollapsed"/>
-            <icon name="caret-down" v-else/>
-            <icon name="folder" v-if="isCollapsed"/>
-            <icon name="folder-open" v-else/>
+            <icon name="caret-right" class="caret-icon" v-if="isCollapsed"/>
+            <icon name="caret-down" class="caret-icon" v-else/>
+            <icon name="folder" class="dir-icon" v-if="isCollapsed"/>
+            <icon name="folder-open" class="dir-icon" v-else/>
             {{ tree.name }}
         </div>
         <ol v-show="!isCollapsed">
@@ -16,7 +16,7 @@
                              :to="getFileRoute(f.id)"
                              replace
                              v-else>
-                    <icon name="file"/>
+                    <icon name="file" class="file-icon"/>
                     {{ f.name }}
                 </router-link>
             </li>
@@ -106,6 +106,19 @@ export default {
         padding: 0;
         padding-left: 1.5em;
         overflow: hidden;
+    }
+
+    .caret-icon {
+        width: 1em;
+    }
+
+    .dir-icon {
+        width: 1.5em;
+    }
+
+    .file-icon {
+        width: 1em;
+        margin-right: .25em;
     }
 }
 </style>
