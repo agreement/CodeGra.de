@@ -3,7 +3,7 @@
     <div class="page submission outer-container"
          v-else>
         <div class="row justify-content-center inner-container">
-            <div class="col-lg-9 code-and-grade">
+            <div class="col-md-9 code-and-grade">
                 <submission-nav-bar v-if="submissions"
                                     v-model="submission"
                                     :submissions="submissions"
@@ -35,7 +35,7 @@
                               @gradeUpdated="gradeUpdated"/>
             </div>
 
-            <div class="col-lg-3 file-tree-container">
+            <div class="col-md-3 file-tree-container">
                 <b-form-fieldset class="submission-button-bar">
                     <b-button @click="downloadType('zip')"
                               variant="primary">

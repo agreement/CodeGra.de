@@ -3,7 +3,7 @@
         <nav-bar/>
         <main class="container-fluid">
             <div class="row justify-content-center">
-                <router-view class="page router col-md-10"/>
+                <router-view class="page router col-lg-10"/>
             </div>
         </main>
         <footer-bar/>
@@ -35,6 +35,7 @@ main {
     > .row {
         flex-grow: 1;
         flex-shrink: 1;
+        max-width: 100%;
     }
 }
 </style>

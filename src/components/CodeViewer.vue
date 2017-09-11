@@ -8,12 +8,12 @@
                    class="settings-popover"
                    :popover-style="{'max-width': '80%', width: '35em'}"
                    placement="right">
-            <b-btn class="settings-toggle"
-                   ref="settingsToggle">
+            <b-btn class="settings-toggle" id="codeviewer-settings-toggle">
                 <icon name="cog"/>
             </b-btn>
             <div slot="content">
                 <div class="settings-content"
+                     id="codeviewer-settings-content"
                      ref="settingsContent">
                     <table class="table settings-table"
                            style="margin-bottom: 0;">
@@ -34,6 +34,17 @@
                                                  :options="languages"/>
                                 </td>
                             </tr>
+                            <tr>
+                                <td>Font size</td>
+                                <td>
+                                    <b-input-group right="px">
+                                        <b-form-input v-model="fontSize"
+                                                      style="z-index: 0;"
+                                                      type="number"
+                                                      min="1"/>
+                                    </b-input-group>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -41,7 +52,10 @@
         </b-popover>
         <div class="scroller" ref="scroller">
             <ol :class="{ editable, 'lint-whitespace': assignment.whitespace_linter, 'show-whitespace': showWhitespace }"
-                :style="{ paddingLeft: `${3 + Math.log10(codeLines.length) * 2/3}em` }"
+                :style="{
+                    paddingLeft: `${3 + Math.log10(codeLines.length) * 2/3}em`,
+                    fontSize: `${fontSize}px`,
+                }"
                 @click="onClick">
                 <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
                     :class="{ 'linter-feedback-outer': linterFeedback[i] }" v-bind:key="i">
@@ -69,7 +83,7 @@
 <script>
 import { getLanguage, highlight, listLanguages } from 'highlightjs';
 import Vue from 'vue';
-import { mapActions } from 'vuex';
+import { mapActions, mapGetters } from 'vuex';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
@@ -145,8 +159,8 @@ export default {
             linterFeedback: {},
             clicks: {},
             error: false,
-            showSettings: false,
             showWhitespace: true,
+            fontSize: 12,
             languages,
             canUseSnippets: false,
         };
@@ -161,18 +175,20 @@ export default {
             this.loading = false;
         });
 
+        this.fontSize = this.getFontSize();
+
         this.clickHideSettings = (event) => {
             let target = event.target;
             while (target !== document.body) {
-                if (target === this.$refs.settingsContent ||
-                    (this.$refs.settingsToggle &&
-                    target === this.$refs.settingsToggle.$el)) {
+                if (target.id === 'codeviewer-settings-content' ||
+                    target.id === 'codeviewer-settings-toggle') {
                     return;
                 }
                 target = target.parentNode;
             }
             this.$root.$emit('hide::popover');
         };
+
         document.body.addEventListener('click', this.clickHideSettings, true);
         this.keyupHideSettings = (event) => {
             if (event.key === 'Escape') {
@@ -210,6 +226,10 @@ export default {
 
         showWhitespace(val) {
             showWhitespaceStore.setItem(`${this.file.id}`, val);
+        },
+
+        fontSize(val) {
+            this.setFontSize(Math.max(val, 1));
         },
     },
 
@@ -360,7 +380,6 @@ export default {
             }
             // Use a regex to match each file at most once.
             const filesRegex = new RegExp(`\\b(${filePaths.join('|')})\\b`, 'g');
-            console.log(filesRegex);
             this.codeLines = this.codeLines.map(line =>
                 line.replace(filesRegex, (fileName) => {
                     const fileId = fileIds[fileName];
@@ -411,6 +430,11 @@ export default {
 
         ...mapActions({
             hasPermission: 'user/hasPermission',
+            setFontSize: 'pref/setFontSize',
+        }),
+
+        ...mapGetters({
+            getFontSize: 'pref/fontSize',
         }),
     },
 
@@ -461,7 +485,7 @@ export default {
 .scroller {
     width: 100%;
     height: 100%;
-    overflow-x: hidden;
+    overflow-x: auto;
     overflow-y: auto;
 }
 
@@ -505,7 +529,7 @@ code {
     margin-bottom: 3em;
 }
 
-@media only screen and (min-width : 768px){
+@media only screen and (min-width : 992px){
     .settings-popover {
         position: fixed;
         .settings-toggle {
@@ -527,7 +551,7 @@ code {
     }
 }
 
-@media only screen and (max-width : 768px){
+@media only screen and (max-width : 992px){
     .code-viewer {
         margin-top: 2.3rem;
         overflow: visible !important;
