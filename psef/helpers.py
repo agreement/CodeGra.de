@@ -98,12 +98,13 @@ def _filter_or_404(model: t.Type[Y], get_all: bool,
     :raises APIException: If no object with the given id could be found.
         (OBJECT_ID_NOT_FOUND)
     """
+    crit_str = ' AND '.join(str(crit) for crit in criteria)
     query = model.query.filter(*criteria)  # type: ignore
     obj = query.all() if get_all else query.one_or_none()
     if not obj:
         raise psef.errors.APIException(
             f'The requested {model.__name__.lower()} was not found',
-            f'There is no "{model.__name__}" when filtering with {criteria}',
+            f'There is no "{model.__name__}" when filtering with {crit_str}',
             psef.errors.APICodes.OBJECT_ID_NOT_FOUND, 404
         )
     return obj

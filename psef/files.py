@@ -166,14 +166,14 @@ def restore_directory_structure(
     if code.is_directory:
         os.mkdir(out)
         children = code.children.filter(models.File.fileowner != exclude).all()
-        children = [
+        subtree: t.List[FileTree] = [
             restore_directory_structure(child, out, exclude)
             for child in children
         ]
         return {
             "name": code.name,
             "id": code.id,
-            "entries": children,
+            "entries": subtree,
         }
     else:  # this is a file
         shutil.copyfile(code.get_diskname(), out, follow_symlinks=False)
@@ -419,3 +419,26 @@ def process_blackboard_zip(
     finally:
         shutil.rmtree(tmpdir)
     return submissions
+
+
+def split_path(path: str) -> t.Tuple[t.Sequence[str], bool]:
+    """Split a path into an array of parts of a path.
+
+    This functions splits a forward slash separated path into an sequence of
+    the directories of this path. If the given path ends with a '/' it returns
+    that the given path ends with an directory, otherwise the last part is a
+    file, this information is returned as the last part of the returned tuple.
+
+    The given path may contain multiple consecutive forward slashes, these are
+    interpreted as a single slash. A leading forward slash is also optional.
+
+    :param path: The forward slash separated path to split.
+    :returns: A tuple where the first item is the splitted path and the second
+        item is a boolean indicating if the last item of the given path was a
+        directory.
+    """
+    is_dir = path[-1] == '/'
+
+    patharr = [item for item in path.split('/') if item]
+
+    return patharr, is_dir

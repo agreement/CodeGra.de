@@ -30,7 +30,7 @@ case "$TO_RUN" in
         flake8 "$(pwd)/psef/"
         res="$?"
         make privacy_statement
-        npm install
+        [[ -z "$NO_INSTALL" ]] && npm install
         if ! npm run lint; then
             res="1"
         fi

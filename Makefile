@@ -1,6 +1,7 @@
 TEST_FILE?=
 SHELL=/bin/bash
 TEST_FLAGS?=
+PYTHON?=env/bin/python3.6
 export PYTHONPATH=$(CURDIR)
 
 .PHONY: test_setup
@@ -24,17 +25,17 @@ reset_db:
 
 .PHONY: migrate
 migrate:
-	DEBUG_ON=True env/bin/python3.6 manage.py db migrate
-	DEBUG_ON=True env/bin/python3.6 manage.py db edit
+	DEBUG_ON=True $(PYTHON) manage.py db migrate
+	DEBUG_ON=True $(PYTHON) manage.py db edit
 	$(MAKE) db_upgrade
 
 .PHONY: db_upgrade
 db_upgrade:
-	DEBUG_ON=True env/bin/python3.6 manage.py db upgrade
+	DEBUG_ON=True $(PYTHON) manage.py db upgrade
 
 .PHONY: test_data
 test_data:
-	DEBUG_ON=True env/bin/python3.6 $(CURDIR)/manage.py test_data
+	DEBUG_ON=True $(PYTHON) $(CURDIR)/manage.py test_data
 
 .PHONY: start_dev_server
 start_dev_server:
@@ -54,7 +55,7 @@ build_front-end:
 
 .PHONY: seed_data
 seed_data:
-	DEBUG_ON=True env/bin/python3.6 $(CURDIR)/manage.py seed
+	DEBUG_ON=True $(PYTHON) $(CURDIR)/manage.py seed
 
 .PHONY: format
 format:

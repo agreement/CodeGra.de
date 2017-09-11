@@ -29,15 +29,40 @@ if t.TYPE_CHECKING:  # pragma: no cover
         def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
             pass
 
-    class _MyQuery(t.Generic[T]):
+    class _MyQuery(t.Generic[T], t.Iterable):
         def get(self, *args: t.Any, **kwargs: t.Any) -> t.Union[T, None]:
             ...
 
-        def filter(self, *args: t.Any, **kwargs: t.Any) -> t.Any:
+        def all(self) -> t.Sequence[T]:
             ...
 
-        def filter_by(self, *args: t.Any, **kwargs: t.Any) -> t.Any:
+        def first(self) -> t.Optional[T]:
             ...
+
+        def exists(self) -> bool:
+            ...
+
+        def count(self) -> int:
+            ...
+
+        def one(self) -> T:
+            ...
+
+        def update(self, vals: t.Mapping[str, t.Any]) -> None:
+            ...
+
+        def order_by(self, *args: t.Any, **kwargs: t.Any) -> '_MyQuery[T]':
+            ...
+
+        def filter(self, *args: t.Any, **kwargs: t.Any) -> '_MyQuery[T]':
+            ...
+
+        def filter_by(self, *args: t.Any, **kwargs: t.Any) -> '_MyQuery[T]':
+            ...
+
+        def __iter__(self) -> t.Iterator[T]:
+            ...
+
 else:
     import psef
     Base = db.Model
@@ -1141,6 +1166,45 @@ class Work(Base):
         if rubricitem is not None:
             self.selected_items.remove(rubricitem)
 
+    def search_file(
+        self,
+        pathname: str,
+        exclude: 'FileOwner',
+    ) -> 'File':
+        """Search for a file in the this directory with the given name.
+
+        :param pathname: The path of the file to search for, this may contain
+            leading and trailing slashes which do not have any meaning.
+        :param exclude: The fileowner to exclude from search, like described in
+            :func:`get_zip`.
+        :returns: The found file.
+        """
+        patharr, is_dir = psef.files.split_path(pathname)
+
+        parent: t.Optional[t.Any] = None
+        for idx, pathpart in enumerate(patharr[:-1]):
+            if parent is not None:
+                parent = parent.c.id
+
+            parent = db.session.query(File.id).filter(
+                File.name == pathpart,
+                File.parent_id == parent,
+                File.work_id == self.id,
+                File.is_directory,
+            ).subquery(f'parent_{idx}')
+
+        if parent is not None:
+            parent = parent.c.id
+
+        return psef.helpers.filter_single_or_404(
+            File,
+            File.work_id == self.id,
+            File.name == patharr[-1],
+            File.parent_id == parent,
+            File.fileowner != exclude,
+            File.is_directory == is_dir,
+        )
+
 
 @enum.unique
 class FileOwner(enum.IntEnum):
@@ -1200,7 +1264,7 @@ class File(Base):
     parent_id: int = db.Column(db.Integer, db.ForeignKey('File.id'))
 
     # This variable is generated from the backref from the parent
-    children: '_MyQuery[t.Sequence["File"]]'
+    children: '_MyQuery["File"]'
 
     parent = db.relationship(
         'File',
@@ -1308,6 +1372,35 @@ class File(Base):
                 "id": self.id,
                 "entries": children,
             }
+
+    def rename_code(
+        self,
+        new_name: str,
+        new_parent: 'File',
+        exclude_owner: FileOwner,
+    ) -> None:
+        """Rename the this file to the given new name.
+
+        :param new_name: The new name to be given to the given file.
+        :param new_parent: The new parent of this file.
+        :param exclude_owner: The owner to exclude while searching for
+            collisions.
+        :returns: Nothing.
+
+        :raises APIException: If renaming would result in a naming collision
+            (INVALID_STATE).
+        """
+        if new_parent.children.filter_by(name=new_name).filter(
+            File.fileowner != exclude_owner,
+        ).first() is not None:
+            raise psef.errors.APIException(
+                'This file already exists within this directory',
+                f'The file "{new_parent.id}" has '
+                f'a child with the name "{new_name}"',
+                psef.errors.APICodes.INVALID_STATE, 400
+            )
+
+        self.name = new_name
 
     def __to_json__(self) -> t.Mapping[str, t.Union[str, bool, int]]:
         """Creates a JSON serializable representation of this object.

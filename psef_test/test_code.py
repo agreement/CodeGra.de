@@ -1,3 +1,4 @@
+import uuid
 import datetime
 
 import pytest
@@ -177,6 +178,7 @@ def test_get_code_plaintext_revisions(
             real_data='test',
         )
         teacher_file_id = res['id']
+        assert teacher_file_id != student_file_id
 
     with logged_in(student_user):
         res = test_client.get(
@@ -276,7 +278,8 @@ def test_get_pdf(
 
 
 @pytest.mark.parametrize(
-    'filename', ['../test_submissions/single_dir_archive.zip'], indirect=True
+    'filename', ['../test_submissions/multiple_dir_archive.zip'],
+    indirect=True
 )
 def test_delete_code_as_ta(
     assignment_real_works, test_client, request, error_template, ta_user,
@@ -300,7 +303,7 @@ def test_delete_code_as_ta(
 
         test_client.req(
             'delete',
-            f'/api/v1/code/{res["entries"][0]["id"]}',
+            f'/api/v1/code/{res["entries"][0]["entries"][0]["id"]}',
             403,
             result=error_template,
         )
@@ -318,6 +321,31 @@ def test_delete_code_as_ta(
         )['entries']
         assert len(ents) == 2, 'It should not delete after an error'
 
+        test_client.req(
+            'delete',
+            f'/api/v1/code/{res["entries"][0]["id"]}',
+            400,
+            result=None,
+        )
+        for ent in res['entries'][0]['entries'][:-1]:
+            test_client.req(
+                'delete',
+                f'/api/v1/code/{ent["id"]}',
+                204,
+                result=None,
+            )
+            test_client.req(
+                'delete',
+                f'/api/v1/code/{res["entries"][0]["id"]}',
+                400,
+                result=None,
+            )
+        test_client.req(
+            'delete',
+            f'/api/v1/code/{res["entries"][0]["entries"][-1]["id"]}',
+            204,
+            result=None,
+        )
         test_client.req(
             'delete',
             f'/api/v1/code/{res["entries"][0]["id"]}',
@@ -494,6 +522,32 @@ def test_update_code(
     assignment, work = assignment_real_works
     work_id = work['id']
 
+    def get_code_data(code_id):
+        with logged_in(ta_user):
+            r = test_client.get(f'/api/v1/code/{code_id}')
+            assert r.status_code == 200
+            return r.get_data(as_text=True)
+
+    def adjust_code(code_id, status, data=None):
+        if data is None:
+            data = str(uuid.uuid4())
+        with logged_in(ta_user):
+            old = get_code_data(code_id)
+
+        res = test_client.req(
+            'patch',
+            f'/api/v1/code/{code_id}',
+            status,
+            real_data=data,
+            result=error_template if status >= 400 else None
+        )
+        if status >= 400:
+            assert get_code_data(code_id) == old
+            return
+
+        assert get_code_data(res['id']) == data
+        return res['id']
+
     with logged_in(ta_user):
         code_id = test_client.req(
             'get',
@@ -507,64 +561,294 @@ def test_update_code(
         )['entries'][0]['id']
 
     with logged_in(student_user):
-        new_id = test_client.req(
-            'patch', f'/api/v1/code/{code_id}', 200, real_data='NEW_CON'
-        )['id']
-        assert new_id == code_id
-        assert 'NEW_CON' == test_client.get(f'/api/v1/code/{new_id}').get_data(
-            as_text=True
-        )
-
-        new_id = test_client.req(
-            'patch', f'/api/v1/code/{code_id}', 200, real_data='NEW_CON!'
-        )['id']
-        assert new_id == code_id
-        assert 'NEW_CON!' == test_client.get(f'/api/v1/code/{new_id}'
-                                             ).get_data(as_text=True)
+        assert adjust_code(code_id, 200) == code_id
+        assert adjust_code(code_id, 200) == code_id
 
         m.Assignment.query.filter_by(id=assignment.id).update(
             {
                 'state': m._AssignmentStateEnum.done
             }
         )
-        test_client.req(
-            'patch', f'/api/v1/code/{code_id}', 403, real_data='NEW_CON!'
-        )
+
+        adjust_code(code_id, 403)
 
     with logged_in(ta_user):
-        new_id = test_client.req(
-            'patch', f'/api/v1/code/{code_id}', 200, real_data='TA_CON'
-        )['id']
+        old = get_code_data(code_id)
+        new_id = adjust_code(code_id, 200)
         assert new_id != code_id
-        assert 'NEW_CON!' == test_client.get(f'/api/v1/code/{code_id}'
-                                             ).get_data(as_text=True)
-        assert 'TA_CON' == test_client.get(f'/api/v1/code/{new_id}').get_data(
-            as_text=True
-        )
+        # Make sure id only changes once
+        assert adjust_code(new_id, 200) == new_id
+        assert old == get_code_data(code_id)
 
-        test_client.req(
-            'patch', f'/api/v1/code/{code_id}', 403, real_data='NEW_CON!'
-        )
+        # You cannot change the student rev more than once
+        adjust_code(code_id, 403)
 
-        newest_id = test_client.req(
-            'patch', f'/api/v1/code/{new_id}', 200, real_data='TA_CON!'
-        )['id']
-        assert newest_id == new_id
-        assert 'TA_CON!' == test_client.get(f'/api/v1/code/{new_id}').get_data(
-            as_text=True
-        )
+        # Make sure you cannot upload to large strings
+        adjust_code(new_id, 400, b'0' * 2 * 2 ** 20)
 
+    # Cannot change code if state is done
     with logged_in(student_user):
-        test_client.req(
-            'patch', f'/api/v1/code/{new_id}', 403, real_data='AAH_CON'
-        )
+        adjust_code(code_id, 403)
 
     m.Assignment.query.filter_by(id=assignment.id).update(
         {
             'state': m._AssignmentStateEnum.open
         }
     )
+    # Cannot adjust teacher rev as student
     with logged_in(student_user):
-        test_client.req(
-            'patch', f'/api/v1/code/{new_id}', 403, real_data='AAH_CON'
+        adjust_code(new_id, 403)
+
+    m.Assignment.query.filter_by(id=assignment.id).update(
+        {
+            'state':
+                m._AssignmentStateEnum.open,
+            'deadline':
+                datetime.datetime.utcnow() - datetime.timedelta(days=1),
+        }
+    )
+    # Cannot change code after deadline as student
+    with logged_in(student_user):
+        adjust_code(code_id, 403, 'AAH_CON')
+
+    role = m.CourseRole.query.filter_by(
+        course_id=assignment.course_id, name='Student'
+    ).one()
+    role.set_permission(
+        m.Permission.query.filter_by(name='can_upload_after_deadline').one(),
+        True
+    )
+    session.commit()
+    # CAN change code after deadline as student if you have the permission for
+    # this.
+    with logged_in(ta_user):
+        old = get_code_data(new_id)
+    with logged_in(student_user):
+        adjust_code(code_id, 200)
+    with logged_in(ta_user):
+        assert old == get_code_data(new_id)
+
+
+@pytest.mark.parametrize(
+    'filename', ['../test_submissions/multiple_dir_archive.zip'],
+    indirect=True
+)
+def test_rename_code(
+    assignment_real_works, test_client, request, error_template, ta_user,
+    logged_in, session, student_user
+):
+    assignment, work = assignment_real_works
+    work_id = work['id']
+
+    def get_code_data(code_id):
+        with logged_in(ta_user):
+            r = test_client.get(f'/api/v1/code/{code_id}')
+            assert r.status_code == 200
+            return r.get_data(as_text=True)
+
+    def adjust_code(code_id, status, data=None):
+        if data is None:
+            data = str(uuid.uuid4())
+        with logged_in(ta_user):
+            old = get_code_data(code_id)
+
+        res = test_client.req(
+            'patch',
+            f'/api/v1/code/{code_id}',
+            status,
+            real_data=data,
+            result=error_template if status >= 400 else None
         )
+        if status >= 400:
+            assert get_code_data(code_id) == old
+            return
+
+        assert get_code_data(res['id']) == data
+        return res['id']
+
+    def create_file(path):
+        return test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/?path={path}',
+            200,
+        )['id']
+
+    def rename(code_id, new_name, status):
+        if status < 400:
+            test_client.req(
+                'patch',
+                f'/api/v1/code/{code_id}?operation=rename',
+                400,
+                result=error_template
+            )
+        res = test_client.req(
+            'patch',
+            f'/api/v1/code/{code_id}?operation=rename&new_path={new_name}',
+            status,
+            result=error_template if status >= 400 else None
+        )
+        if status < 400:
+            return res['id']
+
+    def get_file_tree():
+        return test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/files/?owner=auto',
+            200,
+            result={
+                'entries': list,
+                'id': int,
+                'name': str,
+            }
+        )
+
+    with logged_in(ta_user):
+        files = get_file_tree()
+        assert files['name'] == 'multiple_dir_archive'
+        assert len(files['entries']) == 2
+        assert 'dir' == files['entries'][0]['name']
+        assert 'dir2' == files['entries'][1]['name']
+        old_data0 = get_code_data(files['entries'][0]['entries'][0]['id'])
+        code_id = files['entries'][0]['entries'][0]['id']
+
+    with logged_in(student_user):
+        assert old_data0 == get_code_data(code_id)
+        assert adjust_code(code_id, 200, 'new_data--\n') == code_id
+        assert adjust_code(code_id, 200, 'new_data\n') == code_id
+        assert get_code_data(code_id) == 'new_data\n'
+
+        assert rename(
+            code_id, '/multiple_dir_archive/dir///NEW_NAME///', 200
+        ) == code_id
+        assert 'new_data\n' == get_code_data(code_id)
+        assert get_file_tree()['entries'][0]['entries'][0]['name'
+                                                           ] == 'NEW_NAME'
+
+        assert rename(
+            files['entries'][0]['id'], '/multiple_dir_archive/dir3/', 200
+        )
+        assert 'new_data\n' == get_code_data(code_id)
+        files = get_file_tree()
+        assert files['entries'][1]['name'] == 'dir3'
+        assert files['entries'][0]['name'] == 'dir2'
+        assert len(files['entries'][1]['entries']) == 2
+        assert files['entries'][1]['entries'][0]['id'] == code_id
+
+        added_file = adjust_code(
+            create_file('/multiple_dir_archive/dir3/sub_dir/file'),
+            200,
+            'CONTENT',
+        )
+
+        rename(files['entries'][0]['id'], '/multiple_dir_archive/dir3', 400)
+
+        m.Assignment.query.filter_by(id=assignment.id).update(
+            {
+                'state': m._AssignmentStateEnum.done
+            }
+        )
+        rename(files['entries'][0]['id'], '/multiple_dir_archive/dir3', 403)
+        rename(files['entries'][0]['id'], '/multiple_dir_archive/dir4', 403)
+
+    role = m.CourseRole.query.filter_by(
+        course_id=assignment.course_id, name='Student'
+    ).one()
+    role.set_permission(
+        m.Permission.query.filter_by(name='can_upload_after_deadline').one(),
+        True
+    )
+    session.commit()
+
+    with logged_in(student_user):
+        added_file2 = adjust_code(
+            create_file('/multiple_dir_archive/dir3/sub_dir/file2'),
+            200,
+            'CONTENT',
+        )
+        added_file3 = adjust_code(
+            create_file('/multiple_dir_archive/dir3/sub_dir/file3'),
+            200,
+            'CONTENT',
+        )
+
+    with logged_in(ta_user):
+        added_file4 = adjust_code(
+            create_file('/multiple_dir_archive/dir3/sub_dir/file4'),
+            200,
+            'CONTENT',
+        )
+
+        files = get_file_tree()
+        ff = files['entries'][1]['entries']
+        assert len(ff) == 3
+        assert ff[-1]['name'] == 'sub_dir'
+        assert ff[-1]['entries'][0]['id'] == added_file
+        assert ff[-1]['entries'][1]['id'] == added_file4
+        assert len(ff[-1]['entries']) == 2
+        del ff
+
+        rename(files['entries'][1]['id'], '/multiple_dir_archive/dir4', 200)
+        files = get_file_tree()
+
+        assert len(files['entries']) == 2
+
+        assert files['entries'][0]['name'] == 'dir2'
+        assert files['entries'][1]['name'] == 'dir4'
+
+        ff = files['entries'][1]['entries']
+        assert len(ff) == 3
+        assert ff[-1]['name'] == 'sub_dir'
+        assert ff[-1]['entries'][0]['id'] != added_file
+        assert ff[-1]['entries'][1]['id'] == added_file4
+        assert len(ff[-1]['entries']) == 2
+        del ff
+
+        assert len(files['entries'][0]['entries']) == 2
+
+    with logged_in(student_user):
+        files = get_file_tree()
+
+        assert len(files['entries']) == 2
+
+        assert files['entries'][0]['name'] == 'dir2'
+        assert files['entries'][1]['name'] == 'dir3'
+
+        ff = files['entries'][1]['entries']
+        assert len(ff) == 3
+        assert ff[-1]['name'] == 'sub_dir'
+        assert ff[-1]['entries'][0]['id'] == added_file
+        assert ff[-1]['entries'][1]['id'] == added_file2
+        assert ff[-1]['entries'][2]['id'] == added_file3
+        assert len(ff[-1]['entries']) == 3
+        del ff
+
+        assert len(files['entries'][0]['entries']) == 2
+
+    with logged_in(ta_user):
+        files = get_file_tree()
+        rename(
+            files['entries'][0]['id'],
+            '/multiple_dir_archive/dir4/sub_dir/dir', 200
+        )
+        files = get_file_tree()
+        assert len(files['entries']) == 1
+        assert len(files['entries'][0]['entries']) == 3
+
+    with logged_in(student_user):
+        files = get_file_tree()
+
+        assert len(files['entries']) == 2
+
+        assert files['entries'][0]['name'] == 'dir2'
+        assert files['entries'][1]['name'] == 'dir3'
+
+        ff = files['entries'][1]['entries']
+        assert len(ff) == 3
+        assert ff[-1]['name'] == 'sub_dir'
+        assert ff[-1]['entries'][0]['id'] == added_file
+        assert ff[-1]['entries'][1]['id'] == added_file2
+        assert ff[-1]['entries'][2]['id'] == added_file3
+        assert len(ff[-1]['entries']) == 3
+        del ff
+
+        assert len(files['entries'][0]['entries']) == 2

@@ -952,6 +952,15 @@ def test_add_file(
         )
         assert res['is_directory'] == True
 
+        # Make sure you cannot upload to large strings
+        res = test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/',
+            400,
+            query={'path': '/dir/dir2/this/is/to/large/file'},
+            real_data=b'0' * 2 * 2 ** 20,
+            result=error_template,
+        )
         res = test_client.req(
             'post',
             f'/api/v1/submissions/{work_id}/files/',
