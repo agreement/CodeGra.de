@@ -10,6 +10,13 @@
                 ref="rubricViewer">
             </rubric-viewer>
         </b-collapse>
+        <b-alert :class="{closed: Object.keys($refs.rubricViewer.outOfSync).length === 0,
+                         'out-of-sync-alert': true,}"
+                 show
+                 v-if="showRubric && $refs.rubricViewer"
+                 variant="warning">
+            <b>The rubric is not yet saved!</b>
+        </b-alert>
         <div class="row">
             <div class="col-6">
                 <b-input-group>
@@ -226,15 +233,15 @@ export default {
         deleteGrade() {
             let req;
             if (this.showRubric && !this.rubricOverridden) {
-                req = this.$refs.rubricViewer.clearSelected().then(() => ({
-                    data: { grade: null },
-                }));
+                req = this.$refs.rubricViewer.clearSelected();
             } else {
                 req = this.$http.patch(`/api/v1/submissions/${this.submission.id}`, { grade: null });
             }
             req.then(({ data }) => {
-                this.grade = data.grade ? parseFloat(data.grade).toFixed(2) : data.grade;
-                this.gradeUpdated(data.grade);
+                if (data.grade !== undefined) {
+                    this.grade = data.grade ? parseFloat(data.grade).toFixed(2) : data.grade;
+                    this.gradeUpdated(data.grade);
+                }
             });
             this.$refs.deleteButton.submit(req.catch((err) => {
                 throw err.response.data.message;
@@ -299,6 +306,23 @@ textarea {
 .rubric-overridden {
     background: fade(#f0ad4e, 50%) !important;
     cursor: help;
+}
+
+.out-of-sync-alert {
+    max-height: 3em;
+    overflow-x: hidden;
+
+    transition-property: all;
+    transition-duration: .5s;
+    transition-timing-function: cubic-bezier(0, 1, 0.5, 1);
+
+    &.closed {
+        max-height: 0;
+        border-color: transparent;
+        background: none;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
 }
 </style>
 

@@ -62,11 +62,6 @@
                 </div>
             </div>
         </b-input-group>
-        <b-alert :class="{closed: Object.keys(outOfSync).length === 0, 'out-of-sync-alert': true,}"
-                 show
-                 variant="warning">
-            <b>The rubric is not yet saved!</b>
-        </b-alert>
     </b-form-fieldset>
 </template>
 
@@ -136,19 +131,27 @@ export default {
 
     methods: {
         clearSelected() {
-            return this.$http.patch(`/api/v1/submissions/${this.submission.id}/rubricitems/`, {
-                items: [],
-            }).then(() => {
+            const clear = () => {
                 this.selected = {};
-                this.selectedRows = {};
                 this.selectedPoints = 0;
-                this.outOfSync = {};
+                this.selectedRows = {};
                 this.$emit('input', {
                     selected: 0,
                     max: this.maxPoints,
                     grade: null,
                 });
-            });
+                return { data: { grade: null } };
+            };
+
+            if (UserConfig.features.incremental_rubric_submission) {
+                return this.$http.patch(`/api/v1/submissions/${this.submission.id}/rubricitems/`, {
+                    items: [],
+                }).then(clear);
+            }
+
+            this.outOfSync = this.selected;
+            clear();
+            return Promise.resolve({ data: {} });
         },
 
         submitAllItems() {
@@ -375,21 +378,6 @@ export default {
 
 .item-state {
     float: right;
-}
-
-.out-of-sync-alert {
-    overflow-x: hidden;
-    max-height: 3em;
-
-    transition-property: all;
-    transition-duration: .5s;
-    transition-timing-function: cubic-bezier(0, 1, 0.5, 1);
-
-    &.closed {
-        max-height: 0;
-        padding-top: 0;
-        padding-bottom: 0;
-    }
 }
 
 .rubric-icon {
