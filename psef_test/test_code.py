@@ -1,3 +1,4 @@
+import os
 import uuid
 import datetime
 
@@ -95,11 +96,9 @@ def test_get_code_metadata(
             )
         ),
         data_error(error=400)(
-            ('../test_submissions/nested_dir_archive.tar.gz', 'SHOULD ERROR!')
+            ('../test_submissions/nested_dir_archive.tar.gz', 'SHOULD_ERROR')
         ),
-        data_error(error=400)(
-            ('../test_submissions/pdf_in_dir_archive.tar.gz', 'SHOULD ERROR!')
-        )
+        ('../test_submissions/pdf_in_dir_archive.tar.gz', False),
     ],
     indirect=['filename']
 )
@@ -137,12 +136,17 @@ def test_get_code_plaintext(
                 'get',
                 f'/api/v1/code/{res["entries"][0]["id"]}',
                 error,
-                result=error_template
+                result=error_template,
             )
         else:
             res = test_client.get(f'/api/v1/code/{res["entries"][0]["id"]}')
             assert res.status_code == 200
-            assert res.get_data(as_text=True) == content
+            if content:
+                assert res.get_data(as_text=True) == content
+            else:
+                with pytest.raises(UnicodeDecodeError):
+                    res.get_data(as_text=True)
+                res.get_data()
 
 
 @pytest.mark.parametrize(
@@ -523,10 +527,12 @@ def test_update_code(
     work_id = work['id']
 
     def get_code_data(code_id):
-        with logged_in(ta_user):
-            r = test_client.get(f'/api/v1/code/{code_id}')
-            assert r.status_code == 200
+        r = test_client.get(f'/api/v1/code/{code_id}')
+        assert r.status_code == 200
+        try:
             return r.get_data(as_text=True)
+        except:
+            return r.get_data()
 
     def adjust_code(code_id, status, data=None):
         if data is None:
@@ -542,7 +548,8 @@ def test_update_code(
             result=error_template if status >= 400 else None
         )
         if status >= 400:
-            assert get_code_data(code_id) == old
+            with logged_in(ta_user):
+                assert get_code_data(code_id) == old
             return
 
         assert get_code_data(res['id']) == data
@@ -627,6 +634,15 @@ def test_update_code(
         adjust_code(code_id, 200)
     with logged_in(ta_user):
         assert old == get_code_data(new_id)
+
+    # Make sure invalid utf-8 can be uploaded
+    with logged_in(student_user):
+        data = b'\x00' + os.urandom(12) + b'\xff'
+        # Make sure we sent a string that is not valid utf-8
+        with pytest.raises(UnicodeDecodeError):
+            data.decode('utf-8')
+        adjust_code(code_id, 200, data)
+        assert data == get_code_data(code_id)
 
 
 @pytest.mark.parametrize(

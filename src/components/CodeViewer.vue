@@ -92,6 +92,7 @@ const entityMap = {
     '>': '&gt;',
 };
 const escape = text => String(text).replace(entityRE, entity => entityMap[entity]);
+const decoder = new TextDecoder('utf-8', { fatal: true });
 
 localforage.setDriver(localforage.INDEXEDDB);
 const highlightLanguageStore = localforage.createInstance({
@@ -245,9 +246,14 @@ export default {
             // have feedback as this is not needed anyway.
             return Promise.all([
                 this.$http.get(`/api/v1/code/${this.file.id}`, {
-                    responseType: 'text',
+                    responseType: 'arraybuffer',
                 }).then((code) => {
-                    this.code = code.data;
+                    try {
+                        this.code = decoder.decode(code.data);
+                    } catch (e) {
+                        addError('This file cannot be displayed');
+                        return;
+                    }
                     this.rawCodeLines = this.code.split('\n');
 
                     const fileParts = this.file.name.split('.');

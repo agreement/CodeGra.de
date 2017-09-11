@@ -90,34 +90,28 @@ def get_stat_information(file: models.File) -> t.Mapping[str, t.Any]:
     }
 
 
-def get_file_contents(code: models.File) -> str:
+def get_file_contents(code: models.File) -> bytes:
     """Get the contents of the given :class:`.models.File`.
 
     :param code: The file object to read.
     :returns: The contents of the file with newlines.
     """
-
-    def _raise_err(msg: str='') -> NoReturn:
+    if code.is_directory:
         raise APIException(
-            f'Cannot display this file{msg}!',
-            'The selected file with id {} was not UTF-8'.format(code.id),
+            'Cannot display this file as it is a directory.',
+            f'The selected file with id {code.id} is a directory.',
             APICodes.OBJECT_WRONG_TYPE, 400
         )
 
-    try:
-        if code.is_directory:
-            _raise_err(' as it is a directory')
-        filename = code.get_diskname()
-        if os.path.islink(filename):
-            raise APIException(
-                f'This file is a symlink to `{os.readlink(filename)}`.',
-                'The file {} is a symlink'.format(code.id),
-                APICodes.INVALID_STATE, 410
-            )
-        with open(filename, 'r', encoding='utf-8') as codefile:
-            return codefile.read()
-    except UnicodeDecodeError:
-        _raise_err()
+    filename = code.get_diskname()
+    if os.path.islink(filename):
+        raise APIException(
+            f'This file is a symlink to `{os.readlink(filename)}`.',
+            'The file {} is a symlink'.format(code.id), APICodes.INVALID_STATE,
+            410
+        )
+    with open(filename, 'rb') as codefile:
+        return codefile.read()
 
 
 def restore_directory_structure(

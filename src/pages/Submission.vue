@@ -9,9 +9,15 @@
                                     :submissions="submissions"
                                     :filter="filterSubmissions"/>
 
-                <div v-if="currentFile == null" class="no-file">
+                <div v-if="!fileTree" class="no-file">
                     <loader/>
                 </div>
+                <b-alert show
+                         class="error no-file"
+                         variant="danger"
+                         v-else-if="fileTree.entries.length === 0">
+                    No files found!
+                </b-alert>
                 <pdf-viewer :id="currentFile.id"
                             v-else-if="currentFile.extension === 'pdf'"/>
                 <code-viewer :assignment="assignment"

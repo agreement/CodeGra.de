@@ -152,19 +152,20 @@ def get_code(file_id: int
     file = helpers.filter_single_or_404(models.File, models.File.id == file_id)
 
     auth.ensure_can_view_files(file.work, file.fileowner == FileOwner.teacher)
+    get_type = request.args.get('type', None)
 
-    if request.args.get('type') == 'metadata':
+    if get_type == 'metadata':
         return jsonify(file)
-    elif request.args.get('type') == 'feedback':
+    elif get_type == 'feedback':
         return jsonify(get_feedback(file, linter=False))
-    elif request.args.get('type') == 'pdf':
+    elif get_type == 'pdf':
         return jsonify({'name': get_pdf_file(file)})
-    elif request.args.get('type') == 'linter-feedback':
+    elif get_type == 'linter-feedback':
         return jsonify(get_feedback(file, linter=True))
     else:
         contents = psef.files.get_file_contents(file)
         res: 'werkzeug.wrappers.Response' = make_response(contents)
-        res.headers['Content-Type'] = 'text/plain'
+        res.headers['Content-Type'] = 'application/octet-stream'
         return res
 
 
@@ -417,8 +418,8 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
             db.session.flush()
             code.parent = new_parent
         else:
-            with open(code.get_diskname(), 'w') as f:
-                f.write(request.get_data(as_text=True))
+            with open(code.get_diskname(), 'wb') as f:
+                f.write(request.get_data())
 
     if code.work.assignment.is_open and current_user.id == code.work.user_id:
         current, other = models.FileOwner.both, models.FileOwner.teacher
