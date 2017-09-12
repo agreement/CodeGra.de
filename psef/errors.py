@@ -27,6 +27,7 @@ class APICodes(IntEnum):
     INVALID_STATE = 13
     INVALID_OAUTH_REQUEST = 14
     DISABLED_FEATURE = 15
+    UNKOWN_ERROR = 16
 
 
 class APIException(Exception):

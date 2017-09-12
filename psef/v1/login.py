@@ -5,11 +5,15 @@ User object of the logged in user.
 """
 import typing as t
 
+import html2text
 from flask import request
+from flask_mail import Message
 from validate_email import validate_email
 
+import psef
 import psef.auth as auth
 import psef.models as models
+import psef.helpers as helpers
 from psef import db, jwt, current_user
 from psef.errors import APICodes, APIException
 from psef.helpers import (
@@ -113,14 +117,66 @@ def me() -> JSONResponse[t.Union[models.User, t.Mapping[int, str],
     return jsonify(current_user)
 
 
+def send_reset_password_email(user: models.User) -> None:
+    token = user.get_reset_token()
+    html_body = psef.app.config['EMAIL_TEMPLATE'].replace(
+        '\n\n', '<br><br>'
+    ).format(
+        site_url=psef.app.config["EXTERNAL_URL"],
+        url=f'{psef.app.config["EXTERNAL_URL"]}/reset_'
+        f'password/?user={user.id}&token={token}',
+        user_id=user.id,
+        token=token,
+        user_name=user.name,
+        user_email=user.email,
+    )
+    text_maker = html2text.HTML2Text(bodywidth=78)
+    text_maker.inline_links = False
+    text_maker.wrap_links = False
+
+    message = Message(
+        subject=f'Reset password on {psef.app.config["EXTERNAL_URL"]}',
+        body=text_maker.handle(html_body),
+        html=html_body,
+        recipients=[user.email],
+    )
+    try:
+        psef.mail.send(message)
+    except:
+        raise APIException(
+            'Something went wrong sending the email, '
+            'please contact your site admin',
+            f'Sending email to {user.id} went wrong.',
+            APICodes.UNKOWN_ERROR,
+            500,
+        )
+    db.session.commit()
+
+
 @api.route('/login', methods=['PATCH'])
-def get_user_update() -> EmptyResponse:
-    """Change data of the current :class:`.models.User`.
+def get_user_update(
+) -> t.Union[EmptyResponse, JSONResponse[t.Mapping[str, str]]]:
+    """Change data of the current :class:`.models.User` and handle passsword
+        resets.
 
-    .. :quickref: User; Update the currently logged users information.
+    .. :quickref: User; Update the currently logged users information or reset
+        a password.
 
-    :returns: An empty response with return code 204
+    - If ``type`` is ``reset_password`` reset the password of the user with the
+        given user_id with the given token to the given ``new_password``.
+    - If ``type`` is ``reset_email`` send a email to the user with the given
+      username that enables this user to reset its password.
+    - Otherwise change user info of the currently logged in user.
 
+    :returns: An empty response with return code 204 unless ``type`` is
+        ``reset_password``, in this case a mapping between ``access_token`` and
+        a jwt token is returned.
+
+    :<json int user_id: The id of the user, only when type is reset_password.
+    :<json str username: The username of the user, only when type is
+        reset_email.
+    :<json str token : The reset password token. Only if type is
+        reset_password.
     :<json str email: The new email of the user.
     :<json str name: The new full name of the user.
     :<json str old_password: The old password of the user.
@@ -138,6 +194,44 @@ def get_user_update() -> EmptyResponse:
                                  (INCORRECT_PERMISSION)
     """
     data = ensure_json_dict(request.get_json())
+
+    if request.args.get('type', None) == 'reset_email':
+        ensure_keys_in_dict(data, [('username', str)])
+        send_reset_password_email(
+            helpers.filter_single_or_404(
+                models.User, models.User.username == data['username']
+            )
+        )
+        return make_empty_response()
+    elif request.args.get('type', None) == 'reset_password':
+        ensure_keys_in_dict(
+            data, [('new_password', str),
+                   ('token', str),
+                   ('user_id', int)]
+        )
+
+        password = t.cast(str, data['new_password'])
+        user_id = t.cast(int, data['user_id'])
+        token = t.cast(str, data['token'])
+
+        if password == '':
+            raise APIException(
+                'Password should at least be 1 char',
+                f'The password is {len(password)} chars long',
+                APICodes.INVALID_PARAM, 400
+            )
+        user = helpers.get_or_404(models.User, user_id)
+        user.reset_password(token, password)
+        db.session.commit()
+        return jsonify(
+            {
+                'access_token':
+                    jwt.create_access_token(
+                        identity=user.id,
+                        fresh=True,
+                    )
+            }
+        )
 
     ensure_keys_in_dict(
         data, [

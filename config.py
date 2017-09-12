@@ -139,6 +139,31 @@ CONFIG['_VERSION'] = subprocess.check_output(
     ['git', 'describe', '--abbrev=0', '--tags']
 ).decode('utf-8').strip()
 
+# Set email settings
+set_str(CONFIG, backend_ops, 'MAIL_SERVER', 'localhost')
+set_int(CONFIG, backend_ops, 'MAIL_PORT', 25)
+set_bool(CONFIG, backend_ops, 'MAIL_USE_TLS', False)
+set_bool(CONFIG, backend_ops, 'MAIL_USE_SSL', False)
+set_str(CONFIG, backend_ops, 'MAIL_USERNAME', None)
+set_str(CONFIG, backend_ops, 'MAIL_PASSWORD', None)
+set_str(CONFIG, backend_ops, 'MAIL_DEFAULT_SENDER', None)
+set_str(CONFIG, backend_ops, 'MAIL_MAX_EMAILS', None)
+set_int(CONFIG, backend_ops, 'RESET_TOKEN_TIME', 86400)
+set_str(
+    CONFIG,
+    backend_ops,
+    'EMAIL_TEMPLATE',
+    """
+<p>Dear {user_name},
+
+This email lets you reset your password on <a
+href="{site_url}">{site_url}</a>. If you goto <a href="{url}">this page</a>
+you can reset your password there. Please do not reply to this email.
+
+If you have not triggered this action please ignore this email.</p>
+    """.strip(),
+)
+
 ############
 # FEATURES #
 ############

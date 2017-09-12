@@ -2,6 +2,7 @@ import copy
 
 import pytest
 
+import psef
 import psef.models as m
 
 data_error = pytest.mark.data_error
@@ -399,3 +400,116 @@ def test_update_user_info_permissions(
             data=data,
             result=error_template,
         )
+
+
+def test_reset_password(
+    test_client, session, error_template, ta_user, monkeypatch, app
+):
+    class StubMailer():
+        def __init__(self):
+            self.msg = None
+            self.called = False
+            self.do_raise = True
+
+        def send(self, msg):
+            self.called = True
+            self.msg = msg
+            if self.do_raise:
+                raise Exception
+
+    mailer = StubMailer()
+    monkeypatch.setattr(psef, 'mail', mailer)
+
+    test_client.req(
+        'patch',
+        f'/api/v1/login?type=reset_email',
+        500,
+        data={'username': ta_user.username},
+        result=error_template,
+    )
+
+    mailer.do_raise = False
+
+    test_client.req(
+        'patch',
+        f'/api/v1/login?type=reset_email',
+        204,
+        data={'username': ta_user.username}
+    )
+    assert mailer.called
+    msg = str(mailer.msg)
+    start_id = msg.find('user=') + len('user=')
+    end_id = msg[start_id:].find('&token=') + start_id
+    print(msg, start_id, end_id)
+    user_id = int(msg[start_id:end_id])
+
+    start_token = end_id + len('&token=')
+    end_token = msg[start_token:].find('\r\n') + start_token
+    token = msg[start_token:end_token]
+    mailer.called = False
+
+    test_client.req(
+        'patch',
+        f'/api/v1/login?type=reset_password',
+        400,
+        data={'user_id': user_id,
+              'new_password': '',
+              'token': token},
+        result=error_template,
+    )
+    test_client.req(
+        'patch',
+        f'/api/v1/login?type=reset_password',
+        403,
+        data={'user_id': user_id,
+              'new_password': 's',
+              'token': token + 's'},
+        result=error_template,
+    )
+    test_client.req(
+        'patch',
+        f'/api/v1/login?type=reset_password',
+        403,
+        data={'user_id': user_id + 1,
+              'new_password': 's',
+              'token': token},
+        result=error_template,
+    )
+    atoken = test_client.req(
+        'patch',
+        f'/api/v1/login?type=reset_password',
+        200,
+        data={'user_id': user_id,
+              'new_password': '2o2',
+              'token': token},
+        result={'access_token': str},
+    )['access_token']
+    test_client.req(
+        'patch',
+        f'/api/v1/login?type=reset_password',
+        403,
+        data={'user_id': user_id,
+              'new_password': 'wow',
+              'token': token},
+        result=error_template,
+    )
+
+    with app.app_context():
+        test_client.req(
+            'get',
+            '/api/v1/login',
+            200,
+            headers={'Authorization': f'Bearer {atoken}'}
+        )
+
+    test_client.req(
+        'patch',
+        f'/api/v1/login?type=reset_password',
+        403,
+        data={'user_id': user_id,
+              'new_password': '2o2',
+              'token': token},
+        result=error_template,
+    )
+
+    assert not mailer.called

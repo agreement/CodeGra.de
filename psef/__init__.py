@@ -4,6 +4,7 @@ from flask import Flask, render_template, g
 import typing as t
 import os
 import flask_jwt_extended as flask_jwt
+from flask_mail import Mail
 
 import datetime
 import json
@@ -15,10 +16,13 @@ from werkzeug.local import LocalProxy
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
+mail = Mail()
 
 # Configurations
 app.config.update(config.CONFIG)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+mail.init_app(app)
 
 jwt = flask_jwt.JWTManager(app)
 
