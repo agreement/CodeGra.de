@@ -33,25 +33,25 @@
 
             <template slot="actions" scope="item">
                 <div v-if="item.item.editing">
+                    <b-btn size="sm" variant="danger" :disabled="item.item.pending" @click="cancelSnippetEdit(item.item)">
+                        <icon name="ban" scale="1"></icon>
+                    </b-btn>
                     <b-btn size="sm" variant="success" :disabled="item.item.pending" @click="saveSnippet(item.item)">
                         <loader v-if="item.item.pending" :scale="1" ></loader>
                         <icon name="floppy-o" scale="1" v-else></icon>
                     </b-btn>
-                    <b-btn size="sm" variant="danger" :disabled="item.item.pending" @click="cancelSnippetEdit(item.item)">
-                        <icon name="ban" scale="1"></icon>
-                    </b-btn>
                 </div>
                 <div v-else>
-                    <b-btn size="sm" variant="primary" @click="editSnippet(item.item)">
-                        <icon name="pencil" scale="1"></icon>
-                    </b-btn>
                     <b-btn size="sm" variant="danger" :disabled="item.item.pending" @click="deleteSnippet(item.item)">
                         <icon name="times" scale="1"></icon>
+                    </b-btn>
+                    <b-btn size="sm" variant="primary" @click="editSnippet(item.item)">
+                        <icon name="pencil" scale="1"></icon>
                     </b-btn>
                 </div>
             </template>
         </b-table>
-        <b-button-group>
+        <b-button-group class="global">
             <loader :scale="2" class="" v-if="loading"></loader>
             <b-button variant="primary" @click="newSnippet" v-else>
                 <span>Add</span>
@@ -233,6 +233,10 @@ export default {
 <style lang="less" scoped>
 .form-group {
     margin-bottom: 0;
+}
+
+.global.btn-group {
+    float: right;
 }
 </style>
 

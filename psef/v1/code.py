@@ -15,7 +15,7 @@ import psef.auth as auth
 import psef.files
 import psef.models as models
 import psef.helpers as helpers
-from psef import db, current_user
+from psef import db, app, current_user
 from psef.errors import APICodes, APIException
 from psef.models import FileOwner
 from psef.helpers import (
@@ -152,19 +152,20 @@ def get_code(file_id: int
     file = helpers.filter_single_or_404(models.File, models.File.id == file_id)
 
     auth.ensure_can_view_files(file.work, file.fileowner == FileOwner.teacher)
+    get_type = request.args.get('type', None)
 
-    if request.args.get('type') == 'metadata':
+    if get_type == 'metadata':
         return jsonify(file)
-    elif request.args.get('type') == 'feedback':
+    elif get_type == 'feedback':
         return jsonify(get_feedback(file, linter=False))
-    elif request.args.get('type') == 'pdf':
+    elif get_type == 'pdf':
         return jsonify({'name': get_pdf_file(file)})
-    elif request.args.get('type') == 'linter-feedback':
+    elif get_type == 'linter-feedback':
         return jsonify(get_feedback(file, linter=True))
     else:
         contents = psef.files.get_file_contents(file)
         res: 'werkzeug.wrappers.Response' = make_response(contents)
-        res.headers['Content-Type'] = 'text/plain'
+        res.headers['Content-Type'] = 'application/octet-stream'
         return res
 
 
@@ -243,11 +244,7 @@ def delete_code(file_id: int) -> EmptyResponse:
     :raises APIException: If you do not have permission to delete the given
         file. (INCORRECT_PERMISSION)
     """
-    code: models.File = helpers.filter_single_or_404(
-        models.File,
-        models.File.id == file_id,
-        ~models.File.children.any(),  # type: ignore
-    )
+    code: models.File = helpers.get_or_404(models.File, file_id)
 
     auth.ensure_can_edit_work(code.work)
 
@@ -263,6 +260,13 @@ def delete_code(file_id: int) -> EmptyResponse:
     else:
         current, other = models.FileOwner.teacher, models.FileOwner.student
 
+    if not all(child.fileowner == other for child in code.children.all()):
+        raise APIException(
+            'You cannot delete this directory as it has children',
+            f'The file "{file_id}" has children with fileowner "{current}"',
+            APICodes.INVALID_STATE, 400
+        )
+
     if code.fileowner == other:
         _raise_invalid()
     elif code.fileowner == current:
@@ -276,19 +280,104 @@ def delete_code(file_id: int) -> EmptyResponse:
     return make_empty_response()
 
 
+def split_code(
+    code: models.File, new_owner: FileOwner, old_owner: FileOwner, copy: bool
+) -> models.File:
+    """Split the given ``code`` into multiple code objects.
+
+    The old object in the database will be given a ``fileowner`` of
+    ``old_owner`` and the newly created object will be given ``new_owner``. If
+    ``code`` is a directory this directory is splitted (see
+    :py:func:`redistribute_directory`), if it is a file the original content of
+    the file is only copied if ``copy`` is ``True``.
+
+    :param code: The file to split.
+    :param new_owner: The new ``fileowner`` of the new file.
+    :param old_owner: The new ``fileowner`` of the old file.
+    :param copy: Should the file contents be copied over to the new file.
+    :returns: The newly constructed file.
+    """
+    code.fileowner = old_owner
+    old_id = code.id
+    old_diskname = None if code.is_directory else code.get_diskname()
+    db.session.flush()
+    code = db.session.query(models.File).get(code.id)
+
+    db.session.expunge(code)
+    make_transient(code)
+    code.id = None
+    db.session.add(code)
+    db.session.flush()
+
+    code.fileowner = new_owner
+    if not code.is_directory:
+        _, code.filename = psef.files.random_file_path()
+        shutil.copyfile(old_diskname, code.get_diskname())
+    else:
+        redistribute_directory(code, models.File.query.get(old_id))
+
+    return code
+
+
+def redistribute_directory(
+    new_directory: models.File, old_directory: models.File
+) -> None:
+    """Redistribute a given old directory between itself and a new directory.
+
+    .. note::
+
+        None of the given directories may be owned by ``both`` and they should
+        not have the same owner.
+
+    All files in the given ``old_directory`` are checked, if the file is owned
+    by ``both`` it is split up (see :py:func:`split_code`), if it is owned by
+    the owner of the ``new_directory`` its parent is changed and if it is owned
+    by the owner of ``old_directory`` nothing is changed.
+
+    :param new_directory: The directory files should be redistributed into.
+    :param old_directory: The directory files should be redistributed out of.
+    :returns: Nothing.
+    """
+    assert old_directory.fileowner != FileOwner.both
+    assert new_directory.fileowner != FileOwner.both
+    assert new_directory.fileowner != old_directory.fileowner
+
+    for child in old_directory.children:
+        if child.fileowner == new_directory.fileowner:
+            child.parent = new_directory
+        elif child.fileowner == old_directory.fileowner:
+            pass
+        else:
+            code = split_code(
+                child,
+                new_directory.fileowner,
+                old_directory.fileowner,
+                copy=True
+            )
+            code.parent = new_directory
+    db.session.flush()
+
+
 @api.route('/code/<int:file_id>', methods=['PATCH'])
 @auth.login_required
 def update_code(file_id: int) -> JSONResponse[models.File]:
-    """Update the content of the given file.
+    """Update the content or name of the given file.
 
-    .. :quickref: Code; Update the content of the given file.
+    .. :quickref: Code; Update the content or name of the given file.
 
-    The body of the request should contain the new content of the file. If a
+    If a
     student does this request before the deadline, the owner of the file will
     be the student and the teacher (`both`), if the request is done after the
     deadline the owner of the new file will be the one doing the request while
     the old file will be removed or given to the other owner if the file was
-    owned by `both`.
+    owned by `both`. You can give a request parameter ``operation`` to
+    determine the operation:
+
+    - If ``operation`` is ``rename`` the request should also contain a new path
+      for the file under the key ``new_path``.
+    - If ``operation`` is ``content`` the body of the request should contain
+      the new content of the file. This operation is used if no or no valid
+      operation was given.
 
     .. note::
 
@@ -300,51 +389,67 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
         (OBJECT_ID_NOT_FOUND)
     :raises APIException: If you do not have permission to change the given
         file. (INCORRECT_PERMISSION)
+    :raises APIException: If the request is bigger than the maximum upload
+        size. (REQUEST_TOO_LARGE)
     """
+    dir_filter = None if request.args.get('operation') == 'rename' else True
     code = helpers.filter_single_or_404(
         models.File,
         models.File.id == file_id,
-        models.File.is_directory == False,  # NOQA
+        models.File.is_directory != dir_filter,
     )
 
     auth.ensure_can_edit_work(code.work)
 
-    def _raise_invalid() -> None:
+    if (request.content_length and
+            request.content_length > app.config['MAX_UPLOAD_SIZE']):
         raise APIException(
-            'You cannot delete this file as you don\'t own it',
-            f'File {file_id} is not owned by {current_user.id}',
-            APICodes.INCORRECT_PERMISSION, 403
+            'Uploaded files are too big.', 'Request is bigger than maximum '
+            f'upload size of {app.config["MAX_UPLOAD_SIZE"]}.',
+            APICodes.REQUEST_TOO_LARGE, 400
         )
 
-    def _write_to_file(code: models.File) -> None:
-        with open(code.get_diskname(), 'w') as f:
-            f.write(request.get_data(as_text=True))
+    def _update_file(
+        code: models.File,
+        other: models.FileOwner,
+    ) -> None:
+        if request.args.get('operation', None) == 'rename':
+            code.rename_code(new_name, new_parent, other)
+            db.session.flush()
+            code.parent = new_parent
+        else:
+            with open(code.get_diskname(), 'wb') as f:
+                f.write(request.get_data())
 
-    if code.work.user_id == current_user.id:
-        current, other = models.FileOwner.student, models.FileOwner.both
-        if code.fileowner == models.FileOwner.teacher:
-            _raise_invalid()
-        _write_to_file(code)
+    if code.work.assignment.is_open and current_user.id == code.work.user_id:
+        current, other = models.FileOwner.both, models.FileOwner.teacher
+    elif code.work.user_id == current_user.id:
+        current, other = models.FileOwner.student, models.FileOwner.teacher
     else:
         current, other = models.FileOwner.teacher, models.FileOwner.student
-        if code.fileowner == models.FileOwner.student:
-            _raise_invalid()
-        elif code.fileowner == current:
-            _write_to_file(code)
-        else:
-            code.fileowner = other
-            db.session.commit()
-            # reload after commit
-            code = db.session.query(models.File).get(code.id)
 
-            db.session.expunge(code)
-            make_transient(code)
-            code.id = None
-            db.session.add(code)
+    if request.args.get('operation', None) == 'rename':
+        ensure_keys_in_dict(request.args, [('new_path', str)])
+        new_path = t.cast(str, request.args['new_path'])
+        path_arr, _ = psef.files.split_path(new_path)
+        new_name = path_arr[-1]
+        print(other.name)
+        new_parent = code.work.search_file(
+            '/'.join(path_arr[:-1]) + '/', other
+        )
 
-            _, code.filename = psef.files.random_file_path()
-            _write_to_file(code)
-            code.fileowner = current
+    if code.fileowner == current:
+        _update_file(code, other)
+    elif code.fileowner != models.FileOwner.both:
+        raise APIException(
+            'This file does not belong to you',
+            f'The file {code.id} belongs to {code.fileowner.name}',
+            APICodes.INVALID_STATE, 403
+        )
+    else:
+        with db.session.begin_nested():
+            code = split_code(code, current, other, copy=False)
+            _update_file(code, other)
 
     db.session.commit()
 

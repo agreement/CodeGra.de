@@ -16,7 +16,7 @@ import psef.auth as auth
 import psef.files
 import psef.models as models
 import psef.helpers as helpers
-from psef import db, current_user
+from psef import db, app, current_user
 from psef.errors import APICodes, APIException
 from psef.models import FileOwner
 from psef.helpers import (
@@ -88,17 +88,19 @@ def get_feedback(work: models.Work) -> t.Mapping[str, str]:
         which can be given to ``GET - /api/v1/files/<name>`` and
         ``output_name`` which is the resulting file should be named.
     """
-    comments: t.Sequence[models.Comment] = models.Comment.query.filter(
-        models.Comment.file.has(work=work)).order_by(  # type: ignore
-            models.Comment.file_id.asc(),  # type: ignore
-            models.Comment.line.asc())  # type: ignore
+    comments = models.Comment.query.filter(
+        models.Comment.file.has(work=work),  # type: ignore
+    ).order_by(
+        models.Comment.file_id.asc(),  # type: ignore
+        models.Comment.line.asc(),  # type: ignore
+    )
 
-    linter_comments: t.Sequence[models.LinterComment]
     linter_comments = models.LinterComment.query.filter(
-        models.LinterComment.file.has(  # type: ignore
-            work=work)).order_by(  # type: ignore
-                models.LinterComment.file_id.asc(),  # type: ignore
-                models.LinterComment.line.asc())  # type: ignore
+        models.LinterComment.file.has(work=work)  # type: ignore
+    ).order_by(
+        models.LinterComment.file_id.asc(),  # type: ignore
+        models.LinterComment.line.asc(),  # type: ignore
+    )
 
     filename = f'{work.assignment.name}-{work.user.name}-feedback.txt'
 
@@ -230,12 +232,63 @@ def get_rubric(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
     return jsonify(work.__rubric_to_json__())
 
 
+@api.route('/submissions/<int:submission_id>/rubricitems/', methods=['PATCH'])
+@helpers.feature_required('RUBRICS')
+def select_rubric_items(
+    submission_id: int,
+) -> EmptyResponse:
+    """Select the given rubric items for the given submission.
+
+    .. :quickref: Submission; Select multiple rubric items.
+
+    :param submission_id: The submission to unselect the item for.
+
+    :>json array items: The ids of the rubric items you want to select.
+
+    :returns: Nothing.
+
+    :raises APIException: If the assignment of a given item does not belong to
+        the assignment of the given submission. of the submission
+        (INVALID_PARAM).
+    :raises PermissionException: If the current user cannot grace work
+        (INCORRECT_PERMISSION).
+    """
+    submission = helpers.get_or_404(models.Work, submission_id)
+
+    auth.ensure_permission('can_grade_work', submission.assignment.course_id)
+
+    content = ensure_json_dict(request.get_json())
+    ensure_keys_in_dict(content, [('items', list)])
+    item_ids = t.cast(list, content['items'])
+
+    items = []
+    for item_id in item_ids:
+        items.append(helpers.get_or_404(models.RubricItem, item_id))
+
+    if any(
+        item.rubricrow.assignment_id != submission.assignment_id
+        for item in items
+    ):
+        raise APIException(
+            'Selected rubric item is not coupled to the given submission',
+            f'A given item of "{", ".join(str(i) for i in item_ids)}"'
+            f' does not belong to assignment "{submission.assignment_id}"',
+            APICodes.INVALID_PARAM, 400
+        )
+
+    submission.select_rubric_items(items, current_user, True)
+    db.session.commit()
+
+    return make_empty_response()
+
+
 @api.route(
     '/submissions/<int:submission_id>/rubricitems/<int:rubric_item_id>',
     methods=['DELETE']
 )
 @helpers.feature_required('RUBRICS')
-def unselect_rubric_items(
+@helpers.feature_required('INCREMENTAL_RUBRIC_SUBMISSION')
+def unselect_rubric_item(
     submission_id: int, rubric_item_id: int
 ) -> EmptyResponse:
     """Unselect the given rubric item for the given submission.
@@ -271,6 +324,7 @@ def unselect_rubric_items(
     methods=['PATCH']
 )
 @helpers.feature_required('RUBRICS')
+@helpers.feature_required('INCREMENTAL_RUBRIC_SUBMISSION')
 def select_rubric_item(
     submission_id: int, rubricitem_id: int
 ) -> EmptyResponse:
@@ -302,7 +356,7 @@ def select_rubric_item(
         )
 
     work.remove_selected_rubric_item(rubric_item.rubricrow_id)
-    work.select_rubric_item(rubric_item, current_user)
+    work.select_rubric_items([rubric_item], current_user, False)
     db.session.commit()
 
     return make_empty_response()
@@ -352,6 +406,7 @@ def patch_submission(submission_id: int) -> JSONResponse[models.Work]:
                 f'is {content["grade"]} which is not between 0 and 10',
                 APICodes.INVALID_PARAM, 400
             )
+        print(content)
 
         work.set_grade(grade, current_user)
 
@@ -454,6 +509,9 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
 
     :returns: Stat information about the new file, see
         :py:func:`psef.files.get_stat_information`
+
+    :raises APIException: If the request is bigger than the maximum upload
+        size. (REQUEST_TOO_LARGE)
     """
     work = helpers.get_or_404(models.Work, submission_id)
     exclude_owner = models.File.get_exclude_owner(
@@ -471,7 +529,16 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
 
     pathname = request.args.get('path', None)
     # `create_dir` means that the last file should be a dir or not.
-    patharr, create_dir = split_path(pathname)
+    patharr, create_dir = psef.files.split_path(pathname)
+
+    if (not create_dir and
+            request.content_length and
+            request.content_length > app.config['MAX_UPLOAD_SIZE']):
+        raise APIException(
+            'Uploaded files are too big.', 'Request is bigger than maximum '
+            f'upload size of {app.config["MAX_UPLOAD_SIZE"]}.',
+            APICodes.REQUEST_TOO_LARGE, 400
+        )
 
     if len(patharr) < 2:
         raise APIException(
@@ -596,7 +663,7 @@ def get_dir_contents(submission_id: int
             models.File.work_id == work.id,
         )
     elif path:
-        found_file = search_file(submission_id, path, exclude_owner)
+        found_file = work.search_file(path, exclude_owner)
         return jsonify(psef.files.get_stat_information(found_file))
     else:
         file = helpers.filter_single_or_404(
@@ -614,66 +681,3 @@ def get_dir_contents(submission_id: int
         )
 
     return jsonify(file.list_contents(exclude_owner))
-
-
-def split_path(path: str) -> t.Tuple[t.Sequence[str], bool]:
-    """Split a path into an array of parts of a path.
-
-    This functions splits a forward slash separated path into an sequence of
-    the directories of this path. If the given path ends with a '/' it returns
-    that the given path ends with an directory, otherwise the last part is a
-    file, this information is returned as the last part of the returned tuple.
-
-    The given path may contain multiple consecutive forward slashes, these are
-    interpreted as a single slash. A leading forward slash is also optional.
-
-    :param path: The forward slash separated path to split.
-    :returns: A tuple where the first item is the splitted path and the second
-        item is a boolean indicating if the last item of the given path was a
-        directory.
-    """
-    is_dir = path[-1] == '/'
-
-    patharr = [item for item in path.split('/') if item]
-
-    return patharr, is_dir
-
-
-def search_file(
-    submission_id: int,
-    pathname: str,
-    exclude: FileOwner,
-) -> models.File:
-    """Search for a file in the given submission with the given name.
-
-    :param submission_id: The id of the submission in which the file should be.
-    :param pathname: The path of the file to search for, this may contain
-        leading and trailing slashes which do not have any meaning.
-    :param exclude: The fileowner to exclude from search, like described in
-        :func:`get_zip`.
-    :returns: The found file.
-    """
-    patharr, is_dir = split_path(pathname)
-
-    parent: t.Optional[t.Any] = None
-    for idx, pathpart in enumerate(patharr[:-1]):
-        if parent is not None:
-            parent = parent.c.id
-
-        parent = db.session.query(models.File.id).filter(
-            models.File.name == pathpart,
-            models.File.parent_id == parent,
-            models.File.work_id == submission_id,
-            models.File.is_directory == True,  # NOQA
-        ).subquery(f'parent_{idx}')
-
-    if parent is not None:
-        parent = parent.c.id
-
-    return filter_single_or_404(
-        models.File,
-        models.File.name == patharr[-1],
-        models.File.parent_id == parent,
-        models.File.fileowner != exclude,
-        models.File.is_directory == is_dir,  # NOQA
-    )

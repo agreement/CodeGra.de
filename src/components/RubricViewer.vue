@@ -32,31 +32,29 @@
                                         :key="`rubric-${rubric.id}-${item.id}`"
                                         @click.native="selectOrUnselect(rubric, item)"
                                         :class="{ selected: selected[item.id] }">
-                                    <span>
-                                        <b-popover triggers="hover"
-                                                   :content="item.description"
-                                                   placement="top">
-                                            <div class="rubric-item-wrapper row">
-                                                <div :class="itemStates[item.id] ? 'col-10' : 'col-12'">
-                                                    <b>{{ item.points }}</b> - {{ item.header }}
-                                                </div>
-                                                <div v-if="itemStates[item.id] === '__LOADING__'"
-                                                     class="col-2">
-                                                    <loader :scale="1"/>
-                                                </div>
-                                                <div v-else-if="itemStates[item.id]"
-                                                     class="col-2">
-                                                    <b-popover show
-                                                               :content="itemStates[item.id]"
-                                                               placement="top">
-                                                        <icon name="times"
-                                                              :scale="1"
-                                                              style="color: red;"/>
-                                                    </b-popover>
-                                                </div>
+                                    <div class="rubric-item-wrapper row">
+                                        <div class="col-12"
+                                             style="position: relative;">
+                                            <b>{{ item.points }} - {{ item.header }}</b>
+                                            <div v-if="itemStates[item.id] === '__LOADING__'"
+                                                 class="rubric-icon">
+                                                <loader :scale="1"/>
                                             </div>
-                                        </b-popover>
-                                    </span>
+                                            <div v-else-if="itemStates[item.id]"
+                                                 class="rubric-icon">
+                                                <b-popover show
+                                                           :content="itemStates[item.id]"
+                                                           placement="top">
+                                                    <icon name="times"
+                                                          :scale="1"
+                                                          style="color: red;"/>
+                                                </b-popover>
+                                            </div>
+                                            <p class="item-description">
+                                                {{ item.description }}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </b-card>
                             </b-card-group>
                         </b-card>
@@ -97,6 +95,7 @@ export default {
     data() {
         return {
             rubrics: [],
+            outOfSync: {},
             selected: {},
             selectedPoints: 0,
             selectedRows: {},
@@ -127,26 +126,46 @@ export default {
     },
 
     mounted() {
-        this.rubricUpdated(this.rubric);
+        this.rubricUpdated(this.rubric, true);
     },
 
     methods: {
         clearSelected() {
-            return Promise.all(Object.keys(this.selected).map(
-                itemId => this.$http.delete(`/api/v1/submissions/${this.submission.id}/rubricitems/${itemId}`),
-            )).then(() => {
+            const clear = () => {
                 this.selected = {};
-                this.selectedRows = {};
                 this.selectedPoints = 0;
+                this.selectedRows = {};
                 this.$emit('input', {
                     selected: 0,
                     max: this.maxPoints,
                     grade: null,
                 });
+                return { data: { grade: null } };
+            };
+
+            if (UserConfig.features.incremental_rubric_submission) {
+                return this.$http.patch(`/api/v1/submissions/${this.submission.id}/rubricitems/`, {
+                    items: [],
+                }).then(clear);
+            }
+
+            this.outOfSync = this.selected;
+            clear();
+            return Promise.resolve({ data: {} });
+        },
+
+        submitAllItems() {
+            if (Object.keys(this.outOfSync).length === 0) {
+                return Promise.resolve();
+            }
+            return this.$http.patch(`/api/v1/submissions/${this.submission.id}/rubricitems/`, {
+                items: Object.keys(this.selected),
+            }).then(() => {
+                this.outOfSync = {};
             });
         },
 
-        rubricUpdated({ rubrics, selected, points }) {
+        rubricUpdated({ rubrics, selected, points }, initial = false) {
             this.rubrics = this.sortRubricItems(rubrics);
 
             if (selected) {
@@ -164,7 +183,9 @@ export default {
 
             if (points) {
                 this.maxPoints = points.max;
-                points.grade = this.grade;
+                if (!initial) {
+                    points.grade = this.grade;
+                }
                 this.$emit('input', points);
             }
 
@@ -184,8 +205,18 @@ export default {
 
             let req;
             const selectItem = !this.selected[item.id];
+            const doRequest = UserConfig.features.incremental_rubric_submission;
 
-            if (selectItem) {
+            if (!doRequest) {
+                req = Promise.resolve().then(() => {
+                    if (this.outOfSync[item.id]) {
+                        this.$set(this.outOfSync, item.id, false);
+                        delete this.outOfSync[item.id];
+                    } else {
+                        this.$set(this.outOfSync, item.id, true);
+                    }
+                });
+            } else if (selectItem) {
                 req = this.$http.patch(
                     `/api/v1/submissions/${this.submission.id}/rubricitems/${item.id}`,
                 );
@@ -228,7 +259,7 @@ export default {
                         this.$set(this.itemStates, item.id, false);
                         delete this.itemStates[item.id];
                     });
-                }, 1000);
+                }, 3000);
             });
         },
 
@@ -347,6 +378,20 @@ export default {
 
 .item-state {
     float: right;
+}
+
+.rubric-icon {
+    position: absolute;
+    top: 0;
+    right: 15px;
+}
+
+.item-description {
+    margin: 0;
+    max-height: 5em;
+    overflow-y: auto;
+    margin-top: 0.5em;
+    padding-right: 0.5em;
 }
 </style>
 

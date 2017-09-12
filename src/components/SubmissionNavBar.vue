@@ -118,7 +118,7 @@ export default {
                 .local().format('DD-MM-YYYY HH:mm');
             let text = `${submission.user.name} - ${date}`;
             if (submission.grade) {
-                text += ` [${submission.grade}]`;
+                text += ` [${parseFloat(submission.grade).toFixed(2)}]`;
             }
             if (submission.assignee) {
                 text += ` (${submission.assignee.name})`;

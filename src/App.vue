@@ -1,12 +1,12 @@
 <template>
     <div id="app">
-        <nav-bar></nav-bar>
+        <nav-bar/>
         <main class="container-fluid">
             <div class="row justify-content-center">
-                <router-view class="col-md-10"></router-view>
+                <router-view class="page router col-lg-10"/>
             </div>
         </main>
-        <footer-bar></footer-bar>
+        <footer-bar/>
     </div>
 </template>
 
@@ -30,10 +30,12 @@ main {
     flex-grow: 1;
     flex-shrink: 1;
     width: 100%;
+    min-height: 0;
 
     > .row {
         flex-grow: 1;
         flex-shrink: 1;
+        max-width: 100%;
     }
 }
 </style>

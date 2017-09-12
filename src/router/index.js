@@ -1,8 +1,7 @@
 import Vue from 'vue';
 import Router from 'vue-router';
 import store from '@/store';
-import { LTILaunch, Assignments, Courses, Home, Login, ManageCourse, Submission, Submissions, User } from '@/pages';
-import { NewCourse, UsersManager, RubricEditor } from '@/components';
+import { ResetPassword, LTILaunch, Assignments, Courses, Home, Login, ManageCourse, Submission, Submissions, User } from '@/pages';
 
 import { setPageTitle } from '@/pages/title';
 
@@ -16,6 +15,11 @@ const router = new Router({
             path: '/',
             name: 'home',
             component: Home,
+        },
+        {
+            path: '/reset_password',
+            name: 'reset-password',
+            component: ResetPassword,
         },
         {
             path: '/lti_launch/',
@@ -67,21 +71,6 @@ const router = new Router({
             name: 'assignment_manage',
             component: ManageCourse,
         },
-        {
-            path: '/add-course',
-            name: 'new-course',
-            component: NewCourse,
-        },
-        {
-            path: '/manage-permissions/:courseId/',
-            name: 'manage-permissions',
-            component: UsersManager,
-        },
-        {
-            path: '/edit-rubric/:assignmentId',
-            name: 'edit-rubric',
-            component: RubricEditor,
-        },
     ],
 });
 
@@ -100,7 +89,7 @@ router.beforeEach((to, from, next) => {
         const path = restorePath;
         restorePath = '';
         next({ path });
-    } else if (!loggedIn && to.path !== '/login' && to.name !== 'home' && to.name !== 'lti-launch') {
+    } else if (!loggedIn && to.path !== '/login' && to.name !== 'home' && to.name !== 'lti-launch' && to.name !== 'reset-password') {
         store.dispatch('user/verifyLogin').then(() => {
             next();
         }).catch(() => {

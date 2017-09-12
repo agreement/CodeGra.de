@@ -173,8 +173,10 @@ textarea:disabled {
 }
 
 .code-viewer {
-    background: @linum-bg;
-    padding-left: @code-linum-width;
+    ol {
+        background: @linum-bg;
+        padding-left: @code-linum-width;
+    }
 
     li {
         background: @line-bg;
@@ -275,8 +277,8 @@ textarea:disabled {
 .whitespace {
     color: rgba(0, 0, 0, .2);
 
-    .code-viewer.lint-whitespace &.space + &.tab,
-    .code-viewer.lint-whitespace &.tab + &.space {
+    .code-viewer .lint-whitespace &.space + &.tab,
+    .code-viewer .lint-whitespace &.tab + &.space {
         background: rgba(255, 0, 0, .1);
         color: rgba(0, 0, 0, .4);
     }

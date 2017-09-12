@@ -1,16 +1,23 @@
 <template>
     <loader style="text-align: center; margin-top: 30px;" v-if="loading"/>
-    <div class="page submission" v-else>
-        <div class="row justify-content-center">
-            <div class="col-lg-9 code-and-grade">
+    <div class="page submission outer-container"
+         v-else>
+        <div class="row justify-content-center inner-container">
+            <div class="col-md-9 code-and-grade">
                 <submission-nav-bar v-if="submissions"
                                     v-model="submission"
                                     :submissions="submissions"
                                     :filter="filterSubmissions"/>
 
-                <div v-if="currentFile == null" class="no-file">
+                <div v-if="!fileTree" class="no-file">
                     <loader/>
                 </div>
+                <b-alert show
+                         class="error no-file"
+                         variant="danger"
+                         v-else-if="fileTree.entries.length === 0">
+                    No files found!
+                </b-alert>
                 <pdf-viewer :id="currentFile.id"
                             v-else-if="currentFile.extension === 'pdf'"/>
                 <code-viewer :assignment="assignment"
@@ -28,7 +35,7 @@
                               @gradeUpdated="gradeUpdated"/>
             </div>
 
-            <div class="col-lg-3 file-tree-container">
+            <div class="col-md-3 file-tree-container">
                 <b-form-fieldset class="submission-button-bar">
                     <b-button @click="downloadType('zip')"
                               variant="primary">
@@ -116,14 +123,26 @@ export default {
     },
 
     watch: {
+        assignment() {
+            if (this.submission) {
+                let title = this.assignment.name;
+                if (this.submission.grade) {
+                    title += ` (${parseFloat(this.submission.grade).toFixed(2)})`;
+                }
+                setPageTitle(`${title} ${pageTitleSep} ${this.submission.created_at}`);
+            }
+        },
+
         submission(submission) {
             this.submissionId = submission.id;
 
-            let title = this.assignment.name;
-            if (submission.grade) {
-                title += ` (${parseFloat(submission.grade).toFixed(2)})`;
+            if (this.assignment) {
+                let title = this.assignment.name;
+                if (submission.grade) {
+                    title += ` (${parseFloat(submission.grade).toFixed(2)})`;
+                }
+                setPageTitle(`${title} ${pageTitleSep} ${submission.created_at}`);
             }
-            setPageTitle(`${title} ${pageTitleSep} ${submission.created_at}`);
 
             this.loading = true;
             this.getSubmissionData().then(() => {
@@ -145,7 +164,7 @@ export default {
         },
 
         $route(to) {
-            this.currentFile = this.searchTree(this.fileTree, to.params.fileId);
+            this.currentFile = this.searchTree(this.fileTree, Number(to.params.fileId));
         },
 
         fileTree(tree) {
@@ -168,8 +187,8 @@ export default {
         },
 
         currentFile(file) {
-            file.extension = '';
             if (file != null) {
+                file.extension = '';
                 const nameparts = file.name.split('.');
                 if (nameparts.length > 1) {
                     file.extension = nameparts[nameparts.length - 1];
@@ -407,12 +426,17 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.page.submission {
+.outer-container {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
     flex-shrink: 1;
+    max-height: 100%;
     margin-bottom: 0;
+}
+
+.inner-container {
+    min-height: 0;
 }
 
 .row {
@@ -423,6 +447,7 @@ export default {
 .code-and-grade {
     display: flex;
     flex-direction: column;
+    max-height: 100%;
 }
 
 .pdf-viewer {
@@ -443,13 +468,26 @@ export default {
 .no-file,
 .code-viewer,
 .pdf-viewer,
-.grade-viewer {
+.grade-viewer,
+.file-tree {
     margin-bottom: 1rem;
 }
 
 .file-tree-container {
     display: flex;
     flex-direction: column;
+}
+
+@media (max-width: 992px) {
+    .file-tree-container {
+        margin-bottom: 1em;
+    }
+}
+
+@media (min-width: 992px) {
+    .file-tree-container {
+        height: 100%;
+    }
 }
 
 .submission-button-bar {

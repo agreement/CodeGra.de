@@ -35,6 +35,7 @@ def app(request):
     """Session-wide test `Flask` application."""
     settings_override = {
         'TESTING': True,
+        'DEBUG': True,
         'UPLOAD_DIR': f'/tmp/psef/uploads',
         'MIRROR_UPLOAD_DIR': f'/tmp/psef/mirror_uploads',
         'MAX_UPLOAD_SIZE': 2 ** 20,  # 1mb

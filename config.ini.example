@@ -42,6 +42,39 @@
 # `config.py` sits.
 # base_dir =
 
+# The following settings are used for sending outbound emails for password reset
+# emails.
+# mail_server = localhost
+# mail_port = 25
+# mail_use_tls = false
+# mail_use_ssl = false
+# mail_username =
+# mail_password =
+# mail_default_sender =
+# mail_max_emails =
+
+# This is the template that gets send to the users if they request a new
+# password. Double newlines are replaces by '<br><br>', this is the html part of
+# the email, the txt part gets send automatically. You can use the following
+# data in this template (all between {}):
+# - user_name: The name of the user
+# - user_email: The email of the user
+# - user_id: The name of the user
+# - site_url: The url of the site
+# - url: The url to reset the password
+# - token: The token to reset the password with
+# email_template = <p>Dear {user_name},
+#
+#   This email lets you reset your password on <a
+#   href="{site_url}">{site_url}</a>. If you goto <a href="{url}">this page</a>
+#   you can reset your password there. Please do not reply to this email.
+#
+#   If you have not triggered this action please ignore this email.</p>
+
+# Time in seconds a user has to reset his or her password after the e-mail is
+# send in seconds.
+# reset_token_time = 86400
+
 # Define the database. If `CODEGRADE_DATABASE_URL` is found in the enviroment
 # variables it is used. The string should be in this format for postgresql:
 # `postgresql://dbusername:dbpassword@dbhost/dbname`
@@ -102,6 +135,12 @@
 
 # Should LTI be enabled.
 # LTI = true
+
+# Should rubrics be submitted incrementally, so if a user selects a item should
+# this be automatically be submitted to the server, or should it only be
+# possible to submit a complete rubric at once. This feature is useless if
+# `rubrics` is not set to `true`.
+# incremental_rubric_submission = true
 
 # All LTI consumer keys mapped to secret keys. Please add your own, these ARE
 # case sensitive.

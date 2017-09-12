@@ -27,6 +27,7 @@ config.features = Object.assign({}, {
     rubrics: true,
     automatic_lti_role: true,
     LTI: true,
+    incremental_rubric_submission: true,
 }, userConfig.Features);
 
 module.exports = config;

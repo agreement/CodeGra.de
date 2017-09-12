@@ -952,6 +952,15 @@ def test_add_file(
         )
         assert res['is_directory'] == True
 
+        # Make sure you cannot upload to large strings
+        res = test_client.req(
+            'post',
+            f'/api/v1/submissions/{work_id}/files/',
+            400,
+            query={'path': '/dir/dir2/this/is/to/large/file'},
+            real_data=b'0' * 2 * 2 ** 20,
+            result=error_template,
+        )
         res = test_client.req(
             'post',
             f'/api/v1/submissions/{work_id}/files/',
@@ -1335,3 +1344,143 @@ def test_delete_submission(
         assert m.Work.query.get(work_id) is None
         for f in files:
             assert m.File.query.get(f) is None
+
+
+@pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
+@pytest.mark.parametrize(
+    'named_user', [
+        'Thomas Schaper',
+        perm_error(error=401)('NOT_LOGGED_IN'),
+        perm_error(error=403)('admin'),
+        perm_error(error=403, can_get=True)('Stupid1'),
+    ],
+    indirect=True
+)
+def test_selecting_multiple_rubric_items(
+    named_user, request, test_client, logged_in, error_template, ta_user,
+    assignment_real_works, session, bs_course
+):
+    assignment, work = assignment_real_works
+    work_id = work['id']
+
+    perm_err = request.node.get_marker('perm_error')
+    if perm_err:
+        error = perm_err.kwargs['error']
+        can_get_rubric = perm_err.kwargs.get('can_get', False)
+    else:
+        can_get_rubric = True
+        error = False
+
+    rubric = {
+        'rows': [{
+            'header': 'My header',
+            'description': 'My description',
+            'items': [{
+                'description': '5points',
+                'header': 'bladie',
+                'points': 5
+            }, {
+                'description': '10points',
+                'header': 'bladie',
+                'points': 10,
+            }]
+        }, {
+            'header': 'My header2',
+            'description': 'My description2',
+            'items': [{
+                'description': '1points',
+                'header': 'bladie',
+                'points': 1
+            }, {
+                'description': '2points',
+                'header': 'bladie',
+                'points': 2,
+            }]
+        }]
+    }  # yapf: disable
+    max_points = 12
+
+    with logged_in(ta_user):
+        bs_rubric = test_client.req(
+            'put',
+            f'/api/v1/assignments/{bs_course.id}/rubrics/',
+            200,
+            data=rubric
+        )
+        rubric = test_client.req(
+            'put',
+            f'/api/v1/assignments/{assignment.id}/rubrics/',
+            200,
+            data=rubric
+        )
+        rubric = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/rubrics/',
+            200,
+            result={
+                'rubrics': list,
+                'selected': [],
+                'points': {
+                    'max': max_points,
+                    'selected': 0
+                }
+            }
+        )['rubrics']
+
+    def get_rubric_item(head, desc):
+        for row in rubric:
+            if row['header'] == head:
+                for item in row['items']:
+                    if item['description'] == desc:
+                        return item
+
+    with logged_in(named_user):
+        to_select = [
+            get_rubric_item('My header', '5points')['id'],
+            get_rubric_item('My header2', '2points')['id'],
+        ]
+        points = 7
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{work_id}/rubricitems/',
+            error if error else 204,
+            data={'items': to_select},
+            result=error_template if error else None
+        )
+
+    with logged_in(ta_user):
+        selected = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/rubrics/',
+            200,
+            result={
+                'rubrics': list,
+                'selected': list,
+                'points':
+                    {
+                        'max': max_points,
+                        'selected': 0 if error else points,
+                    }
+            }
+        )['selected']
+        if error:
+            assert not selected
+        else:
+            selected = [s['id'] for s in selected]
+            assert all(item in selected for item in to_select)
+
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{work_id}/rubricitems/',
+            404,
+            data={'items': to_select + [-1]},
+            result=error_template,
+        )
+
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{work_id}/rubricitems/',
+            400,
+            data={'items': to_select + [bs_rubric[0]['items'][0]['id']]},
+            result=error_template,
+        )

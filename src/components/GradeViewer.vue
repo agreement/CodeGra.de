@@ -10,6 +10,13 @@
                 ref="rubricViewer">
             </rubric-viewer>
         </b-collapse>
+        <b-alert :class="{closed: Object.keys($refs.rubricViewer.outOfSync).length === 0,
+                         'out-of-sync-alert': true,}"
+                 show
+                 v-if="showRubric && $refs.rubricViewer"
+                 variant="warning">
+            <b>The rubric is not yet saved!</b>
+        </b-alert>
         <div class="row">
             <div class="col-6">
                 <b-input-group>
@@ -17,14 +24,15 @@
                         <submit-button @click="putFeedback" ref="submitButton"/>
                     </b-input-group-button>
 
-                    <b-form-input type="number"
-                                  step="any"
-                                  min="0"
-                                  max="10"
-                                  :disabled="!editable"
-                                  placeholder="Grade"
-                                  @keydown.native.enter="putFeedback"
-                                  v-model="grade"/>
+                    <input type="number"
+                           class="form-control"
+                           step="any"
+                           min="0"
+                           max="10"
+                           :disabled="!editable"
+                           placeholder="Grade"
+                           @keydown.enter="putFeedback"
+                           v-model="grade"/>
 
                     <div :class="`text-right input-group-addon
                                  ${rubricOverridden ? 'rubric-overridden' : ''}`"
@@ -75,6 +83,7 @@
                         :rows="3"
                         ref="field"
                         v-model="feedback"
+                        @keydown.native.ctrl.enter="putFeedback"
                         @keydown.native.tab.capture="expandSnippet"
                         :disabled="!editable">
                     </b-form-input>
@@ -181,7 +190,9 @@ export default {
             this.rubricHasSelectedItems = this.$refs.rubricViewer.hasSelectedItems;
             this.rubricSelected = selected;
             this.rubricTotal = max;
-            this.gradeUpdated();
+            if (UserConfig.features.incremental_rubric_submission) {
+                this.gradeUpdated();
+            }
         },
     },
 
@@ -222,15 +233,15 @@ export default {
         deleteGrade() {
             let req;
             if (this.showRubric && !this.rubricOverridden) {
-                req = this.$refs.rubricViewer.clearSelected().then(() => ({
-                    data: { grade: null },
-                }));
+                req = this.$refs.rubricViewer.clearSelected();
             } else {
                 req = this.$http.patch(`/api/v1/submissions/${this.submission.id}`, { grade: null });
             }
             req.then(({ data }) => {
-                this.grade = data.grade ? parseFloat(data.grade).toFixed(2) : data.grade;
-                this.gradeUpdated(data.grade);
+                if (data.grade !== undefined) {
+                    this.grade = data.grade ? parseFloat(data.grade).toFixed(2) : data.grade;
+                    this.gradeUpdated(data.grade);
+                }
             });
             this.$refs.deleteButton.submit(req.catch((err) => {
                 throw err.response.data.message;
@@ -239,22 +250,26 @@ export default {
 
         putFeedback() {
             const grade = parseFloat(this.grade);
-            if (!(grade >= 0 && grade <= 10)) {
+            const overrideGrade = this.rubricOverridden || !this.showRubric;
+
+            if (!(grade >= 0 && grade <= 10) && overrideGrade) {
                 this.$refs.submitButton.fail(`Grade '${this.grade}' must be between 0 and 10`);
                 return;
             }
 
-            const overrideGrade = this.rubricOverridden || !this.showRubric;
+            const viewer = this.$refs.rubricViewer;
+            const viewerReq = viewer ? viewer.submitAllItems() : Promise.resolve();
+            const data = { feedback: this.feedback || '' };
+            if (overrideGrade) {
+                data.grade = grade;
+            }
 
-            const req = this.$http.patch(`/api/v1/submissions/${this.submission.id}`, {
-                grade: overrideGrade ? grade : null,
-                feedback: this.feedback || '',
-            });
+            const req = this.$http.patch(`/api/v1/submissions/${this.submission.id}`, data);
             req.then(() => {
                 if (overrideGrade) this.grade = grade;
                 this.gradeUpdated(grade);
             });
-            this.$refs.submitButton.submit(req.catch((err) => {
+            this.$refs.submitButton.submit(Promise.all([req, viewerReq]).catch((err) => {
                 throw err.response.data.message;
             }));
         },
@@ -291,6 +306,23 @@ textarea {
 .rubric-overridden {
     background: fade(#f0ad4e, 50%) !important;
     cursor: help;
+}
+
+.out-of-sync-alert {
+    max-height: 3em;
+    overflow-x: hidden;
+
+    transition-property: all;
+    transition-duration: .5s;
+    transition-timing-function: cubic-bezier(0, 1, 0.5, 1);
+
+    &.closed {
+        max-height: 0;
+        border-color: transparent;
+        background: none;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
 }
 </style>
 

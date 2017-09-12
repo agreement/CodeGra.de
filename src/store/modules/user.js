@@ -52,7 +52,7 @@ const actions = {
             const getPermission = () => {
                 if (state.permissions === null) {
                     return {};
-                } else if (perm.course_id === null) {
+                } else if (perm.course_id == null) {
                     return state.permissions;
                 }
                 return state.permissions[`course_${perm.course_id}`];

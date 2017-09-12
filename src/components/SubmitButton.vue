@@ -1,8 +1,8 @@
 <template>
     <b-popover class="submission-popover"
-               :show="showError && state == 'failure'"
-               placement="top"
-               :content="err">
+               :show="showError && state == 'failure' && (Boolean(err) || showEmpty)"
+               :placement="popoverPlacement"
+               :content="showError ? err : ''">
         <b-button :disabled="pending || disabled"
                   :variant="variants[state]"
                   :size="size"
@@ -35,6 +35,10 @@ export default {
     },
 
     props: {
+        popoverPlacement: {
+            type: String,
+            default: 'top',
+        },
         disabled: {
             type: Boolean,
             default: false,
@@ -63,6 +67,10 @@ export default {
             type: String,
             default: 'danger',
         },
+        showEmpty: {
+            type: Boolean,
+            default: true,
+        },
         showError: {
             type: Boolean,
             default: true,
@@ -79,6 +87,16 @@ export default {
                 this.pending = false;
                 return this.fail(err);
             });
+        },
+
+        cancelFail(resolve = null) {
+            this.timeout = null;
+            this.state = 'default';
+            this.$nextTick(() => {
+                this.err = '';
+            });
+
+            if (resolve) resolve();
         },
 
         succeed(res) {
@@ -99,12 +117,7 @@ export default {
                     clearTimeout(this.timeout);
                 }
                 this.timeout = setTimeout(() => {
-                    this.timeout = null;
-                    this.state = 'default';
-                    this.$nextTick(() => {
-                        this.err = '';
-                    });
-                    resolve();
+                    this.cancelFail(resolve);
                 }, this.delay * mult);
             });
         },
