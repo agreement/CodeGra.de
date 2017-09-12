@@ -1368,7 +1368,7 @@
       }
     },
     "bootstrap-vue": {
-      "version": "github:CodeGra-de/bootstrap-vue-compiled#f4c7240c0b5c64b6c069bab0b00f540a69f9102f",
+      "version": "github:CodeGra-de/bootstrap-vue-compiled#2c4f3d117f94fe4a00f701ef684323a600d4e655",
       "requires": {
         "bootstrap": "4.0.0-alpha.6",
         "tether": "1.4.0",
