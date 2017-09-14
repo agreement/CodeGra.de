@@ -7,13 +7,13 @@
                         :key="`rubric-row-${row.id}`"
                         :class="{active: i === currentCategory}"
                         @click.native="gotoItem(i)">
-                    <b-form-input type="text"
-                                  class="row-header"
-                                  placeholder="Category name"
-                                  @click.native="editable && addRow(i)"
-                                  @focus="focusOnRow(i)"
-                                  v-model="row.header"
-                                  v-if="editable"/>
+                    <input type="text"
+                           class="row-header form-control"
+                           placeholder="Category name"
+                           @click.native="editable && addRow(i)"
+                           @focus="focusOnRow(i)"
+                           v-model="row.header"
+                           v-if="editable"/>
                     <b class="row-header" v-else>{{ row.header }}</b>
                     <b-popover placement="top"
                                triggers="hover"
@@ -37,13 +37,13 @@
                      :key="`rubric-${rubric.id}`">
                     <b-card no-block>
                         <div class="card-header rubric-header">
-                            <b-form-input textarea
-                                          :disabled="!editable"
-                                          placeholder="Category description"
-                                          :tabindex="currentCategory === i ? null: -1"
-                                          @focus="focusOnRow(i)"
-                                          v-model="rubric.description"
-                                          v-if="editable"/>
+                            <textarea class="form-control"
+                                      :disabled="!editable"
+                                      placeholder="Category description"
+                                      :tabindex="currentCategory === i ? null: -1"
+                                      @focus="focusOnRow(i)"
+                                      v-model="rubric.description"
+                                      v-if="editable"/>
                             <p v-else>{{ rubric.description }}</p>
                         </div>
                         <b-card-group class="rubric-items-container">
@@ -62,15 +62,15 @@
                                                   @keydown.native="editable && addItem(i, j)"
                                                   @keydown.native.ctrl.enter="editable && submit()"
                                                   v-model="item.points"/>
-                                    <b-form-input type="text"
-                                                  class="item-header"
-                                                  placeholder="Header"
-                                                  :disabled="!editable"
-                                                  :tabindex="currentCategory === i ? null: -1"
-                                                  @focus="focusOnRow(i)"
-                                                  @keydown.native="editable && addItem(i, j)"
-                                                  @keydown.native.ctrl.enter="editable && submit()"
-                                                  v-model="item.header"/>
+                                    <input type="text"
+                                           class="item-header form-control"
+                                           placeholder="Header"
+                                           :disabled="!editable"
+                                           :tabindex="currentCategory === i ? null: -1"
+                                           @focus="focusOnRow(i)"
+                                           @keydown="editable && addItem(i, j)"
+                                           @keydown.ctrl.enter="editable && submit()"
+                                           v-model="item.header"/>
                                 </b-input-group>
                                 <b-popover triggers="hover"
                                            placement="top"
@@ -85,16 +85,15 @@
                                      @click="editable && deleteItem(i, j)">
                                     <icon name="times"/>
                                 </div>
-                                <b-form-input textarea
-                                              v-model="item.description"
-                                              class="item-description"
-                                              :disabled="!editable"
-                                              :rows="8"
-                                              :tabindex="currentCategory === i ? null: -1"
-                                              @focus="focusOnRow(i)"
-                                              @keydown.native="editable && addItem(i, j)"
-                                              @keydown.native.ctrl.enter="editable && submit()"
-                                              placeholder="Description"/>
+                                <textarea v-model="item.description"
+                                          class="item-description form-control"
+                                          :disabled="!editable"
+                                          :rows="8"
+                                          :tabindex="currentCategory === i ? null: -1"
+                                          @focus="focusOnRow(i)"
+                                          @keydown="editable && addItem(i, j)"
+                                          @keydown.ctrl.enter="editable && submit()"
+                                          placeholder="Description"/>
                             </b-card>
                         </b-card-group>
                     </b-card>
@@ -262,6 +261,7 @@ export default {
                     if (isNaN(parseFloat(row.items[j].points))) {
                         wrongItems.push(`'${row.header || '[No name]'} - ${row.items[j].header || '[No name]'}'`);
                     }
+                    row.items[j].points = parseFloat(row.items[j].points);
 
                     res.items.push(row.items[j]);
                 }

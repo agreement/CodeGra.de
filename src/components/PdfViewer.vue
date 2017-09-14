@@ -53,7 +53,8 @@ export default {
         embedPdf() {
             this.loading = true;
             this.error = '';
-            this.$http.get(`/api/v1/code/${this.id}?type=pdf`).then(({ data }) => {
+            this.pdfURL = '';
+            this.$http.get(`/api/v1/code/${this.id}?type=file-url`).then(({ data }) => {
                 this.loading = false;
                 this.pdfURL = `/api/v1/files/${data.name}?not_as_attachment&mime=application/pdf`;
             }, ({ response }) => {

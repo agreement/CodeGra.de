@@ -1221,6 +1221,59 @@ def test_get_all_submissions(
                 },
             }
         ),
+        (
+            'correct_difficult.tar.gz', {
+                'Stupid1': {
+                        'entries': [{
+                                    'name': 'Single file',
+                                    'id': int
+                                }, {
+                                    'name': 'Tuple_file_1',
+                                    'id': int
+                                }, {
+                                    'name': '__WARNING__',
+                                    'id': int,
+                                }, {
+                                    'name': '__WARNING__ (User)',
+                                    'id': int,
+                                }, {
+                                    'name': 'wrong_archive.tar.gz',
+                                    'id': int
+                                }],
+                        'name': 'top',
+                        'id': int,
+                        'username': '0000001',
+                },
+                'New User': {
+                        'entries': [{
+                                    'name': 'Single file',
+                                    'id': int
+                                }, {
+                                    'name': 'Tuple_file_3',
+                                    'id': int
+                                }],
+                        'name': 'top',
+                        'id': int,
+                        'username': '0000003',
+                },
+                'Stupid2': {
+                        'entries': [{
+                                    'name': 'Single file',
+                                    'id': int
+                                }, {
+                                    'name': 'Tuple_file_2',
+                                    'id': int
+                                }, {
+                                    'name': 'tar_file',
+                                    'id': int,
+                                    'entries': list,
+                                }],
+                        'name': 'top',
+                        'id': int,
+                        'username': '0000002',
+                },
+            }
+        ),
         ('incorrect_date.tar.gz', False),
         ('incorrect_filename.tar.gz', False),
         ('incorrect_missing_files.tar.gz', False),

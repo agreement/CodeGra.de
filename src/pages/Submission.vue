@@ -20,6 +20,9 @@
                 </b-alert>
                 <pdf-viewer :id="currentFile.id"
                             v-else-if="currentFile.extension === 'pdf'"/>
+                <image-viewer :id="currentFile.id"
+                              :name="currentFile.name"
+                              v-else-if="/^(?:gif|jpe?g|png|svg)$/.test(currentFile.extension)"/>
                 <code-viewer :assignment="assignment"
                              :submission="submission"
                              :file="currentFile"
@@ -43,7 +46,6 @@
                         Archive
                     </b-button>
                     <b-button @click="downloadType('feedback')"
-                              v-if="assignment.state === assignmentState.DONE"
                               variant="primary">
                         <icon name="download"/>
                         Feedback
@@ -94,7 +96,7 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/download';
 import 'vue-awesome/icons/times';
 
-import { CodeViewer, FileTree, GradeViewer, Loader, PdfViewer, SubmissionNavBar, SubmitButton } from '@/components';
+import { CodeViewer, FileTree, GradeViewer, ImageViewer, Loader, PdfViewer, SubmissionNavBar, SubmitButton } from '@/components';
 
 import * as assignmentState from '@/store/assignment-states';
 
@@ -416,6 +418,7 @@ export default {
         CodeViewer,
         FileTree,
         GradeViewer,
+        ImageViewer,
         Loader,
         PdfViewer,
         SubmissionNavBar,
@@ -453,6 +456,13 @@ export default {
 .pdf-viewer {
     flex-grow: 1;
     flex-shrink: 1;
+    min-height: 0;
+}
+
+.image-viewer {
+    flex-grow: 0;
+    flex-shrink: 1;
+    min-height: 0;
 }
 
 .code-viewer {
@@ -468,6 +478,7 @@ export default {
 .no-file,
 .code-viewer,
 .pdf-viewer,
+.image-viewer,
 .grade-viewer,
 .file-tree {
     margin-bottom: 1rem;
@@ -493,8 +504,15 @@ export default {
 .submission-button-bar {
     flex-grow: 0;
     flex-shrink: 0;
+    padding-bottom: 1rem;
+    margin-bottom: -.2rem;
+
     button {
-        margin-bottom: 0.2em;
+        margin-bottom: .2rem;
+
+        &:not(:last-child) {
+            margin-right: .5rem;
+        }
     }
 }
 

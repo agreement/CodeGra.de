@@ -8,6 +8,7 @@ import ManageCourse from './ManageCourse';
 import FileTree from './FileTree';
 import FooterBar from './FooterBar';
 import GradeViewer from './GradeViewer';
+import ImageViewer from './ImageViewer';
 import GradeHistory from './GradeHistory';
 import Loader from './Loader';
 import Login from './Login';
@@ -39,6 +40,7 @@ export {
     FileTree,
     FooterBar,
     GradeViewer,
+    ImageViewer,
     GradeHistory,
     Loader,
     Login,
