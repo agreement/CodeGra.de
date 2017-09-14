@@ -3,6 +3,7 @@ This module is used for file IO and handling and provides functions for
 extracting and abstracting the structures of directories and archives.
 """
 
+import io
 import os
 import re
 import csv
@@ -346,21 +347,29 @@ def dehead_filetree(tree: ExtractFileTree) -> ExtractFileTree:
     return tree
 
 
-def process_files(files: t.MutableSequence[FileStorage]) -> ExtractFileTree:
+def process_files(
+    files: t.MutableSequence[FileStorage], force_txt: bool=False
+) -> ExtractFileTree:
     """Process the given files by extracting, moving and saving their tree
     structure.
 
     :param files: The files to move and extract
+    :param force_txt: Do not extract archive and force all files to be
+        considered to be plain text.
     :rtype: list of FileStorage
     :returns: The tree of the files as is described by
               :py:func:`rename_directory_structure`
     :rtype: dict
     """
+
+    def consider_archive(f: FileStorage) -> bool:
+        return not force_txt and is_archive(f)
+
     tree = {}  # type: ExtractFileTree
-    if len(files) > 1 or not is_archive(files[0]):
+    if len(files) > 1 or not consider_archive(files[0]):
         res = []  # type: t.List[t.Union[ExtractFileTree, t.Tuple[str, str]]]
         for file in files:
-            if is_archive(file):
+            if consider_archive(file):
                 res.append(extract(file))
             else:
                 new_file_name, filename = random_file_path()
@@ -384,6 +393,24 @@ def process_blackboard_zip(
     :param file: The blackboard gradebook to import
     :returns: List of tuples (BBInfo, tree)
     """
+
+    def get_files(info: blackboard.SubmissionInfo) -> t.List[FileStorage]:
+        files = []
+        for blackboard_file in info.files:
+            name = blackboard_file.original_name
+            if name == '__WARNING__':
+                name = '__WARNING__ (User)'
+
+            files.append(
+                FileStorage(
+                    stream=open(
+                        os.path.join(tmpdir, blackboard_file.name), mode='rb'
+                    ),
+                    filename=name,
+                )
+            )
+        return files
+
     tmpdir = extract_to_temp(blackboard_zip)
     try:
         info_files = filter(
@@ -391,22 +418,27 @@ def process_blackboard_zip(
         )
         submissions = []
         for info_file in info_files:
-            files = []
             info = blackboard.parse_info_file(
                 os.path.join(tmpdir, info_file.string)
             )
-            for blackboard_file in info.files:
+
+            try:
+                files = get_files(info)
+                tree = process_files(files)
+                map(lambda f: f.close(), files)
+            except:
+                files = get_files(info)
                 files.append(
                     FileStorage(
-                        stream=open(
-                            os.path.join(tmpdir, blackboard_file.name),
-                            mode='rb'
+                        stream=io.BytesIO(
+                            b'Some files could not be extracted!',
                         ),
-                        filename=blackboard_file.original_name
+                        filename='__WARNING__'
                     )
                 )
-            tree = process_files(files)
-            map(lambda f: f.close(), files)
+                tree = process_files(files, force_txt=True)
+                map(lambda f: f.close(), files)
+
             submissions.append((info, tree))
         if not submissions:
             raise ValueError

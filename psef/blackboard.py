@@ -15,7 +15,7 @@ _txt_fmt = re.compile(
     r"Name: (?P<name>.+) \((?P<id>[0-9]+)\)\n"
     r"Assignment: (?P<assignment>.+)\n"
     r"Date Submitted: (?P<datetime>.+)\n"
-    r"Current Grade: *(?P<grade>[0-9.]*)\n\n"
+    r"Current Grade: *(?P<grade>([0-9.]*|[^\n]*))\n\n"
     r"Submission Field:\n(?P<text>(.*\n)+)\n"
     r"Comments:\n(?P<comment>(.*\n)+)\n"
     r"Files:\n"
