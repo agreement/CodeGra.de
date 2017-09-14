@@ -226,14 +226,16 @@ def test_get_code_plaintext_revisions(
     indirect=True
 )
 @pytest.mark.parametrize(
-    'filename', [
-        '../test_submissions/pdf_in_dir_archive.tar.gz',
+    'filename,mimetype', [
+        ('../test_submissions/pdf_in_dir_archive.tar.gz', 'application/pdf'),
+        ('../test_submissions/img_in_dir_archive.tar.gz', 'image/png'),
     ],
     indirect=['filename']
 )
-def test_get_pdf(
+@pytest.mark.parametrize('query_type', ['pdf', 'file-url'])
+def test_get_file_url(
     named_user, assignment_real_works, test_client, request, error_template,
-    ta_user, logged_in
+    ta_user, logged_in, mimetype, query_type
 ):
     assignment, work = assignment_real_works
     work_id = work['id']
@@ -255,30 +257,31 @@ def test_get_pdf(
                 'name': str,
             }
         )
+        file_id = res["entries"][0]["id"]
 
     with logged_in(named_user):
         if error:
             test_client.req(
                 'get',
-                f'/api/v1/code/{res["entries"][0]["id"]}',
+                f'/api/v1/code/{file_id}',
                 error,
-                query={'type': 'pdf'},
+                query={'type': query_type},
                 result=error_template
             )
         else:
             res = test_client.req(
                 'get',
-                f'/api/v1/code/{res["entries"][0]["id"]}',
+                f'/api/v1/code/{file_id}',
                 200,
-                query={'type': 'pdf'},
+                query={'type': query_type},
                 result={'name': str},
             )
             res = test_client.get(
                 f'/api/v1/files/{res["name"]}',
-                query_string={'mime': 'application/pdf'}
+                query_string={'mime': mimetype}
             )
             assert res.status_code == 200
-            assert res.headers['Content-Type'] == 'application/pdf'
+            assert res.headers['Content-Type'] == mimetype
 
 
 @pytest.mark.parametrize(

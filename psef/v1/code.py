@@ -132,8 +132,9 @@ def get_code(file_id: int
 
     - If ``type == 'metadata'`` the JSON serialized :class:`.models.File` is
         returned.
-    - If ``type == 'pdf'`` a object with a single key, `name`, with as value
-        the return values of :py:func:`get_pdf_file`.
+    - If ``type == 'file-url'`` or ``type == 'pdf'`` (deprecated) an object
+        with a single key, `name`, with as value the return values of
+        :py:func:`get_file_url`.
     - If ``type == 'feedback'`` or ``type == 'linter-feedback'`` see
         :py:func:`get_feedback`
     - Otherwise the content of the file is returned as plain text.
@@ -158,8 +159,8 @@ def get_code(file_id: int
         return jsonify(file)
     elif get_type == 'feedback':
         return jsonify(get_feedback(file, linter=False))
-    elif get_type == 'pdf':
-        return jsonify({'name': get_pdf_file(file)})
+    elif get_type == 'pdf' or get_type == 'file-url':
+        return jsonify({'name': get_file_url(file)})
     elif get_type == 'linter-feedback':
         return jsonify(get_feedback(file, linter=True))
     else:
@@ -169,7 +170,7 @@ def get_code(file_id: int
         return res
 
 
-def get_pdf_file(file: models.File) -> str:
+def get_file_url(file: models.File) -> str:
     """Copies the given file to the mirror uploads folder and returns its name.
 
     To get this file, see the :func:`psef.v1.files.get_file` function.
