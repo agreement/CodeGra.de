@@ -343,7 +343,7 @@ def assignment_real_works(
     assignment,
 ):
     res = []
-    for name in ['Stupid1', 'Stupid2']:
+    for name in ['Stupid1', 'Stupid2', 'Œlµo']:
         user = m.User.query.filter_by(name=name).one()
         with logged_in(user):
             res.append(

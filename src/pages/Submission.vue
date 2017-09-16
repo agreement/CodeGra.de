@@ -344,8 +344,8 @@ export default {
         downloadType(type) {
             this.$http.get(`/api/v1/submissions/${this.submissionId}?type=${type}`).then(({ data }) => {
                 const params = new URLSearchParams();
-                params.append('name', data.output_name);
-                window.open(`/api/v1/files/${data.name}?${params.toString()}`);
+                params.append('not_as_attachment', '');
+                window.open(`/api/v1/files/${data.name}/${data.output_name}?${params.toString()}`);
             });
         },
 

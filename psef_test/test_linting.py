@@ -143,10 +143,10 @@ def test_linters(
                 code,
                 data=data,
                 result=error_template if run_err.get('error') else {
-                    'done': 0 if run_err.get('crash') == linter else 2,
+                    'done': 0 if run_err.get('crash') == linter else 3,
                     'working': 0,
                     'id': str,
-                    'crashed': 2 if run_err.get('crash') == linter else 0,
+                    'crashed': 3 if run_err.get('crash') == linter else 0,
                     'name': linter,
                 }
             )
@@ -191,10 +191,10 @@ def test_linters(
                     400 if set_perm_err else 200,
                     result=error_template if set_perm_err else {
                         'name': linter['name'],
-                        'done': 0 if run_err.get('crash') == lname else 2,
+                        'done': 0 if run_err.get('crash') == lname else 3,
                         'working': 0,
                         'id': str,
-                        'crashed': 2 if run_err.get('crash') == lname else 0,
+                        'crashed': 3 if run_err.get('crash') == lname else 0,
                     }
                 )
 

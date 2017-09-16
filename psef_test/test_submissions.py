@@ -698,14 +698,15 @@ def test_get_dir_contents(
 
 @pytest.mark.parametrize('user_type', ['student'])
 @pytest.mark.parametrize(
-    'named_user', [
-        'Thomas Schaper',
-        'Stupid1',
-        perm_error(error=401)('NOT_LOGGED_IN'),
-        perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid3'),
+    'named_user, get_own', [
+        ('Thomas Schaper', False),
+        ('Stupid1', False),
+        ('Œlµo', True),
+        perm_error(error=401)(('NOT_LOGGED_IN', False)),
+        perm_error(error=403)(('admin', False)),
+        perm_error(error=403)(('Stupid3', False)),
     ],
-    indirect=True
+    indirect=['named_user']
 )
 @pytest.mark.parametrize(
     'filename', ['../test_submissions/multiple_dir_archive.zip'],
@@ -713,10 +714,15 @@ def test_get_dir_contents(
 )
 def test_get_zip_file(
     test_client, logged_in, assignment_real_works, error_template, named_user,
-    request, user_type
+    request, user_type, get_own
 ):
     assignment, work = assignment_real_works
-    work_id = work['id']
+    if get_own:
+        work_id = m.Work.query.filter_by(
+            user=named_user
+        ).order_by(m.Work.created_at.desc()).first().id
+    else:
+        work_id = work['id']
 
     perm_err = request.node.get_marker('perm_error')
     if perm_err:
@@ -725,35 +731,40 @@ def test_get_zip_file(
         error = False
 
     with logged_in(named_user):
-        res = test_client.req(
-            'get',
-            f'/api/v1/submissions/{work_id}',
-            error or 200,
-            result=error_template
-            if error else {'name': str,
-                           'output_name': str},
-            query={'type': 'zip',
-                   'owner': user_type},
-        )
-
-        if not error:
-            file_name = res['name']
-            res = test_client.get(f'/api/v1/files/{file_name}')
-
-            assert res.status_code == 200
-            files = zipfile.ZipFile(io.BytesIO(res.get_data())).infolist()
-            files = set(f.filename for f in files)
-            assert files == set(
-                [
-                    'multiple_dir_archive/dir/single_file_work',
-                    'multiple_dir_archive/dir/single_file_work_copy',
-                    'multiple_dir_archive/dir2/single_file_work',
-                    'multiple_dir_archive/dir2/single_file_work_copy',
-                ]
+        for url in [
+            '/api/v1/files/{name}?name={output_name}',
+            '/api/v1/files/{name}/{output_name}'
+        ]:
+            res = test_client.req(
+                'get',
+                f'/api/v1/submissions/{work_id}',
+                error or 200,
+                result=error_template
+                if error else {'name': str,
+                               'output_name': str},
+                query={'type': 'zip',
+                       'owner': user_type},
             )
 
-            res = test_client.get(f'/api/v1/files/{file_name}')
-            assert res.status_code == 404
+            if not error:
+                file_name = res['name']
+                res = test_client.get(url.format(**res))
+
+                assert res.status_code == 200
+                zfiles = zipfile.ZipFile(io.BytesIO(res.get_data()))
+                files = zfiles.infolist()
+                files = set(f.filename for f in files)
+                assert files == set(
+                    [
+                        'multiple_dir_archive/dir/single_file_work',
+                        'multiple_dir_archive/dir/single_file_work_copy',
+                        'multiple_dir_archive/dir2/single_file_work',
+                        'multiple_dir_archive/dir2/single_file_work_copy',
+                    ]
+                )
+
+                res = test_client.get(f'/api/v1/files/{file_name}')
+                assert res.status_code == 404
 
 
 @pytest.mark.parametrize(

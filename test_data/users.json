@@ -51,6 +51,14 @@
     }
   },
   {
+    "name": "Œlµo",
+    "role": "Student",
+    "courses": {
+      "Programmeertalen": "Student",
+      "Inleiding Programmeren": "Student"
+    }
+  },
+  {
     "name": "Stupid1",
     "role": "Student",
     "courses": {

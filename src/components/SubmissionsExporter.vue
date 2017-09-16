@@ -128,7 +128,7 @@ export default {
                 data,
             });
             this.$http.post('/api/v1/files/', csv).then((response) => {
-                window.open(`/api/v1/files/${response.data}?name=${this.currentFilename}`);
+                window.open(`/api/v1/files/${response.data}/${this.currentFilename}`);
             });
         },
     },
