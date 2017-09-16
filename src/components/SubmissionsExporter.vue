@@ -80,7 +80,7 @@ export default {
                     {
                         name: 'Assigned to',
                         enabled: [true],
-                        getter: submission => submission.assignee,
+                        getter: submission => (submission.assignee ? submission.assignee.name : ''),
                     },
                 ];
             },
