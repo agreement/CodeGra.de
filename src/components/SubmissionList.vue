@@ -240,6 +240,11 @@ export default {
         },
 
         updateAssignee(newId, { item: submission }) {
+            const oldId = submission.assignee ? submission.assignee.id : null;
+            if (oldId === newId) {
+                return;
+            }
+
             this.$set(this.assigneeUpdating, submission.id, true);
 
             let res;
