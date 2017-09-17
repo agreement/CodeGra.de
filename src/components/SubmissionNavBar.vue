@@ -56,7 +56,6 @@ export default {
     data() {
         return {
             selected: this.value,
-            index: this.submissions.indexOf(this.value),
         };
     },
 
@@ -68,18 +67,21 @@ export default {
             }));
         },
 
+        optionIndex() {
+            return this.options.findIndex(opt => opt.value === this.value);
+        },
+
         hasPrev() {
-            return this.index > 0 && this.index < this.submissions.length;
+            return this.optionIndex > 0 && this.optionIndex < this.options.length;
         },
 
         hasNext() {
-            return this.index >= 0 && this.index < this.submissions.length - 1;
+            return this.optionIndex >= 0 && this.optionIndex < this.options.length - 1;
         },
     },
 
     watch: {
         selected(submission) {
-            this.index = this.submissions.indexOf(submission);
             this.$emit('input', submission);
         },
     },
@@ -103,13 +105,13 @@ export default {
 
         selectPrev() {
             if (this.hasPrev) {
-                this.selected = this.submissions[this.index - 1];
+                this.selected = this.options[this.optionIndex - 1].value;
             }
         },
 
         selectNext() {
             if (this.hasNext) {
-                this.selected = this.submissions[this.index + 1];
+                this.selected = this.options[this.optionIndex + 1].value;
             }
         },
 
