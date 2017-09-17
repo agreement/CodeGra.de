@@ -3,6 +3,7 @@ This module defines all API routes with the main directory "login". This APIs
 are used to handle starting and closing the user session and update the :class:
 User object of the logged in user.
 """
+import html
 import typing as t
 
 import html2text
@@ -129,8 +130,8 @@ def send_reset_password_email(user: models.User) -> None:
         f'password/?user={user.id}&token={token}',
         user_id=user.id,
         token=token,
-        user_name=user.name,
-        user_email=user.email,
+        user_name=html.escape(user.name),
+        user_email=html.escape(user.email),
     )
     text_maker = html2text.HTML2Text(bodywidth=78)
     text_maker.inline_links = False

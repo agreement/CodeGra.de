@@ -99,13 +99,6 @@ import LinterFeedbackArea from './LinterFeedbackArea';
 import Loader from './Loader';
 import Toggle from './Toggle';
 
-const entityRE = /[&<>]/g;
-const entityMap = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-};
-const escape = text => String(text).replace(entityRE, entity => entityMap[entity]);
 const decoder = new TextDecoder('utf-8', { fatal: true });
 
 localforage.setDriver(localforage.INDEXEDDB);
@@ -253,7 +246,7 @@ export default {
             this.error = '';
 
             const addError = (err) => {
-                let errVal = escape(err);
+                let errVal = this.$htmlEscape(err);
 
                 if (this.error) {
                     errVal = `<br>${errVal}`;
@@ -303,8 +296,9 @@ export default {
         // Highlight this.codeLines.
         highlightCode(language) {
             if (getLanguage(language) === undefined) {
-                this.codeLines = this.rawCodeLines.map(escape);
-                this.codeLines = this.rawCodeLines.map(this.visualizeWhitespace);
+                this.codeLines = this.rawCodeLines
+                    .map(this.$htmlEscape)
+                    .map(this.visualizeWhitespace);
                 return;
             }
 

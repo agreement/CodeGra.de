@@ -35,6 +35,24 @@ axios.defaults.transformRequest.push((data, headers) => {
 
 Vue.prototype.$http = axios;
 
+const reUnescapedHtml = /[&<>"'`]/g;
+const reHasUnescapedHtml = RegExp(reUnescapedHtml.source);
+/** Used to map characters to HTML entities. */
+const htmlEscapes = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+    '`': '&#96;',
+};
+Vue.prototype.$htmlEscape = (string) => {
+    if (string && reHasUnescapedHtml.test(string)) {
+        return string.replace(reUnescapedHtml, ent => htmlEscapes[ent]);
+    }
+    return string;
+};
+
 // Fix axios automatically parsing all responses as JSON... WTF!!!
 axios.defaults.transformResponse = [
     function defaultTransformResponse(data, headers) {

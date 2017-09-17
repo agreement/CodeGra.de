@@ -1,7 +1,7 @@
 <template>
     <b-card class="feedback-area non-editable" v-if="(done && !editing)">
         <div v-on:click="changeFeedback()" :style="{'min-height': '1em'}">
-            <div v-html="newlines(escape(serverFeedback))"></div>
+            <div v-html="newlines($htmlEscape(serverFeedback))"></div>
         </div>
     </b-card>
     <div class="feedback-area" v-else>
@@ -61,13 +61,6 @@ import { mapActions, mapGetters } from 'vuex';
 
 import SubmitButton from './SubmitButton';
 
-const entityRE = /[&<>]/g;
-const entityMap = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-};
-
 export default {
     name: 'feedback-area',
     props: ['line', 'editing', 'feedback', 'editable', 'fileId', 'canUseSnippets'],
@@ -121,9 +114,6 @@ export default {
         },
         newlines(value) {
             return value.replace(/\n/g, '<br>');
-        },
-        escape(text) {
-            return String(text).replace(entityRE, entity => entityMap[entity]);
         },
         revertFeedback() {
             if (this.serverFeedback === '') {
