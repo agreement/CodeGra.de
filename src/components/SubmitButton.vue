@@ -1,8 +1,8 @@
 <template>
     <b-popover class="submission-popover"
-               :show="showError && state == 'failure' && (Boolean(err) || showEmpty)"
+               :show="showError && state === 'failure' && (Boolean(err) || showEmpty)"
                :placement="popoverPlacement"
-               :content="showError ? err : ''">
+               :content="err">
         <b-button :disabled="pending || disabled"
                   :variant="variants[state]"
                   :size="size"
@@ -80,31 +80,31 @@ export default {
     methods: {
         submit(promise) {
             this.pending = true;
-            return Promise.resolve(promise).then((res) => {
-                this.pending = false;
-                return this.succeed(res);
-            }, (err) => {
-                this.pending = false;
-                return this.fail(err);
-            });
+            return Promise.resolve(promise).then(res =>
+                this.succeed(res),
+            err =>
+                this.fail(err),
+            );
         },
 
-        cancelFail(resolve = null) {
-            this.timeout = null;
-            this.state = 'default';
-            this.$nextTick(() => {
-                this.err = '';
-            });
+        reset() {
+            if (this.timeout != null) {
+                clearTimeout(this.timeout);
+                this.timeout = null;
+            }
 
-            if (resolve) resolve();
+            this.state = 'default';
+            this.err = '';
         },
 
         succeed(res) {
+            this.pending = false;
             return this.update('success')
                 .then(() => res);
         },
 
         fail(err) {
+            this.pending = false;
             this.err = err;
             return this.update('failure', 3)
                 .then(() => { throw err; });
@@ -117,7 +117,8 @@ export default {
                     clearTimeout(this.timeout);
                 }
                 this.timeout = setTimeout(() => {
-                    this.cancelFail(resolve);
+                    this.reset();
+                    resolve();
                 }, this.delay * mult);
             });
         },
