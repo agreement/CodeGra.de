@@ -116,6 +116,7 @@ export default {
         return {
             assignmentState,
             filter: '',
+            pushedUrl: true,
             toggles: {
                 hidden: false,
                 submitting: true,
@@ -150,12 +151,23 @@ export default {
         };
     },
 
+    watch: {
+        $route() {
+            if (this.pushedUrl) {
+                this.pushedUrl = false;
+                return;
+            }
+            this.submit();
+        },
+    },
+
     mounted() {
         const q = this.$route.query;
-        this.toggles.hidden = q.hidden == null ? false : q.hidden === 'true';
-        this.toggles.submitting = q.submitting == null ? true : q.submitting === 'true';
-        this.toggles.grading = q.grading == null ? false : q.grading === 'true';
-        this.toggles.done = q.done == null ? true : q.done === 'true';
+        const nullOrTrue = val => val == null || val === 'true';
+        this.toggles.hidden = nullOrTrue(q.hidden);
+        this.toggles.submitting = nullOrTrue(q.submitting);
+        this.toggles.grading = nullOrTrue(q.grading);
+        this.toggles.done = nullOrTrue(q.done);
 
         let roles;
         if (q.roles === undefined) {
@@ -242,6 +254,7 @@ export default {
         },
 
         submit() {
+            this.pushedUrl = true;
             const query = Object.assign({}, this.toggles);
             if (this.filter) {
                 query.q = this.filter;

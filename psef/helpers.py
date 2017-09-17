@@ -12,6 +12,7 @@ import flask  # type: ignore
 import werkzeug
 
 import psef
+import psef.json
 import psef.errors
 import psef.models
 
@@ -49,6 +50,23 @@ def get_request_start_time() -> datetime.datetime:
 _JSONValue = t.Union[str, int, float, bool, None, t.Dict[str, t.Any],
                      t.List[t.Any]]
 JSONType = t.Union[t.Dict[str, _JSONValue], t.List[_JSONValue], _JSONValue]
+
+
+class ExtendedJSONResponse(t.Generic[T]):
+    """A datatype for a JSON response created by using the
+    ``__extended_to_json__`` if available.
+
+    This is a subtype of :py:class:`werkzeug.wrappers.Response` where the body
+    is a valid JSON object and ``content-type`` is ``application/json``.
+
+    .. warning::
+
+        This class is only used for type hinting and is never actually used! It
+        does not contain any valid data!
+    """
+
+    def __init__(self) -> None:  # pragma: no cover
+        raise NotImplementedError("Do not use this class as actual data")
 
 
 class JSONResponse(t.Generic[T]):
@@ -234,6 +252,16 @@ def ensure_json_dict(json: JSONType) -> t.Dict[str, JSONType]:
         'The given JSON is not a object as is required',
         f'"{json}" is not a object', psef.errors.APICodes.INVALID_PARAM, 400
     )
+
+
+def extended_jsonify(obj: T, status_code: int=200) -> ExtendedJSONResponse[T]:
+    try:
+        psef.app.json_encoder = psef.json.CustomExtendedJSONEncoder
+        response = flask.make_response(flask.jsonify(obj))
+    finally:
+        psef.app.json_encoder = psef.json.CustomJSONEncoder
+    response.status_code = status_code
+    return response
 
 
 def jsonify(obj: T, status_code: int=200) -> JSONResponse[T]:
