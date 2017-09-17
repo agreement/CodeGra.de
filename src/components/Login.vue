@@ -142,6 +142,10 @@ h4 {
     margin-bottom: 15px;
 }
 
+.alert {
+    margin-top: 2px;
+}
+
 small {
     margin: -10px 0 15px;
     display: block;

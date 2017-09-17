@@ -44,9 +44,9 @@
             <b-form-fieldset class="add-student">
                 <b-input-group>
                     <b-form-input v-model="newStudentUsername"
-                                placeholder="New students username"
-                                :disabled="course.is_lti"
-                                @keyup.native.ctrl.enter="addUser"/>
+                                  placeholder="New students username"
+                                  :disabled="course.is_lti"
+                                  @keyup.native.ctrl.enter="addUser"/>
 
                     <b-dropdown class="drop"
                                 :text="newRole ? newRole.name : 'Role'"
@@ -60,7 +60,6 @@
 
                     <b-input-group-button>
                             <submit-button label="Add" ref="addUserButton" @click="addUser" :disabled="course.is_lti"/>
-                            </b-button>
                     </b-input-group-button>
                 </b-input-group>
             </b-form-fieldset>

@@ -1,8 +1,4 @@
-@color-primary: #2c3e50;
-@linum-bg: #f8f8f8;
-@line-bg: white;
-@line-spacing: .5em;
-@code-linum-width: 4rem;
+@import "~mixins.less";
 
 html {
     box-sizing: border-box;
@@ -12,9 +8,28 @@ html {
     box-sizing: inherit;
 }
 
+.form-control {
+    .default-form-control-colors;
+}
+
+.custom-select {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%23ccc' d='M2 0L0 2h4zm0 5L0 3h4z'/%3E%3C/svg%3E");
+}
+
+.alert-danger {
+    .default-alter-danger-colors;
+}
+
 .navbar {
-    background: @color-primary;
-    margin-bottom: 1em;
+    .navbar-color;
+}
+
+.collapse-wrapper {
+    .default-collapse-wrapper-colors;
+}
+
+.list-group-item {
+    .default-list-group-item-colors;
 }
 
 #app {
@@ -23,8 +38,18 @@ html {
     flex-direction: column;
 }
 
+main {
+    padding-top: 1em;
+    .default-background;
+    .default-color;
+
+    a {
+        .default-link-colors;
+    }
+}
+
 footer {
-    background: #f5f5f5;
+    .default-footer-colors;
 }
 
 .page {
@@ -32,32 +57,16 @@ footer {
 }
 
 .btn-outline-primary {
-    color: @color-primary;
+    .primary-outline-button-color;
     background-image: none;
     background-color: transparent;
-    border-color: @color-primary;
-
-    &:hover {
-        background-color: @color-primary;
-    }
 }
 
 .btn {
     cursor: pointer;
 
     &-primary {
-        background: @color-primary;
-        border-color: @color-primary;
-
-        &:hover {
-            background: saturate(lighten(@color-primary, 7.5%), 10%);
-            border-color: saturate(lighten(@color-primary, 7.5%), 10%);
-        }
-
-        &[disabled] {
-            background: fade(@color-primary, 80);
-            border-color: fade(@color-primary, 60);
-        }
+        .primary-button-color;
     }
 
     .fa-icon {
@@ -80,18 +89,26 @@ footer {
 }
 
 .custom-control-input {
-    &:active ~ .custom-control-indicator {
-        background-color: fade(@color-primary, 60);
-    }
+    .default-custom-control-input-colors;
+}
 
-    &:focus ~ .custom-control-indicator {
-        box-shadow: 0 0 0 1px white,
-                    0 0 0 3px @color-primary;
-    }
+.modal {
+    .default-modal-colors;
+}
 
-    &:checked ~ .custom-control-indicator {
-        background-color: @color-primary;
+table.table {
+    .default-table-colors;
+    tr:first-child td {
+        border-top: 0;
     }
+}
+
+input, textarea {
+    .default-input-colors;
+}
+
+#app.dark ~ .popover {
+    .dark-popover-colors;
 }
 
 input[type="datetime-local"] {
@@ -100,6 +117,10 @@ input[type="datetime-local"] {
     &::-webkit-inner-spin-button {
         -webkit-appearance: none;
     }
+}
+
+.dropdown-menu {
+    .default-dropdown-menu-colors;
 }
 
 input[type="number"] {
@@ -123,31 +144,42 @@ textarea:disabled {
     border-color: @color-primary;
 }
 
+.card {
+    .default-card-colors;
+}
+
 .table-hover tbody tr {
     cursor: pointer;
 }
 
-.input-group .custom-checkbox {
-    margin-right: 0;
-    padding: .5rem .75rem;
-    padding-left: 2.25rem;
-    font-size: 0.95em;
-
-    .custom-control-indicator {
-        top: .625rem;
-        left: .75rem;
-    }
+.btn-group {
+    .default-button-group-colors;
 }
 
-.input-group .input-group-btn {
-    &:not(:first-child) button {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
+.input-group {
+    .default-input-group-colors;
+    .custom-checkbox {
+        margin-right: 0;
+        padding: .5rem .75rem;
+        padding-left: 2.25rem;
+        font-size: 0.95em;
+
+        .custom-control-indicator {
+            top: .625rem;
+            left: .75rem;
+        }
     }
 
-    &:not(:last-child) button {
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
+    .input-group-btn {
+        &:not(:first-child) button {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+
+        &:not(:last-child) button {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
     }
 }
 
@@ -155,7 +187,6 @@ textarea:disabled {
     position: relative;
     margin-top: -4px;
     margin-bottom: 0;
-    z-index: -1;
 }
 
 .custom-file {
@@ -173,13 +204,7 @@ textarea:disabled {
 }
 
 .code-viewer {
-    ol {
-        background: @linum-bg;
-        padding-left: @code-linum-width;
-    }
-
     li {
-        background: @line-bg;
         padding: @line-spacing/2 0;
 
         /* Prevent <li> overlapping <ol> border. */
@@ -245,16 +270,6 @@ textarea:disabled {
     top: 0;
     right: 100%;
     position: absolute;
-}
-
-.file-tree {
-    a {
-        color: #2c3e50;
-    }
-
-    .active-file {
-        font-weight: bold;
-    }
 }
 
 .flex-variable {

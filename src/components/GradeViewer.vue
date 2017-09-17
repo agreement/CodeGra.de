@@ -314,6 +314,7 @@ textarea {
 
     transition-property: all;
     transition-duration: .5s;
+    margin-bottom: 1rem;
     transition-timing-function: cubic-bezier(0, 1, 0.5, 1);
 
     &.closed {
@@ -322,6 +323,7 @@ textarea {
         background: none;
         padding-top: 0;
         padding-bottom: 0;
+        margin-bottom: 0;
     }
 }
 </style>

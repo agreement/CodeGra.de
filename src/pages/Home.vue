@@ -81,16 +81,15 @@ export default {
 </script>
 
 <style lang="less" scoped>
+@import '~mixins.less';
+
 .jumbotron {
     color: white;
 
-    background: linear-gradient(
-        rgba(0, 0, 0, 0.6),
-        rgba(0, 0, 0, 0.6),
-    ),
-    url('/static/img/screenshot.png') no-repeat center center;
-    h1 {
-        font-size: 50px;
+    .default-background;
+    background-image: url('/static/img/screenshot.png');
+
+    h1 {        font-size: 50px;
         text-transform: uppercase;
         font-weight: 700;
         font-family: Montserrat,"Helvetica Neue",Helvetica,Arial,sans-serif;
@@ -119,7 +118,7 @@ export default {
 }
 
 .container {
-    background: white;
+    .default-background;
     margin-top: 50vh;
     width: 100%;
     padding-top: 30px;

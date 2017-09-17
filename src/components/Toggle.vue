@@ -59,6 +59,20 @@ export default {
 </script>
 
 <style lang="less" scoped>
+@import '~mixins.less';
+
+#app.dark ~ .popover .toggle {
+    // TODO: Find better colors here.
+    .off {
+        background: white;
+        color: @text-color;
+    }
+    .on {
+        background: @color-primary-darker;
+        color: @text-color-dark;
+    }
+}
+
 .toggle-container {
     display: inline-block;
     overflow: hidden;

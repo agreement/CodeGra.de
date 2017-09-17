@@ -5,7 +5,7 @@
             <icon name="caret-down" class="caret-icon" v-else/>
             <icon name="folder" class="dir-icon" v-if="isCollapsed"/>
             <icon name="folder-open" class="dir-icon" v-else/>
-            {{ tree.name }}
+            <a>{{ tree.name }}</a>
         </div>
         <ol v-show="!isCollapsed">
             <li v-for="f in tree.entries">
@@ -16,8 +16,7 @@
                              :to="getFileRoute(f.id)"
                              replace
                              v-else>
-                    <icon name="file" class="file-icon"/>
-                    {{ f.name }}
+                    <icon name="file" class="file-icon"/>{{ f.name }}
                 </router-link>
             </li>
         </ol>
@@ -95,10 +94,25 @@ export default {
 </script>
 
 <style lang="less" scoped>
+@import "~mixins.less";
+
+.file-tree a,
 .file-tree {
     user-select: none;
     cursor: default;
-    color: #2c3e50;
+    color: @color-primary;
+    #app.dark & {
+        color: @text-color-dark;
+    }
+
+    a:hover {
+        cursor: pointer;
+        text-decoration: underline;
+    }
+
+    .active-file {
+        font-weight: bold;
+    }
 
     ol {
         list-style: none;
@@ -118,7 +132,7 @@ export default {
 
     .file-icon {
         width: 1em;
-        margin-right: .25em;
+        margin-right: .5em;
     }
 }
 </style>

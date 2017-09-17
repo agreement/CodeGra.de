@@ -35,20 +35,24 @@ export default {
 </script>
 
 <style lang="less" scoped>
+@import '~mixins.less';
+
 footer {
-    @footer-height: 60px;
-    height: @footer-height;
+    padding: 20px;
+    height: 100%;
     /* Vertically center the text there */
-    line-height: @footer-height;
+    line-height: 100%;
     text-align: center;
 }
 
-a.codegra-email, a.privacy-statement {
-    cursor: pointer;
-    text-decoration: underline;
-    color: #2c3e50;
-    &:hover {
-        color: #315171;
+.footer {
+    a {
+        .default-link-colors;
+        cursor: pointer;
+
+        &, &:hover {
+            text-decoration: underline;
+        }
     }
 }
 
@@ -57,6 +61,5 @@ a.codegra-email, a.privacy-statement {
 <style lang="less">
 #privacyModal .modal-dialog.modal-md {
     max-width: 786px;
-    width: 100%;
 }
 </style>

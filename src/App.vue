@@ -1,7 +1,7 @@
 <template>
-    <div id="app">
+    <div id="app" :class="hasDarkMode ? 'dark' : ''">
         <nav-bar/>
-        <main class="container-fluid">
+        <main class="container-fluid justify-content-center">
             <div class="row justify-content-center">
                 <router-view class="page router col-lg-10"/>
             </div>
@@ -19,6 +19,12 @@ export default {
     components: {
         FooterBar,
         NavBar,
+    },
+
+    computed: {
+        hasDarkMode() {
+            return this.$store.getters['pref/darkMode'];
+        },
     },
 };
 </script>
@@ -38,4 +44,8 @@ main {
         max-width: 100%;
     }
 }
+</style>
+
+<style lang="less">
+@color-primary: #fffff;
 </style>

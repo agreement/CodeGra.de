@@ -384,6 +384,7 @@ export default {
                 footer: {
                     flexGrow: footer.style.flexGrow,
                     flexShrink: footer.style.flexShrink,
+                    height: footer.style.height,
                 },
             };
 
@@ -396,6 +397,7 @@ export default {
             nav.style.flexShrink = 0;
             footer.style.flexGrow = 0;
             footer.style.flexShrink = 0;
+            footer.style.height = 'unset';
         },
 
         restorePageCSS() {

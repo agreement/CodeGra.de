@@ -32,7 +32,7 @@
             </template>
 
             <template slot="actions" scope="item">
-                <div v-if="item.item.editing">
+                <div v-if="item.item.editing" class="button-wrapper">
                     <b-btn size="sm" variant="danger" :disabled="item.item.pending" @click="cancelSnippetEdit(item.item)">
                         <icon name="ban" scale="1"></icon>
                     </b-btn>
@@ -41,7 +41,7 @@
                         <icon name="floppy-o" scale="1" v-else></icon>
                     </b-btn>
                 </div>
-                <div v-else>
+                <div class="button-wrapper" v-else>
                     <b-btn size="sm" variant="danger" :disabled="item.item.pending" @click="deleteSnippet(item.item)">
                         <icon name="times" scale="1"></icon>
                     </b-btn>
@@ -237,6 +237,10 @@ export default {
 
 .global.btn-group {
     float: right;
+}
+
+.button-wrapper {
+    width: 5em;
 }
 </style>
 

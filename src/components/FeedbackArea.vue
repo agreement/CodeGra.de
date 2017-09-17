@@ -9,25 +9,30 @@
                     v-if="canUseSnippets"
                     ref="snippetDialog"
                     :id="`collapse${line}`">
-            <b-input-group>
-                <b-form-input class="input" v-model="snippetKey" v-on:keydown.native.ctrl.enter="addSnippet"/>
-                <b-input-group-button>
-                    <b-popover class="popover-btn" :placement="'top'" :show="error !== '' && $parent.show" :content="error">
-                        <submit-button ref="addSnippetButton" label="" @click="addSnippet">
-                            <icon name="check"/>
+            <b-popover class="popover-btn" :placement="'top'" :show="error !== '' && $parent.show" :content="error">
+                <b-input-group>
+                    <input class="input form-control"
+                           v-model="snippetKey"
+                           @keydown.ctrl.enter="addSnippet"/>
+                    <b-input-group-button>
+                        <submit-button ref="addSnippetButton"
+                                       class="add-snippet-btn"
+                                       label=""
+                                       @click="addSnippet">
+                            <icon :scale="1" name="check"/>
                         </submit-button>
-                    </b-popover>
-                </b-input-group-button>
-            </b-input-group>
+                    </b-input-group-button>
+                </b-input-group>
+            </b-popover>
         </b-collapse>
-        <b-input-group>
-            <b-form-input :textarea="true"
-                          ref="field" v-model="internalFeedback"
-                          :style="{'font-size': '1em'}"
-                          v-on:keydown.native.tab.capture="expandSnippet"
-                          v-on:keydown.native.ctrl.enter="submitFeedback"
-                          v-on:keydown.native.esc="revertFeedback">
-            </b-form-input>
+        <b-input-group class="editable-area">
+            <textarea ref="field"
+                      v-model="internalFeedback"
+                      class="form-control"
+                      style="font-size: 1em;"
+                      @keydown.tab="expandSnippet"
+                      @keydown.ctrl.enter="submitFeedback"
+                      @keydown.esc="revertFeedback"/>
             <b-input-group-button class="minor-buttons">
                 <b-btn v-b-toggle="`collapse${line}`"
                        variant="secondary"
@@ -64,6 +69,7 @@ import SubmitButton from './SubmitButton';
 export default {
     name: 'feedback-area',
     props: ['line', 'editing', 'feedback', 'editable', 'fileId', 'canUseSnippets'],
+
     data() {
         return {
             internalFeedback: this.feedback,
@@ -77,6 +83,7 @@ export default {
             submittingFeedback: false,
         };
     },
+
     mounted() {
         this.$nextTick(() => {
             if (!this.done || this.editing) {
@@ -146,8 +153,8 @@ export default {
             }
 
             const field = this.$refs.field;
-            const end = field.$el.selectionEnd;
-            if (field.$el.selectionStart === end) {
+            const end = field.selectionEnd;
+            if (field.selectionStart === end) {
                 const val = this.internalFeedback.slice(0, end);
                 const start = Math.max(val.lastIndexOf(' '), val.lastIndexOf('\n')) + 1;
                 const res = this.snippets()[val.slice(start, end)];
@@ -174,6 +181,7 @@ export default {
                 return;
             } else if (val.value.length === 0) {
                 this.error = 'Snippet value cannot be empty';
+                this.$refs.addSnippetButton.submit(new Promise(() => {}));
                 return;
             }
 
@@ -220,30 +228,55 @@ export default {
 </script>
 
 <style lang="less" scoped>
+@import '~mixins.less';
+
 .non-editable {
     white-space: pre-wrap;
     word-break: break-word;
 }
 
-.minor-buttons:hover {
-    z-index: 0;
+button {
+    border: none;
+    box-shadow: none !important;
+}
+
+.minor-buttons {
+    z-index: 1000;
+    &:hover {
+        box-shadow: none;
+    }
+    min-height: 7em;
 }
 
 .collapsep {
-    width: 30%;
     float: right;
     display: flex;
 }
 
-.input-group .popover-btn {
-    button {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-    }
+textarea {
+    border: 0;
+    min-height: 7em;
+}
 
-    & > :not(:last-child) button {
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
+input {
+    margin: 0;
+    border: 0;
+}
+
+.editable-area {
+    border: 1px solid @color-primary;
+    #app.dark & {
+        border: 1px solid @color-secondary;
     }
+    padding: 0;
+    margin: 0.5em 0;
+    border-radius: 0.25rem;
+}
+</style>
+
+<style lang="less">
+.add-snippet-btn button {
+    margin: 0;
+    border: 0;
 }
 </style>

@@ -7,7 +7,7 @@
                   :variant="variants[state]"
                   :size="size"
                   @click="$emit('click', $event)">
-            <loader :scale="1" v-if="pending"/>
+            <loader :scale="1" :center="false" v-if="pending"/>
             <span v-else-if="label">{{ label }}</span>
             <slot v-else/>
         </b-button>

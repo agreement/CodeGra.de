@@ -15,38 +15,10 @@
                 <div class="settings-content"
                      id="codeviewer-settings-content"
                      ref="settingsContent">
-                    <table class="table settings-table"
-                           style="margin-bottom: 0;">
-                        <tbody>
-                            <tr>
-                                <td>Whitespace</td>
-                                <td>
-                                    <toggle v-model="showWhitespace" label-on="show" label-off="hide"/>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Language</td>
-                                <td>
-                                    <multiselect v-model="selectedLanguage"
-                                                 :hide-selected="selectedLanguage === 'Default'"
-                                                 deselect-label="Reset language"
-                                                 select-label="Select language"
-                                                 :options="languages"/>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Font size</td>
-                                <td>
-                                    <b-input-group right="px">
-                                        <b-form-input v-model="fontSize"
-                                                      style="z-index: 0;"
-                                                      type="number"
-                                                      min="1"/>
-                                    </b-input-group>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <preference-manager :fileId="file.id"
+                                        @whitespace="(value) => { showWhitespace = value; }"
+                                        @language="highlightCode"
+                                        @font-size="(val) => { fontSize = val; }"/>
                 </div>
             </div>
         </b-popover>
@@ -56,6 +28,7 @@
                     paddingLeft: `${3 + Math.log10(codeLines.length) * 2/3}em`,
                     fontSize: `${fontSize}px`,
                 }"
+                class="hljs"
                 @click="onClick">
                 <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
                     :class="{ 'linter-feedback-outer': linterFeedback[i] }" v-bind:key="i">
@@ -66,14 +39,14 @@
                     <code v-html="line"/>
 
                     <feedback-area :editing="editing[i] === true"
-                                   :feedback='feedback[i].msg'
-                                   :editable='editable'
-                                   :line='i'
-                                   :fileId='file.id'
+                                   :feedback="feedback[i].msg"
+                                   :editable="editable"
+                                   :line="i"
+                                   :fileId="file.id"
                                    :can-use-snippets="canUseSnippets"
                                    v-on:feedbackChange="val => { feedbackChange(i, val); }"
                                    v-on:cancel='onChildCancel'
-                                   v-if="feedback[i] != null"/>
+                                   v-if="feedback[i] !== undefined && feedback[i] !== null"/>
                 </li>
             </ol>
         </div>
@@ -83,31 +56,20 @@
 <script>
 import { getLanguage, highlight, listLanguages } from 'highlightjs';
 import Vue from 'vue';
-import { mapActions, mapGetters } from 'vuex';
+import { mapActions } from 'vuex';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/cog';
 import 'vue-multiselect/dist/vue-multiselect.min.css';
 
-import localforage from 'localforage';
-
-import Multiselect from 'vue-multiselect';
-
 import FeedbackArea from './FeedbackArea';
 import LinterFeedbackArea from './LinterFeedbackArea';
 import Loader from './Loader';
 import Toggle from './Toggle';
+import PreferenceManager from './PreferenceManager';
 
 const decoder = new TextDecoder('utf-8', { fatal: true });
-
-localforage.setDriver(localforage.INDEXEDDB);
-const highlightLanguageStore = localforage.createInstance({
-    name: 'highlightLanguageStore',
-});
-const showWhitespaceStore = localforage.createInstance({
-    name: 'showWhitespaceStore',
-});
 
 export default {
     name: 'code-viewer',
@@ -135,6 +97,13 @@ export default {
         },
     },
 
+    computed: {
+        extension() {
+            const fileParts = this.file.name.split('.');
+            return fileParts.length > 1 ? fileParts[fileParts.length - 1] : null;
+        },
+    },
+
     data() {
         const languages = listLanguages();
         languages.push('plain');
@@ -153,6 +122,7 @@ export default {
             clicks: {},
             error: false,
             showWhitespace: true,
+            darkMode: true,
             fontSize: 12,
             languages,
             canUseSnippets: false,
@@ -167,8 +137,6 @@ export default {
             this.canUseSnippets = snips;
             this.loading = false;
         });
-
-        this.fontSize = this.getFontSize();
 
         this.clickHideSettings = (event) => {
             let target = event.target;
@@ -204,37 +172,17 @@ export default {
         tree() {
             this.linkFiles();
         },
-
-        selectedLanguage(lang) {
-            if (lang === 'Default' || lang == null) {
-                highlightLanguageStore.removeItem(`${this.file.id}`);
-                const fileParts = this.file.name.split('.');
-                const ext = fileParts.length > 1 ? fileParts[fileParts.length - 1] : null;
-                this.highlightCode(ext);
-            } else {
-                highlightLanguageStore.setItem(`${this.file.id}`, lang);
-                this.highlightCode(lang);
-            }
-        },
-
-        showWhitespace(val) {
-            showWhitespaceStore.setItem(`${this.file.id}`, val);
-        },
-
-        fontSize(val) {
-            this.setFontSize(Math.max(val, 1));
-        },
     },
 
     methods: {
         loadCodeWithSettings(setLoading = true) {
-            return highlightLanguageStore.getItem(`${this.file.id}`).then((val) => {
+            return this.$hlanguageStore.getItem(`${this.file.id}`).then((val) => {
                 if (val !== null) {
                     this.selectedLanguage = val;
                 }
                 return Promise.all([
                     this.getCode(setLoading),
-                    showWhitespaceStore.getItem(`${this.file.id}`).then((white) => {
+                    this.$whitespaceStore.getItem(`${this.file.id}`).then((white) => {
                         this.showWhitespace = white === null || white;
                     }),
                 ]);
@@ -269,9 +217,7 @@ export default {
                     }
                     this.rawCodeLines = this.code.split('\n');
 
-                    const fileParts = this.file.name.split('.');
-                    const ext = fileParts.length > 1 ? fileParts[fileParts.length - 1] : null;
-                    this.highlightCode(ext);
+                    this.highlightCode(this.selectedLanguage);
                     this.linkFiles();
                 }, ({ response: { data: { message } } }) => {
                     addError(message);
@@ -295,7 +241,8 @@ export default {
 
         // Highlight this.codeLines.
         highlightCode(language) {
-            if (getLanguage(language) === undefined) {
+            const lang = language === 'Default' ? this.extension : language;
+            if (getLanguage(lang) === undefined) {
                 this.codeLines = this.rawCodeLines
                     .map(this.$htmlEscape)
                     .map(this.visualizeWhitespace);
@@ -304,7 +251,7 @@ export default {
 
             let state = null;
             this.codeLines = this.rawCodeLines.map((line) => {
-                const { top, value } = highlight(language, line, true, state);
+                const { top, value } = highlight(lang, line, true, state);
 
                 state = top;
                 return this.visualizeWhitespace(value);
@@ -409,7 +356,7 @@ export default {
         addFeedback(event, line) {
             if (this.clicks[line] === true) {
                 delete this.clicks[line];
-            } else if (this.feedback[line] == null) {
+            } else {
                 Vue.set(this.editing, line, true);
                 Vue.set(this.feedback, line, '');
             }
@@ -424,31 +371,52 @@ export default {
 
         ...mapActions({
             hasPermission: 'user/hasPermission',
-            setFontSize: 'pref/setFontSize',
-        }),
-
-        ...mapGetters({
-            getFontSize: 'pref/fontSize',
         }),
     },
 
     components: {
+        PreferenceManager,
         Icon,
         FeedbackArea,
         LinterFeedbackArea,
         Loader,
         Toggle,
-        Multiselect,
     },
 };
 </script>
 
 <style lang="less" scoped>
+@import '~mixins.less';
+
 .code-viewer {
     position: relative;
     padding: 0;
+    background: #f8f8f8;
     ol {
         min-height: 5em;
+        overflow-x: visible;
+        background: @linum-bg;
+    }
+
+    li {
+        background-color: lighten(@linum-bg, 1%);
+        border-left: 1px solid darken(@linum-bg, 5%);
+    }
+
+    #app.dark & {
+        background: @color-primary-darker;
+        li {
+            background: @color-primary-darker;
+            border-left: 1px solid darken(@color-primary-darkest, 5%);
+        }
+        .settings-toggle,
+        ol {
+            background: @color-primary-darkest;
+            color: @color-secondary-text-lighter;
+        }
+        code {
+            color: #839496;
+        }
     }
 }
 
@@ -463,17 +431,9 @@ export default {
 
 }
 
-.settings-content {
-    margin: -.75em -1em; padding: .75em 1em;
-
-    .table td {
-        vertical-align: middle;
-        text-align: left;
-    }
-    .toggle-container {
-        margin-bottom: -2px;
-        border-radius: 0;
-    }
+#codeviewer-settings-content {
+    margin: -.75em -1em;
+    padding: .75em 1em;
 }
 
 .scroller {
@@ -569,9 +529,14 @@ code {
 </style>
 
 <style lang="less">
+@import '~mixins.less';
+
 .code-viewer {
     .whitespace {
         opacity: 0;
+        #app.dark & {
+            color: @color-secondary-text;
+        }
     }
 
     .show-whitespace .whitespace {
@@ -579,19 +544,17 @@ code {
     }
 }
 
-@color-primary: #2c3e50;
-.settings-content {
-    .multiselect__option--highlight {
-        background: @color-primary;
-        &::after {
-            background: @color-primary;
+#app.dark .code-viewer ol
+.btn:not(.btn-success):not(.btn-danger):not(.btn-warning) {
+    background: @color-secondary;
+    &.btn-secondary {
+        background-color: @color-primary-darker;
+        &:hover {
+            background: @color-primary-darker;
         }
-        &.multiselect__option--selected {
-            background: #d9534f;
-            &::after {
-                background: #d9534f;
-            }
-        }
+    }
+    &:hover {
+        background: darken(@color-secondary, 10%);
     }
 }
 </style>

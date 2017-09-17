@@ -3,7 +3,7 @@
 
 import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap-vue/dist/bootstrap-vue.css';
-import 'highlightjs/styles/tomorrow.css';
+import 'highlightjs/styles/solarized-dark.css';
 import '@/style.less';
 
 import Vue from 'vue';
@@ -11,6 +11,7 @@ import { mapActions } from 'vuex';
 import BootstrapVue from 'bootstrap-vue';
 import axios from 'axios';
 import Toasted from 'vue-toasted';
+import localforage from 'localforage';
 
 import App from '@/App';
 import router from '@/router';
@@ -34,6 +35,14 @@ axios.defaults.transformRequest.push((data, headers) => {
 });
 
 Vue.prototype.$http = axios;
+
+localforage.setDriver(localforage.INDEXEDDB);
+Vue.prototype.$hlanguageStore = localforage.createInstance({
+    name: 'highlightLanguageStore',
+});
+Vue.prototype.$whitespaceStore = localforage.createInstance({
+    name: 'showWhitespaceStore',
+});
 
 const reUnescapedHtml = /[&<>"'`]/g;
 const reHasUnescapedHtml = RegExp(reUnescapedHtml.source);

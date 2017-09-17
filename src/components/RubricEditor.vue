@@ -356,6 +356,8 @@ export default {
 </script>
 
 <style lang="less" scoped>
+@import "~mixins.less";
+
 .rubric-editor {
     margin-bottom: 0;
 
@@ -370,7 +372,7 @@ export default {
             cursor: pointer;
             font-size: 1.1rem;
             line-height: 1.25;
-            color: #464a4c;
+            .default-secondary-text-colors;
         }
         .card {
             input {
@@ -400,6 +402,15 @@ export default {
         background: #e6e6e6;
     }
 
+    .card.active, .card:hover .row-header {
+        #app.dark & {
+            background: @color-primary-darker;
+            input {
+                background: @color-primary-darker;
+            }
+        }
+    }
+
     .rubric-items-container {
         border-bottom: 0;
     }
@@ -414,7 +425,10 @@ export default {
     .outer-container {
         overflow: hidden;
         padding: 0;
-        border: 1px solid rgba(0, 0, 0, 0.125);
+        border: 1px solid rgba(0, 0, 0, 0.125) !important;
+        #app.dark & {
+            border: 1px solid @color-primary-darker !important;
+        }
         border-radius: 0.25em;
     }
 
@@ -423,7 +437,7 @@ export default {
         p {
             font-size: 1.1rem;
             line-height: 1.25;
-            color: #464a4c;
+            .default-secondary-text-colors;
             margin: 0;
             min-height: 2em;
         }
@@ -468,13 +482,13 @@ export default {
         }
         background: transparent;
 
-        border: 1px solid transparent;
+        border: 1px solid transparent !important;
 
         &:hover:not(:disabled) {
-            border-color: rgba(0, 0, 0, 0.125);
+            border: 1px solid @color-primary-darker !important;
         }
         &:focus:not(:disabled) {
-            border-color: #5cb3fd;
+            border-color: #5cb3fd !important;
             cursor: text;
         }
 
@@ -529,12 +543,12 @@ export default {
     }
     .item-delete-button:hover,
     .row-delete-button:hover {
-        color: black;
+        .default-text-colors;
         cursor: pointer;
     }
     .item-info-button:hover,
     .row-info-button:hover {
-        color: black;
+        .default-text-colors;
         cursor: help;
     }
 

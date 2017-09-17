@@ -1,7 +1,8 @@
 <template>
-    <div class="loader">
+    <div class="loader" v-if="center">
         <icon name="refresh" :scale="scale" spin></icon>
     </div>
+    <icon v-else name="refresh" :scale="scale" spin></icon>
 </template>
 
 <script>
@@ -12,6 +13,10 @@ export default {
     name: 'loader',
 
     props: {
+        center: {
+            type: Boolean,
+            default: true,
+        },
         scale: {
             type: Number,
             default: 4,

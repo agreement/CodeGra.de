@@ -119,6 +119,12 @@ export default {
     color: #cbcbcb;
     border-bottom: 3px solid transparent;
 
+    @media (max-width: 576px) {
+        padding-bottom: 0;
+        margin-bottom: 0;
+    }
+
+
     &:hover {
         color: white;
     }
@@ -126,6 +132,16 @@ export default {
     &.active {
         border-color: white;
         color: white;
+    }
+
+}
+
+@media (max-width: 576px) {
+    .navbar .navbar-nav:first-child {
+        margin-left: 0.25em;
+    }
+    .navbar .navbar-nav:last-child {
+        flex: 1
     }
 }
 </style>

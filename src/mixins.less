@@ -1,0 +1,369 @@
+@color-secondary: #2980b9;
+@color-secondary-darker: darken(@color-secondary, 7.5%);
+
+@color-primary: #2c3e50;
+@color-primary-darker: darken(@color-primary, 7.5%);
+@color-primary-darkest: darken(@color-primary-darker, 3%);
+
+@color-secondary-text-lighter: #858b8e;
+@color-secondary-text: #464a4c;
+
+@linum-bg: #f8f8f8;
+@line-bg: white;
+
+@line-spacing: .5em;
+@code-linum-width: 4rem;
+
+@alert-danger-color: #a94442;
+
+@text-color: #292b2c;
+@text-color-dark: #d2d4d5;
+
+@background-color: #fff;
+@footer-color: #f5f5f5;
+
+.default-footer-colors {
+    background-color: @footer-color;
+    color: @color-secondary-text;
+    #app.dark & {
+        background-color: @color-primary-darker;
+        color: @color-secondary-text-lighter;
+    }
+}
+
+.default-alter-danger-colors {
+    #app.dark & {
+        background-color: @alert-danger-color;
+        border-color:  @alert-danger-color;
+        color: darken(@alert-danger-color, 30%);
+    }
+}
+
+.default-text-colors {
+    #app.dark & {
+        color: @text-color-dark;
+    }
+    color: @text-color;
+}
+
+.default-secondary-text-colors {
+    #app.dark & {
+        color: @color-secondary-text-lighter;
+    }
+    color: @color-secondary-text;
+}
+
+.default-link-colors {
+    color: @color-primary;
+    &:hover {
+        color: lighten(@color-primary, 10%);
+    }
+    #app.dark & {
+        color: lighten(@color-primary, 15%);
+        &:hover {
+            color: lighten(@color-primary, 30%);
+        }
+    }
+}
+
+.navbar-color {
+    background-color: @color-primary;
+
+    #app.dark & {
+        background-color: @color-primary-darker;
+    }
+}
+
+.default-background {
+    background-color: #fff;
+
+    #app.dark & {
+        background-color: @color-primary;
+    }
+}
+
+.default-color {
+    color: @text-color;
+    #app.dark & {
+        color: @text-color-dark;
+    }
+}
+
+.primary-outline-button-color {
+    color: @color-primary;
+    border-color: @color-primary;
+
+    &:hover {
+        background-color: @color-primary;
+    }
+
+    #app.dark & {
+        color: @color-primary-darker;
+        border-color: @color-primary-darker;
+
+        &:hover {
+            background-color: @color-primary-darker;
+        }
+
+    }
+}
+
+.primary-button-color {
+    background-color: @color-primary;
+    border-color: @color-primary;
+
+    &:hover {
+        background-color: saturate(lighten(@color-primary, 7.5%), 10%);
+        border-color: saturate(lighten(@color-primary, 7.5%), 10%);
+    }
+
+    &[disabled] {
+        background-color: fade(@color-primary, 80);
+        border-color: fade(@color-primary, 60);
+    }
+
+    #app.dark & {
+        background-color: @color-primary-darker;
+        border-color: @color-primary-darker;
+
+        &:hover {
+            background-color: saturate(@color-primary-darkest, 10%);
+            border-color: saturate(@color-primary-darkest, 10%);
+        }
+
+        &[disabled] {
+            background-color: fade(@color-primary-darker, 80);
+            border-color: fade(@color-primary-darker, 60);
+        }
+    }
+}
+
+.default-custom-control-input-colors {
+    #app:not(.dark) & {
+        &:active ~ .custom-control-indicator {
+            background-color: fade(@color-primary, 60);
+        }
+
+        &:focus ~ .custom-control-indicator {
+            box-shadow: 0 0 0 1px white,
+            0 0 0 3px @color-primary;
+        }
+
+        &:checked ~ .custom-control-indicator {
+            background-color: @color-primary;
+        }
+
+        &:disabled ~ .custom-control-indicator {
+            background-color: @color-secondary-text-lighter !important;
+        }
+    }
+
+    #app.dark & {
+        & ~ .custom-control-indicator {
+            background-color: @color-primary;
+            border: 1px solid @color-secondary-text-lighter;
+        }
+        &:disabled ~ .custom-control-indicator {
+            background-color: @color-secondary-text-lighter !important;
+        }
+        &:active ~ .custom-control-indicator {
+            background-color: fade(@color-primary-darker, 60);
+        }
+
+        &:focus ~ .custom-control-indicator {
+            box-shadow: 0 0 0 1px @color-primary,
+                        0 0 0 3px white;
+        }
+
+        &:checked ~ .custom-control-indicator {
+            background-color: white;
+            color: @color-primary;
+            background-color: @text-color-dark;
+            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='%2c3e50' d='M6.564.75l-3.59 3.612-1.538-1.55L0 4.26 2.974 7.25 8 2.193z'/%3E%3C/svg%3E");
+        }
+    }
+}
+
+.default-card-colors {
+    #app.dark & {
+        background-color: @color-primary;
+        border-color: @color-primary-darker;
+        .card-header {
+            background-color: @color-primary-darker;
+            border-color: @color-primary-darker;
+            color: @text-color-dark;
+        }
+    }
+}
+
+.dark-popover-colors {
+    background-color: @color-primary;
+    color: @text-color-dark;
+    box-shadow: 1px 1px 6px @color-primary-darker;
+    &.popover-top::after {
+        border-top-color: @color-primary;
+    }
+    &.popover-left::after {
+        border-left-color: @color-primary;
+    }
+    &.popover-right::after {
+        border-right-color: @color-primary;
+    }
+    &.popover-bottom::after {
+        border-bottom-color: @color-primary;
+    }
+
+    input, textarea {
+        .dark-input-colors;
+    }
+}
+
+.dark-table-colors {
+    background-color: @color-primary;
+    th {
+        border-bottom-color: @color-primary-darker;
+        border-top-color: @color-primary-darker;
+    }
+    td {
+        border-top-color: @color-primary-darker;
+    }
+}
+
+.default-table-colors {
+    #app.dark & {
+        .dark-table-colors;
+    }
+}
+
+.default-collapse-wrapper-colors,
+.default-form-control-colors,
+.default-list-group-item-colors {
+    #app.dark & {
+        background-color: @color-primary;
+        border-color: @color-primary-darker;
+        color: @text-color-dark;
+    }
+}
+
+.default-form-control-colors {
+    #app.dark .has-danger & {
+        border-color: #d9534f;
+    }
+}
+
+.dark-input-colors {
+    background-color: @color-primary;
+    border-color: @color-primary-darker;
+    color: @text-color-dark !important;
+    &::placeholder,
+    &:disabled {
+        color: @color-secondary-text-lighter !important;
+    }
+}
+
+.default-input-colors {
+    #app.dark & {
+        .dark-input-colors;
+    }
+}
+
+.default-button-group-colors {
+    #app & .btn:focus {
+        box-shadow: none;
+    }
+
+    #app.dark & {
+        .btn-secondary:not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info) {
+            background-color: @color-primary;
+            border-color: @color-primary-darker;
+            &:hover:not(:disabled) {
+                background-color: @color-primary-darker;
+            }
+            color: @text-color-dark;
+        }
+    }
+}
+
+
+.dark-input-group-colors {
+    .input-group-addon {
+        background-color: @color-primary-darker;
+        color: @color-secondary-text-lighter;
+    }
+
+    .btn-info {
+        color: @text-color-dark;
+    }
+
+    .input-group-btn .btn-secondary:not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info) {
+        background-color: @color-primary-darker;
+        color: @text-color-dark;
+        &:hover:not(:disabled) {
+            background-color: @color-primary-darkest;
+        }
+        border-color: transparent;
+    }
+}
+
+.default-input-group-colors {
+    & .btn-info {
+        background-color: @color-secondary;
+        border-color: @color-secondary;
+        color: white;
+        &:hover:not(.btn-outline-info) {
+            background-color: darken(@color-secondary, 10%);
+            border-color: darken(@color-secondary, 10%);
+        }
+        &.btn-outline-info:not(:hover) {
+            background-color: transparent;
+            color: @color-secondary !important;
+        }
+    }
+    #app.dark & {
+        .dark-input-group-colors;
+    }
+}
+
+.default-dropdown-menu-colors {
+    #app.dark & {
+        background-color: @color-primary;
+        .dropdown-item {
+            color: @text-color-dark;
+        }
+        .active:not(.dropdown-header), .dropdown-divider {
+            background-color: @color-primary-darker;
+
+        }
+        .dropdown-header {
+            color: @color-secondary-text-lighter;
+        }
+    }
+}
+
+.default-modal-colors {
+    .modal-content {
+        .default-text-colors;
+
+        a {
+            .default-link-colors;
+        }
+
+        button.close {
+            .default-text-colors;
+            opacity: 0.7;
+            text-shadow: none;
+            &:hover {
+                opacity: 1;
+            }
+        }
+
+        #app.dark & {
+            background-color: @color-primary;
+            color: @text-color-dark;
+            .modal-body, .modal-footer, .modal-header {
+                border-color: @color-primary-darker;
+                background-color: @color-primary;
+            }
+        }
+    }
+}

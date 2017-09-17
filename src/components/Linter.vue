@@ -34,7 +34,7 @@
                 </div>
                 <div v-else>
                     <div class="row justify-content-md-center">
-                        <b-btn class="text-center margin large-btn" variant="danger" @click="$root.$emit('show::modal',`modal_${name}`)">Remove output</b-btn>
+                        <b-btn class="text-center margin btn delete" variant="danger" @click="$root.$emit('show::modal',`modal_${name}`)">Remove output</b-btn>
                         <b-modal :id="`modal_${name}`" title="Are you sure?" :hide-footer="true">
                             <div class="row justify-content-md-center" v-if="deleting">
                                 <b-btn class="text-center" variant="outline-danger"><loader :scale="1"/></b-btn>
@@ -201,5 +201,11 @@ export default {
 .progress-text {
     display: block;
     margin-top: 15px;
+}
+
+.btn.delete {
+    height: 3em;
+    margin-top: 15px;
+    width: 14em;
 }
 </style>

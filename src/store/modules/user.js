@@ -164,7 +164,7 @@ const mutations = {
         state.jwtToken = null;
     },
     [types.NEW_SNIPPET](state, { key, value }) {
-        state.snippets[key] = value;
+        state.snippets[key] = { value };
     },
     [types.REMOVE_SNIPPET](state, key) {
         delete state.snippets[key];

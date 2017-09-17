@@ -39,9 +39,11 @@
                     </b-button>
                 </b-popover>
             </b-button-group>
-            <b-button class="submissions-button" @click="goToSubmissions">
-                Submissions
-            </b-button>
+            <b-button-group>
+                <b-button class="submissions-button" @click="goToSubmissions">
+                    Submissions
+                </b-button>
+            </b-button-group>
         </div>
 
         <b-collapse :id="`assignment-${assignment.id}`">
