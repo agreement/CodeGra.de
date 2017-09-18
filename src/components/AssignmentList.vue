@@ -52,17 +52,17 @@
                 :current-page="currentPage"
                 :filter="filterItems"
                 :show-empty="true">
-            <template slot="course_name" scope="item">
-                {{item.item.course.name ? item.item.course.name : '-'}}
-            </template>
-            <template slot="course_role" scope="item">
-                {{item.item.course.role ? item.item.course.role : '-'}}
-            </template>
             <template slot="name" scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
+            <template slot="course_name" scope="item">
+                {{item.item.course.name ? item.item.course.name : '-'}}
+            </template>
             <template slot="deadline" scope="item">
                 {{item.value ? item.value : '-'}}
+            </template>
+            <template slot="course_role" scope="item">
+                {{item.item.course.role ? item.item.course.role : '-'}}
             </template>
             <template slot="state" scope="item">
                 <b-popover placement="top" triggers="hover" content="Hidden"
@@ -124,27 +124,34 @@ export default {
                 done: true,
             },
             currentPage: 1,
+            // Order is encoded but not used by bootstrap vue, see
+            // https://github.com/bootstrap-vue/bootstrap-vue/issues/1074
             fields: {
-                course_name: {
-                    label: 'Course',
-                    sortable: true,
-                },
-                course_role: {
-                    label: 'Role',
-                    sortable: true,
-                },
                 name: {
                     label: 'Assignment',
                     sortable: true,
+                    index: 0,
+                },
+                course_name: {
+                    label: 'Course',
+                    sortable: true,
+                    index: 1,
                 },
                 deadline: {
                     label: 'Deadline',
                     sortable: true,
+                    index: 2,
+                },
+                course_role: {
+                    label: 'Role',
+                    sortable: true,
+                    index: 3,
                 },
                 state: {
                     label: 'State',
                     sortable: true,
                     class: 'text-center',
+                    index: 4,
                 },
             },
             checkboxRoles: {},
