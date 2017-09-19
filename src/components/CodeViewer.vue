@@ -457,7 +457,9 @@ li {
 
     .editable &:hover {
         cursor: pointer;
-        text-decoration: underline;
+        code {
+            text-decoration: underline;
+        }
     }
 }
 
