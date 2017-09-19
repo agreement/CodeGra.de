@@ -18,75 +18,75 @@
             <b>The rubric is not yet saved!</b>
         </b-alert>
         <div class="row">
-            <div class="col-6">
-                <b-input-group>
-                    <b-input-group-button v-if="editable">
-                        <submit-button @click="putFeedback" ref="submitButton"/>
-                    </b-input-group-button>
+            <div class="col-md-6">
+                <b-form-fieldset>
+                    <b-input-group>
+                        <b-input-group-button v-if="editable">
+                            <submit-button @click="putFeedback" ref="submitButton"/>
+                        </b-input-group-button>
 
-                    <input type="number"
-                           class="form-control"
-                           step="any"
-                           min="0"
-                           max="10"
-                           :disabled="!editable"
-                           placeholder="Grade"
-                           @keydown.enter="putFeedback"
-                           v-model="grade"/>
+                        <input type="number"
+                               class="form-control"
+                               step="any"
+                               min="0"
+                               max="10"
+                               :disabled="!editable"
+                               placeholder="Grade"
+                               @keydown.enter="putFeedback"
+                               v-model="grade"/>
 
-                    <div :class="`text-right input-group-addon
-                                 ${rubricOverridden ? 'rubric-overridden' : ''}`"
-                         style="text-align: center !important; display: inline;"
-                         v-if="showRubric">
-                        <b-popover triggers="click"
-                                   placement="top"
-                                   content="Rubric grade was overridden."
-                                   v-if="rubricOverridden">
-                            {{ rubricScore }}
-                        </b-popover>
-                        <span v-else>{{ rubricScore }}</span>
-                    </div>
-                    <b-input-group-button class="delete-button-group">
-                        <b-popover :triggers="showDeleteButton ? 'hover' : ''" placement="top" :content="deleteButtonText">
-                            <submit-button @click="deleteGrade"
-                                           ref="deleteButton"
-                                           default="danger"
-                                           :disabled="!showDeleteButton"
-                                           class="delete-button"
-                                           style="height: 100%;"
-                                           :label="rubricOverridden ? '↩' : '✖'"/>
-                        </b-popover>
-                    </b-input-group-button>
+                        <div :class="`text-right input-group-addon
+                                     ${rubricOverridden ? 'rubric-overridden' : ''}`"
+                             style="text-align: center !important; display: inline;"
+                             v-if="showRubric">
+                            <b-popover triggers="click"
+                                       placement="top"
+                                       content="Rubric grade was overridden."
+                                       v-if="rubricOverridden">
+                                {{ rubricScore }}
+                            </b-popover>
+                            <span v-else>{{ rubricScore }}</span>
+                        </div>
+                        <b-input-group-button class="delete-button-group">
+                            <b-popover :triggers="showDeleteButton ? 'hover' : ''" placement="top" :content="deleteButtonText">
+                                <submit-button @click="deleteGrade"
+                                               ref="deleteButton"
+                                               default="danger"
+                                               :disabled="!showDeleteButton"
+                                               class="delete-button"
+                                               style="height: 100%;"
+                                               :label="rubricOverridden ? '↩' : '✖'"/>
+                            </b-popover>
+                        </b-input-group-button>
 
-                    <b-input-group-button v-if="showRubric">
-                        <b-popover placement="top"
-                                   triggers="hover"
-                                   content="Rubric">
-                            <b-button variant="secondary"
-                                      v-b-toggle.rubric-collapse>
-                                <icon name="bars"/>
-                            </b-button>
-                        </b-popover>
-                    </b-input-group-button>
-                </b-input-group>
-                <grade-history v-if="gradeHistory"
-                               style="margin-top: 0.5em; width: 100%;"
-                               ref="gradeHistory"
-                               :submissionId="submission.id"
-                               :isLTI="assignment.course.is_lti"/>
+                        <b-input-group-button v-if="showRubric">
+                            <b-popover placement="top"
+                                       triggers="hover"
+                                       content="Rubric">
+                                <b-button variant="secondary"
+                                          v-b-toggle.rubric-collapse>
+                                    <icon name="bars"/>
+                                </b-button>
+                            </b-popover>
+                        </b-input-group-button>
+                    </b-input-group>
+                    <grade-history v-if="gradeHistory"
+                                   style="margin-top: 0.5em; width: 100%;"
+                                   ref="gradeHistory"
+                                   :submissionId="submission.id"
+                                   :isLTI="assignment.course.is_lti"/>
+                </b-form-fieldset>
             </div>
-            <div class="col-6">
+            <div class="col-md-6">
                 <b-input-group>
-                    <b-form-input
-                        :textarea="true"
-                        :placeholder="editable ? 'Feedback' : 'No feedback given :('"
-                        :rows="3"
-                        ref="field"
-                        v-model="feedback"
-                        @keydown.native.ctrl.enter="putFeedback"
-                        @keydown.native.tab.capture="expandSnippet"
-                        :disabled="!editable">
-                    </b-form-input>
+                    <textarea :placeholder="editable ? 'Feedback' : 'No feedback given :('"
+                              class="form-control"
+                              :rows="3"
+                              ref="field"
+                              v-model="feedback"
+                              @keydown.native.ctrl.enter="putFeedback"
+                              @keydown.native.tab.capture="expandSnippet"
+                              :disabled="!editable"/>
                 </b-input-group>
             </div>
         </div>
