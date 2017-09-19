@@ -8,6 +8,7 @@ import psef.models as m
 perm_error = pytest.mark.perm_error
 data_error = pytest.mark.data_error
 late_error = pytest.mark.late_error
+only_own = pytest.mark.only_own
 
 
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
@@ -291,7 +292,6 @@ def test_get_all_feedback(
             self.args = [] if args is None else args
 
         def start(self):
-            print(self.args)
             self.run(*self.args)
 
     monkeypatch.setattr(threading, 'Thread', MyThread)
@@ -393,3 +393,133 @@ def test_get_all_feedback(
             assert res.status_code == 200
 
             assert expected.match(res.data.decode('utf8'))
+
+
+@pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
+@pytest.mark.parametrize(
+    'named_user', [
+        'Thomas Schaper',
+        perm_error(error=403)('admin'),
+        only_own(('Stupid1')),
+        perm_error(error=401)('NOT_LOGGED_IN'),
+    ],
+    indirect=True
+)
+def test_get_assignment_all_feedback(
+    named_user, request, logged_in, test_client, assignment_real_works,
+    session, error_template, ta_user, monkeypatch
+):
+    class MyThread:
+        def __init__(self, target, args=None):
+            self.run = target
+            self.args = [] if args is None else args
+
+        def start(self):
+            print(self.args)
+            self.run(*self.args)
+
+    monkeypatch.setattr(threading, 'Thread', MyThread)
+
+    assignment, work = assignment_real_works
+    perm_err = request.node.get_marker('perm_error')
+    only_own_subs = request.node.get_marker('only_own')
+
+    code_id = session.query(m.File.id).filter(
+        m.File.work_id == work['id'],
+        m.File.parent != None,  # NOQA
+        m.File.name != '__init__',
+    ).first()[0]
+
+    with logged_in(ta_user):
+        res = test_client.req(
+            'patch',
+            f'/api/v1/submissions/{work["id"]}',
+            200,
+            data={'grade': 5,
+                  'feedback': 'Niet zo goed'},
+            result=dict
+        )
+        test_client.req(
+            'put',
+            f'/api/v1/code/{code_id}/comments/0',
+            204,
+            data={'comment': 'for line 0'},
+        )
+        test_client.req(
+            'put',
+            f'/api/v1/code/{code_id}/comments/1',
+            204,
+            data={'comment': 'for line - 1'},
+        )
+
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/linter',
+            200,
+            data={'name': 'Flake8',
+                  'cfg': ''}
+        )
+
+    def match_res(res):
+        general = 'Niet zo goed'
+        user = ['test.py:0:0: for line 0', 'test.py:1:0: for line - 1']
+        assert len(res) == 1 if only_own_subs else 3
+        linter = None
+
+        for key, val in res.items():
+            if key == str(work['id']):
+                assert val['user'] == user
+                assert val['general'] == general
+                assert len(val['linter']) >= 1
+            else:
+                assert not val['user']
+                assert val['general'] == ''
+                assert len(val['linter']) >= 1
+
+            if linter is None:
+                linter = val['linter']
+            else:
+                assert linter == val['linter']
+
+    with logged_in(named_user):
+        if perm_err:
+            code = perm_err.kwargs['error']
+        else:
+            code = 200
+
+        if only_own_subs:
+            ex_res = {
+                str(work["id"]): {
+                    'user': [],
+                    'linter': [],
+                    'general': ''
+                }
+            }
+        elif code == 200:
+            ex_res = dict
+        else:
+            ex_res = error_template
+        res = test_client.req(
+            'get',
+            f'/api/v1/assignments/{assignment.id}/feedbacks/',
+            code,
+            result=ex_res,
+        )
+
+        if not (perm_err or only_own_subs):
+            match_res(res)
+
+    assig = session.query(m.Assignment).get(assignment.id)
+    assig.state = m._AssignmentStateEnum.done
+    session.commit()
+
+    with logged_in(named_user):
+        res = test_client.req(
+            'get',
+            f'/api/v1/assignments/{assignment.id}/feedbacks/',
+            code,
+            result=dict if code == 200 else error_template,
+        )
+
+        if not perm_err:
+            match_res(res)

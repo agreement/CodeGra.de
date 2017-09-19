@@ -34,7 +34,7 @@ if t.TYPE_CHECKING:  # pragma: no cover
         def get(self, *args: t.Any, **kwargs: t.Any) -> t.Union[T, None]:
             ...
 
-        def all(self) -> t.Sequence[T]:
+        def all(self) -> t.List[T]:
             ...
 
         def first(self) -> t.Optional[T]:
@@ -50,6 +50,9 @@ if t.TYPE_CHECKING:  # pragma: no cover
             ...
 
         def update(self, vals: t.Mapping[str, t.Any]) -> None:
+            ...
+
+        def join(self, *args: t.Any, **kwargs: t.Any) -> '_MyQuery[T]':
             ...
 
         def order_by(self, *args: t.Any, **kwargs: t.Any) -> '_MyQuery[T]':
@@ -1205,6 +1208,40 @@ class Work(Base):
                     )
                 )
 
+    def get_all_feedback(self) -> t.Tuple[t.Iterable[str], t.Iterable[str], ]:
+        """Get all feedback for this work.
+
+        :returns: A tuple of two iterators both producing human readable
+            representations of the given feedback. The first iterator produces
+            the feedback given by a person and the second the feedback given by
+            the linters.
+        """
+
+        def _get_user_feedback() -> t.Iterable[str]:
+            comments = Comment.query.filter(
+                Comment.file.has(work=self),  # type: ignore
+            ).order_by(
+                Comment.file_id.asc(),  # type: ignore
+                Comment.line.asc(),  # type: ignore
+            )
+            for c in comments:
+                yield f'{c.file.name}:{c.line}:0: {c.comment}'
+
+        def _get_linter_feedback() -> t.Iterable[str]:
+            linter_comments = LinterComment.query.filter(
+                LinterComment.file.has(work=self)  # type: ignore
+            ).order_by(
+                LinterComment.file_id.asc(),  # type: ignore
+                LinterComment.line.asc(),  # type: ignore
+            )
+            for lc in linter_comments:
+                yield (
+                    f'{lc.file.name}:{lc.line}:0: ({lc.linter.tester.name}'
+                    f' {lc.linter_code}) {lc.comment}'
+                )
+
+        return _get_user_feedback(), _get_linter_feedback()
+
     def remove_selected_rubric_item(self, row_id: int) -> None:
         """Deselect selected :class:`RubricItem` on row.
 
@@ -1949,7 +1986,7 @@ class Assignment(Base):
         else:  # pragma: no cover
             raise TypeError
 
-    def get_all_latest_submissions(self) -> t.List[Work]:
+    def get_all_latest_submissions(self) -> '_MyQuery[Work]':
         """Get a list of all the latest submissions (:class:`Work`) by each
         :class:`User` who has submitted at least one work for this assignment.
 
@@ -1960,13 +1997,13 @@ class Assignment(Base):
             func.max(Work.created_at).label('max_date')
         ).filter_by(assignment_id=self.id
                     ).group_by(Work.user_id).subquery('sub')
-        return db.session.query(Work).join(
+        return Work.query.join(
             sub,
             and_(
                 sub.c.user_id == Work.user_id,
                 sub.c.max_date == Work.created_at
             )
-        ).filter(Work.assignment_id == self.id).all()
+        ).filter(Work.assignment_id == self.id)
 
 
 class Snippet(Base):

@@ -23,6 +23,7 @@
                            v-if="rubric"/>
             <submissions-exporter v-if="canDownload && submissions.length"
                                   :table="getTable"
+                                  :assignment-id="assignment.id"
                                   :filename="exportFilename">
                 Export feedback
             </submissions-exporter>

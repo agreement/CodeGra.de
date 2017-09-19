@@ -88,19 +88,7 @@ def get_feedback(work: models.Work) -> t.Mapping[str, str]:
         which can be given to ``GET - /api/v1/files/<name>`` and
         ``output_name`` which is the resulting file should be named.
     """
-    comments = models.Comment.query.filter(
-        models.Comment.file.has(work=work),  # type: ignore
-    ).order_by(
-        models.Comment.file_id.asc(),  # type: ignore
-        models.Comment.line.asc(),  # type: ignore
-    )
-
-    linter_comments = models.LinterComment.query.filter(
-        models.LinterComment.file.has(work=work)  # type: ignore
-    ).order_by(
-        models.LinterComment.file_id.asc(),  # type: ignore
-        models.LinterComment.line.asc(),  # type: ignore
-    )
+    comments, linter_comments = work.get_all_feedback()
 
     filename = f'{work.assignment.name}-{work.user.name}-feedback.txt'
 
@@ -116,19 +104,11 @@ def get_feedback(work: models.Work) -> t.Mapping[str, str]:
             )
         )
         for comment in comments:
-            fp.write(
-                '{}:{}:0: {}\n'.
-                format(comment.file.name, comment.line, comment.comment)
-            )
-        fp.write('\nLinter comments:\n')
+            fp.write(f'{comment}\n')
 
+        fp.write('\nLinter comments:\n')
         for lcomment in linter_comments:
-            fp.write(
-                '{}:{}:0: ({} {}) {}\n'.format(
-                    lcomment.file.name, lcomment.line, lcomment.linter.tester.
-                    name, lcomment.linter_code, lcomment.comment
-                )
-            )
+            fp.write(f'{lcomment}\n')
 
     return {'name': name, 'output_name': filename}
 

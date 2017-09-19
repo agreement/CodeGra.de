@@ -75,6 +75,27 @@ def login_required(fn: t.Callable) -> t.Callable:
 
 
 @login_required
+def ensure_enrolled(course_id: int) -> None:
+    """Ensure that the current user is enrolled in the given course.
+
+    :param course_id: The id of the course to check for.
+
+    :returns: Nothing.
+
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If the user is not enrolled.
+        (INCORRECT_PERMISSION)
+    """
+    if course_id not in psef.current_user.courses:
+        raise PermissionException(
+            'You are not enrolled in this course.',
+            'The user "{}" is not enrolled in course "{}"'.format(
+                psef.current_user.id, course_id
+            ), APICodes.INCORRECT_PERMISSION, 403
+        )
+
+
+@login_required
 def ensure_can_see_grade(work: 'psef.models.Work') -> None:
     """Ensure the current user can see the grade of the given work.
 
