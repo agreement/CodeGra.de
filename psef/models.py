@@ -1002,7 +1002,7 @@ class Work(Base):
         :returns: Nothing
         """
         self._grade = new_grade
-        passback = self.assignment and self.assignment.should_passback
+        passback = self.assignment.should_passback
         grade = self.grade
         history = GradeHistory(
             is_rubric=self._grade is None and grade is not None,
@@ -1020,28 +1020,35 @@ class Work(Base):
     def selected_rubric_points(self) -> float:
         return sum(item.points for item in self.selected_items)
 
-    def passback_grade(self) -> None:
+    def passback_grade(self, initial: bool=False) -> None:
         """Initiates a passback of the grade to the LTI consumer via the
         :class:`LTIProvider`.
 
+        :param initial: Should we do a initial LTI grade passback with no
+            result so that the real grade won't show as too late.
         :returns: Nothing
         """
-        from psef.lti import LTI
         if self.assignment.lti_outcome_service_url is not None:
             lti_provider = self.assignment.course.lti_provider
-            LTI.passback_grade(
+            if initial:
+                url = (
+                    '{}/'
+                    'courses/{}/assignments/{}/submissions?inLTI=true'
+                ).format(
+                    app.config['EXTERNAL_URL'],
+                    self.assignment.course_id,
+                    self.assignment_id,
+                )
+            else:
+                url = None
+
+            psef.lti.LTI.passback_grade(
                 lti_provider.key,
                 lti_provider.secret,
-                self.grade,
+                False if initial else self.grade,
                 self.assignment.lti_outcome_service_url,
                 self.assignment.assignment_results[self.user_id].sourcedid,
-                url=(
-                    '{}/'
-                    'courses/{}/assignments/{}/submissions/{}?lti=true'
-                ).format(
-                    app.config['EXTERNAL_URL'], self.assignment.course_id,
-                    self.assignment_id, self.id
-                )
+                url=url,
             )
             sq = db.session.query(GradeHistory.id).filter_by(
                 work_id=self.id
@@ -1076,8 +1083,6 @@ class Work(Base):
             self.selected_items.append(item)
 
         self.set_grade(None, user)
-        if self.assignment.should_passback:
-            self.passback_grade()
 
     def __to_json__(self) -> t.Mapping[str, t.Any]:
         """Returns the JSON serializable representation of this work.
@@ -1856,6 +1861,14 @@ class Assignment(Base):
                     pool.submit(sub.passback_grade)
 
     @property
+    def is_lti(self) -> bool:
+        """Is this assignment a LTI assignment.
+
+        :returns: A boolean indicating if this is the case.
+        """
+        return self.lti_outcome_service_url is not None
+
+    @property
     def max_rubric_points(self) -> t.Optional[float]:
         """Get the maximum amount of points possible for the rubric
 
@@ -1959,7 +1972,7 @@ class Assignment(Base):
             'created_at': self.created_at.isoformat(),
             'deadline': self.deadline.isoformat(),
             'name': self.name,
-            'is_lti': self.lti_outcome_service_url is not None,
+            'is_lti': self.is_lti,
             'course': self.course,
             'whitespace_linter': self.whitespace_linter,
         }

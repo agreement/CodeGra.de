@@ -89,7 +89,6 @@ def set_role_permission(role_id: int) -> EmptyResponse:
             ).format(role_id), APICodes.INCORRECT_PERMISSION, 403
         )
 
-    print(perm_name)
     perm = helpers.filter_single_or_404(
         models.Permission, models.Permission.name == perm_name,
         ~models.Permission.course_permission

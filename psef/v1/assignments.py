@@ -562,12 +562,15 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
             'can_upload_after_deadline', assignment.course_id
         )
 
-    work = models.Work(assignment_id=assignment_id, user_id=current_user.id)
+    work = models.Work(assignment=assignment, user_id=current_user.id)
     db.session.add(work)
 
     tree = psef.files.process_files(files)
     work.add_file_tree(db.session, tree)
+    db.session.flush()
 
+    if assignment.is_lti:
+        work.passback_grade(initial=True)
     db.session.commit()
 
     work.run_linter()

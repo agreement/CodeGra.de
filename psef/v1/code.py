@@ -434,7 +434,6 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
         new_path = t.cast(str, request.args['new_path'])
         path_arr, _ = psef.files.split_path(new_path)
         new_name = path_arr[-1]
-        print(other.name)
         new_parent = code.work.search_file(
             '/'.join(path_arr[:-1]) + '/', other
         )

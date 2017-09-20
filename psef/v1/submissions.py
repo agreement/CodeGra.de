@@ -386,7 +386,6 @@ def patch_submission(submission_id: int) -> JSONResponse[models.Work]:
                 f'is {content["grade"]} which is not between 0 and 10',
                 APICodes.INVALID_PARAM, 400
             )
-        print(content)
 
         work.set_grade(grade, current_user)
 
