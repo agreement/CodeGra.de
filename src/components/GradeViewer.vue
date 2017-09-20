@@ -168,7 +168,13 @@ export default {
         },
 
         rubricScore() {
-            return `${this.rubricPoints.selected} / ${this.rubricPoints.max}`;
+            const toFixed = (val) => {
+                const fval = parseFloat(val);
+                return fval.toFixed(10).replace(/[.,]([1-9]*)0+$/, '.$1').replace(/\.$/, '');
+            };
+            const scored = toFixed(this.rubricPoints.selected);
+            const max = toFixed(this.rubricPoints.max);
+            return `${scored} / ${max}`;
         },
     },
 
