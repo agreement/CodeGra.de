@@ -248,9 +248,13 @@ def test_lti_grade_passback(
     class Patch:
         def __init__(self):
             self.called = False
+            self.args = []
+            self.kwargs = {}
 
         def __call__(self, *args, **kwargs):
             self.called = True
+            self.args = args
+            self.kwargs = kwargs
 
     patch_delete = Patch()
     patch_replace = Patch()
@@ -341,10 +345,20 @@ def test_lti_grade_passback(
 
     assig, token = do_lti_launch()
     work = get_upload_file(token, assig['id'])
+
+    assert patch_replace.called
+    assert not patch_delete.called
+    assert patch_replace.args[0] is None
+    assert 'url' in patch_replace.kwargs['result_data']
+    patch_delete.called = False
+    patch_replace.called = False
+
     set_grade(token, 5.0, work['id'])
 
     assert not patch_delete.called
     assert not patch_replace.called
+    patch_delete.called = False
+    patch_replace.called = False
 
     with app.app_context():
         test_client.req(
@@ -359,6 +373,10 @@ def test_lti_grade_passback(
 
         assert patch_replace.called
         assert not patch_delete.called
+        assert patch_replace.args[0] == '0.5'
+        assert patch_replace.kwargs['result_data'] is None
+        patch_delete.called = False
+        patch_replace.called = False
 
         if patch:
             test_client.req(
@@ -376,8 +394,14 @@ def test_lti_grade_passback(
                 ],
                 headers={'Authorization': f'Bearer {token}'},
             )
-    patch_replace.called = False
-    patch_delete.called = False
+
+        set_grade(token, 6, work['id'])
+        assert patch_replace.called
+        assert not patch_delete.called
+        assert patch_replace.args[0] == '0.6'
+        assert patch_replace.kwargs['result_data'] is None
+        patch_delete.called = False
+        patch_replace.called = False
 
     set_grade(token, None, work['id'])
 

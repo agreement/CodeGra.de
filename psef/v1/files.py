@@ -59,7 +59,8 @@ def post_file() -> JSONResponse[str]:
 
 
 @api.route('/files/<file_name>', methods=['GET'])
-def get_file(file_name: str) -> werkzeug.wrappers.Response:
+@api.route('/files/<file_name>/<name>')
+def get_file(file_name: str, name: str='export') -> werkzeug.wrappers.Response:
     """Serve some specific file in the uploads folder.
 
     .. :quickref: File; Get an uploaded file directory.
@@ -72,7 +73,7 @@ def get_file(file_name: str) -> werkzeug.wrappers.Response:
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
-    name = request.args.get('name', 'export')
+    name = request.args.get('name', name)
 
     directory = app.config['MIRROR_UPLOAD_DIR']
     error = False
@@ -86,7 +87,7 @@ def get_file(file_name: str) -> werkzeug.wrappers.Response:
 
     try:
         mimetype = request.args.get('mime', None)
-        as_attachment = request.args.get('not_as_attachment', None) is None
+        as_attachment = request.args.get('not_as_attachment', False)
         return send_from_directory(
             directory,
             file_name,

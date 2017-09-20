@@ -282,6 +282,10 @@ export default {
 </script>
 
 <style lang="less" scoped>
+@import '~mixins.less';
+
+@active-color: #e6e6e6;
+
 .outer-container {
     overflow: hidden;
     padding: 0;
@@ -302,7 +306,10 @@ export default {
         border-right: 0;
     }
     .card:hover, .card.active {
-        background: #e6e6e6;
+        background: @active-color;
+        #app.dark & {
+            background: @color-primary-darkest;
+        }
     }
 }
 
@@ -367,12 +374,18 @@ export default {
         cursor: pointer;
 
         &:hover {
-            background: #e6e6e6;
+            background: @active-color;
+            #app.dark & {
+                background: @color-primary-darkest;
+            }
         }
     }
 
     &.selected {
-        background: #e6e6e6;
+        background: @active-color;
+        #app.dark & {
+            background: @color-primary-darkest;
+        }
     }
 }
 

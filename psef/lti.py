@@ -377,25 +377,22 @@ class LTI:
     def passback_grade(
         key: str,
         secret: str,
-        grade: t.Optional[float],
+        grade: t.Union[float, None, bool, str, int],
         service_url: str,
         sourcedid: str,
-        text: str=None,
-        url: str=None
+        url: str=None,
     ) -> 'OutcomeResponse':
         """Do a LTI grade passback.
 
         :param key: The oauth key to use.
         :param secret: The oauth secret to use.
         :param grade: The grade to pass back, between 0 and
-            10. If it is `None` the grade will be deleted.
+            10. If it is `None` the grade will be deleted, if it is a ``bool``
+            no grade information will be send.
         :param service_url: The url used for grade passback.
         :param sourcedid: The ``sourcedid`` used in the grade passback.
-        :param text: The text used as general feedback to the student.
-        :type text: None or str
         :param url: The url used as general feedback to the student which will
             probably be clickable.
-        :type url: None or str
         :returns: The response of the LTI consumer.
         """
         req = OutcomeRequest(
@@ -405,17 +402,17 @@ class LTI:
             lis_result_sourcedid=sourcedid
         )
         opts = None
-        if text is not None and url is not None:
-            raise ValueError('Only text or url can be passed, not both')
-        elif text is not None:
-            opts = {'text': text}
-        elif url is not None:
+        if url is not None:
             opts = {'url': url}
 
         if grade is None:
             return req.post_delete_result()
         else:
-            return req.post_replace_result(str(grade / 10), result_data=opts)
+            if isinstance(grade, bool):
+                grade = None
+            elif not isinstance(grade, str):
+                grade = str(grade / 10)
+            return req.post_replace_result(grade, result_data=opts)
 
 
 class CanvasLTI(LTI):
@@ -536,7 +533,8 @@ DELETE_REQUEST = 'deleteResult'
 READ_REQUEST = 'readResult'
 
 
-class OutcomeRequest:
+# TODO: Actually cover this in some way using unit tests
+class OutcomeRequest:  # pragma: no cover
     '''
     Class for consuming & generating LTI Outcome Requests.
 
@@ -595,8 +593,9 @@ class OutcomeRequest:
             Note: ONLY ONE of these values can be in the dict at a time,
             due to the Canvas specification.
 
-        :param str: text: text
-        :param str: url: url
+        :param str text: text
+        :param str url: url
+        :param str launchUrl: The lti launch url
         '''
         self.operation = REPLACE_REQUEST
         self.score = score
@@ -608,14 +607,14 @@ class OutcomeRequest:
                     '{0} entries were found.'.format(len(result_data))
                 )
                 raise ValueError(error_msg)
-            elif 'text' not in result_data and 'url' not in result_data:
+            elif any(a in result_data for a in ['url', 'text', 'launchUrl']):
+                return self.post_outcome_request()
+            else:
                 error_msg = (
                     'Dictionary result_data can only have the key '
                     '"text" or the key "url".'
                 )
                 raise ValueError(error_msg)
-            else:
-                return self.post_outcome_request()
         else:
             return self.post_outcome_request()
 
@@ -773,8 +772,10 @@ class OutcomeRequest:
         sourcedid = etree.SubElement(guid, 'sourcedId')
         sourcedid.text = self.lis_result_sourcedid
 
-        if self.score is not None:
+        if self.score is not None or self.result_data:
             result = etree.SubElement(record, 'result')
+
+        if self.score is not None:
             result_score = etree.SubElement(result, 'resultScore')
             language = etree.SubElement(result_score, 'language')
             language.text = 'en'
@@ -789,6 +790,11 @@ class OutcomeRequest:
             elif 'url' in self.result_data:
                 resultDataURL = etree.SubElement(resultData, 'url')
                 resultDataURL.text = self.result_data['url']
+            elif 'launchUrl' in self.result_data:
+                resultDataLaunchURL = etree.SubElement(
+                    resultData, 'ltiLaunchUrl'
+                )
+                resultDataLaunchURL.text = self.result_data['launchUrl']
 
         return etree.tostring(root, xml_declaration=True, encoding='utf-8')
 
@@ -798,7 +804,8 @@ CODE_MAJOR_CODES = ['success', 'processing', 'failure', 'unsupported']
 SEVERITY_CODES = ['status', 'warning', 'error']
 
 
-class OutcomeResponse:
+# TODO: Actually cover this in some way using unit tests
+class OutcomeResponse:  # pragma: no cover
     '''
     This class consumes & generates LTI Outcome Responses.
 

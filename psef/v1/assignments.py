@@ -97,6 +97,53 @@ def get_assignment(assignment_id: int) -> JSONResponse[models.Assignment]:
     return jsonify(assignment)
 
 
+@api.route("/assignments/<int:assignment_id>/feedbacks/", methods=['GET'])
+@auth.login_required
+def get_assignments_feedback(
+    assignment_id: int
+) -> JSONResponse[t.Mapping[str, t.Mapping[str, t.Union[t.Sequence[str], str]]]
+                  ]:
+    """Get all feedbacks for all latest submissions for a given assignment.
+
+    .. :quickref: Assignment; Get feedback for all submissions in a assignment.
+
+    :param int assignment_id: The assignment to query for.
+    :returns: A mapping between the id of the submission and a object contain
+        three keys: ``general`` for general feedback as a string, ``user`` for
+        user feedback as a list of strings and ``linter`` for linter feedback
+        as a list of strings. If a user cannot see others work only submissions
+        by the current users are returned.
+    """
+    assignment = helpers.get_or_404(models.Assignment, assignment_id)
+
+    auth.ensure_enrolled(assignment.course_id)
+
+    latest_subs = assignment.get_all_latest_submissions()
+    try:
+        auth.ensure_permission('can_see_others_work', assignment.course_id)
+    except auth.PermissionException:
+        latest_subs = latest_subs.filter_by(user_id=current_user.id)
+
+    res = {}
+    for sub in latest_subs:
+        try:
+            # This call should be cached in auth.py
+            auth.ensure_can_see_grade(sub)
+
+            users, linters = sub.get_all_feedback()
+            item = {
+                'general': sub.comment or '',
+                'user': list(users),
+                'linter': list(linters),
+            }
+        except auth.PermissionException:
+            item = {'user': [], 'linter': [], 'general': ''}
+
+        res[str(sub.id)] = item
+
+    return jsonify(res)
+
+
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
 def update_assignment(assignment_id: int) -> EmptyResponse:
     """Update the given :class:`.models.Assignment` with new values.
@@ -515,12 +562,15 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
             'can_upload_after_deadline', assignment.course_id
         )
 
-    work = models.Work(assignment_id=assignment_id, user_id=current_user.id)
+    work = models.Work(assignment=assignment, user_id=current_user.id)
     db.session.add(work)
 
     tree = psef.files.process_files(files)
     work.add_file_tree(db.session, tree)
+    db.session.flush()
 
+    if assignment.is_lti:
+        work.passback_grade(initial=True)
     db.session.commit()
 
     work.run_linter()
@@ -589,7 +639,7 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
                 APICodes.INVALID_PARAM, 400
             )
 
-    submissions = assignment.get_all_latest_submissions()
+    submissions = assignment.get_all_latest_submissions().all()
     if not submissions:
         return make_empty_response()
 

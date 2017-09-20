@@ -1,6 +1,7 @@
 <template>
     <b-navbar class="lti-navbar navbar" v-if="lti">
-        <img class="logo" src="/static/img/codegrade-inv.svg">
+        <img class="logo" src="/static/img/codegrade.svg" v-if="hasDarkMode">
+        <img class="logo" src="/static/img/codegrade-inv.svg" v-else>
     </b-navbar>
     <b-navbar toggleable type="inverse" sticky="true" class="navbar" v-else>
         <b-nav-toggle target="nav_collapse"></b-nav-toggle>
@@ -48,6 +49,9 @@ export default {
     name: 'nav-bar',
 
     computed: {
+        hasDarkMode() {
+            return this.$store.getters['pref/darkMode'];
+        },
         lti() {
             if (this.$route.query.inLTI !== undefined) {
                 window.inLTI = this.$route.query.inLTI;
@@ -90,8 +94,6 @@ export default {
     }
     padding-top: 15px;
     padding-bottom: 15px;
-    border-bottom: #eceeef solid 1px;
-    margin-bottom: 1em;
 }
 
 @media (min-width: 768px) {
@@ -119,6 +121,12 @@ export default {
     color: #cbcbcb;
     border-bottom: 3px solid transparent;
 
+    @media (max-width: 576px) {
+        padding-bottom: 0;
+        margin-bottom: 0;
+    }
+
+
     &:hover {
         color: white;
     }
@@ -126,6 +134,16 @@ export default {
     &.active {
         border-color: white;
         color: white;
+    }
+
+}
+
+@media (max-width: 576px) {
+    .navbar .navbar-nav:first-child {
+        margin-left: 0.25em;
+    }
+    .navbar .navbar-nav:last-child {
+        flex: 1
     }
 }
 </style>

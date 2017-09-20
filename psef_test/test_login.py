@@ -75,6 +75,7 @@ def test_login(
                     'id': int,
                     'name': 'NEW_USER',
                     'username': 'a-the-a-er',
+                    'hidden': False,
                 },
             'access_token': str
         }
@@ -187,6 +188,7 @@ def test_login_duplicate_email(
                         'id': int,
                         'name': 'NEW_USER',
                         'username': user.username,
+                        'hidden': False,
                     },
                 'access_token': str
             }

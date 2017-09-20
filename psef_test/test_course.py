@@ -215,7 +215,7 @@ def test_get_course_assignments(
         (
             'Programmeertalen', [
                 'Thomas Schaper', 'Devin Hillenius', 'Stupid1', 'Stupid2',
-                'Stupid3', 'Stupid4', 'b', 'Robin'
+                'Stupid3', 'Stupid4', 'b', 'Robin', 'Œlµo'
             ]
         )
     ],

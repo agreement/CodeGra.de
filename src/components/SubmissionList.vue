@@ -23,6 +23,7 @@
                            v-if="rubric"/>
             <submissions-exporter v-if="canDownload && submissions.length"
                                   :table="getTable"
+                                  :assignment-id="assignment.id"
                                   :filename="exportFilename">
                 Export feedback
             </submissions-exporter>
@@ -52,7 +53,7 @@
                 {{item.value.name ? item.value.name : '-'}}
             </template>
             <template slot="grade" scope="item">
-                {{item.value ? item.value : '-'}}
+                {{item.value ? parseFloat(item.value).toFixed(2) : '-'}}
             </template>
             <template slot="created_at" scope="item">
                 {{item.value ? item.value : '-'}}
@@ -240,6 +241,11 @@ export default {
         },
 
         updateAssignee(newId, { item: submission }) {
+            const oldId = submission.assignee ? submission.assignee.id : null;
+            if (oldId === newId) {
+                return;
+            }
+
             this.$set(this.assigneeUpdating, submission.id, true);
 
             let res;

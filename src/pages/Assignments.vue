@@ -36,13 +36,13 @@ export default {
             this.$http.get('/api/v1/assignments/'),
             this.$http.get('/api/v1/login?type=roles'),
         ]).then(([assignments, roles]) => {
-            this.loading = false;
             this.assignments = assignments.data.map((assig) => {
                 assig.course.role = roles.data[assig.course.id];
                 assig.deadline = formatDate(assig.deadline);
                 assig.created_at = formatDate(assig.created_at);
                 return assig;
             });
+            this.loading = false;
         });
     },
 

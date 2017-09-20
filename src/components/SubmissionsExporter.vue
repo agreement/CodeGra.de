@@ -29,8 +29,7 @@
                              assignment will be exported.<br>The <i>Current</i> option only
                              exports the submissions that are shown by the current filter that
                              is applied to the list.">
-                <b-form-radio v-model="exportSetting" :options="['All', 'Current']">
-                </b-form-radio>
+                <b-form-radio v-model="exportSetting" :options="['All', 'Current']"/>
             </b-form-fieldset>
         </b-collapse>
     </div>
@@ -58,29 +57,64 @@ export default {
             type: String,
             default: 'export.csv',
         },
+        assignmentId: {
+            type: Number,
+            default: 0,
+            required: true,
+        },
         columns: {
             type: Array,
-            default: function defaultColumns() {
+            default() {
                 return [
                     {
                         name: 'User',
-                        enabled: [true],
+                        enabled: true,
                         getter: submission => submission.user.name,
                     },
                     {
                         name: 'Grade',
-                        enabled: [true],
+                        enabled: true,
                         getter: submission => submission.grade,
                     },
                     {
                         name: 'Created at',
-                        enabled: [true],
+                        enabled: true,
                         getter: submission => submission.created_at,
                     },
                     {
                         name: 'Assigned to',
-                        enabled: [true],
-                        getter: submission => submission.assignee,
+                        enabled: true,
+                        getter: submission => (submission.assignee ? submission.assignee.name : ''),
+                    },
+                    {
+                        name: 'General feedback',
+                        enabled: false,
+                        getter: (submission) => {
+                            if (submission.feedback && submission.feedback.general !== '') {
+                                return submission.feedback.general;
+                            }
+                            return '';
+                        },
+                    },
+                    {
+                        name: 'Line feedback',
+                        enabled: false,
+                        getter: (submission) => {
+                            if (submission.feedback && submission.feedback.user) {
+                                return submission.feedback.user.join('\n');
+                            }
+                            return '';
+                        },
+                    },
+                    {
+                        name: 'Linter feedback',
+                        enabled: false,
+                        getter: (submission) => {
+                            if (submission.feedback && submission.feedback.linter) {
+                                return submission.feedback.user.join('\n');
+                            }
+                            return '';
+                        },
                     },
                 ];
             },
@@ -94,7 +128,7 @@ export default {
         },
 
         enabledColumns() {
-            return this.columns.filter(col => col.enabled[0]);
+            return this.columns.filter(col => col.enabled);
         },
 
         currentFilename() {
@@ -111,24 +145,38 @@ export default {
 
 
     methods: {
-        createCSV: function createCSV() {
+        createCSV() {
             const data = [];
             const idx = Object.keys(this.enabledColumns);
-            for (let i = 0; i < this.items.length; i += 1) {
-                const item = this.items[i];
-                const row = {};
-                for (let j = 0; j < idx.length; j += 1) {
-                    const col = this.enabledColumns[idx[j]];
-                    row[col.name] = col.getter(item);
-                }
-                data.push(row);
+            let cont;
+
+            if (this.enabledColumns.find(item => item.name.endsWith('feedback')) === undefined) {
+                cont = Promise.resolve({ data: {} });
+            } else {
+                cont = this.$http.get(`/api/v1/assignments/${this.assignmentId}/feedbacks/`).catch(() => ({
+                    data: {},
+                }));
             }
-            const csv = Baby.unparse({
-                fields: this.enabledColumns.map(obj => obj.name),
-                data,
-            });
-            this.$http.post('/api/v1/files/', csv).then((response) => {
-                window.open(`/api/v1/files/${response.data}?name=${this.currentFilename}`);
+
+            cont.then(({ data: feedback }) => {
+                for (let i = 0; i < this.items.length; i += 1) {
+                    const item = Object.assign({
+                        feedback: feedback[this.items[i].id],
+                    }, this.items[i]);
+                    const row = {};
+                    for (let j = 0; j < idx.length; j += 1) {
+                        const col = this.enabledColumns[idx[j]];
+                        row[col.name] = col.getter(item);
+                    }
+                    data.push(row);
+                }
+                const csv = Baby.unparse({
+                    fields: this.enabledColumns.map(obj => obj.name),
+                    data,
+                });
+                this.$http.post('/api/v1/files/', csv).then((response) => {
+                    window.open(`/api/v1/files/${response.data}/${this.currentFilename}`);
+                });
             });
         },
     },

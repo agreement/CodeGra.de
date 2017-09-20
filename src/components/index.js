@@ -28,6 +28,7 @@ import CourseList from './CourseList';
 import RubricEditor from './RubricEditor';
 import SubmitButton from './SubmitButton';
 import PrivacyNote from './PrivacyNote';
+import PreferenceManager from './PreferenceManager';
 
 export {
     Linters,
@@ -60,4 +61,5 @@ export {
     RubricEditor,
     SubmitButton,
     PrivacyNote,
+    PreferenceManager,
 };

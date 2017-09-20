@@ -52,17 +52,17 @@
                 :current-page="currentPage"
                 :filter="filterItems"
                 :show-empty="true">
-            <template slot="course_name" scope="item">
-                {{item.item.course.name ? item.item.course.name : '-'}}
-            </template>
-            <template slot="course_role" scope="item">
-                {{item.item.course.role ? item.item.course.role : '-'}}
-            </template>
             <template slot="name" scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
+            <template slot="course_name" scope="item">
+                {{item.item.course.name ? item.item.course.name : '-'}}
+            </template>
             <template slot="deadline" scope="item">
                 {{item.value ? item.value : '-'}}
+            </template>
+            <template slot="course_role" scope="item">
+                {{item.item.course.role ? item.item.course.role : '-'}}
             </template>
             <template slot="state" scope="item">
                 <b-popover placement="top" triggers="hover" content="Hidden"
@@ -116,6 +116,7 @@ export default {
         return {
             assignmentState,
             filter: '',
+            pushedUrl: true,
             toggles: {
                 hidden: false,
                 submitting: true,
@@ -123,39 +124,57 @@ export default {
                 done: true,
             },
             currentPage: 1,
+            // Order is encoded but not used by bootstrap vue, see
+            // https://github.com/bootstrap-vue/bootstrap-vue/issues/1074
             fields: {
-                course_name: {
-                    label: 'Course',
-                    sortable: true,
-                },
-                course_role: {
-                    label: 'Role',
-                    sortable: true,
-                },
                 name: {
                     label: 'Assignment',
                     sortable: true,
+                    index: 0,
+                },
+                course_name: {
+                    label: 'Course',
+                    sortable: true,
+                    index: 1,
                 },
                 deadline: {
                     label: 'Deadline',
                     sortable: true,
+                    index: 2,
+                },
+                course_role: {
+                    label: 'Role',
+                    sortable: true,
+                    index: 3,
                 },
                 state: {
                     label: 'State',
                     sortable: true,
                     class: 'text-center',
+                    index: 4,
                 },
             },
             checkboxRoles: {},
         };
     },
 
+    watch: {
+        $route() {
+            if (this.pushedUrl) {
+                this.pushedUrl = false;
+                return;
+            }
+            this.submit();
+        },
+    },
+
     mounted() {
         const q = this.$route.query;
-        this.toggles.hidden = q.hidden == null ? false : q.hidden === 'true';
-        this.toggles.submitting = q.submitting == null ? true : q.submitting === 'true';
-        this.toggles.grading = q.grading == null ? false : q.grading === 'true';
-        this.toggles.done = q.done == null ? true : q.done === 'true';
+        const nullOrTrue = val => val == null || val === 'true';
+        this.toggles.hidden = nullOrTrue(q.hidden);
+        this.toggles.submitting = nullOrTrue(q.submitting);
+        this.toggles.grading = nullOrTrue(q.grading);
+        this.toggles.done = nullOrTrue(q.done);
 
         let roles;
         if (q.roles === undefined) {
@@ -242,6 +261,7 @@ export default {
         },
 
         submit() {
+            this.pushedUrl = true;
             const query = Object.assign({}, this.toggles);
             if (this.filter) {
                 query.q = this.filter;

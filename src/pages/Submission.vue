@@ -344,8 +344,8 @@ export default {
         downloadType(type) {
             this.$http.get(`/api/v1/submissions/${this.submissionId}?type=${type}`).then(({ data }) => {
                 const params = new URLSearchParams();
-                params.append('name', data.output_name);
-                window.open(`/api/v1/files/${data.name}?${params.toString()}`);
+                params.append('not_as_attachment', '');
+                window.open(`/api/v1/files/${data.name}/${data.output_name}?${params.toString()}`);
             });
         },
 
@@ -384,6 +384,7 @@ export default {
                 footer: {
                     flexGrow: footer.style.flexGrow,
                     flexShrink: footer.style.flexShrink,
+                    height: footer.style.height,
                 },
             };
 
@@ -396,6 +397,7 @@ export default {
             nav.style.flexShrink = 0;
             footer.style.flexGrow = 0;
             footer.style.flexShrink = 0;
+            footer.style.height = 'unset';
         },
 
         restorePageCSS() {
@@ -487,18 +489,7 @@ export default {
 .file-tree-container {
     display: flex;
     flex-direction: column;
-}
-
-@media (max-width: 992px) {
-    .file-tree-container {
-        margin-bottom: 1em;
-    }
-}
-
-@media (min-width: 992px) {
-    .file-tree-container {
-        height: 100%;
-    }
+    max-height: 100%;
 }
 
 .submission-button-bar {

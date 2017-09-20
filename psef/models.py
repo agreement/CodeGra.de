@@ -34,7 +34,7 @@ if t.TYPE_CHECKING:  # pragma: no cover
         def get(self, *args: t.Any, **kwargs: t.Any) -> t.Union[T, None]:
             ...
 
-        def all(self) -> t.Sequence[T]:
+        def all(self) -> t.List[T]:
             ...
 
         def first(self) -> t.Optional[T]:
@@ -50,6 +50,9 @@ if t.TYPE_CHECKING:  # pragma: no cover
             ...
 
         def update(self, vals: t.Mapping[str, t.Any]) -> None:
+            ...
+
+        def join(self, *args: t.Any, **kwargs: t.Any) -> '_MyQuery[T]':
             ...
 
         def order_by(self, *args: t.Any, **kwargs: t.Any) -> '_MyQuery[T]':
@@ -999,7 +1002,7 @@ class Work(Base):
         :returns: Nothing
         """
         self._grade = new_grade
-        passback = self.assignment and self.assignment.should_passback
+        passback = self.assignment.should_passback
         grade = self.grade
         history = GradeHistory(
             is_rubric=self._grade is None and grade is not None,
@@ -1017,28 +1020,35 @@ class Work(Base):
     def selected_rubric_points(self) -> float:
         return sum(item.points for item in self.selected_items)
 
-    def passback_grade(self) -> None:
+    def passback_grade(self, initial: bool=False) -> None:
         """Initiates a passback of the grade to the LTI consumer via the
         :class:`LTIProvider`.
 
+        :param initial: Should we do a initial LTI grade passback with no
+            result so that the real grade won't show as too late.
         :returns: Nothing
         """
-        from psef.lti import LTI
         if self.assignment.lti_outcome_service_url is not None:
             lti_provider = self.assignment.course.lti_provider
-            LTI.passback_grade(
+            if initial:
+                url = (
+                    '{}/'
+                    'courses/{}/assignments/{}/submissions?inLTI=true'
+                ).format(
+                    app.config['EXTERNAL_URL'],
+                    self.assignment.course_id,
+                    self.assignment_id,
+                )
+            else:
+                url = None
+
+            psef.lti.LTI.passback_grade(
                 lti_provider.key,
                 lti_provider.secret,
-                self.grade,
+                False if initial else self.grade,
                 self.assignment.lti_outcome_service_url,
                 self.assignment.assignment_results[self.user_id].sourcedid,
-                url=(
-                    '{}/'
-                    'courses/{}/assignments/{}/submissions/{}?lti=true'
-                ).format(
-                    app.config['EXTERNAL_URL'], self.assignment.course_id,
-                    self.assignment_id, self.id
-                )
+                url=url,
             )
             sq = db.session.query(GradeHistory.id).filter_by(
                 work_id=self.id
@@ -1073,8 +1083,6 @@ class Work(Base):
             self.selected_items.append(item)
 
         self.set_grade(None, user)
-        if self.assignment.should_passback:
-            self.passback_grade()
 
     def __to_json__(self) -> t.Mapping[str, t.Any]:
         """Returns the JSON serializable representation of this work.
@@ -1204,6 +1212,40 @@ class Work(Base):
                         parent=new_top
                     )
                 )
+
+    def get_all_feedback(self) -> t.Tuple[t.Iterable[str], t.Iterable[str], ]:
+        """Get all feedback for this work.
+
+        :returns: A tuple of two iterators both producing human readable
+            representations of the given feedback. The first iterator produces
+            the feedback given by a person and the second the feedback given by
+            the linters.
+        """
+
+        def _get_user_feedback() -> t.Iterable[str]:
+            comments = Comment.query.filter(
+                Comment.file.has(work=self),  # type: ignore
+            ).order_by(
+                Comment.file_id.asc(),  # type: ignore
+                Comment.line.asc(),  # type: ignore
+            )
+            for c in comments:
+                yield f'{c.file.name}:{c.line}:0: {c.comment}'
+
+        def _get_linter_feedback() -> t.Iterable[str]:
+            linter_comments = LinterComment.query.filter(
+                LinterComment.file.has(work=self)  # type: ignore
+            ).order_by(
+                LinterComment.file_id.asc(),  # type: ignore
+                LinterComment.line.asc(),  # type: ignore
+            )
+            for lc in linter_comments:
+                yield (
+                    f'{lc.file.name}:{lc.line}:0: ({lc.linter.tester.name}'
+                    f' {lc.linter_code}) {lc.comment}'
+                )
+
+        return _get_user_feedback(), _get_linter_feedback()
 
     def remove_selected_rubric_item(self, row_id: int) -> None:
         """Deselect selected :class:`RubricItem` on row.
@@ -1819,6 +1861,14 @@ class Assignment(Base):
                     pool.submit(sub.passback_grade)
 
     @property
+    def is_lti(self) -> bool:
+        """Is this assignment a LTI assignment.
+
+        :returns: A boolean indicating if this is the case.
+        """
+        return self.lti_outcome_service_url is not None
+
+    @property
     def max_rubric_points(self) -> t.Optional[float]:
         """Get the maximum amount of points possible for the rubric
 
@@ -1922,7 +1972,7 @@ class Assignment(Base):
             'created_at': self.created_at.isoformat(),
             'deadline': self.deadline.isoformat(),
             'name': self.name,
-            'is_lti': self.lti_outcome_service_url is not None,
+            'is_lti': self.is_lti,
             'course': self.course,
             'whitespace_linter': self.whitespace_linter,
         }
@@ -1949,7 +1999,7 @@ class Assignment(Base):
         else:  # pragma: no cover
             raise TypeError
 
-    def get_all_latest_submissions(self) -> t.List[Work]:
+    def get_all_latest_submissions(self) -> '_MyQuery[Work]':
         """Get a list of all the latest submissions (:class:`Work`) by each
         :class:`User` who has submitted at least one work for this assignment.
 
@@ -1960,13 +2010,13 @@ class Assignment(Base):
             func.max(Work.created_at).label('max_date')
         ).filter_by(assignment_id=self.id
                     ).group_by(Work.user_id).subquery('sub')
-        return db.session.query(Work).join(
+        return Work.query.join(
             sub,
             and_(
                 sub.c.user_id == Work.user_id,
                 sub.c.max_date == Work.created_at
             )
-        ).filter(Work.assignment_id == self.id).all()
+        ).filter(Work.assignment_id == self.id)
 
 
 class Snippet(Base):

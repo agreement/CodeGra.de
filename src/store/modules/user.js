@@ -99,7 +99,7 @@ const actions = {
     },
     verifyLogin({ commit, state }) {
         return new Promise((resolve, reject) => {
-            axios.get('/api/v1/login').then((response) => {
+            axios.get('/api/v1/login?type=extended').then((response) => {
                 // We are already logged in. Update state to logged in state
                 commit(types.LOGIN, {
                     access_token: state.jwtToken,
@@ -164,7 +164,7 @@ const mutations = {
         state.jwtToken = null;
     },
     [types.NEW_SNIPPET](state, { key, value }) {
-        state.snippets[key] = value;
+        state.snippets[key] = { value };
     },
     [types.REMOVE_SNIPPET](state, key) {
         delete state.snippets[key];

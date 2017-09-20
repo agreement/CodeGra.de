@@ -1,6 +1,6 @@
 <template>
-    <div>
-        <b-collapse id="grade-history-collapse" style="max-height: 16em; overflow-y: auto;">
+    <div class="grade-history">
+        <b-collapse id="grade-history-collapse">
             <table class="table b-table table-striped">
                 <thead>
                     <tr>
@@ -28,12 +28,14 @@
                 </tbody>
             </table>
         </b-collapse>
+        <b-button-group>
         <submit-button @click="toggleHistory"
                        :label="content"
                        class="grade-history-submit"
                        ref="toggleButton"
                        default="secondary"
                        success="secondary"/>
+        </b-button-group>
     </div>
 </template>
 
@@ -114,16 +116,38 @@ export default {
 </script>
 
 <style lang="less">
-.grade-history-submit span {
+.grade-history-submit .grade-history-submit span,
+.grade-history .btn-group {
     display: block;
     width: 100%;
     button {
         width: 100%;
     }
 }
+
+.btn-group {
+
+}
 </style>
 
 <style lang="less" scoped>
 #grade-history-collapse {
+    transition-property: all;
+    transition-duration: .5s;
+    transition-timing-function: cubic-bezier(0, 1, 0.5, 1);
+    max-height: 0;
+    overflow-x: hidden;
+}
+
+#grade-history-collapse.show {
+    max-height: 16em;
+    margin-bottom: 15px;
+    overflow-x: auto;
+    &.collapse-leave-active {
+        margin-bottom: 0;
+    }
+    &:not(.collapse-enter-active) {
+        overflow-y: auto;
+    }
 }
 </style>

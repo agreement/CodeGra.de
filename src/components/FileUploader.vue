@@ -7,6 +7,7 @@
                                ref="submitButton"/>
             </b-input-group-button>
             <b-form-file id="fileUploader"
+                         class="fileUploader"
                          ref="formFile"
                          name="file"
                          v-model="file"
@@ -61,15 +62,28 @@ export default {
 </script>
 
 <style lang="less" scoped>
+@import '~mixins.less';
+
 input:disabled {
     cursor: not-allowed !important;
 }
 </style>
 
 <style lang="less">
+@import '~mixins.less';
+
 .custom-file-control{
     &::before {
         border: 0 !important;
+    }
+}
+
+#app.dark .fileUploader .custom-file-control {
+    background: @color-primary;
+    color: @text-color-dark;
+    &::before {
+        background: @color-primary-darker;
+        color: white;
     }
 }
 </style>

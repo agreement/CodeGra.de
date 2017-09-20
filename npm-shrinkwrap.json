@@ -1368,7 +1368,7 @@
       }
     },
     "bootstrap-vue": {
-      "version": "github:CodeGra-de/bootstrap-vue-compiled#2c4f3d117f94fe4a00f701ef684323a600d4e655",
+      "version": "github:CodeGra-de/bootstrap-vue-compiled#bfae31d4a67c69255cf8b11203d751efdad56e9c",
       "requires": {
         "bootstrap": "4.0.0-alpha.6",
         "tether": "1.4.0",
@@ -5441,9 +5441,9 @@
       }
     },
     "less-loader": {
-      "version": "4.0.4",
-      "resolved": "https://registry.npmjs.org/less-loader/-/less-loader-4.0.4.tgz",
-      "integrity": "sha1-tKjEOEPmXGfS6i6xRltcQjPVAGo=",
+      "version": "4.0.5",
+      "resolved": "https://registry.npmjs.org/less-loader/-/less-loader-4.0.5.tgz",
+      "integrity": "sha1-rhVadAbKxqzSk9eFWH/P8PR4xN0=",
       "dev": true,
       "requires": {
         "clone": "2.1.1",

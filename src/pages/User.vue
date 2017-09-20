@@ -2,14 +2,17 @@
     <loader v-if="loading"/>
     <div v-else class="page user">
         <div class="row">
-            <div :class="snippets ? 'col-6' : 'col-12'">
+            <div :class="snippets ? 'col-md-6' : 'col-12'">
                 <b-card header="User info">
                     <user-info></user-info>
                 </b-card>
             </div>
-            <div class="col-6" v-if="snippets">
-                <b-card header="Snippets" style="margin-bottom: 15px;">
+            <div class="col-md-6">
+                <b-card header="Snippets" style="margin-bottom: 15px;" v-if="snippets">
                     <snippet-manager></snippet-manager>
+                </b-card>
+                <b-card header="Preferences">
+                    <preference-manager :show-language="false" :show-whitespace="false"/>
                 </b-card>
             </div>
         </div>
@@ -30,7 +33,7 @@
 
 <script>
 import { mapGetters, mapActions } from 'vuex';
-import { UserInfo, SnippetManager, PermissionsManager, Loader } from '@/components';
+import { UserInfo, SnippetManager, PermissionsManager, Loader, PreferenceManager } from '@/components';
 
 import { setPageTitle } from './title';
 
@@ -42,6 +45,7 @@ export default {
         SnippetManager,
         PermissionsManager,
         Loader,
+        PreferenceManager,
     },
 
     data() {
@@ -79,7 +83,13 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.row:not(:last-child) {
-    margin-bottom: 15px;
+.row > div:not(.col-12) .card:not(:first-child) {
+    margin-top: 15px;
+}
+
+@media (max-width: 768px) {
+    .row > div:not(.col-12):not(:first-child) .card {
+        margin-top: 15px;
+    }
 }
 </style>

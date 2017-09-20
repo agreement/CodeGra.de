@@ -3,6 +3,7 @@ This module defines all API routes with the main directory "login". This APIs
 are used to handle starting and closing the user session and update the :class:
 User object of the logged in user.
 """
+import html
 import typing as t
 
 import html2text
@@ -17,15 +18,16 @@ import psef.helpers as helpers
 from psef import db, jwt, current_user
 from psef.errors import APICodes, APIException
 from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
-    ensure_keys_in_dict, make_empty_response
+    JSONType, JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
+    ensure_json_dict, extended_jsonify, ensure_keys_in_dict,
+    make_empty_response
 )
 
 from . import api
 
 
 @api.route("/login", methods=["POST"])
-def login() -> JSONResponse[t.Mapping[str, t.Union[models.User, str]]]:
+def login() -> ExtendedJSONResponse[t.Mapping[str, t.Union[models.User, str]]]:
     """Login a :class:`.models.User` if the request is valid.
 
     .. :quickref: User; Login a given user.
@@ -75,7 +77,7 @@ def login() -> JSONResponse[t.Mapping[str, t.Union[models.User, str]]]:
             APICodes.INACTIVE_USER, 403
         )
 
-    return jsonify(
+    return extended_jsonify(
         {
             'user':
                 user,
@@ -90,8 +92,9 @@ def login() -> JSONResponse[t.Mapping[str, t.Union[models.User, str]]]:
 
 @api.route("/login", methods=["GET"])
 @auth.login_required
-def me() -> JSONResponse[t.Union[models.User, t.Mapping[int, str],
-                                 t.Mapping[str, t.Any]]]:
+def me() -> t.Union[JSONResponse[t.Union[models.User, t.Mapping[int, str]]],
+                    ExtendedJSONResponse[models.User],
+                    ]:
     """Get the info of the currently logged in :class:`.models.User`.
 
     .. :quickref: User; Get information about the currently logged in user.
@@ -113,7 +116,7 @@ def me() -> JSONResponse[t.Union[models.User, t.Mapping[int, str],
             }
         )
     elif request.args.get('type') == 'extended':
-        return jsonify(current_user.__extended_to_json__())
+        return extended_jsonify(current_user)
     return jsonify(current_user)
 
 
@@ -127,8 +130,8 @@ def send_reset_password_email(user: models.User) -> None:
         f'password/?user={user.id}&token={token}',
         user_id=user.id,
         token=token,
-        user_name=user.name,
-        user_email=user.email,
+        user_name=html.escape(user.name),
+        user_email=html.escape(user.email),
     )
     text_maker = html2text.HTML2Text(bodywidth=78)
     text_maker.inline_links = False
