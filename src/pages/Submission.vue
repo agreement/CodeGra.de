@@ -489,18 +489,7 @@ export default {
 .file-tree-container {
     display: flex;
     flex-direction: column;
-}
-
-@media (max-width: 992px) {
-    .file-tree-container {
-        margin-bottom: 1em;
-    }
-}
-
-@media (min-width: 992px) {
-    .file-tree-container {
-        height: 100%;
-    }
+    max-height: 100%;
 }
 
 .submission-button-bar {

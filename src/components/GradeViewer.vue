@@ -71,7 +71,6 @@
                         </b-input-group-button>
                     </b-input-group>
                     <grade-history v-if="gradeHistory"
-                                   style="margin-top: 0.5em; width: 100%;"
                                    ref="gradeHistory"
                                    :submissionId="submission.id"
                                    :isLTI="assignment.course.is_lti"/>
@@ -324,6 +323,16 @@ textarea {
         padding-top: 0;
         padding-bottom: 0;
         margin-bottom: 0;
+    }
+}
+
+.grade-history {
+    margin-top: 0.5em;
+    width: 100%;
+}
+@media (min-width: 768px) {
+    .grade-history {
+        margin-bottom: -1em;
     }
 }
 </style>
