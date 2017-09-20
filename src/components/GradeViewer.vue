@@ -127,7 +127,7 @@ export default {
     data() {
         return {
             feedback: this.submission.comment,
-            grade: this.submission.grade,
+            grade: this.submission.grade ? this.submission.grade.toFixed(2) : null,
             rubricPoints: {},
             rubricHasSelectedItems: false,
             gradeHistory: false,

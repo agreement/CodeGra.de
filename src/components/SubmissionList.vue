@@ -53,7 +53,7 @@
                 {{item.value.name ? item.value.name : '-'}}
             </template>
             <template slot="grade" scope="item">
-                {{item.value ? item.value : '-'}}
+                {{item.value ? parseFloat(item.value).toFixed(2) : '-'}}
             </template>
             <template slot="created_at" scope="item">
                 {{item.value ? item.value : '-'}}
