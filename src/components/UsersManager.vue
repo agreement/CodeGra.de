@@ -7,10 +7,13 @@
                           v-on:keyup.enter="submit"/>
         </b-form-fieldset>
         <b-table striped
+                 ref="table"
                  class="users-table"
                  :items="users"
                  :fields="fields"
                  :filter="filter"
+                 :sort-compare="sortTable"
+                 sort-by="User"
                  :response="true">
 
             <template slot="User" scope="item">
@@ -114,6 +117,40 @@ export default {
     },
 
     methods: {
+        sortTable(a, b, sortBy) {
+            const oneNull = (first, second) => {
+                if (!first && !second) {
+                    return 0;
+                } else if (!first) {
+                    return 1;
+                } else if (!second) {
+                    return -1;
+                }
+                return null;
+            };
+
+            const comp = (first, second) => first.toLowerCase().localeCompare(second.toLowerCase());
+
+            if (typeof a[sortBy] === 'number' && typeof b[sortBy] === 'number') {
+                return a[sortBy] - b[sortBy];
+            } else if (sortBy === 'User') {
+                const first = a[sortBy];
+                const second = b[sortBy];
+
+                const ret = oneNull(first, second);
+
+                return ret === null ? comp(first.name, second.name) : ret;
+            } else if (sortBy === 'CourseRole') {
+                const first = a.CourseRole;
+                const second = b.CourseRole;
+
+                const ret = oneNull(first, second);
+
+                return ret === null ? comp(first.name, second.name) : ret;
+            }
+            return 0;
+        },
+
         getAllUsers() {
             return this.$http.get(`/api/v1/courses/${this.courseId}/users/`).then(({ data }) => {
                 this.users = data;
@@ -172,6 +209,9 @@ export default {
             this.getAllRoles(),
         ]).then(() => {
             this.loading = false;
+            this.$nextTick(() => {
+                this.$refs.table.sortBy = 'User';
+            });
         });
     },
 
