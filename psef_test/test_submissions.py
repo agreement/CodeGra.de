@@ -1337,6 +1337,16 @@ def test_delete_submission(
 
     assert os.path.isfile(diskname)
 
+    with logged_in(ta_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{work_id}',
+            200,
+            data={'feedback': 'waaa',
+                  'grade': 5.65},
+            result=dict,
+        )
+
     with logged_in(named_user):
         test_client.req(
             'delete',

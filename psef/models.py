@@ -879,7 +879,9 @@ class GradeHistory(Base):
     grade: float = db.Column('grade', db.Float)
     passed_back: bool = db.Column('passed_back', db.Boolean, default=False)
 
-    work_id: int = db.Column('Work_id', db.Integer, db.ForeignKey('Work.id'))
+    work_id: int = db.Column(
+        'Work_id', db.Integer, db.ForeignKey('Work.id', ondelete='CASCADE')
+    )
     user_id: int = db.Column(
         'User_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
     )
