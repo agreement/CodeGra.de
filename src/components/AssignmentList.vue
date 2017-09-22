@@ -46,12 +46,14 @@
         </b-form-fieldset>
 
         <b-table striped hover
-                @row-clicked="gotoAssignment"
-                :items="assignments"
-                :fields="fields"
-                :current-page="currentPage"
-                :filter="filterItems"
-                :show-empty="true">
+                 ref="table"
+                 @row-clicked="gotoAssignment"
+                 :items="assignments"
+                 :fields="fields"
+                 :current-page="currentPage"
+                 :sort-compare="sortTable"
+                 :filter="filterItems"
+                 :show-empty="true">
             <template slot="name" scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
@@ -187,9 +189,64 @@ export default {
         });
 
         this.filter = q.q;
+        this.$refs.table.sortBy = 'deadline';
     },
 
     methods: {
+        sortTable(a, b, sortBy) {
+            const oneNull = (first, second) => {
+                if (!first && !second) {
+                    return 0;
+                } else if (!first) {
+                    return 1;
+                } else if (!second) {
+                    return -1;
+                }
+                return null;
+            };
+
+            const comp = (first, second) => first.toLowerCase().localeCompare(second.toLowerCase());
+
+            if (typeof a[sortBy] === 'number' && typeof b[sortBy] === 'number') {
+                return a[sortBy] - b[sortBy];
+            } else if (sortBy === 'name' || sortBy === 'deadline') {
+                const first = a[sortBy];
+                const second = b[sortBy];
+
+                const ret = oneNull(first, second);
+
+                return ret === null ? comp(first, second) : ret;
+            } else if (sortBy === 'course_name') {
+                const first = a.course;
+                const second = b.course;
+
+                const ret = oneNull(first, second);
+
+                return ret === null ? comp(first.name, second.name) : ret;
+            } else if (sortBy === 'course_role') {
+                const first = a.course;
+                const second = b.course;
+
+                const ret = oneNull(first, second);
+
+                return ret === null ? comp(first.role, second.role) : ret;
+            } else if (sortBy === 'state') {
+                const first = a.state;
+                const second = b.state;
+
+                const ret = oneNull(first, second);
+
+                const states = [
+                    assignmentState.HIDDEN,
+                    assignmentState.SUBMITTING,
+                    assignmentState.GRADING,
+                    assignmentState.DONE,
+                ];
+                return ret === null ? states.indexOf(first) - states.indexOf(second) : ret;
+            }
+            return 0;
+        },
+
         filterItems(item) {
             if (!this.checkboxRoles[item.course.role]) {
                 return false;

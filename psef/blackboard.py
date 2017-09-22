@@ -19,7 +19,7 @@ _txt_fmt = re.compile(
     r"Submission Field:\n(?P<text>(.*\n)+)\n"
     r"Comments:\n(?P<comment>(.*\n)+)\n"
     r"Files:\n"
-    r"(?P<files>(.+\n.+\n)+)\n?".encode('utf-8')
+    r"(?P<files>(.+\n.+\n+)+)".encode('utf-8')
 )
 
 _txt_files_fmt = re.compile(

@@ -41,14 +41,15 @@
 
 
         <b-table striped hover
-            ref="table"
-            v-on:row-clicked='gotoSubmission'
-            :items="submissions"
-            :fields="fields"
-            :current-page="currentPage"
-            :filter="filterItems"
-            :show-empty="true"
-            class="submissions-table">
+                 ref="table"
+                 v-on:row-clicked='gotoSubmission'
+                 :items="submissions"
+                 :fields="fields"
+                 :current-page="currentPage"
+                 :sort-compare="sortTable"
+                 :filter="filterItems"
+                 :show-empty="true"
+                 class="submissions-table">
             <template slot="user" scope="item">
                 {{item.value.name ? item.value.name : '-'}}
             </template>
@@ -180,9 +181,46 @@ export default {
 
         this.assigneeFilter = this.submissions.some(s => s.assignee &&
                                                     s.assignee.id === this.userId);
+        this.$refs.table.sortBy = 'user';
     },
 
     methods: {
+        sortTable(a, b, sortBy) {
+            const oneNull = (first, second) => {
+                if (!first && !second) {
+                    return 0;
+                } else if (!first) {
+                    return 1;
+                } else if (!second) {
+                    return -1;
+                }
+                return null;
+            };
+
+            const comp = (first, second) => first.toLowerCase().localeCompare(second.toLowerCase());
+
+            if (typeof a[sortBy] === 'number' && typeof b[sortBy] === 'number') {
+                return a[sortBy] - b[sortBy];
+            } else if (sortBy === 'user' || sortBy === 'assignee') {
+                const first = a[sortBy];
+                const second = b[sortBy];
+
+                const ret = oneNull(first, second);
+                if (ret !== null) return ret;
+
+                return comp(first.name, second.name);
+            } else if (sortBy === 'created_at' || sortBy === 'grade') {
+                const first = a[sortBy];
+                const second = b[sortBy];
+
+                const ret = oneNull(first, second);
+                if (ret !== null) return ret;
+
+                return comp(first, second);
+            }
+
+            return 0;
+        },
         getLatest(submissions) {
             const latest = {};
             submissions.forEach((item) => {
