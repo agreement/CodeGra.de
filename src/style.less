@@ -169,17 +169,18 @@ textarea:disabled {
             left: .75rem;
         }
     }
+}
 
-    .input-group-btn {
-        &:not(:first-child) button {
-            border-top-left-radius: 0;
-            border-bottom-left-radius: 0;
-        }
+.btn-group .popover-container,
+.input-group .input-group-btn {
+    &:not(:first-child) .btn {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
 
-        &:not(:last-child) button {
-            border-top-right-radius: 0;
-            border-bottom-right-radius: 0;
-        }
+    &:not(:last-child) .btn {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
     }
 }
 

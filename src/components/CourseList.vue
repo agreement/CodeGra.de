@@ -21,18 +21,25 @@
                 {{item.value ? item.value : '-'}}
             </template>
             <template slot="actions" scope="item">
-                <div class="row">
-                    <b-popover placement="left" content="View assignments" triggers="hover">
+                <b-button-group>
+                    <b-popover class="popover-container"
+                               placement="left"
+                               content="View assignments"
+                               triggers="hover">
                         <b-btn size="sm" variant="success" @click.stop="gotoCourse(item.item)">
                             <icon name="list"></icon>
                         </b-btn>
                     </b-popover>
-                    <b-popover placement="right" content="Manage course" triggers="hover">
-                        <b-btn v-if="item.item.manageable" @click.stop="gotoCourseEdit(item.item) "size="sm" variant="warning">
+                    <b-popover v-if="item.item.manageable"
+                               class="popover-container"
+                               placement="right"
+                               content="Manage course"
+                               triggers="hover">
+                        <b-btn @click.stop="gotoCourseEdit(item.item) "size="sm" variant="warning">
                             <icon name="pencil"></icon>
                         </b-btn>
                     </b-popover>
-                </div>
+                </b-button-group>
             </template>
             <template slot="empty">
                 No results found.
@@ -113,9 +120,3 @@ export default {
     },
 };
 </script>
-
-<style lang="less" scoped>
-    .btn {
-        margin-right: 10px;
-    }
-</style>
