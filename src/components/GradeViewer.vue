@@ -299,6 +299,8 @@ export default {
 </script>
 
 <style lang="less" scoped>
+@import "~mixins.less";
+
 input,
 textarea {
     &:disabled {
@@ -311,6 +313,10 @@ textarea {
 .rubric-overridden {
     background: fade(#f0ad4e, 50%) !important;
     cursor: help;
+
+    #app.dark & {
+        color: @text-color;
+    }
 }
 
 .out-of-sync-alert {
