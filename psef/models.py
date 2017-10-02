@@ -1538,7 +1538,10 @@ class LinterComment(Base):
     __tablename__ = "LinterComment"  # type: str
     id: int = db.Column('id', db.Integer, primary_key=True)
     file_id: int = db.Column(
-        'File_id', db.Integer, db.ForeignKey('File.id'), index=True
+        'File_id',
+        db.Integer,
+        db.ForeignKey('File.id', ondelete='CASCADE'),
+        index=True
     )
     linter_id: str = db.Column(db.Unicode, db.ForeignKey('LinterInstance.id'))
 
@@ -1570,8 +1573,12 @@ class Comment(Base):
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['Comment']]
     __tablename__ = "Comment"
-    file_id: int = db.Column('File_id', db.Integer, db.ForeignKey('File.id'))
-    user_id: int = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
+    file_id: int = db.Column(
+        'File_id', db.Integer, db.ForeignKey('File.id', ondelete='CASCADE')
+    )
+    user_id: int = db.Column(
+        'User_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
+    )
     line: int = db.Column('line', db.Integer)
     comment: str = db.Column('comment', db.Unicode)
     __table_args__ = (db.PrimaryKeyConstraint(file_id, line), )
@@ -1732,7 +1739,9 @@ class LinterInstance(Base):
         default=LinterState.running,
         nullable=False
     )
-    work_id: int = db.Column('Work_id', db.Integer, db.ForeignKey('Work.id'))
+    work_id: int = db.Column(
+        'Work_id', db.Integer, db.ForeignKey('Work.id', ondelete='CASCADE')
+    )
     tester_id: int = db.Column(
         db.Unicode, db.ForeignKey('AssignmentLinter.id')
     )
