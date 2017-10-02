@@ -23,7 +23,7 @@
             <template slot="actions" scope="item">
                 <b-button-group>
                     <b-popover class="popover-container"
-                               placement="left"
+                               placement="top"
                                content="View assignments"
                                triggers="hover">
                         <b-btn size="sm" variant="success" @click.stop="gotoCourse(item.item)">
@@ -32,7 +32,7 @@
                     </b-popover>
                     <b-popover v-if="item.item.manageable"
                                class="popover-container"
-                               placement="right"
+                               placement="top"
                                content="Manage course"
                                triggers="hover">
                         <b-btn @click.stop="gotoCourseEdit(item.item) "size="sm" variant="warning">
