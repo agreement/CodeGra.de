@@ -12,6 +12,7 @@
 
 <script>
 import { Loader } from '@/components';
+import { mapActions } from 'vuex';
 
 import * as types from '../store/mutation-types';
 import { setPageTitle } from './title';
@@ -27,45 +28,60 @@ export default {
     },
 
     mounted() {
-        this.$set(window, 'inLTI', true);
+        this.secondStep(true);
+    },
 
-        setPageTitle('LTI is launching, please wait');
+    methods: {
+        ...mapActions('user', [
+            'logout',
+        ]),
 
-        this.$http.get('/api/v1/lti/launch/2', {
-            headers: {
-                Jwt: this.$route.query.jwt,
-            },
-        }).then(({ data }) => {
-            if (data.access_token) {
-                this.$store.commit(`user/${types.UPDATE_ACCESS_TOKEN}`, data);
-            }
-            this.$router.replace({
-                name: 'assignment_submissions',
-                params: {
-                    courseId: data.assignment.course.id,
-                    assignmentId: data.assignment.id,
+        secondStep(first) {
+            this.$set(window, 'inLTI', true);
+
+            setPageTitle('LTI is launching, please wait');
+
+            this.$http.get('/api/v1/lti/launch/2', {
+                headers: {
+                    Jwt: this.$route.query.jwt,
                 },
-            });
-            if (data.new_role_created) {
-                this.$toasted.info(
-                    `You do not have any permissions yet, please ask your teacher to enabled them for your role "${data.new_role_created}"`,
-                    {
-                        position: 'bottom-center',
-                        action: {
-                            text: '✖',
-                            onClick: (e, toastObject) => {
-                                toastObject.goAway(0);
+            }).then(({ data }) => {
+                if (data.access_token) {
+                    this.$store.commit(`user/${types.UPDATE_ACCESS_TOKEN}`, data);
+                }
+                this.$router.replace({
+                    name: 'assignment_submissions',
+                    params: {
+                        courseId: data.assignment.course.id,
+                        assignmentId: data.assignment.id,
+                    },
+                });
+                if (data.new_role_created) {
+                    this.$toasted.info(
+                        `You do not have any permissions yet, please ask your teacher to enabled them for your role "${data.new_role_created}"`,
+                        {
+                            position: 'bottom-center',
+                            action: {
+                                text: '✖',
+                                onClick: (e, toastObject) => {
+                                    toastObject.goAway(0);
+                                },
                             },
-                        },
+                        });
+                }
+            }).catch((err) => {
+                if (first && err.response && err.response.status === 401) {
+                    this.logout.then(() => {
+                        this.secondStep(false);
                     });
-            }
-        }).catch((err) => {
-            try {
-                this.errorMsg = err.response.data.message;
-            } finally {
-                this.error = true;
-            }
-        });
+                }
+                try {
+                    this.errorMsg = err.response.data.message;
+                } finally {
+                    this.error = true;
+                }
+            });
+        },
     },
 
     components: {
