@@ -318,7 +318,7 @@ def assignment(course_name, state_is_hidden, session, request, with_works):
     session.commit()
 
     if with_works:
-        names = ['Stupid1', 'Stupid2', 'Stupid3']
+        names = ['Stupid1', 'Stupid2', 'Stupid3', 'Œlµo']
         if with_works != 'single':
             names += names
         for uname in names:

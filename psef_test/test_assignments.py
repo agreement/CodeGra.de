@@ -3,6 +3,8 @@ import os
 import copy
 import json
 import datetime
+from collections import defaultdict
+from functools import reduce
 
 import pytest
 
@@ -862,7 +864,7 @@ def test_updating_wrong_rubric(
 # yapf: enable
 def test_upload_files(
     named_user, exts, test_client, logged_in, assignment, name, entries,
-    dirname, error_template
+    dirname, error_template, ta_user
 ):
     for ext in exts:
         print(f'Testing with extension "{ext}"')
@@ -1003,12 +1005,24 @@ def test_divide_assignments(
             assert assig['assignee'] is None
         assert with_works == bool(assigs)
 
+        if code == 204:
+            gid = grader_ids[0]
+            for d in [{gid: '1'}, {gid: 'boe'}]:
+                test_client.req(
+                    'patch',
+                    f'/api/v1/assignments/{assignment.id}/divide',
+                    400,
+                    result=error_template,
+                    data={'graders': d}
+                )
+
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment.id}/divide',
             code,
             result=res,
-            data={'graders': grader_ids}
+            data={'graders': {i: 1
+                              for i in grader_ids}}
         )
         assigs = test_client.req(
             'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
@@ -1029,11 +1043,63 @@ def test_divide_assignments(
         if with_works and marker is None:
             assert graders_seen == set(grader_ids)
 
+        if with_works and code == 204 and len(grader_ids) == 2:
+            grader_assigs = defaultdict(lambda: set())
+            seen = set()
+            for assig in assigs:
+                if assig['user']['email'] in seen:
+                    continue
+                seen.add(assig['user']['email'])
+                grader_assigs[assig['assignee']['id']].add(assig['id'])
+            assert (
+                len(grader_assigs[grader_ids[0]]) ==
+                len(grader_assigs[grader_ids[1]])
+            )
+            test_client.req(
+                'patch',
+                f'/api/v1/assignments/{assignment.id}/divide',
+                code,
+                result=res,
+                data={
+                    'graders': {i: j
+                                for i, j in zip(grader_ids, [1.5, 3.0])}
+                }
+            )
+            assigs = test_client.req(
+                'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
+            )
+            grader_assigs2 = defaultdict(lambda: set())
+            seen = set()
+            for assig in assigs:
+                if assig['user']['email'] in seen:
+                    continue
+                seen.add(assig['user']['email'])
+                grader_assigs2[assig['assignee']['id']].add(assig['id'])
+            assert (
+                len(grader_assigs2[grader_ids[0]]) <
+                len(grader_assigs2[grader_ids[1]])
+            )
+            assert grader_assigs[grader_ids[0]
+                                 ].issuperset(grader_assigs2[grader_ids[0]])
+            assert grader_assigs[grader_ids[1]
+                                 ].issubset(grader_assigs2[grader_ids[1]])
+            test_client.req(
+                'patch',
+                f'/api/v1/assignments/{assignment.id}/divide',
+                code,
+                result=res,
+                data={'graders': {i: j
+                                  for i, j in zip(grader_ids, [1.5, 3])}}
+            )
+            assert assigs == test_client.req(
+                'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
+            )
+
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment.id}/divide',
             204,
-            data={'graders': []}
+            data={'graders': {}}
         )
         for assig in test_client.req(
             'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
@@ -1082,11 +1148,9 @@ def test_get_all_graders(
             'patch',
             f'/api/v1/assignments/{assignment.id}/divide',
             204,
-            data={'graders': graders}
+            data={'graders': {g: 1
+                              for g in graders}}
         )
-
-    if not with_works:
-        with_assignees = []
 
     with logged_in(named_user):
         marker = request.node.get_marker('http_err')
@@ -1099,22 +1163,22 @@ def test_get_all_graders(
                 {
                     'name': 'b',
                     'id': int,
-                    'divided': False,
+                    'weight': 0,
                 },
                 {
                     'name': 'Devin Hillenius',
                     'id': int,
-                    'divided': 'Devin Hillenius' in with_assignees
+                    'weight': float('Devin Hillenius' in with_assignees)
                 },
                 {
                     'name': 'Robin',
                     'id': int,
-                    'divided': False,
+                    'weight': 0,
                 },
                 {
                     'name': 'Thomas Schaper',
                     'id': int,
-                    'divided': 'Thomas Schaper' in with_assignees
+                    'weight': int('Thomas Schaper' in with_assignees)
                 },
             ] if marker is None else error_template
         )
@@ -1348,3 +1412,164 @@ def test_upload_blackboard_zip(
                 assert any(u.username == username for u in found_us)
         else:
             assert not res
+
+
+@pytest.mark.parametrize('with_works', [False], indirect=True)
+def test_assigning_after_uploading(
+    test_client, logged_in, assignment, error_template, ta_user
+):
+    for user in ['Stupid1', 'Stupid2', 'Stupid3']:
+        with logged_in(m.User.query.filter_by(name=user).one()):
+            test_client.req(
+                'post',
+                f'/api/v1/assignments/{assignment.id}/submission',
+                201,
+                real_data={
+                    'file':
+                        (
+                            f'{os.path.dirname(__file__)}/../test_data/'
+                            'test_submissions/multiple_dir_archive.zip',
+                            f'single_file_work.zip'
+                        )
+                },
+                result=dict,
+            )
+    with logged_in(ta_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment.id}/divide',
+            204,
+            data={
+                'graders':
+                    {
+                        i.id: 1
+                        for i in m.User.query.
+                        filter(m.User.name.in_(['Thomas Schaper', 'Robin']))
+                    }
+            }
+        )
+        assigs = test_client.req(
+            'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
+        )
+        counts = defaultdict(lambda: 0)
+        for assig in assigs:
+            counts[assig['assignee']['id']] += 1
+
+    amounts = list(counts.values())
+    assert max(amounts) == 2
+    assert abs(amounts[0] - amounts[1]) == 1
+    counts = defaultdict(lambda: 0)
+
+    with logged_in(m.User.query.filter_by(name=u'Œlµo').one()):
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submission',
+            201,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        'test_submissions/multiple_dir_archive.zip',
+                        f'single_file_work.zip'
+                    )
+            },
+            result=dict,
+        )
+
+    with logged_in(ta_user):
+        olmo_by = None
+        for assig in assigs:
+            counts[assig['assignee']['id']] += 1
+            if assig['user']['name'] == 'Œlµo':
+                olmo_by = assig['assignee']['id']
+
+    amounts = list(counts.values())
+    assert max(amounts) == 2
+    assert abs(amounts[0] - amounts[1]) == 1
+
+    with logged_in(m.User.query.filter_by(name=u'Œlµo').one()):
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submission',
+            201,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        'test_submissions/multiple_dir_archive.zip',
+                        f'single_file_work.zip'
+                    )
+            },
+            result=dict,
+        )
+    with logged_in(ta_user):
+        for assig in assigs:
+            if assig['user']['name'] == 'Œlµo':
+                assert olmo_by == assig['assignee']['id']
+
+
+@pytest.mark.parametrize('filename', [
+    'large.tar.gz',
+])
+def test_assign_after_blackboard_zip(
+    test_client,
+    logged_in,
+    assignment,
+    filename,
+    error_template,
+    request,
+    ta_user,
+):
+    with logged_in(ta_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment.id}/divide',
+            204,
+            data={
+                'graders':
+                    {
+                        i.id: j
+                        for i, j in zip(
+                            m.User.query.filter(
+                                m.User.name.in_(['Thomas Schaper', 'Robin'])
+                            ).order_by(m.User.name), [1, 2]
+                        )
+                    }
+            }
+        )
+
+        filename = (
+            f'{os.path.dirname(__file__)}/'
+            f'../test_data/test_blackboard/{filename}'
+        )
+
+        res = test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submissions/',
+            204,
+            real_data={'file': (filename, 'bb.tar.gz')},
+        )
+        res = test_client.req(
+            'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
+        )
+        amounts = defaultdict(lambda: 0)
+        lookup = {}
+        for sub in res:
+            amounts[sub['assignee']['id']] += 1
+            lookup[sub['user']['username']] = sub['assignee']['id']
+
+        amounts_list = sorted(list(amounts.values()))
+        assert amounts_list[1] / amounts_list[0] == 2
+
+        res = test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submissions/',
+            204,
+            real_data={'file': (filename, 'bb.tar.gz')},
+        )
+        res = test_client.req(
+            'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
+        )
+        for sub in res:
+            print(sub['id'])
+            assert lookup[sub['user']['username']] == sub['assignee']['id']

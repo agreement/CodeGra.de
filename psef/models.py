@@ -4,14 +4,18 @@ This module defines all the objects in the database in their relation.
 
 import os
 import enum
+import math
 import uuid
 import typing as t
 import datetime
 import threading
 from concurrent import futures
 
+from collections import defaultdict
+from itertools import cycle
 from itsdangerous import URLSafeTimedSerializer
 from sqlalchemy_utils import PasswordType
+from random import shuffle
 from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
@@ -20,9 +24,9 @@ from psef import db, app, jwt
 from psef.helpers import get_request_start_time
 
 UUID_LENGTH = 36
+T = t.TypeVar('T')
 
 if t.TYPE_CHECKING:  # pragma: no cover
-    T = t.TypeVar('T')
 
     class Base:
         query = None  # type: t.ClassVar[t.Any]
@@ -148,6 +152,29 @@ class LTIProvider(Base):
             codegra.de
         """
         return app.config['LTI_CONSUMER_KEY_SECRETS'][self.key]
+
+
+class AssignmentAssignedGrader(Base):
+    """The class creates the link between an :class:`User` and an
+    :class:`Assignment`.
+
+    The user linked to the assignment is an assigned grader. In this link the
+    weight is the weight this user was given when assigning.
+    """
+    if t.TYPE_CHECKING:  # pragma: no cover
+        query: t.ClassVar[_MyQuery['AssignmentAssignedGrader']]
+        query = Base.query
+    __tablename__ = 'AssignmentAssignedGrader'
+    weight: float = db.Column('weight', db.Float, nullable=False)
+    user_id: int = db.Column(
+        'User_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
+    )
+    assignment_id: int = db.Column(
+        'Assignment_id', db.Integer,
+        db.ForeignKey('Assignment.id', ondelete='CASCADE')
+    )
+
+    __table_args__ = (db.PrimaryKeyConstraint(assignment_id, user_id), )
 
 
 class AssignmentResult(Base):
@@ -483,6 +510,8 @@ class User(Base):
     :ivar email: The e-mail of this user.
     :ivar password: The password of this user, it is automatically hashed.
     :ivar assignment_results: The way this user can do LTI grade passback.
+    :ivar assignments_assigned: A mapping between assignment_ids and
+        :py:class:`AssignmentAssignedGrader` objects.
     """
     # Python 3 implicitly set __hash__ to None if we override __eq__
     # We set it back to its default implementation
@@ -522,6 +551,14 @@ class User(Base):
             'pbkdf2_sha512',
         ], deprecated=[]),
         nullable=True
+    )
+
+    assignments_assigned: t.MutableMapping[
+        int, AssignmentAssignedGrader
+    ] = db.relationship(
+        'AssignmentAssignedGrader',
+        collection_class=attribute_mapped_collection('assignment_id'),
+        backref=db.backref('user', lazy='select')
     )
 
     assignment_results: t.MutableMapping[
@@ -1835,6 +1872,15 @@ class Assignment(Base):
     lti_assignment_id: str = db.Column(db.Unicode, unique=True)
     lti_outcome_service_url: str = db.Column(db.Unicode)
 
+    assigned_graders: t.MutableMapping[
+        int, AssignmentAssignedGrader
+    ] = db.relationship(
+        'AssignmentAssignedGrader',
+        cascade='delete-orphan, delete',
+        collection_class=attribute_mapped_collection('user_id'),
+        backref=db.backref('assignment', lazy='select')
+    )
+
     assignment_results: t.MutableMapping[
         int, AssignmentResult
     ] = db.relationship(
@@ -2010,24 +2056,168 @@ class Assignment(Base):
         else:  # pragma: no cover
             raise TypeError
 
-    def get_all_latest_submissions(self) -> '_MyQuery[Work]':
-        """Get a list of all the latest submissions (:class:`Work`) by each
-        :class:`User` who has submitted at least one work for this assignment.
+    def get_from_latest_submissions(self,
+                                    *to_query: t.Type[T]) -> '_MyQuery[T]':
+        """Get the given fields from all last submitted submissions.
 
-        :returns: The latest submissions
+        :param to_query: The field to get from the last submitted submissions.
+        :returns: A query object with the given fields selected from the last
+            submissions.
         """
         sub = db.session.query(
             Work.user_id.label('user_id'),  # type: ignore
             func.max(Work.created_at).label('max_date')
         ).filter_by(assignment_id=self.id
                     ).group_by(Work.user_id).subquery('sub')
-        return Work.query.join(
+        return db.session.query(*to_query).select_from(Work).join(
             sub,
             and_(
                 sub.c.user_id == Work.user_id,
                 sub.c.max_date == Work.created_at
             )
         ).filter(Work.assignment_id == self.id)
+
+    def get_all_latest_submissions(self) -> '_MyQuery[Work]':
+        """Get a list of all the latest submissions (:class:`Work`) by each
+        :class:`User` who has submitted at least one work for this assignment.
+
+        :returns: The latest submissions.
+        """
+        return self.get_from_latest_submissions(Work)
+
+    def get_divided_amount_missing(
+        self
+    ) -> t.Tuple[t.Mapping[int, float], t.Callable[[int], t.Mapping[int, float]
+                                                   ]]:
+        """Get a mapping between user and the amount of submissions that they
+        should be assigned but are not.
+
+        For example if we have two graders, John and Dorian that respectively
+        have the weights 1 and 1 assigned. Lets say we have three submissions
+        divided in such a way that John has to grade 2 and Dorian has to grade
+        one, then our function we return that John is missing -0.5 submissions
+        and Dorian is missing 0.5.
+
+        .. note::
+
+            If ``self.assigned_graders`` is empty this function and its
+            recalculate will always return an empty directory.
+
+        :returns: A mapping between user int and the amount missing as
+            described above. Furthermore it returns a function that can be used
+            to recalculate this mapping by given it the user id of the user
+            that was assigned a submission.
+        """
+        if not self.assigned_graders:
+            return {}, lambda _: {}
+
+        total_weight = sum(w.weight for w in self.assigned_graders.values())
+
+        amount_subs: int
+        amount_subs = self.get_from_latest_submissions(  # type: ignore
+            func.count(),
+        ).scalar()
+
+        divided_amount: t.MutableMapping[int, float] = defaultdict(lambda: 0.0)
+        for u_id, amount in self.get_from_latest_submissions(  # type: ignore
+            Work.assigned_to, func.count()
+        ).group_by(Work.assigned_to):
+            divided_amount[u_id] = amount
+
+        missing = {}
+        for user_id, assigned in self.assigned_graders.items():
+            missing[user_id] = (assigned.weight / total_weight *
+                                amount_subs) - divided_amount[user_id]
+
+        def recalculate(user_id: int) -> t.MutableMapping[int, float]:
+            nonlocal amount_subs
+
+            amount_subs += 1
+            divided_amount[user_id] += 1
+            missing = {}
+
+            for user_id, assigned in self.assigned_graders.items():
+                missing[user_id
+                        ] = (assigned.weight / total_weight *
+                             amount_subs) - divided_amount[user_id]
+
+            return missing
+
+        return missing, recalculate
+
+    def divide_submissions(
+        self, user_weights: t.Sequence[t.Tuple[User, float]]
+    ) -> None:
+        """Divide all newest submissions for this assignment between the given
+        users.
+
+        This methods prefers to keep submissions assigned to the same grader as
+        much as possible. To get completely new and random assignments first
+        clear all old assignments.
+
+        :param user_weights: A list of tuples that map users and the weights.
+            The weights are used to determine how many submissions should be
+            assigned to a single user.
+        :returns: Nothing.
+        """
+        # First check if there were changes in the weights
+        if len(user_weights) == len(self.assigned_graders):
+            for user, weight in user_weights:
+                if (user.id not in self.assigned_graders or
+                        self.assigned_graders[user.id].weight != weight):
+                    break
+            else:
+                return
+
+        submissions = self.get_all_latest_submissions().all()
+        shuffle(submissions)
+
+        counts: t.MutableMapping[int, int] = defaultdict(lambda: 0)
+        user_submissions: t.MutableMapping[int, t.List[Work]]
+        user_submissions = defaultdict(lambda: [])
+
+        # Remove all users not in user_weights
+        new_users = set(u.id for u, _ in user_weights)
+        for submission in submissions:
+            if submission.assigned_to not in new_users:
+                submission.assigned_to = None
+            else:
+                counts[submission.assigned_to] += 1
+            user_submissions[submission.assigned_to].append(submission)
+
+        new_total_weight = sum(weight for _, weight in user_weights)
+
+        negative_weights, positive_weights = {}, {}
+        for user, new_weight in user_weights:
+            percentage = (new_weight / new_total_weight)
+            new = percentage * len(submissions)
+
+            if new < counts[user.id]:
+                negative_weights[user.id] = counts[user.id] - new
+            elif new > counts[user.id]:
+                positive_weights[user.id] = new - counts[user.id]
+
+        for user_id, delete_amount in negative_weights.items():
+            for sub in user_submissions[user_id][:round(delete_amount)]:
+                user_submissions[None].append(sub)
+
+        to_assign: t.List[int] = []
+        if positive_weights:
+            ratio = math.ceil(1 / min(1, max(positive_weights.values())))
+            for user_id, new_amount in positive_weights.items():
+                to_assign += [user_id] * round(new_amount * ratio)
+
+        shuffle(to_assign)
+        for sub, user_id in zip(user_submissions[None], cycle(to_assign)):
+            sub.assigned_to = user_id
+
+        self.assigned_graders = {}
+        for user, weight in user_weights:
+            db.session.add(
+                AssignmentAssignedGrader(
+                    weight=weight, user_id=user.id, assignment=self
+                )
+            )
 
 
 class Snippet(Base):

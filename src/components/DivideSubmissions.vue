@@ -1,16 +1,41 @@
 <template>
     <div class="divide-submissions">
         <loader class="text-center" v-if="loading"></loader>
-        <div v-else>
-            <div class="form-control">
-                <div v-for="grader in graders">
-                    <b-form-checkbox v-model="grader.divided">
+        <div class="form-control" v-else>
+            <div class="grader-list">
+                <b-input-group class="grader">
+                    <b class="input-group-addon">Grader</b>
+                    <input class="form-control"
+                           style="text-align: right;"
+                           disabled
+                           value="Weight"/>
+                    <p class="input-group-addon"
+                       style="width: 5em;">
+                        Percent
+                    </p>
+                </b-input-group>
+                <b-input-group v-for="grader, i in graders"
+                               :key="grader.id"
+                               class="grader">
+                    <b-form-checkbox class="input-group-addon"
+                                     @change="grader.weight = grader.weight ? 0 : 1"
+                                     :checked="grader.weight != 0">
                         {{ grader.name }}
                     </b-form-checkbox>
-                </div>
-                <submit-button label="Divide" @click="divideAssignments" ref="submitButton" v-if="graders.length"/>
-                <span v-else>No graders found for this assignment</span>
+                    <input class="form-control"
+                           type="number"
+                           min="0"
+                           step="0.01"
+                           style="min-width: 3em;"
+                           v-model.number="grader.weight"/>
+                    <p class="input-group-addon grader-percentage"
+                       style="width: 5em;">
+                        {{ (100 * grader.weight / totalWeight).toFixed(1) }}%
+                    </p>
+                </b-input-group>
             </div>
+            <submit-button label="Divide" @click="divideAssignments" ref="submitButton" v-if="graders.length"/>
+            <span v-else>No graders found for this assignment</span>
         </div>
     </div>
 </template>
@@ -32,16 +57,24 @@ export default {
     data() {
         return {
             graders: [],
-            checkedNames: [],
             loading: true,
         };
     },
 
+    computed: {
+        totalWeight() {
+            return Math.max(
+                this.graders.reduce((tot, grader) =>
+                                    tot + (grader.weight || 0), 0),
+                1);
+        },
+    },
+
     mounted() {
         this.loading = true;
-        this.$http.get(`/api/v1/assignments/${this.assignment.id}/graders/`).then((data) => {
-            this.graders = data.data;
+        this.$http.get(`/api/v1/assignments/${this.assignment.id}/graders/`).then(({ data }) => {
             this.loading = false;
+            this.graders = data;
         });
     },
 
@@ -50,19 +83,17 @@ export default {
             const req = this.$http.patch(
                 `/api/v1/assignments/${this.assignment.id}/divide`, {
                     graders: Object.values(this.graders)
-                        .filter(x => x.divided)
-                        .map(x => x.id),
+                        .filter(x => x.weight !== 0)
+                        .reduce((res, g) => {
+                            res[`${g.id}`] = g.weight;
+                            return res;
+                        }, {}),
                 },
             );
-            req.then(() => {
+            this.$refs.submitButton.submit(req.then(() => {
                 this.$emit('submit');
             }, (err) => {
-                // TODO: give feedback
-                // eslint-disable-next-line
-                console.dir(err);
-            });
-            this.$refs.submitButton.submit(req.catch((x) => {
-                throw x.response.data.message;
+                throw err.response.data.message;
             }));
         },
     },
@@ -73,3 +104,28 @@ export default {
     },
 };
 </script>
+
+<style lang="less" scoped>
+.grader-list {
+    margin-bottom: .5rem;
+}
+
+.grader {
+    width: 100%;
+
+    &:not(:first-child) * {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+    }
+
+    &:not(:last-child) * {
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+        margin-bottom: -1px;
+    }
+}
+
+.grader-percentage {
+    text-align: right;
+}
+</style>

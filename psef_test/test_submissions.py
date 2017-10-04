@@ -1232,7 +1232,8 @@ def test_change_grader(
                 'patch',
                 f'/api/v1/assignments/{assignment.id}/divide',
                 204,
-                data={'graders': grader_ids}
+                data={'graders': {g: 1
+                                  for g in grader_ids}}
             )
             submission = test_client.req(
                 'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200

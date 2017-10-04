@@ -258,7 +258,7 @@ def test_whitespace_linter(ta_user, test_client, assignment, logged_in):
             data={'name': 'MixedWhitespace',
                   'cfg': 'ANY'},
             result={
-                'done': 3,
+                'done': 4,
                 'working': 0,
                 'id': str,
                 'crashed': 0,
@@ -360,7 +360,7 @@ def test_already_running_linter(
                   'cfg': 'ANY'},
             result={
                 'done': 0,
-                'working': 3,
+                'working': 4,
                 'id': str,
                 'crashed': 0,
                 'name': 'Flake8',

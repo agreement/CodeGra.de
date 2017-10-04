@@ -70,11 +70,11 @@
             </b-popover>
 
             <div class="row">
-                <div class="col-lg-4 divide-comp-wrapper">
+                <div class="col-lg-5 divide-comp-wrapper">
                     <h5>Divide submissions</h5>
                     <divide-submissions :assignment="assignment"></divide-submissions>
                 </div>
-                <div class="col-lg-8 linter-comp-wrapper">
+                <div class="col-lg-7 linter-comp-wrapper">
                     <h5>Linters</h5>
                     <linters :assignment="assignment"></linters>
                 </div>

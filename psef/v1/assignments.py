@@ -10,7 +10,6 @@ import typing as t
 import numbers
 import threading
 from random import shuffle
-from itertools import cycle
 
 import flask
 import dateutil
@@ -23,6 +22,7 @@ import psef.files
 import psef.models as models
 import psef.helpers as helpers
 import psef.linters as linters
+from collections import defaultdict
 from psef import db, app, current_user
 from psef.errors import APICodes, APIException
 from psef.helpers import (
@@ -563,6 +563,13 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
         )
 
     work = models.Work(assignment=assignment, user_id=current_user.id)
+    work.assigned_to = assignment.get_from_latest_submissions(  # type: ignore
+        models.Work.assigned_to
+    ).filter(models.Work.user_id == current_user.id).limit(1).scalar()
+    if work.assigned_to is None:
+        missing, _ = assignment.get_divided_amount_missing()
+        if missing:
+            work.assigned_to = max(missing.keys(), key=lambda k: missing[k])
     db.session.add(work)
 
     tree = psef.files.process_files(files)
@@ -605,13 +612,22 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
     auth.ensure_permission('can_manage_course', assignment.course_id)
 
     content = ensure_json_dict(request.get_json())
-    ensure_keys_in_dict(content, [('graders', list)])
-    graders = t.cast(list, content['graders'])
+    ensure_keys_in_dict(content, [('graders', dict)])
+    graders = {}
+
+    for user_id, weight in t.cast(dict, content['graders']).items():
+        if not (isinstance(user_id, str) and isinstance(weight, (float, int))):
+            raise APIException(
+                'Given graders weight or id is invalid',
+                'Both key and value in graders object should be integers',
+                APICodes.INVALID_PARAM, 400
+            )
+        graders[int(user_id)] = weight
 
     if graders:
         users = helpers.filter_all_or_404(
             models.User,
-            models.User.id.in_(graders)  # type: ignore
+            models.User.id.in_(graders.keys())  # type: ignore
         )
     else:
         models.Work.query.filter_by(assignment_id=assignment.id).update(
@@ -619,6 +635,7 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
                 'assigned_to': None
             }
         )
+        assignment.assigned_graders = {}
         db.session.commit()
         return make_empty_response()
 
@@ -628,10 +645,10 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
             APICodes.INVALID_PARAM, 400
         )
 
+    can_grade_work = helpers.filter_single_or_404(
+        models.Permission, models.Permission.name == 'can_grade_work'
+    )
     for user in users:
-        can_grade_work = helpers.filter_single_or_404(
-            models.Permission, models.Permission.name == 'can_grade_work'
-        )
         if not user.has_permission(can_grade_work, assignment.course_id):
             raise APIException(
                 'Selected grader has no permission to grade',
@@ -639,15 +656,7 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
                 APICodes.INVALID_PARAM, 400
             )
 
-    submissions = assignment.get_all_latest_submissions().all()
-    if not submissions:
-        return make_empty_response()
-
-    shuffle(submissions)
-    shuffle(graders)
-    for submission, grader in zip(submissions, cycle(graders)):
-        submission.assigned_to = grader
-
+    assignment.divide_submissions([(user, graders[user.id]) for user in users])
     db.session.commit()
 
     return make_empty_response()
@@ -656,7 +665,7 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
 @api.route('/assignments/<int:assignment_id>/graders/', methods=['GET'])
 def get_all_graders(
     assignment_id: int
-) -> JSONResponse[t.Sequence[t.Mapping[str, t.Union[int, str, bool]]]]:
+) -> JSONResponse[t.Sequence[t.Mapping[str, t.Union[float, str, bool]]]]:
     """Gets a list of all :class:`.models.User` objects who can grade the given
     :class:`.models.Assignment`.
 
@@ -700,19 +709,18 @@ def get_all_graders(
     ).join(per, us.c.course_id == per.c.course_role_id
            ).order_by(expression.func.lower(us.c.name)).all()
 
-    divided: t.Set[str] = set(
-        r[0]
-        for r in db.session.query(models.Work.assigned_to).filter(
-            models.Work.assignment_id == assignment_id
-        ).group_by(models.Work.assigned_to).all()
-    )
+    divided: t.MutableMapping[int, float] = defaultdict(lambda: 0)
+    for u in models.AssignmentAssignedGrader.query.filter_by(
+        assignment_id=assignment_id
+    ):
+        divided[u.user_id] = u.weight
 
     return jsonify(
         [
             {
                 'id': res[1],
                 'name': res[0],
-                'divided': res[1] in divided
+                'weight': divided[res[1]],
             } for res in result
         ]
     )
@@ -808,6 +816,12 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
             ' be parsed or it did not contain any valid submissions.',
             APICodes.INVALID_PARAM, 400
         )
+
+    missing, recalc_missing = assignment.get_divided_amount_missing()
+    sub_lookup = {}
+    for sub in assignment.get_all_latest_submissions():
+        sub_lookup[sub.user_id] = sub
+
     for submission_info, submission_tree in submissions:
         user = models.User.query.filter_by(
             username=submission_info.student_id
@@ -836,7 +850,19 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
             user=user,
             created_at=submission_info.created_at,
         )
+
         db.session.add(work)
+
+        if user.id is not None and user.id in sub_lookup:
+            work.assigned_to = sub_lookup[user.id].assigned_to
+        if work.assigned_to is None:
+            if missing:
+                work.assigned_to = max(
+                    missing.keys(), key=lambda k: missing[k]
+                )
+                missing = recalc_missing(work.assigned_to)
+                sub_lookup[user.id] = work
+
         db.session.flush()
         work.set_grade(submission_info.grade, current_user)
         work.add_file_tree(db.session, submission_tree)
