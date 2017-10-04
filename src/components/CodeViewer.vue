@@ -392,6 +392,12 @@ export default {
     position: relative;
     padding: 0;
     background: #f8f8f8;
+
+    @media-no-large {
+        margin-top: 2.3rem;
+        overflow: visible !important;
+    }
+
     ol {
         min-height: 5em;
         overflow-x: visible;
@@ -405,15 +411,18 @@ export default {
 
     #app.dark & {
         background: @color-primary-darker;
+
         li {
             background: @color-primary-darker;
             border-left: 1px solid darken(@color-primary-darkest, 5%);
         }
+
         .settings-toggle,
         ol {
             background: @color-primary-darkest;
             color: @color-secondary-text-lighter;
         }
+
         code {
             color: #839496;
         }
@@ -457,6 +466,7 @@ li {
 
     .editable &:hover {
         cursor: pointer;
+
         code {
             text-decoration: underline;
         }
@@ -484,35 +494,29 @@ code {
     margin-bottom: 3em;
 }
 
-@media only screen and (min-width : 992px){
-    .settings-popover {
+.settings-popover {
+    .settings-toggle {
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        background: #f8f8f8;
+
+        &:focus {
+            box-shadow: none;
+        }
+    }
+
+    @media-large {
         position: fixed;
+
         .settings-toggle {
             margin-right: 0px !important;
             border-right: 0 !important;
             margin-top: 0.5em;
         }
     }
-}
 
-.settings-popover {
-    .settings-toggle {
-        border: 1px solid rgba(0, 0, 0, 0.15);
-        background: #f8f8f8;
-    }
-
-    .settings-toggle:focus {
-        box-shadow: none;
-    }
-}
-
-@media only screen and (max-width : 992px){
-    .code-viewer {
-        margin-top: 2.3rem;
-        overflow: visible !important;
-    }
-    .settings-popover {
+    @media-no-large {
         position: relative;
+
         .settings-toggle {
             position: absolute;
             left: 0;

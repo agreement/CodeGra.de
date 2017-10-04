@@ -22,6 +22,12 @@
 @background-color: #fff;
 @footer-color: #f5f5f5;
 
+@media-small:     ~"@media only screen and (max-width: 576px)";
+@media-medium:    ~"@media only screen and (min-width: 768px)";
+@media-no-medium: ~"@media only screen and (max-width: 768px)";
+@media-large:     ~"@media only screen and (min-width: 992px)";
+@media-no-large:  ~"@media only screen and (max-width: 992px)";
+
 .default-footer-colors {
     background-color: @footer-color;
     color: @color-secondary-text;

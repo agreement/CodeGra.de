@@ -519,9 +519,11 @@ export default {
 </style>
 
 <style lang="less">
-@media (max-width: 992px) {
+@import "~mixins.less";
+
+@media-no-large {
     #app, html {
-        height: inherit !important;
+        height: initial !important;
     }
 }
 </style>

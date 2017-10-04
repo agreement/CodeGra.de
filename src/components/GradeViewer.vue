@@ -341,9 +341,8 @@ textarea {
 .grade-history {
     margin-top: 0.5em;
     width: 100%;
-}
-@media (min-width: 768px) {
-    .grade-history {
+
+    @media-medium {
         margin-bottom: -1em;
     }
 }

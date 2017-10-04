@@ -82,6 +82,8 @@ export default {
 </script>
 
 <style lang="less" scoped>
+@import "~mixins.less";
+
 .navbar-collapse .nav-container {
     display: flex;
     flex-grow: 1;
@@ -96,7 +98,7 @@ export default {
     padding-bottom: 15px;
 }
 
-@media (min-width: 768px) {
+@media-medium {
     .navbar-left {
         float: left;
     }
@@ -112,6 +114,8 @@ export default {
 </style>
 
 <style lang="less">
+@import "~mixins.less";
+
 .navbar .navbar-nav .nav-item a {
     display: block;
     padding: 0.5em;
@@ -121,7 +125,7 @@ export default {
     color: #cbcbcb;
     border-bottom: 3px solid transparent;
 
-    @media (max-width: 576px) {
+    @media-small {
         padding-bottom: 0;
         margin-bottom: 0;
     }
@@ -138,7 +142,7 @@ export default {
 
 }
 
-@media (max-width: 576px) {
+@media-small {
     .navbar .navbar-nav:first-child {
         margin-left: 0.25em;
     }
