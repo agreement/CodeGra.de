@@ -4,7 +4,6 @@ from enum import IntEnum, unique
 from flask import Response, jsonify
 
 import psef
-from psef import app
 
 
 @unique
@@ -68,16 +67,17 @@ class APIException(Exception):
         return ret
 
 
-@app.errorhandler(APIException)
-def handle_api_error(error: APIException) -> Response:
-    """Handle an :class:`APIException` by converting it to a
-    :class:`flask.Response`.
+def init_app(app: t.Any) -> None:
+    @app.errorhandler(APIException)
+    def handle_api_error(error: APIException) -> Response:
+        """Handle an :class:`APIException` by converting it to a
+        :class:`flask.Response`.
 
-    :param APIException error: The error that occurred
-    :returns: A response with the JSON serialized error as content.
-    :rtype: flask.Response
-    """
-    response = jsonify(error)
-    response.status_code = error.status_code
-    psef.db.session.expire_all()
-    return response
+        :param APIException error: The error that occurred
+        :returns: A response with the JSON serialized error as content.
+        :rtype: flask.Response
+        """
+        response = jsonify(error)
+        response.status_code = error.status_code
+        psef.models.db.session.expire_all()
+        return response

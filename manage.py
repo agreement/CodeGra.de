@@ -11,7 +11,6 @@ from sqlalchemy_utils import PasswordType
 
 import psef
 import psef.models as m
-from psef import db, app
 
 
 def render_item(type_, col, autogen_context):
@@ -21,8 +20,9 @@ def render_item(type_, col, autogen_context):
     else:
         return False
 
+app = psef.create_app(skip_celery=True)
 
-migrate = Migrate(app, db, render_item=render_item)
+migrate = Migrate(app, psef.models.db, render_item=render_item)
 manager = Manager(app)
 
 manager.add_command('db', MigrateCommand)
@@ -41,7 +41,9 @@ def seed():
 
 
 @manager.command
-def seed_force():
+def seed_force(db=None):
+    db = db or psef.models.db
+
     with open(
         f'{os.path.dirname(os.path.abspath(__file__))}/seed_data/permissions.json',
         'r'
@@ -77,7 +79,9 @@ def seed_force():
 
 
 @manager.command
-def test_data():
+def test_data(db=None):
+    db = db or psef.models.db
+
     if not app.config['DEBUG']:
         print('You can not add test data in production mode', file=sys.stderr)
         return 1

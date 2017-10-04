@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
-import json
 import typing as t
+from json import JSONEncoder
 
-from psef import app
 
-
-class CustomJSONEncoder(json.JSONEncoder):
+class CustomJSONEncoder(JSONEncoder):
     """This JSON encoder is used to enable the JSON serialization of custom
     classes.
 
@@ -28,7 +26,7 @@ class CustomJSONEncoder(json.JSONEncoder):
             return super().default(obj)
 
 
-class CustomExtendedJSONEncoder(json.JSONEncoder):
+class CustomExtendedJSONEncoder(JSONEncoder):
     """This JSON encoder is used to enable the JSON serialization of custom
     classes.
 
@@ -54,4 +52,5 @@ class CustomExtendedJSONEncoder(json.JSONEncoder):
                 return super().default(obj)
 
 
-app.json_encoder = CustomJSONEncoder
+def init_app(app: t.Any) -> None:
+    app.json_encoder = CustomJSONEncoder

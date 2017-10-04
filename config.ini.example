@@ -146,3 +146,13 @@
 # case sensitive.
 [LTI Consumer keys]
 # my_lti = my_secret_key
+
+# This are the settings for celery. You need to be running a celery process to
+# run codegra.de. All config options here are passed directly to celery
+[Celery]
+# The broker has to be configured using the variable below. See [0] for
+# information how to format this variable, we recommend using RabbitMQ. Please
+# don't forgot to install the needed dependencies for your broker.
+#
+# [0]: http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
+# broker_url = amqp://myuser:mypassword@localhost:5672/myvhost

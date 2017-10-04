@@ -3,20 +3,20 @@ This module defines all API routes with the main directory "login". This APIs
 are used to handle starting and closing the user session and update the :class:
 User object of the logged in user.
 """
-import html
 import typing as t
 
-import html2text
 from flask import request
-from flask_mail import Message
 from validate_email import validate_email
 
 import psef
 import psef.auth as auth
+import psef.mail as mail
 import psef.models as models
 import psef.helpers as helpers
-from psef import db, jwt, current_user
+from psef import current_user
+from psef.auth import jwt
 from psef.errors import APICodes, APIException
+from psef.models import db
 from psef.helpers import (
     JSONType, JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
     ensure_json_dict, extended_jsonify, ensure_keys_in_dict,
@@ -120,42 +120,6 @@ def me() -> t.Union[JSONResponse[t.Union[models.User, t.Mapping[int, str]]],
     return jsonify(current_user)
 
 
-def send_reset_password_email(user: models.User) -> None:
-    token = user.get_reset_token()
-    html_body = psef.app.config['EMAIL_TEMPLATE'].replace(
-        '\n\n', '<br><br>'
-    ).format(
-        site_url=psef.app.config["EXTERNAL_URL"],
-        url=f'{psef.app.config["EXTERNAL_URL"]}/reset_'
-        f'password/?user={user.id}&token={token}',
-        user_id=user.id,
-        token=token,
-        user_name=html.escape(user.name),
-        user_email=html.escape(user.email),
-    )
-    text_maker = html2text.HTML2Text(bodywidth=78)
-    text_maker.inline_links = False
-    text_maker.wrap_links = False
-
-    message = Message(
-        subject=f'Reset password on {psef.app.config["EXTERNAL_URL"]}',
-        body=text_maker.handle(html_body),
-        html=html_body,
-        recipients=[user.email],
-    )
-    try:
-        psef.mail.send(message)
-    except:
-        raise APIException(
-            'Something went wrong sending the email, '
-            'please contact your site admin',
-            f'Sending email to {user.id} went wrong.',
-            APICodes.UNKOWN_ERROR,
-            500,
-        )
-    db.session.commit()
-
-
 @api.route('/login', methods=['PATCH'])
 def get_user_update(
 ) -> t.Union[EmptyResponse, JSONResponse[t.Mapping[str, str]]]:
@@ -200,11 +164,12 @@ def get_user_update(
 
     if request.args.get('type', None) == 'reset_email':
         ensure_keys_in_dict(data, [('username', str)])
-        send_reset_password_email(
+        mail.send_reset_password_email(
             helpers.filter_single_or_404(
                 models.User, models.User.username == data['username']
             )
         )
+        db.session.commit()
         return make_empty_response()
     elif request.args.get('type', None) == 'reset_password':
         ensure_keys_in_dict(

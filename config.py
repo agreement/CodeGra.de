@@ -62,7 +62,7 @@ set_bool(CONFIG, backend_ops, 'DEBUG', False)
 # `postgresql://dbusername:dbpassword@dbhost/dbname`
 set_str(
     CONFIG, backend_ops, 'SQLALCHEMY_DATABASE_URI',
-    'postgresql:///codegrade_dev'
+    os.getenv('SQLALCHEMY_DATABASE_URI', 'postgresql:///codegrade_dev')
 )
 CONFIG['_USING_SQLITE'] = CONFIG['SQLALCHEMY_DATABASE_URI'
                                  ].startswith('sqlite')
@@ -204,3 +204,13 @@ if parser.read('config.ini') and 'LTI Consumer keys' in parser:
     CONFIG['LTI_CONSUMER_KEY_SECRETS'] = dict(parser['LTI Consumer keys'])
 else:
     CONFIG['LTI_CONSUMER_KEY_SECRETS'] = {}
+
+##########
+# CELERY #
+##########
+parser = SafeConfigParser()
+parser.optionxform = str  # type: ignore
+if parser.read('config.ini') and 'Celery' in parser:
+    CONFIG['CELERY_CONFIG'] = dict(parser['Celery'])
+else:
+    CONFIG['CELERY_CONFIG'] = {}

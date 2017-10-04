@@ -20,3 +20,5 @@ docs/_build/
 /src/components/PrivacyNote.vue
 PRIVACY_STATEMENT.md
 config.ini
+/.dir-locals.el
+.cov2emacs.log

@@ -8,20 +8,44 @@ import math
 import uuid
 import typing as t
 import datetime
-import threading
-from concurrent import futures
-
-from collections import defaultdict
-from itertools import cycle
-from itsdangerous import URLSafeTimedSerializer
-from sqlalchemy_utils import PasswordType
 from random import shuffle
+from itertools import cycle
+from collections import defaultdict
+
+from sqlalchemy import event
+from itsdangerous import URLSafeTimedSerializer
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy_utils import PasswordType
 from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 import psef.auth as auth
-from psef import db, app, jwt
+from psef import app
 from psef.helpers import get_request_start_time
+
+db = SQLAlchemy(session_options={'autocommit': False, 'autoflush': False})
+
+
+def init_app(app: t.Any) -> None:
+    db.init_app(app)
+
+    if app.config['_USING_SQLITE']:  # pragma: no cover
+        with app.app_context():
+
+            @event.listens_for(db.engine, "connect")
+            def do_connect(
+                dbapi_connection: t.Any, connection_record: t.Any
+            ) -> None:
+                # disable pysqlite's emitting of the BEGIN statement entirely.
+                # also stops it from emitting COMMIT before any DDL.
+                dbapi_connection.isolation_level = None
+                dbapi_connection.execute('pragma foreign_keys=ON')
+
+            @event.listens_for(db.engine, "begin")
+            def do_begin(conn: t.Any) -> None:
+                # emit our own BEGIN
+                conn.execute("BEGIN")
+
 
 UUID_LENGTH = 36
 T = t.TypeVar('T')
@@ -69,6 +93,9 @@ if t.TYPE_CHECKING:  # pragma: no cover
             ...
 
         def __iter__(self) -> t.Iterator[T]:
+            ...
+
+        def delete(self) -> None:
             ...
 
 else:
@@ -809,7 +836,7 @@ class User(Base):
         return self.active
 
     @staticmethod
-    @jwt.user_loader_callback_loader
+    @psef.auth.jwt.user_loader_callback_loader
     def load_user(user_id: int) -> t.Optional['User']:
         return User.query.get(int(user_id))
 
@@ -1010,8 +1037,11 @@ class Work(Base):
             if not linter_cls.RUN_LINTER:
                 return
 
-            runner = psef.linters.LinterRunner(linter_cls, linter.config)
-            threading.Thread(target=runner.run, args=([instance.id], )).start()
+            psef.tasks.lint_instances(
+                linter.name,
+                linter.config,
+                [instance.id],
+            )
 
     @property
     def grade(self) -> float:
@@ -1053,7 +1083,7 @@ class Work(Base):
         db.session.add(history)
         db.session.flush()
         if passback:
-            self.passback_grade()
+            psef.tasks.passback_grades([self.id])
 
     @property
     def selected_rubric_points(self) -> float:
@@ -1907,15 +1937,12 @@ class Assignment(Base):
     linters: t.Iterable['AssignmentLinter']
 
     def _submit_grades(self) -> None:
-        if app.config['_USING_SQLITE']:
-            for sub in self.get_all_latest_submissions():
-                sub.passback_grade()
-        # This line is covered using the postgresql tests, however that data
-        # won't be send to coveralls so we ignore it.
-        else:  # pragma: no cover
-            with futures.ThreadPoolExecutor() as pool:
-                for sub in self.get_all_latest_submissions():
-                    pool.submit(sub.passback_grade)
+        subs = t.cast(
+            t.List[t.Tuple[int]],
+            self.get_from_latest_submissions(Work.id).all()
+        )
+        for i in range(0, len(subs), 10):
+            psef.tasks.passback_grades([s[0] for s in subs[i:i + 10]])
 
     @property
     def is_lti(self) -> bool:
@@ -2056,8 +2083,7 @@ class Assignment(Base):
         else:  # pragma: no cover
             raise TypeError
 
-    def get_from_latest_submissions(self,
-                                    *to_query: t.Type[T]) -> '_MyQuery[T]':
+    def get_from_latest_submissions(self, *to_query: T) -> '_MyQuery[T]':
         """Get the given fields from all last submitted submissions.
 
         :param to_query: The field to get from the last submitted submissions.
@@ -2083,7 +2109,9 @@ class Assignment(Base):
 
         :returns: The latest submissions.
         """
-        return self.get_from_latest_submissions(Work)
+        # get_from_latest_submissions uses SQLAlchemy magic that MyPy cannot
+        # encode.
+        return self.get_from_latest_submissions(t.cast(Work, Work))
 
     def get_divided_amount_missing(
         self

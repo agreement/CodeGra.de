@@ -1,5 +1,4 @@
 import re
-import threading
 
 import pytest
 
@@ -116,6 +115,7 @@ def test_get_feedback(
     session, error_template, ta_user
 ):
     assignment, work = assignment_real_works
+    assig_id = assignment.id
     perm_err = request.node.get_marker('perm_error')
     late_err = request.node.get_marker('late_error')
 
@@ -166,7 +166,7 @@ def test_get_feedback(
             result=res
         )
 
-    assig = session.query(m.Assignment).get(assignment.id)
+    assig = session.query(m.Assignment).get(assig_id)
     assig.state = m._AssignmentStateEnum.done
     session.commit()
 
@@ -284,19 +284,10 @@ def test_delete_feedback(
 )
 def test_get_all_feedback(
     named_user, request, logged_in, test_client, assignment_real_works,
-    session, error_template, ta_user, monkeypatch
+    session, error_template, ta_user, monkeypatch, monkeypatch_celery
 ):
-    class MyThread:
-        def __init__(self, target, args=None):
-            self.run = target
-            self.args = [] if args is None else args
-
-        def start(self):
-            self.run(*self.args)
-
-    monkeypatch.setattr(threading, 'Thread', MyThread)
-
     assignment, work = assignment_real_works
+    assig_id = assignment.id
     perm_err = request.node.get_marker('perm_error')
     late_err = request.node.get_marker('late_error')
 
@@ -371,7 +362,7 @@ def test_get_all_feedback(
             res = test_client.get(f'/api/v1/files/{file_name}')
             assert res.status_code == 404
 
-    assig = session.query(m.Assignment).get(assignment.id)
+    assig = session.query(m.Assignment).get(assig_id)
     assig.state = m._AssignmentStateEnum.done
     session.commit()
 
@@ -407,20 +398,10 @@ def test_get_all_feedback(
 )
 def test_get_assignment_all_feedback(
     named_user, request, logged_in, test_client, assignment_real_works,
-    session, error_template, ta_user, monkeypatch
+    session, error_template, ta_user, monkeypatch_celery
 ):
-    class MyThread:
-        def __init__(self, target, args=None):
-            self.run = target
-            self.args = [] if args is None else args
-
-        def start(self):
-            print(self.args)
-            self.run(*self.args)
-
-    monkeypatch.setattr(threading, 'Thread', MyThread)
-
     assignment, work = assignment_real_works
+    assig_id = assignment.id
     perm_err = request.node.get_marker('perm_error')
     only_own_subs = request.node.get_marker('only_own')
 
@@ -501,7 +482,7 @@ def test_get_assignment_all_feedback(
             ex_res = error_template
         res = test_client.req(
             'get',
-            f'/api/v1/assignments/{assignment.id}/feedbacks/',
+            f'/api/v1/assignments/{assig_id}/feedbacks/',
             code,
             result=ex_res,
         )
@@ -509,14 +490,14 @@ def test_get_assignment_all_feedback(
         if not (perm_err or only_own_subs):
             match_res(res)
 
-    assig = session.query(m.Assignment).get(assignment.id)
+    assig = session.query(m.Assignment).get(assig_id)
     assig.state = m._AssignmentStateEnum.done
     session.commit()
 
     with logged_in(named_user):
         res = test_client.req(
             'get',
-            f'/api/v1/assignments/{assignment.id}/feedbacks/',
+            f'/api/v1/assignments/{assig_id}/feedbacks/',
             code,
             result=dict if code == 200 else error_template,
         )

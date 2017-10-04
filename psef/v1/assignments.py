@@ -10,6 +10,7 @@ import typing as t
 import numbers
 import threading
 from random import shuffle
+from collections import defaultdict
 
 import flask
 import dateutil
@@ -22,9 +23,9 @@ import psef.files
 import psef.models as models
 import psef.helpers as helpers
 import psef.linters as linters
-from collections import defaultdict
-from psef import db, app, current_user
+from psef import app, current_user
 from psef.errors import APICodes, APIException
+from psef.models import db
 from psef.helpers import (
     JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
     ensure_keys_in_dict, make_empty_response
@@ -998,20 +999,12 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
             404,
         )
     if linter_cls.RUN_LINTER:
-        try:
-            runner = linters.LinterRunner(linter_cls, cfg)
-            thread = threading.Thread(
-                target=runner.run,
-                args=([t.id for t in res.tests], ),
+        for i in range(0, len(res.tests), 10):
+            psef.tasks.lint_instances(
+                name,
+                cfg,
+                [t.id for t in res.tests[i:i + 10]],
             )
-
-            thread.start()
-        except:  # pragma: no cover
-            # This code only runs in the case of bug in the `LinterRunner`
-            # class.
-            for test in res.tests:
-                test.state = models.LinterState.crashed
-            db.session.commit()
     else:
         for linter_inst in res.tests:
             linter_inst.state = models.LinterState.done

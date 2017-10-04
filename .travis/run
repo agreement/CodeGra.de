@@ -4,11 +4,12 @@ res="127"
 
 echo "Running test with pwd: $(pwd)"
 
+set -o xtrace
+
 if [[ "$TO_RUN" = "postgres-test" ]]; then
     TEST_FLAGS="--postgresql=travis_ci_test"
+    SQLALCHEMY_DATABASE_URI='postgresql:///travis_ci_test' ./manage.py db upgrade
 fi
-
-set -o xtrace
 
 case "$TO_RUN" in
     "coverage")
@@ -17,7 +18,7 @@ case "$TO_RUN" in
         set +o xtrace
         ;;
     "tests"|"postgres-test")
-        pytest "$(pwd)/psef_test/" -vvvv "$TEST_FLAGS"
+        pytest -vvvv $TEST_FLAGS "$(pwd)/psef_test/"
         res="$?"
         set +o xtrace
         ;;

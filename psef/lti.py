@@ -2,10 +2,8 @@
 # https://github.com/ucfopen/lti-template-flask-oauth-tokens
 
 import typing as t
-import urllib
 import datetime
 
-import jwt
 import flask
 import oauth2
 import dateutil
@@ -15,9 +13,10 @@ import psef
 import psef.auth as auth
 import psef.models as models
 import psef.helpers as helpers
-from psef import LTI_ROLE_LOOKUPS, db, app, current_user
+from psef import LTI_ROLE_LOOKUPS, app, current_user
 from psef.auth import _user_active
 from psef.errors import APICodes, APIException
+from psef.models import db
 
 
 class LTI:
@@ -180,7 +179,7 @@ class LTI:
 
         elif lti_user is not None:
             # LTI users are used before the current logged user.
-            token = psef.jwt.create_access_token(
+            token = auth.jwt.create_access_token(
                 identity=lti_user.id,
                 fresh=True,
             )
@@ -215,7 +214,7 @@ class LTI:
             db.session.add(user)
             db.session.flush()
 
-            token = psef.jwt.create_access_token(
+            token = auth.jwt.create_access_token(
                 identity=user.id,
                 fresh=True,
             )
@@ -474,56 +473,6 @@ class CanvasLTI(LTI):
         except:
             return (datetime.datetime.utcnow() + datetime.timedelta(days=365)
                     ) if default is None else default
-
-
-@app.route('/api/v1/lti/launch/1', methods=['POST'])
-@helpers.feature_required('LTI')
-def launch_lti() -> t.Any:
-    """Do a LTI launch.
-
-    .. :quickref: LTI; Do a LTI Launch.
-    """
-    lti = {
-        'params': CanvasLTI.create_from_request(flask.request).launch_params,
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=1)
-    }
-    return flask.redirect(
-        '{}/lti_launch/?inLTI=true&jwt={}'.format(
-            app.config['EXTERNAL_URL'],
-            urllib.parse.quote(
-                jwt.encode(
-                    lti, app.config['LTI_SECRET_KEY'], algorithm='HS512'
-                ).decode('utf8')
-            )
-        )
-    )
-
-
-@app.route('/api/v1/lti/launch/2', methods=['GET'])
-@helpers.feature_required('LTI')
-def second_phase_lti_launch(
-) -> helpers.JSONResponse[t.Mapping[str, t.Union[str, models.Assignment, bool]]
-                          ]:
-    launch_params = jwt.decode(
-        flask.request.headers.get('Jwt', None),
-        app.config['LTI_SECRET_KEY'],
-        algorithm='HS512'
-    )['params']
-    lti = CanvasLTI(launch_params)
-
-    user, new_token = lti.ensure_lti_user()
-    course = lti.get_course()
-    assig = lti.get_assignment(user)
-    lti.set_user_role(user)
-    new_role_created = lti.set_user_course_role(user, course)
-    db.session.commit()
-
-    result: t.Mapping[str, t.Union[str, models.Assignment, bool]]
-    result = {'assignment': assig, 'new_role_created': new_role_created}
-    if new_token is not None:
-        result['access_token'] = new_token
-
-    return helpers.jsonify(result)
 
 
 # This part is largely copied from https://github.com/tophatmonocle/ims_lti_py
