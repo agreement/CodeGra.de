@@ -12,7 +12,7 @@
 # project = psef
 # chdir = %(base)
 # virtualenv = %(base)/env/
-# module = %(project):app
+# module = %(project):create_app()
 
 # The way to let uwsgi log
 # logger = file:/var/log/nginx/psef.uwsgi.log
