@@ -41,9 +41,8 @@ ALL_LINTERS = sorted(['Flake8', 'MixedWhitespace', 'Pylint'])
             'test_flake8.tar.gz',
             [('Flake8', '', ['W191', 'E211', 'E201', 'E202'])]
         ),
-        run_error(
-            error=400,
-        )(('test_flake8.tar.gz', [('Flake8', False, '')])),
+        run_error(error=400,
+                  )(('test_flake8.tar.gz', [('Flake8', False, '')])),
         run_error(error=400)(('test_flake8.tar.gz', [('Flake8', 5, '')])),
         run_error(error=400)(('test_flake8.tar.gz', [(6, '666', '')])),
         run_error(error=400)(('test_flake8.tar.gz', [(False, False, '')])),

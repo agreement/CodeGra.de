@@ -347,8 +347,26 @@ def dehead_filetree(tree: ExtractFileTree) -> ExtractFileTree:
     return tree
 
 
+def get_top_name(
+    assignment: models.Assignment, student_name: str, username: str
+) -> str:
+    """Return the top level directory name in format
+    '<student-name> (<username>)-<assignment>'.
+
+    :param assignment: The assignment for which the top level directory created
+        will be work for.
+    :param student_name: The student name of the work.
+    :param username: The username for the work.
+    :returns: The top level directory name in specified format.
+    :rtype: str
+    """
+    return f'{student_name} ({username}) - {assignment.name}'
+
+
 def process_files(
-    files: t.MutableSequence[FileStorage], force_txt: bool=False
+    files: t.MutableSequence[FileStorage],
+    force_txt: bool=False,
+    top_name: str='top'
 ) -> ExtractFileTree:
     """Process the given files by extracting, moving and saving their tree
     structure.
@@ -356,6 +374,7 @@ def process_files(
     :param files: The files to move and extract
     :param force_txt: Do not extract archive and force all files to be
         considered to be plain text.
+    :param top_name: The name for the top level directory.
     :rtype: list of FileStorage
     :returns: The tree of the files as is described by
               :py:func:`rename_directory_structure`
@@ -375,7 +394,8 @@ def process_files(
                 new_file_name, filename = random_file_path()
                 res.append((file.filename, filename))
                 file.save(new_file_name)
-        tree = {'top': res}
+
+        tree = {top_name: res}
     else:
         tree = extract(files[0])
 
@@ -383,7 +403,7 @@ def process_files(
 
 
 def process_blackboard_zip(
-    blackboard_zip: FileStorage
+    blackboard_zip: FileStorage, assignment: models.Assignment
 ) -> t.MutableSequence[t.Tuple[blackboard.SubmissionInfo, ExtractFileTree]]:
     """Process the given :py:mod:`.blackboard` zip file.
 
@@ -391,6 +411,7 @@ def process_blackboard_zip(
     submission.
 
     :param file: The blackboard gradebook to import
+    :param assignment: The assignment the blackboard zip is uploaded for
     :returns: List of tuples (BBInfo, tree)
     """
 
@@ -424,7 +445,12 @@ def process_blackboard_zip(
 
             try:
                 files = get_files(info)
-                tree = process_files(files)
+                top_name = get_top_name(
+                    assignment,
+                    info.student_name,
+                    info.student_id,
+                )
+                tree = process_files(files, top_name=top_name)
                 map(lambda f: f.close(), files)
             except:
                 files = get_files(info)
@@ -436,7 +462,7 @@ def process_blackboard_zip(
                         filename='__WARNING__'
                     )
                 )
-                tree = process_files(files, force_txt=True)
+                tree = process_files(files, force_txt=True, top_name=top_name)
                 map(lambda f: f.close(), files)
 
             submissions.append((info, tree))

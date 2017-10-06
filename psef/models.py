@@ -477,6 +477,7 @@ class User(Base):
 
     :ivar lti_user_id: The id of this user in a LTI consumer.
     :ivar name: The name of this user.
+    :ivar username: The username of this user.
     :ivar role_id: The id of the role this user has.
     :ivar courses: A mapping between course_id and course-role for all courses
         this user is currently enrolled.

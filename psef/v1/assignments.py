@@ -565,7 +565,12 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
     work = models.Work(assignment=assignment, user_id=current_user.id)
     db.session.add(work)
 
-    tree = psef.files.process_files(files)
+    tree = psef.files.process_files(
+        files,
+        top_name=psef.files.get_top_name(
+            assignment, current_user.name, current_user.username
+        )
+    )
     work.add_file_tree(db.session, tree)
     db.session.flush()
 
@@ -798,7 +803,7 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
 
     file: 'FileStorage' = request.files['file']
     try:
-        submissions = psef.files.process_blackboard_zip(file)
+        submissions = psef.files.process_blackboard_zip(file, assignment)
     except:
         submissions = []
     if not submissions:

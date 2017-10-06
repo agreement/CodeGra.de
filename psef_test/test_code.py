@@ -185,14 +185,10 @@ def test_get_code_plaintext_revisions(
         assert teacher_file_id != student_file_id
 
     with logged_in(student_user):
-        res = test_client.get(
-            f'/api/v1/code/{student_file_id}',
-        )
+        res = test_client.get(f'/api/v1/code/{student_file_id}', )
         assert res.status_code == 200
 
-        res = test_client.get(
-            f'/api/v1/code/{teacher_file_id}',
-        )
+        res = test_client.get(f'/api/v1/code/{teacher_file_id}', )
         assert res.status_code == 200
 
     with logged_in(ta_user):
@@ -204,14 +200,10 @@ def test_get_code_plaintext_revisions(
         )
 
     with logged_in(student_user):
-        res = test_client.get(
-            f'/api/v1/code/{student_file_id}',
-        )
+        res = test_client.get(f'/api/v1/code/{student_file_id}', )
         assert res.status_code == 200
 
-        res = test_client.get(
-            f'/api/v1/code/{teacher_file_id}',
-        )
+        res = test_client.get(f'/api/v1/code/{teacher_file_id}', )
         assert res.status_code == 403
 
 

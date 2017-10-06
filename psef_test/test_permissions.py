@@ -18,9 +18,8 @@ should_raise = pytest.mark.should_raise
         ('can_submit_own_work', (False, True, False)),
         ('can_see_others_work', (True, False, False)),
         ('can_see_assignments', (True, True, False)),
-        should_raise(
-            ('add_user', (False, False, False)),
-        )  # This is not a real permission
+        should_raise(('add_user', (False, False, False)),
+                     )  # This is not a real permission
     ]
 )
 def test_course_permissions(

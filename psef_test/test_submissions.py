@@ -837,11 +837,9 @@ def test_get_teacher_zip_file(
 
     m.Assignment.query.filter_by(
         id=m.Work.query.get(work_id).assignment_id,
-    ).update(
-        {
-            'state': m._AssignmentStateEnum.done,
-        },
-    )
+    ).update({
+        'state': m._AssignmentStateEnum.done,
+    }, )
 
     assert get_files(student_user, False) == set(
         [
