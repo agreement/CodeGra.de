@@ -46,15 +46,16 @@ start_dev_server:
 	DEBUG=on ./.scripts/start_dev.sh python
 
 .PHONY: start_dev_npm
-start_dev_npm:
-	./.scripts/generate_privacy.py
+start_dev_npm: privacy_statement
 	DEBUG=on ./.scripts/start_dev.sh npm
 
-privacy_statement:
+.PHONY: privacy_statement
+privacy_statement: src/components/PrivacyNote.vue
+src/components/PrivacyNote.vue:
 	./.scripts/generate_privacy.py
 
-build_front-end:
-	./.scripts/generate_privacy.py
+.PHONY: build_front-end
+build_front-end: privacy_statement
 	npm run build
 
 .PHONY: seed_data
