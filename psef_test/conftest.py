@@ -152,7 +152,7 @@ def test_client(app):
 @pytest.fixture
 def error_template():
     yield {
-        'code': int,
+        'code': str,
         'message': str,
         'description': str,
     }

@@ -72,7 +72,10 @@
             <div class="row">
                 <div class="col-lg-5 divide-comp-wrapper">
                     <h5>Divide submissions</h5>
-                    <divide-submissions :assignment="assignment"></divide-submissions>
+                    <divide-submissions :assignment="assignment"/>
+
+                    <h5 style="margin-top: 1em">CGIgnore file</h5>
+                    <CGIgnoreFile :assignment="assignment"/>
                 </div>
                 <div class="col-lg-7 linter-comp-wrapper">
                     <h5>Linters</h5>
@@ -116,6 +119,7 @@ import Linters from './Linters';
 import Loader from './Loader';
 import SubmitButton from './SubmitButton';
 import RubricEditor from './RubricEditor';
+import CGIgnoreFile from './CGIgnoreFile';
 
 import * as assignmentState from '../store/assignment-states';
 
@@ -203,6 +207,7 @@ export default {
         SubmitButton,
         Icon,
         RubricEditor,
+        CGIgnoreFile,
     },
 };
 </script>

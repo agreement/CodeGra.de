@@ -3,8 +3,8 @@ import os
 import copy
 import json
 import datetime
-from collections import defaultdict
 from functools import reduce
+from collections import defaultdict
 
 import pytest
 
@@ -133,6 +133,7 @@ def test_get_assignment(
                 'deadline': assignment.deadline.isoformat(),
                 'name': assignment.name,
                 'is_lti': False,
+                'cgignore': None,
                 'course': dict,
                 'whitespace_linter': False,
             }
@@ -1573,3 +1574,403 @@ def test_assign_after_blackboard_zip(
         for sub in res:
             print(sub['id'])
             assert lookup[sub['user']['username']] == sub['assignee']['id']
+
+
+# yapf: disable
+@pytest.mark.parametrize(
+    'name,entries,dirname,exts,ignored,entries_delete', [
+        (
+            'multiple_dir_archive', [
+                {
+                    'id': int,
+                    'name': 'dir',
+                    'entries': [{
+                        'id': int,
+                        'name': 'single_file_work'
+                    }, {
+                        'id': int,
+                        'name': 'single_file_work_copy'
+                    }]
+                }, {
+                    'id': int,
+                    'name': 'dir2',
+                    'entries': [{
+                        'id': int,
+                        'name': 'single_file_work'
+                    }, {
+                        'id': int,
+                        'name': 'single_file_work_copy'
+                    }]
+                }
+            ],
+            'multiple_dir_archive', ['.tar.gz', '.zip'],
+            [
+                    'dir2/single_file_work',
+                    'dir2/single_file_work_copy',
+                    'dir/single_file_work',
+            ],
+            {
+                'name': 'dir',
+                'id': int,
+                'entries': [{'name': 'single_file_work_copy', 'id': int}]
+            }
+        ),
+        (
+            'gitignore_archive', [
+                {
+                    'id': int,
+                    'name': 'bb[]',
+                    'entries': [{
+                        'id': int,
+                        'name': 'single_file_work'
+                    }, {
+                        'id': int,
+                        'name': 'single_file_work_copy'
+                    }]
+                }, {
+                    'id': int,
+                    'name': 'dir',
+                    'entries': [{
+                        'id': int,
+                        'name': '\\wow'
+                    }, {
+                        'id': int,
+                        'name': 'single_file_work'
+                    }, {
+                        'id': int,
+                        'name': 'single_file_work_copy'
+                    }, {
+                        'id': int,
+                        'name': 'something'
+                    }, {
+                        'id': int,
+                        'name': 'wow\wowsers'
+                    }]
+                }, {
+                    'id': int,
+                    'name': 'sub',
+                    'entries': [{
+                        'id': int,
+                        'name': 'dir',
+                        'entries': [{
+                            'id': int,
+                            'name': 'file'
+                        }, {
+                            'id': int,
+                            'name': 'file2'
+                        }]
+                    }]
+                }, {
+                    'id': int,
+                    'name': 'dir2',
+                    'entries': [{
+                        'id': int,
+                        'name': 'single_file_work'
+                    }, {
+                        'id': int,
+                        'name': 'single_file_work_copy'
+                    }]
+                }, {
+                    'id': int,
+                    'name': 'dirl',
+                    'entries': [{
+                        'id': int,
+                        'name': 'single_file_work'
+                    }, {
+                        'id': int,
+                        'name': 'single_file_work_copy'
+                    }]
+                }, {
+                    'id': int,
+                    'name': 'la',
+                    'entries': [{
+                        'id': int,
+                        'name': 'single_file_work'
+                    }, {
+                        'id': int,
+                        'name': 'single_file_work_copy'
+                    }]
+                }, {
+                    'id': int,
+                    'name': 'za',
+                    'entries': [{
+                        'id': int,
+                        'name': 'single_file_work'
+                    }, {
+                        'id': int,
+                        'name': 'single_file_work_copy'
+                    }]
+                }
+            ],
+            'gitignore_archive', ['.tar.gz'],
+            [
+                'dir/\\wow',
+                'dir2/single_file_work',
+                'dir2/single_file_work_copy',
+                'dirl/single_file_work',
+                'dirl/single_file_work_copy',
+                'za/single_file_work',
+                'za/single_file_work_copy',
+                'la/single_file_work',
+                'la/single_file_work_copy',
+                'dir/single_file_work',
+                'dir/something',
+                'dir/wow\\wowsers',
+                'sub/dir/file',
+                'sub/dir/file2',
+                'bb[]/single_file_work',
+                'bb[]/single_file_work_copy',
+            ],
+            {'name': 'gitignore_archive',
+             'id': int,
+             'entries': [{
+                 'name': 'dir',
+                 'id': int,
+                 'entries': [{'name': 'single_file_work_copy', 'id': int}]
+             }, {
+                 'name': 'sub',
+                 'id': int,
+                 'entries': [{'name': 'dir', 'id': int, 'entries': []}]
+             }]}
+        )
+
+    ]
+)
+@pytest.mark.parametrize('named_user', ['Stupid1'],
+                         indirect=True)
+# yapf: enable
+def test_ignored_upload_files(
+    named_user, exts, test_client, logged_in, assignment, name, entries,
+    dirname, error_template, ta_user, ignored, entries_delete
+):
+    entries.sort(key=lambda a: a['name'])
+
+    with logged_in(ta_user):
+        assig = test_client.req(
+            'get', f'/api/v1/assignments/{assignment.id}', 200
+        )
+        assert assig['cgignore'] is None
+
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment.id}',
+            204,
+            data={
+                'ignore':
+                    '# single_file_work_copy\n'
+                    '/dir[l2]/ \n'
+                    'single_file_work*\n'
+                    '[^dbs]*/\n'
+                    '[!dsb]*/\n'
+                    'somethin?\n'
+                    'wow\\wowsers\n'
+                    '!*copy\n'
+                    'bb[]/\n'
+                    '**/file\n'
+                    'sub/**/file2\n'
+                    '\\\\wow\n'
+            }
+        )
+        assig = test_client.req(
+            'get', f'/api/v1/assignments/{assignment.id}', 200
+        )
+        assert isinstance(assig['cgignore'], str)
+
+    for ext in exts:
+        with logged_in(named_user):
+            res = test_client.req(
+                'post',
+                f'/api/v1/assignments/{assignment.id}/submission?'
+                'ignored_files=error',
+                400,
+                real_data={
+                    'file':
+                        (
+                            f'{os.path.dirname(__file__)}/../test_data/'
+                            f'test_submissions/{name}{ext}', f'{name}{ext}'
+                        )
+                },
+                result={
+                    'code': 'INVALID_FILE_IN_ARCHIVE',
+                    'message': str,
+                    'description': str,
+                    'invalid_files': list
+                }
+            )
+            assert set(ignored) == set(r[0] for r in res['invalid_files'])
+
+            res = test_client.req(
+                'post',
+                f'/api/v1/assignments/{assignment.id}/submission?'
+                'ignored_files=ignore',
+                201,
+                real_data={
+                    'file':
+                        (
+                            f'{os.path.dirname(__file__)}/../test_data/'
+                            f'test_submissions/{name}{ext}', f'{name}{ext}'
+                        )
+                },
+            )
+            test_client.req(
+                'get',
+                f'/api/v1/submissions/{res["id"]}/files/',
+                200,
+                result={'entries': entries,
+                        'id': int,
+                        'name': f'{dirname}'}
+            )
+
+            res = test_client.req(
+                'post',
+                f'/api/v1/assignments/{assignment.id}/submission?'
+                'ignored_files=delete',
+                201,
+                real_data={
+                    'file':
+                        (
+                            f'{os.path.dirname(__file__)}/../test_data/'
+                            f'test_submissions/{name}{ext}', f'{name}{ext}'
+                        )
+                },
+            )
+            test_client.req(
+                'get',
+                f'/api/v1/submissions/{res["id"]}/files/',
+                200,
+                result=entries_delete
+            )
+
+    with logged_in(ta_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment.id}',
+            204,
+            data={'ignore': '*'}
+        )
+
+    with logged_in(named_user):
+        res = test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submission?'
+            'ignored_files=delete',
+            400,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        f'test_submissions/{name}{ext}', f'{name}{ext}'
+                    )
+            },
+        )
+
+    with logged_in(ta_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment.id}',
+            204,
+            data={'ignore': '*\n!dir/'}
+        )
+
+    with logged_in(named_user):
+        res = test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submission?'
+            'ignored_files=delete',
+            201,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        f'test_submissions/{name}{ext}', f'{name}{ext}'
+                    )
+            },
+        )
+        test_client.req(
+            'get',
+            f'/api/v1/submissions/{res["id"]}/files/',
+            200,
+            result={'name': 'dir',
+                    'id': int,
+                    'entries': list},
+        )
+
+    with logged_in(ta_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment.id}',
+            204,
+            data={'ignore': '*'}
+        )
+
+    with logged_in(named_user):
+        res = test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submission?'
+            'ignored_files=error',
+            400,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        f'test_submissions/{name}{ext}', f'{name}'
+                    )
+            },
+            result={
+                'code': 'INVALID_FILE_IN_ARCHIVE',
+                'message': str,
+                'description': str,
+                'invalid_files': list
+            }
+        )
+        assert set([f'{name}']) == set(r[0] for r in res['invalid_files'])
+
+        res = test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submission?'
+            'ignored_files=delete',
+            400,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        f'test_submissions/{name}{ext}', f'{name}'
+                    )
+            },
+            result={
+                'code': 'NO_FILES_SUBMITTED',
+                'message': str,
+                'description': str,
+            }
+        )
+
+    with logged_in(ta_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment.id}',
+            204,
+            data={'ignore': '# Nothing'}
+        )
+
+    with logged_in(named_user):
+        res = test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submission?'
+            'ignored_files=error',
+            201,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        f'test_submissions/{name}{ext}', f'{name}'
+                    )
+            },
+        )
+        test_client.req(
+            'get',
+            f'/api/v1/submissions/{res["id"]}/files/',
+            200,
+            result={'name': 'top',
+                    'id': int,
+                    'entries': list},
+        )

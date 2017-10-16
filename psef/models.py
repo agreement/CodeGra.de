@@ -1883,6 +1883,7 @@ class Assignment(Base):
     __tablename__ = "Assignment"
     id: int = db.Column('id', db.Integer, primary_key=True)
     name: str = db.Column('name', db.Unicode)
+    cgignore: str = db.Column('cgignore', db.Unicode)
     state: _AssignmentStateEnum = db.Column(
         'state',
         db.Enum(_AssignmentStateEnum),
@@ -2058,6 +2059,7 @@ class Assignment(Base):
             'name': self.name,
             'is_lti': self.is_lti,
             'course': self.course,
+            'cgignore': self.cgignore,
             'whitespace_linter': self.whitespace_linter,
         }
 

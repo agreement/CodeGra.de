@@ -29,6 +29,7 @@ import RubricEditor from './RubricEditor';
 import SubmitButton from './SubmitButton';
 import PrivacyNote from './PrivacyNote';
 import PreferenceManager from './PreferenceManager';
+import CGIgnoreFile from './CGIgnoreFile';
 
 export {
     Linters,
@@ -62,4 +63,5 @@ export {
     SubmitButton,
     PrivacyNote,
     PreferenceManager,
+    CGIgnoreFile,
 };

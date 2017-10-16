@@ -25,6 +25,7 @@ import psef.helpers as helpers
 import psef.linters as linters
 from psef import app, current_user
 from psef.errors import APICodes, APIException
+from psef.ignore import IgnoreFilterManager
 from psef.models import db
 from psef.helpers import (
     JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
@@ -215,6 +216,12 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
                 '{} cannot be parsed by dateutil'.format(deadline),
                 APICodes.INVALID_PARAM, 400
             )
+
+    if 'ignore' in content:
+        ensure_keys_in_dict(content, [('ignore', str)])
+        ignore = t.cast(str, content['ignore'])
+
+        assig.cgignore = ignore
 
     db.session.commit()
 
@@ -501,9 +508,16 @@ def patch_rubric_row(
 @api.route("/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
     """Upload one or more files as :class:`.models.Work` to the given
-    :class:`.models.Assignment`
+    :class:`.models.Assignment`.
 
     .. :quickref: Assignment; Create work by uploading a file.
+
+    An extra get parameter ``ignored_files`` can be given to determine how to
+    handle ignored files. The options are:
+    - ``ignore``, this the default, sipmly do nothing about ignored files.
+    - ``delete``, delete the ignored files.
+    - ``error``, raise an :py:class:`APIException` when there are ignored files
+      in the archive.
 
     :param int assignment_id: The id of the assignment
     :returns: A JSON serialized work and with the status code 201.
@@ -573,7 +587,20 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
             work.assigned_to = max(missing.keys(), key=lambda k: missing[k])
     db.session.add(work)
 
-    tree = psef.files.process_files(files)
+    raise_or_delete = psef.files.IgnoreHandling.keep
+    if request.args.get('ignored_files') == 'delete':
+        raise_or_delete = psef.files.IgnoreHandling.delete
+    if request.args.get('ignored_files') == 'error':
+        raise_or_delete = psef.files.IgnoreHandling.error
+
+    ignoretxt = assignment.cgignore or ''
+
+    tree = psef.files.process_files(
+        files,
+        force_txt=False,
+        ignore_filter=IgnoreFilterManager(ignoretxt.split('\n')),
+        handle_ignore=raise_or_delete,
+    )
     work.add_file_tree(db.session, tree)
     db.session.flush()
 

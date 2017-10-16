@@ -27,6 +27,8 @@ class APICodes(IntEnum):
     INVALID_OAUTH_REQUEST = 14
     DISABLED_FEATURE = 15
     UNKOWN_ERROR = 16
+    INVALID_FILE_IN_ARCHIVE = 17
+    NO_FILES_SUBMITTED = 18
 
 
 class APIException(Exception):
@@ -46,7 +48,7 @@ class APIException(Exception):
         description: str,
         api_code: APICodes,
         status_code: int,
-        **rest: t.Mapping[t.Any, t.Any]
+        **rest: t.Any,
     ) -> None:
         super(APIException, self).__init__()
         self.status_code = status_code
@@ -63,7 +65,7 @@ class APIException(Exception):
         ret = dict(self.rest)  # type: t.MutableMapping[t.Any, t.Any]
         ret['message'] = self.message
         ret['description'] = self.description
-        ret['code'] = self.api_code
+        ret['code'] = self.api_code.name
         return ret
 
 

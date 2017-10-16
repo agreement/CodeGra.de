@@ -17,12 +17,34 @@
             :rubric="rubric"
             @assigneeUpdated="updateAssignee"/>
 
+        <b-modal id="wrong-files-modal" hide-footer>
+            <p>The following files should not be in your archive according to the <code style="margin: 0 0.25rem;">.cgignore</code> file:</p>
+            <ul style="list-style-type: none">
+                <li style="margin-right: 2px; padding: 0.5em;" v-for="file in wrongFiles">
+                    <code style="margin-right: 0.25rem">{{ file[0] }}</code> is ignored by <code>{{ file[1] }}</code>
+                </li>
+            </ul>
+            <b-button-toolbar justify>
+                <submit-button ref="submitDelete"
+                               label="Delete files" default="danger"
+                               @click="overrideSubmit('delete', $refs.submitDelete)"/>
+                <submit-button ref="submitKeep"
+                               label="Keep files" default="warning"
+                               @click="overrideSubmit('keep', $refs.submitKeep)"/>
+                <submit-button label="Cancel submission"
+                               @click="$root.$emit('hide::modal', 'wrong-files-modal');"/>
+            </b-button-toolbar>
+        </b-modal>
+
         <b-popover
             placement="top"
             :triggers="assignment.is_lti && !inLTI ? ['hover'] : []"
             content="You can only submit this assignment from within your LMS">
             <file-uploader
-                :url="`/api/v1/assignments/${this.assignmentId}/submission`"
+                ref="uploader"
+                :url="`/api/v1/assignments/${this.assignmentId}/submission?ignored_files=error`"
+                :show-empty="true"
+                @error="uploadError"
                 @response="goToSubmission"
                 v-if="canUpload"/>
         </b-popover>
@@ -31,7 +53,7 @@
 
 <script>
 import { mapActions } from 'vuex';
-import { SubmissionList, Loader } from '@/components';
+import { SubmissionList, Loader, SubmitButton } from '@/components';
 import moment from 'moment';
 
 import FileUploader from '@/components/FileUploader';
@@ -53,6 +75,7 @@ export default {
             canManage: true,
             rubric: null,
             inLTI: window.inLTI,
+            wrongFiles: [],
         };
     },
 
@@ -126,8 +149,33 @@ export default {
     },
 
     methods: {
+        uploadError(err) {
+            if (err.data.code !== 'INVALID_FILE_IN_ARCHIVE') return;
+
+            // We need the double next ticks as next ticks are executed before
+            // data updates of the next tick.
+            this.$nextTick(() => {
+                this.$nextTick(() => {
+                    this.$refs.uploader.$refs.submitButton.reset();
+                });
+            });
+
+            this.wrongFiles = err.data.invalid_files;
+            this.$root.$emit('show::modal', 'wrong-files-modal');
+        },
         hasPermission(perm) {
             return this.u_hasPermission({ name: perm, course_id: this.courseId });
+        },
+
+        overrideSubmit(type, btn) {
+            const requestData = this.$refs.uploader.requestData;
+            const url = `/api/v1/assignments/${this.assignmentId}/submission?ignored_files=${type}`;
+            btn.submit(this.$http.post(url, requestData).then((res) => {
+                this.goToSubmission(res);
+            }, ({ response }) => {
+                this.$emit('error', response);
+                throw response.data.message;
+            }));
         },
 
         goToSubmission({ data: submission }) {
@@ -155,6 +203,7 @@ export default {
         FileUploader,
         SubmissionList,
         Loader,
+        SubmitButton,
     },
 };
 </script>
@@ -162,5 +211,11 @@ export default {
 <style lang="less" scoped>
 .loader {
     padding-top: 3.5em;
+}
+
+#wrong-files-modal ul {
+    max-height: 50vh;
+    overflow-y: auto;
+
 }
 </style>
