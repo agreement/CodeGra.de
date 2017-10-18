@@ -53,6 +53,7 @@ export default {
             this.imgURL = '';
             this.$http.get(`/api/v1/code/${this.id}?type=file-url`).then(({ data }) => {
                 this.loading = false;
+                this.$emit('load');
                 this.imgURL = `/api/v1/files/${data.name}?not_as_attachment&mime=${this.getMimeType()}`;
             }, ({ response }) => {
                 this.error = `An error occurred while loading the image: ${response.data.message}.`;

@@ -1,4 +1,5 @@
 import CodeViewer from './CodeViewer';
+import DiffViewer from './DiffViewer';
 import FeedbackArea from './FeedbackArea';
 import LinterFeedbackArea from './LinterFeedbackArea';
 import Linters from './Linters';
@@ -29,12 +30,14 @@ import RubricEditor from './RubricEditor';
 import SubmitButton from './SubmitButton';
 import PrivacyNote from './PrivacyNote';
 import PreferenceManager from './PreferenceManager';
+import Toggle from './Toggle';
 import CGIgnoreFile from './CGIgnoreFile';
 
 export {
     Linters,
     Linter,
     CodeViewer,
+    DiffViewer,
     LinterFeedbackArea,
     ManageAssignment,
     ManageCourse,
@@ -63,5 +66,6 @@ export {
     SubmitButton,
     PrivacyNote,
     PreferenceManager,
+    Toggle,
     CGIgnoreFile,
 };

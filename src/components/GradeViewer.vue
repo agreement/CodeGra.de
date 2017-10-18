@@ -7,8 +7,7 @@
                 :editable="editable"
                 :submission="submission"
                 :rubric="rubric"
-                ref="rubricViewer">
-            </rubric-viewer>
+                ref="rubricViewer"/>
         </b-collapse>
         <b-alert :class="{closed: Object.keys($refs.rubricViewer.outOfSync).length === 0,
                          'out-of-sync-alert': true,}"
@@ -55,7 +54,9 @@
                                                :disabled="!showDeleteButton"
                                                class="delete-button"
                                                style="height: 100%;"
-                                               :label="rubricOverridden ? '↩' : '✖'"/>
+                                               label="">
+                                               <icon :name="rubricOverridden ? 'reply' : 'times'"/>
+                                </submit-button>
                             </b-popover>
                         </b-input-group-button>
 
@@ -97,6 +98,8 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/bars';
 import 'vue-awesome/icons/info';
 import 'vue-awesome/icons/refresh';
+import 'vue-awesome/icons/reply';
+import 'vue-awesome/icons/times';
 import { mapActions, mapGetters } from 'vuex';
 import RubricViewer from './RubricViewer';
 import SubmitButton from './SubmitButton';

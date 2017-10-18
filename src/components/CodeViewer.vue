@@ -4,24 +4,6 @@
     </b-alert>
     <loader class="text-center" v-else-if="loading"></loader>
     <div class="code-viewer form-control" v-else>
-        <b-popover triggers="click"
-                   class="settings-popover"
-                   :popover-style="{'max-width': '80%', width: '35em'}"
-                   placement="right">
-            <b-btn class="settings-toggle" id="codeviewer-settings-toggle">
-                <icon name="cog"/>
-            </b-btn>
-            <div slot="content">
-                <div class="settings-content"
-                     id="codeviewer-settings-content"
-                     ref="settingsContent">
-                    <preference-manager :fileId="file.id"
-                                        @whitespace="(value) => { showWhitespace = value; }"
-                                        @language="highlightCode"
-                                        @font-size="(val) => { fontSize = val; }"/>
-                </div>
-            </div>
-        </b-popover>
         <div class="scroller" ref="scroller">
             <ol :class="{ editable, 'lint-whitespace': assignment.whitespace_linter, 'show-whitespace': showWhitespace }"
                 :style="{
@@ -31,10 +13,10 @@
                 class="hljs"
                 @click="onClick">
                 <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
-                    :class="{ 'linter-feedback-outer': linterFeedback[i] }" v-bind:key="i">
+                    :class="{ 'linter-feedback-outer': linterFeedback[i] && !diffMode }" v-bind:key="i">
 
                     <linter-feedback-area :feedback="linterFeedback[i]"
-                                          v-if="linterFeedback[i] != null"/>
+                                          v-if="linterFeedback[i] !== null && !diffMode"/>
 
                     <code v-html="line"/>
 
@@ -46,7 +28,7 @@
                                    :can-use-snippets="canUseSnippets"
                                    v-on:feedbackChange="val => { feedbackChange(i, val); }"
                                    v-on:cancel='onChildCancel'
-                                   v-if="feedback[i] !== undefined && feedback[i] !== null"/>
+                                   v-if="feedback[i] !== undefined && feedback[i] !== null && !diffMode"/>
                 </li>
             </ol>
         </div>
@@ -67,7 +49,8 @@ import FeedbackArea from './FeedbackArea';
 import LinterFeedbackArea from './LinterFeedbackArea';
 import Loader from './Loader';
 import Toggle from './Toggle';
-import PreferenceManager from './PreferenceManager';
+
+import { visualizeWhitespace } from './utils';
 
 const decoder = new TextDecoder('utf-8', { fatal: true });
 
@@ -95,12 +78,32 @@ export default {
             type: Object,
             default: {},
         },
+        language: {
+            type: String,
+            default: 'Default',
+        },
+        fontSize: {
+            type: Number,
+            default: 12,
+        },
+        showWhitespace: {
+            type: Boolean,
+            default: true,
+        },
     },
 
     computed: {
         extension() {
             const fileParts = this.file.name.split('.');
             return fileParts.length > 1 ? fileParts[fileParts.length - 1] : null;
+        },
+
+        diffMode() {
+            return this.$route.query.revision === 'diff';
+        },
+
+        isLargeFile() {
+            return this.rawCodeLines && this.rawCodeLines.length > 5000;
         },
     },
 
@@ -111,7 +114,6 @@ export default {
             a.toLowerCase().localeCompare(b.toLowerCase()));
         languages.unshift('Default');
         return {
-            selectedLanguage: 'Default',
             code: '',
             rawCodeLines: [],
             codeLines: [],
@@ -121,9 +123,8 @@ export default {
             linterFeedback: {},
             clicks: {},
             error: false,
-            showWhitespace: true,
             darkMode: true,
-            fontSize: 12,
+            selectedLanguage: 'Default',
             languages,
             canUseSnippets: false,
         };
@@ -137,31 +138,6 @@ export default {
             this.canUseSnippets = snips;
             this.loading = false;
         });
-
-        this.clickHideSettings = (event) => {
-            let target = event.target;
-            while (target !== document.body) {
-                if (target.id === 'codeviewer-settings-content' ||
-                    target.id === 'codeviewer-settings-toggle') {
-                    return;
-                }
-                target = target.parentNode;
-            }
-            this.$root.$emit('hide::popover');
-        };
-
-        document.body.addEventListener('click', this.clickHideSettings, true);
-        this.keyupHideSettings = (event) => {
-            if (event.key === 'Escape') {
-                this.$root.$emit('hide::popover');
-            }
-        };
-        document.body.addEventListener('keyup', this.keyupHideSettings);
-    },
-
-    destroyed() {
-        document.body.removeEventListener('click', this.clickHideSettings);
-        document.body.removeEventListener('keyup', this.keyupHideSettings);
     },
 
     watch: {
@@ -170,7 +146,16 @@ export default {
         },
 
         tree() {
-            this.linkFiles();
+            if (!this.isLargeFile && !this.diffMode) {
+                this.linkFiles();
+            }
+        },
+
+        language(lang) {
+            this.selectedLanguage = lang;
+            if (!this.isLargeFile) {
+                this.highlightCode(lang);
+            }
         },
     },
 
@@ -180,72 +165,69 @@ export default {
                 if (val !== null) {
                     this.selectedLanguage = val;
                 }
-                return Promise.all([
-                    this.getCode(setLoading),
-                    this.$whitespaceStore.getItem(`${this.file.id}`).then((white) => {
-                        this.showWhitespace = white === null || white;
-                    }),
-                ]);
+                return this.getCode(setLoading);
             });
         },
 
         getCode(setLoading = true) {
             if (setLoading) this.loading = true;
+            const error = [];
             this.error = '';
 
-            const addError = (err) => {
-                let errVal = this.$htmlEscape(err);
-
-                if (this.error) {
-                    errVal = `<br>${errVal}`;
-                }
-
-                this.error += errVal;
-            };
+            const fileId = this.file.id || this.file.ids[0] || this.file.ids[1];
 
             // Split in two promises so that highlighting can begin before we
             // have feedback as this is not needed anyway.
             return Promise.all([
-                this.$http.get(`/api/v1/code/${this.file.id}`, {
+                this.$http.get(`/api/v1/code/${fileId}`, {
                     responseType: 'arraybuffer',
                 }).then((code) => {
                     try {
                         this.code = decoder.decode(code.data);
                     } catch (e) {
-                        addError('This file cannot be displayed');
+                        error.push('This file cannot be displayed');
                         return;
                     }
                     this.rawCodeLines = this.code.split('\n');
 
                     this.highlightCode(this.selectedLanguage);
-                    this.linkFiles();
+                    if (!this.isLargeFile && !this.diffMode) {
+                        this.linkFiles();
+                    }
                 }, ({ response: { data: { message } } }) => {
-                    addError(message);
+                    error.push(message);
                 }),
 
                 Promise.all([
-                    this.$http.get(`/api/v1/code/${this.file.id}?type=feedback`),
-                    this.$http.get(`/api/v1/code/${this.file.id}?type=linter-feedback`),
+                    this.$http.get(`/api/v1/code/${fileId}?type=feedback`),
+                    this.$http.get(`/api/v1/code/${fileId}?type=linter-feedback`),
                 ]).then(([feedback, linterFeedback]) => {
                     this.linterFeedback = linterFeedback.data;
                     this.feedback = feedback.data;
                 }, ({ response: { data: { message } } }) => {
-                    addError(message);
+                    error.push(message);
                 }),
             ]).then(() => {
+                this.error = error.join('<br>');
                 if (setLoading) {
                     this.loading = false;
                 }
+                this.$emit('load');
             });
         },
 
         // Highlight this.codeLines.
         highlightCode(language) {
+            if (this.isLargeFile) {
+                this.codeLines = this.rawCodeLines.map(this.$htmlEscape);
+                return;
+            }
+
             const lang = language === 'Default' ? this.extension : language;
-            if (getLanguage(lang) === undefined) {
+            if (getLanguage(lang) === undefined || this.diffMode) {
                 this.codeLines = this.rawCodeLines
                     .map(this.$htmlEscape)
-                    .map(this.visualizeWhitespace);
+                    .map(visualizeWhitespace);
                 return;
             }
 
@@ -254,30 +236,8 @@ export default {
                 const { top, value } = highlight(lang, line, true, state);
 
                 state = top;
-                return this.visualizeWhitespace(value);
+                return visualizeWhitespace(value);
             });
-        },
-
-        visualizeWhitespace(line) {
-            const newLine = [];
-            for (let i = 0; i < line.length;) {
-                const start = i;
-                if (line[i] === '<') {
-                    while (line[i] !== '>' && i < line.length) i += 1;
-                    newLine.push(line.slice(start, i + 1));
-                    i += 1;
-                } else if (line[i] === ' ') {
-                    while (line[i] === ' ' && i < line.length) i += 1;
-                    newLine.push(`<span class="whitespace space">${Array((i - start) + 1).join('&middot;')}</span><wbr>`);
-                } else if (line[i] === '\t') {
-                    while (line[i] === '\t' && i < line.length) i += 1;
-                    newLine.push(`<span class="whitespace tab">${Array((i - start) + 1).join('&#10230;   ')}</span><wbr>`);
-                } else {
-                    while (line[i] !== '<' && line[i] !== ' ' && line[i] !== '\t' && i < line.length) i += 1;
-                    newLine.push(line.slice(start, i));
-                }
-            }
-            return newLine.join('');
         },
 
         // Given a file-tree object as returned by the API, generate an
@@ -304,7 +264,7 @@ export default {
                     do {
                         const spath = path.substr(i);
                         filePaths.push(spath);
-                        fileIds[path.substr(i)] = f.id;
+                        fileIds[path.substr(i)] = f.id || f.ids[0] || f.ids[1];
                         i = path.indexOf('/', i + 1) + 1;
                     } while (i > 0);
                 }
@@ -343,6 +303,7 @@ export default {
                         submissionId: this.submission.id,
                         fileId,
                     },
+                    query: this.$route.query,
                 });
             }
         },
@@ -375,7 +336,6 @@ export default {
     },
 
     components: {
-        PreferenceManager,
         Icon,
         FeedbackArea,
         LinterFeedbackArea,
@@ -417,7 +377,6 @@ export default {
             border-left: 1px solid darken(@color-primary-darkest, 5%);
         }
 
-        .settings-toggle,
         ol {
             background: @color-primary-darkest;
             color: @color-secondary-text-lighter;
@@ -427,22 +386,6 @@ export default {
             color: #839496;
         }
     }
-}
-
-.settings-toggle {
-    position: absolute;
-    top: -1px;
-    right: 0;
-    z-index: 10;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-    border-right: 0;
-
-}
-
-#codeviewer-settings-content {
-    margin: -.75em -1em;
-    padding: .75em 1em;
 }
 
 .scroller {
@@ -468,12 +411,14 @@ li {
         cursor: pointer;
 
         code {
-            text-decoration: underline;
+            border-radius: 0;
+            border-bottom: 1px solid currentColor;
         }
     }
 }
 
 code {
+    color: @color-secondary-text;
     white-space: pre-wrap;
 }
 
@@ -492,45 +437,6 @@ code {
 .loader {
     margin-top: 2.5em;
     margin-bottom: 3em;
-}
-
-.settings-popover {
-    .settings-toggle {
-        border: 1px solid rgba(0, 0, 0, 0.15);
-        background: #f8f8f8;
-
-        &:focus {
-            box-shadow: none;
-        }
-    }
-
-    @media-large {
-        position: fixed;
-
-        .settings-toggle {
-            margin-right: 0px !important;
-            border-right: 0 !important;
-            margin-top: 0.5em;
-        }
-    }
-
-    @media-no-large {
-        position: relative;
-
-        .settings-toggle {
-            position: absolute;
-            left: 0;
-
-            margin-top: -2.4rem;
-            height: 2.4rem;
-            margin-left: 0.5em;
-
-            top: 0;
-            border-bottom: 0;
-            border-top-left-radius: 0;
-            border-bottom-left-radius: 0;
-        }
-    }
 }
 </style>
 

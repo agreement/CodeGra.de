@@ -1532,9 +1532,9 @@ class File(Base):
                 (
                     child.list_contents(exclude)
                     for child in
-                    self.children.filter(File.fileowner != exclude).all()
+                    self.children.filter(File.fileowner != exclude)
                 ),
-                key=lambda el: el['name']
+                key=lambda el: el['name'].lower()
             )
             return {
                 "name": self.name,

@@ -12,7 +12,9 @@
                     <snippet-manager></snippet-manager>
                 </b-card>
                 <b-card header="Preferences">
-                    <preference-manager :show-language="false" :show-whitespace="false"/>
+                    <preference-manager :show-language="false"
+                                        :show-whitespace="false"
+                                        :show-revision="false"/>
                 </b-card>
             </div>
         </div>

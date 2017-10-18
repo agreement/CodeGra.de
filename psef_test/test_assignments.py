@@ -1290,17 +1290,17 @@ def test_get_all_submissions(
             'correct_difficult.tar.gz', {
                 'Stupid1': {
                         'entries': [{
-                                    'name': 'Single file',
-                                    'id': int
-                                }, {
-                                    'name': 'Tuple_file_1',
-                                    'id': int
-                                }, {
                                     'name': '__WARNING__',
                                     'id': int,
                                 }, {
                                     'name': '__WARNING__ (User)',
                                     'id': int,
+                                }, {
+                                    'name': 'Single file',
+                                    'id': int
+                                }, {
+                                    'name': 'Tuple_file_1',
+                                    'id': int
                                 }, {
                                     'name': 'wrong_archive.tar.gz',
                                     'id': int
@@ -1326,12 +1326,12 @@ def test_get_all_submissions(
                                     'name': 'Single file',
                                     'id': int
                                 }, {
-                                    'name': 'Tuple_file_2',
-                                    'id': int
-                                }, {
                                     'name': 'tar_file',
                                     'id': int,
                                     'entries': list,
+                                }, {
+                                    'name': 'Tuple_file_2',
+                                    'id': int
                                 }],
                         'name': 'top',
                         'id': int,

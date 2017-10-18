@@ -1,6 +1,6 @@
 <template>
     <div class="toggle-container">
-        <div class="toggle" @click="onChange">
+        <div class="toggle" @click="toggle">
             <b-button class="off" variant="default">
                 {{ labelOff }}
             </b-button>
@@ -17,7 +17,6 @@ export default {
 
     props: {
         value: {
-            type: Boolean,
             default: false,
         },
         labelOn: {
@@ -28,11 +27,17 @@ export default {
             type: String,
             default: 'off',
         },
+        valueOn: {
+            default: true,
+        },
+        valueOff: {
+            default: false,
+        },
     },
 
     data() {
         return {
-            current: this.value,
+            current: this.value === this.valueOn,
         };
     },
 
@@ -41,9 +46,9 @@ export default {
     },
 
     methods: {
-        onChange() {
+        toggle() {
             this.current = !this.current;
-            this.$emit('input', this.current);
+            this.$emit('input', this.current ? this.valueOn : this.valueOff);
             this.update();
         },
 
@@ -78,11 +83,12 @@ export default {
     overflow: hidden;
     cursor: pointer;
     border-radius: .25rem;
+    width: 4rem;
 }
 
 .toggle {
     position: relative;
-    width: 4rem;
+    width: 100%;
     height: 2.25rem;
 
     .on,
