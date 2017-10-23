@@ -30,6 +30,7 @@
 
 <script>
 import moment from 'moment';
+import { formatGrade } from '@/utils';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/angle-double-left';
 import 'vue-awesome/icons/angle-left';
@@ -120,7 +121,7 @@ export default {
                 .local().format('DD-MM-YYYY HH:mm');
             let text = `${submission.user.name} - ${date}`;
             if (submission.grade) {
-                text += ` [${parseFloat(submission.grade).toFixed(2)}]`;
+                text += ` [${formatGrade(submission.grade)}]`;
             }
             if (submission.assignee) {
                 text += ` (${submission.assignee.name})`;

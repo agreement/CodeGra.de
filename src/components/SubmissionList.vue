@@ -54,7 +54,7 @@
                 {{item.value.name ? item.value.name : '-'}}
             </template>
             <template slot="grade" scope="item">
-                {{item.value ? parseFloat(item.value).toFixed(2) : '-'}}
+                {{formatGrade(item.value) || '-'}}
             </template>
             <template slot="created_at" scope="item">
                 {{item.value ? item.value : '-'}}
@@ -84,6 +84,7 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
+import { formatGrade } from '@/utils';
 import SubmissionsExporter from './SubmissionsExporter';
 import Loader from './Loader';
 import SubmitButton from './SubmitButton';
@@ -314,6 +315,8 @@ export default {
         ...mapActions({
             hasPermission: 'user/hasPermission',
         }),
+
+        formatGrade,
     },
 
     components: {

@@ -131,6 +131,7 @@
 <script>
 import { mapActions } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
+import { formatGrade } from '@/utils';
 import 'vue-awesome/icons/download';
 import 'vue-awesome/icons/times';
 
@@ -197,7 +198,7 @@ export default {
             if (this.submission) {
                 let title = this.assignment.name;
                 if (this.submission.grade) {
-                    title += ` (${parseFloat(this.submission.grade).toFixed(2)})`;
+                    title += ` (${formatGrade(this.submission.grade)})`;
                 }
                 setPageTitle(`${title} ${pageTitleSep} ${this.submission.created_at}`);
             }
@@ -214,7 +215,7 @@ export default {
             if (this.assignment) {
                 let title = this.assignment.name;
                 if (submission.grade) {
-                    title += ` (${parseFloat(submission.grade).toFixed(2)})`;
+                    title += ` (${formatGrade(submission.grade)})`;
                 }
                 setPageTitle(`${title} ${pageTitleSep} ${submission.created_at}`);
             }

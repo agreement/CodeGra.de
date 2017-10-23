@@ -101,6 +101,7 @@ import 'vue-awesome/icons/refresh';
 import 'vue-awesome/icons/reply';
 import 'vue-awesome/icons/times';
 import { mapActions, mapGetters } from 'vuex';
+import { formatGrade } from '@/utils';
 import RubricViewer from './RubricViewer';
 import SubmitButton from './SubmitButton';
 import GradeHistory from './GradeHistory';
@@ -130,7 +131,7 @@ export default {
     data() {
         return {
             feedback: this.submission.comment,
-            grade: this.submission.grade ? this.submission.grade.toFixed(2) : null,
+            grade: formatGrade(this.submission.grade),
             rubricPoints: {},
             rubricHasSelectedItems: false,
             gradeHistory: false,
@@ -147,6 +148,7 @@ export default {
             }
             return 'Delete grade';
         },
+
         showDeleteButton() {
             if (!this.editable) {
                 return false;
@@ -154,20 +156,23 @@ export default {
             if (this.showRubric) {
                 return this.rubricHasSelectedItems || this.rubricOverridden;
             }
-            return this.grade !== null;
+            return this.grade != null;
         },
+
         showRubric() {
             return this.rubric && this.rubric.rubrics.length;
         },
 
         rubricOverridden() {
-            if (!this.showRubric || this.grade === null) {
+            if (!this.showRubric || this.grade == null) {
                 return false;
             }
-            const rubricGrade = ((this.rubricPoints.selected / this.rubricPoints.max)
-                                 * 10)
-                  .toFixed(2);
-            return this.grade !== rubricGrade;
+            if (!this.rubricHasSelectedItems) {
+                return true;
+            }
+            const rubricGrade = Math.max(0,
+                (this.rubricPoints.selected / this.rubricPoints.max) * 10);
+            return this.grade !== formatGrade(rubricGrade);
         },
 
         rubricScore() {
@@ -184,7 +189,7 @@ export default {
     watch: {
         submission() {
             this.feedback = this.submission.comment || '';
-            this.grade = this.submission.grade || 0;
+            this.grade = formatGrade(this.submission.grade) || 0;
         },
 
         rubric() {
@@ -194,7 +199,7 @@ export default {
         },
 
         rubricPoints({ selected, max, grade }) {
-            this.grade = grade ? parseFloat(grade).toFixed(2) : grade;
+            this.grade = formatGrade(grade) || null;
             this.rubricHasSelectedItems = this.$refs.rubricViewer.hasSelectedItems;
             this.rubricSelected = selected;
             this.rubricTotal = max;
@@ -247,7 +252,7 @@ export default {
             }
             req.then(({ data }) => {
                 if (data.grade !== undefined) {
-                    this.grade = data.grade ? parseFloat(data.grade).toFixed(2) : data.grade;
+                    this.grade = formatGrade(data.grade) || null;
                     this.gradeUpdated(data.grade);
                 }
             });
