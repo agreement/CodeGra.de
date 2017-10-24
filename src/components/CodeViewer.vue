@@ -45,6 +45,8 @@ import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/cog';
 import 'vue-multiselect/dist/vue-multiselect.min.css';
 
+import { cmpNoCase } from '@/utils';
+
 import FeedbackArea from './FeedbackArea';
 import LinterFeedbackArea from './LinterFeedbackArea';
 import Loader from './Loader';
@@ -110,8 +112,7 @@ export default {
     data() {
         const languages = listLanguages();
         languages.push('plain');
-        languages.sort((a, b) =>
-            a.toLowerCase().localeCompare(b.toLowerCase()));
+        languages.sort(cmpNoCase);
         languages.unshift('Default');
         return {
             code: '',

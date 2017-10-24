@@ -61,6 +61,8 @@
 import { listLanguages } from 'highlightjs';
 import Multiselect from 'vue-multiselect';
 
+import { cmpNoCase } from '@/utils';
+
 import Toggle from './Toggle';
 import Loader from './Loader';
 
@@ -128,8 +130,7 @@ export default {
     data() {
         const languages = listLanguages();
         languages.push('plain');
-        languages.sort((a, b) =>
-                       a.toLowerCase().localeCompare(b.toLowerCase()));
+        languages.sort(cmpNoCase);
         languages.unshift('Default');
         return {
             loading: true,

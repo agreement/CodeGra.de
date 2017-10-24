@@ -84,7 +84,7 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
-import { formatGrade } from '@/utils';
+import { formatGrade, cmpNoCase, cmpOneNull } from '@/utils';
 import SubmissionsExporter from './SubmissionsExporter';
 import Loader from './Loader';
 import SubmitButton from './SubmitButton';
@@ -187,37 +187,30 @@ export default {
 
     methods: {
         sortTable(a, b, sortBy) {
-            const oneNull = (first, second) => {
-                if (!first && !second) {
-                    return 0;
-                } else if (!first) {
-                    return 1;
-                } else if (!second) {
-                    return -1;
-                }
-                return null;
-            };
-
-            const comp = (first, second) => first.toLowerCase().localeCompare(second.toLowerCase());
-
-            if (typeof a[sortBy] === 'number' && typeof b[sortBy] === 'number') {
-                return a[sortBy] - b[sortBy];
-            } else if (sortBy === 'user' || sortBy === 'assignee') {
+            if (sortBy === 'user' || sortBy === 'assignee') {
                 const first = a[sortBy];
                 const second = b[sortBy];
 
-                const ret = oneNull(first, second);
+                const ret = cmpOneNull(first, second);
                 if (ret !== null) return ret;
 
-                return comp(first.name, second.name);
-            } else if (sortBy === 'created_at' || sortBy === 'grade') {
+                return cmpNoCase(first.name, second.name);
+            } else if (sortBy === 'created_at') {
                 const first = a[sortBy];
                 const second = b[sortBy];
 
-                const ret = oneNull(first, second);
+                const ret = cmpOneNull(first, second);
                 if (ret !== null) return ret;
 
-                return comp(first, second);
+                return cmpNoCase(first, second);
+            } else if (sortBy === 'grade') {
+                const first = a[sortBy];
+                const second = b[sortBy];
+
+                const ret = cmpOneNull(first, second);
+                if (ret !== null) return ret;
+
+                return cmpNoCase(formatGrade(first), formatGrade(second));
             }
 
             return 0;

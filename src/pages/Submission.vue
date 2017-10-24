@@ -131,9 +131,9 @@
 <script>
 import { mapActions } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
-import { formatGrade } from '@/utils';
 import 'vue-awesome/icons/download';
 import 'vue-awesome/icons/times';
+import { cmpNoCase, formatGrade } from '@/utils';
 
 import {
     CodeViewer,
@@ -449,8 +449,7 @@ export default {
                 }
             }
 
-            diffTree.entries.sort((a, b) =>
-                a.name.localeCompare(b.name));
+            diffTree.entries.sort(cmpNoCase);
 
             delete diffTree.push;
             return diffTree;
