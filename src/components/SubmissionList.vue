@@ -42,12 +42,12 @@
 
         <b-table striped hover
                  ref="table"
-                 v-on:row-clicked='gotoSubmission'
-                 :items="submissions"
+                 @row-clicked='gotoSubmission'
+                 @sort-changed="sortChanged"
+                 :items="filteredSubmissions"
                  :fields="fields"
                  :current-page="currentPage"
-                 :sort-compare="sortTable"
-                 :filter="filterItems"
+                 :sort-compare="sortSubmissions"
                  :show-empty="true"
                  class="submissions-table">
             <template slot="user" scope="item">
@@ -84,7 +84,7 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
-import { formatGrade, cmpNoCase, cmpOneNull } from '@/utils';
+import { formatGrade, filterSubmissions, sortSubmissions } from '@/utils';
 import SubmissionsExporter from './SubmissionsExporter';
 import Loader from './Loader';
 import SubmitButton from './SubmitButton';
@@ -114,8 +114,8 @@ export default {
     data() {
         return {
             showRubricModal: false,
-            latestOnly: this.$route.query.latest !== 'false',
-            mineOnly: this.$route.query.mine !== 'false',
+            latestOnly: (this.$route.query.latest == null) || this.$route.query.latest.toString() !== 'false',
+            mineOnly: (this.$route.query.mine == null) || this.$route.query.mine.toString() !== 'false',
             currentPage: 1,
             filter: this.$route.query.q || '',
             latest: this.getLatest(this.submissions),
@@ -154,6 +154,27 @@ export default {
         exportFilename() {
             return this.assignment ? `${this.assignment.course.name}-${this.assignment.name}.csv` : null;
         },
+
+        filteredSubmissions() {
+            // WARNING: We need to access all, do not change!
+            if ([
+                this.submissions,
+                this.latestOnly,
+                this.mineOnly,
+                this.userId,
+                this.filter,
+            ].indexOf(undefined) !== -1) {
+                return [];
+            }
+
+            return filterSubmissions(
+                this.submissions,
+                this.latestOnly,
+                this.mineOnly,
+                this.userId,
+                this.filter,
+            );
+        },
     },
 
     watch: {
@@ -182,39 +203,12 @@ export default {
 
         this.assigneeFilter = this.submissions.some(s => s.assignee &&
                                                     s.assignee.id === this.userId);
-        this.$refs.table.sortBy = 'user';
+        this.$refs.table.sortBy = this.$route.query.sortBy || 'user';
+        // Fuck you bootstrapVue (sortDesc should've been sortAsc).
+        this.$refs.table.sortDesc = this.$route.query.sortAsc || true;
     },
 
     methods: {
-        sortTable(a, b, sortBy) {
-            if (sortBy === 'user' || sortBy === 'assignee') {
-                const first = a[sortBy];
-                const second = b[sortBy];
-
-                const ret = cmpOneNull(first, second);
-                if (ret !== null) return ret;
-
-                return cmpNoCase(first.name, second.name);
-            } else if (sortBy === 'created_at') {
-                const first = a[sortBy];
-                const second = b[sortBy];
-
-                const ret = cmpOneNull(first, second);
-                if (ret !== null) return ret;
-
-                return cmpNoCase(first, second);
-            } else if (sortBy === 'grade') {
-                const first = a[sortBy];
-                const second = b[sortBy];
-
-                const ret = cmpOneNull(first, second);
-                if (ret !== null) return ret;
-
-                return cmpNoCase(formatGrade(first), formatGrade(second));
-            }
-
-            return 0;
-        },
         getLatest(submissions) {
             const latest = {};
             submissions.forEach((item) => {
@@ -225,15 +219,33 @@ export default {
             return latest;
         },
 
+        sortChanged(context) {
+            this.$router.replace({
+                query: Object.assign(
+                    // Fuck you bootstrapVue (sortDesc should've been sortAsc)
+                    {}, this.$route.query, { sortBy: context.sortBy, sortAsc: context.sortDesc },
+                ),
+            });
+        },
+
         getTable() {
             return this.$refs ? this.$refs.table : null;
         },
 
         gotoSubmission(submission) {
             this.submit();
+
             this.$router.push({
                 name: 'submission',
                 params: { submissionId: submission.id },
+                query: {
+                    mine: this.mineOnly || undefined,
+                    latest: this.latestOnly || undefined,
+                    search: this.filter || undefined,
+                    // Fuck you bootstrapVue (sortDesc should've been sortAsc)
+                    sortBy: this.$refs.table.sortBy,
+                    sortAsc: this.$refs.table.sortDesc,
+                },
             });
         },
 
@@ -310,6 +322,7 @@ export default {
         }),
 
         formatGrade,
+        sortSubmissions,
     },
 
     components: {

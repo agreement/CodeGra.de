@@ -30,7 +30,7 @@
 
 <script>
 import moment from 'moment';
-import { formatGrade } from '@/utils';
+import { formatGrade, sortSubmissions } from '@/utils';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/angle-double-left';
 import 'vue-awesome/icons/angle-left';
@@ -62,7 +62,15 @@ export default {
 
     computed: {
         options() {
-            return this.filter(this.submissions).map(sub => ({
+            const res = this.filter(this.submissions);
+
+            res.sort((a, b) => sortSubmissions(a, b, this.$route.query.sortBy || 'user'));
+
+            if (this.$route.query.sortAsc === false) {
+                res.reverse();
+            }
+
+            return res.map(sub => ({
                 text: this.getItemText(sub),
                 value: sub,
             }));
@@ -101,6 +109,13 @@ export default {
                     courseId: this.$route.params.courseId,
                     assignmentId: this.$route.params.assignmentId,
                 },
+                query: {
+                    q: this.$route.query.search || undefined,
+                    mine: this.$route.query.mine || false,
+                    latest: this.$route.query.latest || false,
+                    sortBy: this.$route.query.sortBy,
+                    sortAsc: this.$route.query.sortAsc,
+                },
             });
         },
 
@@ -120,7 +135,7 @@ export default {
             const date = moment.utc(submission.created_at, moment.ISO_8601)
                 .local().format('DD-MM-YYYY HH:mm');
             let text = `${submission.user.name} - ${date}`;
-            if (submission.grade) {
+            if (submission.grade != null) {
                 text += ` [${formatGrade(submission.grade)}]`;
             }
             if (submission.assignee) {

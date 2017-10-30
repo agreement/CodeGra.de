@@ -133,7 +133,7 @@ import { mapActions } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/download';
 import 'vue-awesome/icons/times';
-import { cmpNoCase, formatGrade } from '@/utils';
+import { filterSubmissions, cmpNoCase, formatGrade } from '@/utils';
 
 import {
     CodeViewer,
@@ -157,6 +157,13 @@ export default {
     name: 'submission-page',
 
     data() {
+        let forceInclude = new Set();
+        try {
+            forceInclude = new Set(JSON.parse(this.$route.query.forceInclude));
+        } catch (e) {
+            // NOT EMPTY
+        }
+
         return {
             courseId: Number(this.$route.params.courseId),
             assignmentId: Number(this.$route.params.assignmentId),
@@ -180,6 +187,7 @@ export default {
             selectedLanguage: 'Default',
             selectedRevision: this.$route.query.revision || 'student',
             showPreferences: false,
+            forceInclude,
         };
     },
 
@@ -233,7 +241,9 @@ export default {
                         assignmentId: this.assignmentId,
                         submissionId: submission.id,
                     },
-                    query: { revision: this.selectedRevision },
+                    query: Object.assign(
+                        {}, this.$route.query, { revision: this.selectedRevision },
+                    ),
                 });
             }
 
@@ -274,7 +284,9 @@ export default {
                 this.$router.replace({
                     name: 'submission_file',
                     params: { fileId },
-                    query: { revision: this.selectedRevision },
+                    query: Object.assign(
+                        {}, this.$route.query, { revision: this.selectedRevision },
+                    ),
                 });
             }
         },
@@ -449,7 +461,7 @@ export default {
                 }
             }
 
-            diffTree.entries.sort(cmpNoCase);
+            diffTree.entries.sort((a, b) => cmpNoCase(a.name, b.name));
 
             delete diffTree.push;
             return diffTree;
@@ -504,23 +516,34 @@ export default {
 
         filterSubmissions(submissions) {
             const userId = this.$store.state.user.id;
+            const filterLatest = this.$route.query.latest != null;
+            const filterAssignee = this.$route.query.mine != null;
 
-            const filterLatest = this.submission.user.id !== userId;
-            const filterAssignee = this.submission.assignee &&
-                this.submission.assignee.id === userId;
-
-            const seen = [];
-            return submissions.filter((sub) => {
-                if (filterLatest && seen[sub.user.id]) {
-                    return false;
+            const checkReally = (sub) => {
+                if (this.forceInclude.has(sub.id)) {
+                    return true;
                 }
-                seen[sub.user.id] = true;
 
-                if (filterAssignee) {
-                    return sub.assignee && sub.assignee.id === userId;
+                if (this.submissionId === sub.id) {
+                    this.forceInclude.add(sub.id);
+                    this.$router.replace({ query: Object.assign(
+                        {},
+                        this.$route.query,
+                        { forceInclude: JSON.stringify([...this.forceInclude]) },
+                    ) });
+                    return true;
                 }
-                return true;
-            });
+                return false;
+            };
+
+            return filterSubmissions(
+                submissions,
+                filterLatest,
+                filterAssignee,
+                userId,
+                this.$route.query.search,
+                checkReally,
+            );
         },
 
         downloadType(type) {
