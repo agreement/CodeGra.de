@@ -50,8 +50,9 @@ export default {
     },
 
     props: {
-        table: {
+        getSubmissions: {
             type: Function,
+            required: true,
         },
         filename: {
             type: String,
@@ -67,7 +68,17 @@ export default {
             default() {
                 return [
                     {
-                        name: 'User',
+                        name: 'Id',
+                        enabled: false,
+                        getter: submission => submission.user.id,
+                    },
+                    {
+                        name: 'Username',
+                        enabled: true,
+                        getter: submission => submission.user.username,
+                    },
+                    {
+                        name: 'Name',
                         enabled: true,
                         getter: submission => submission.user.name,
                     },
@@ -124,7 +135,7 @@ export default {
     computed: {
         items() {
             // eslint-disable-next-line no-underscore-dangle
-            return this.exportSetting === 'All' ? this.table().items : this.table()._items;
+            return this.exportSetting === 'All' ? this.getSubmissions(false) : this.getSubmissions(true);
         },
 
         enabledColumns() {

@@ -22,7 +22,7 @@
                            style="float: right;"
                            v-if="rubric"/>
             <submissions-exporter v-if="canDownload && submissions.length"
-                                  :table="getTable"
+                                  :get-submissions="filter => filter ? filteredSubmissions : submissions"
                                   :assignment-id="assignment.id"
                                   :filename="exportFilename">
                 Export feedback
