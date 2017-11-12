@@ -165,6 +165,8 @@ export default {
             return this.$hlanguageStore.getItem(`${this.file.id}`).then((val) => {
                 if (val !== null) {
                     this.selectedLanguage = val;
+                } else {
+                    this.selectedLanguage = 'Default';
                 }
                 return this.getCode(setLoading);
             });
