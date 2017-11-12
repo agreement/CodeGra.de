@@ -84,7 +84,7 @@
                               :rows="3"
                               ref="field"
                               v-model="feedback"
-                              @keydown.native.ctrl.enter="putFeedback"
+                              @keydown.ctrl.enter="putFeedback"
                               @keydown.native.tab.capture="expandSnippet"
                               :disabled="!editable"/>
                 </b-input-group>
@@ -135,6 +135,7 @@ export default {
             rubricPoints: {},
             rubricHasSelectedItems: false,
             gradeHistory: false,
+            externalGrade: formatGrade(this.submission.grade),
         };
     },
 
@@ -240,6 +241,7 @@ export default {
             if (this.$refs.gradeHistory) {
                 this.$refs.gradeHistory.updateHistory();
             }
+            this.externalGrade = this.grade;
             this.$emit('gradeUpdated', this.grade);
         },
 
@@ -265,7 +267,8 @@ export default {
             const grade = parseFloat(this.grade);
             const overrideGrade = this.rubricOverridden || !this.showRubric;
 
-            if (!(grade >= 0 && grade <= 10) && overrideGrade) {
+            if (!(grade >= 0 && grade <= 10) && overrideGrade &&
+                    this.externalGrade !== this.grade) {
                 this.$refs.submitButton.fail(`Grade '${this.grade}' must be between 0 and 10`);
                 return;
             }
@@ -273,7 +276,7 @@ export default {
             const viewer = this.$refs.rubricViewer;
             const viewerReq = viewer ? viewer.submitAllItems() : Promise.resolve();
             const data = { feedback: this.feedback || '' };
-            if (overrideGrade) {
+            if (overrideGrade && this.externalGrade !== this.grade) {
                 data.grade = grade;
             }
 
