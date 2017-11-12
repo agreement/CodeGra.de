@@ -5,29 +5,42 @@
             <b-form-fieldset>
                 <b-input-group left="Username">
                     <b-popover placement="top" triggers="hover" content="You cannot change your username" style="width: 100%;">
-                        <b-form-input type="text" v-model="username" :disabled="true" style="border-top-left-radius: 0; border-bottom-left-radius: 0; width: 100%"/>
+                      <input type="text"
+                             v-model="username"
+                             :disabled="true"
+                             style="border-top-left-radius: 0; border-bottom-left-radius: 0; width: 100%"
+                             class="form-control"/>
                     </b-popover>
                 </b-input-group>
             </b-form-fieldset>
             <b-form-fieldset>
                 <b-input-group left="Full name">
-                    <b-form-input :disabled="!canEditInfo"
-                                  type="text"
-                                  v-model="name"/>
+                    <input :disabled="!canEditInfo"
+                           class="form-control"
+                           type="text"
+                           v-model="name"/>
                 </b-input-group>
             </b-form-fieldset>
 
             <b-form-fieldset>
                 <b-input-group left="Email">
-                    <b-form-input :disabled="!canEditInfo"
-                                  type="text"
-                                  v-model="email"/>
+                    <input :disabled="!canEditInfo"
+                           type="text"
+                           class="form-control"
+                           v-model="email"/>
                 </b-input-group>
             </b-form-fieldset>
 
             <b-form-fieldset v-if="canEditPw || canEditInfo">
                 <b-input-group left="Old Password">
-                    <b-form-input  :type="oldPwVisible ? 'text' : 'password'" v-model="oldPw"/>
+                    <input v-if="oldPwVisible"
+                           type="text"
+                           v-model="oldPw"
+                           class="form-control"/>
+                    <input v-else
+                           type="password"
+                           v-model="oldPw"
+                           class="form-control"/>
                     <b-input-group-button slot="right">
                         <b-button @click="oldPwVisible = !oldPwVisible" >
                             <icon v-if="!oldPwVisible" name="eye"/>
@@ -39,7 +52,14 @@
 
             <b-form-fieldset v-if="canEditPw">
                 <b-input-group left="New Password">
-                    <b-form-input :type="newPwVisible ? 'text' : 'password'" v-model="newPw"></b-form-input>
+                  <input v-if="newPwVisible"
+                         type="text"
+                         v-model="newPw"
+                         class="form-control"/>
+                  <input v-else
+                         type="password"
+                         v-model="newPw"
+                         class="form-control"/>
                     <b-input-group-button slot="right">
                         <b-button @click="newPwVisible = !newPwVisible" >
                             <icon v-if="!newPwVisible" name="eye"></icon>
@@ -51,7 +71,14 @@
 
             <b-form-fieldset v-if="canEditPw">
                 <b-input-group left="Confirm Password">
-                    <b-form-input :type="confirmPwVisible ? 'text' : 'password'" v-model="confirmPw"></b-form-input>
+                  <input v-if="confirmPwVisible"
+                         type="text"
+                         v-model="confirmPw"
+                         class="form-control"/>
+                  <input v-else
+                         type="password"
+                         v-model="confirmPw"
+                         class="form-control"/>
                     <b-input-group-button slot="right">
                         <b-button @click="confirmPwVisible = !confirmPwVisible" >
                             <icon v-if="!confirmPwVisible" name="eye"></icon>
