@@ -133,7 +133,7 @@ import { mapActions } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/download';
 import 'vue-awesome/icons/times';
-import { filterSubmissions, cmpNoCase, formatGrade } from '@/utils';
+import { filterSubmissions, cmpNoCase, formatGrade, parseBool } from '@/utils';
 
 import {
     CodeViewer,
@@ -516,8 +516,8 @@ export default {
 
         filterSubmissions(submissions) {
             const userId = this.$store.state.user.id;
-            const filterLatest = this.$route.query.latest != null;
-            const filterAssignee = this.$route.query.mine != null;
+            const filterLatest = parseBool(this.$route.query.latest, true);
+            const filterAssignee = parseBool(this.$route.query.mine, true);
 
             const checkReally = (sub) => {
                 if (this.forceInclude.has(sub.id)) {

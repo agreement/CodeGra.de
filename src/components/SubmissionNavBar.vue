@@ -30,7 +30,7 @@
 
 <script>
 import moment from 'moment';
-import { formatGrade, sortSubmissions } from '@/utils';
+import { formatGrade, sortSubmissions, parseBool } from '@/utils';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/angle-double-left';
 import 'vue-awesome/icons/angle-left';
@@ -66,7 +66,7 @@ export default {
 
             res.sort((a, b) => sortSubmissions(a, b, this.$route.query.sortBy || 'user'));
 
-            if (this.$route.query.sortAsc === false) {
+            if (!parseBool(this.$route.query.sortAsc)) {
                 res.reverse();
             }
 

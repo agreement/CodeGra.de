@@ -44,6 +44,7 @@
 
 <script scoped>
 import { mapGetters, mapActions } from 'vuex';
+import { parseBool } from '@/utils';
 
 export default {
     name: 'nav-bar',
@@ -54,7 +55,7 @@ export default {
         },
         lti() {
             if (this.$route.query.inLTI !== undefined) {
-                window.inLTI = this.$route.query.inLTI;
+                window.inLTI = parseBool(this.$route.query.inLTI, false);
             }
             return window.inLTI || false;
         },

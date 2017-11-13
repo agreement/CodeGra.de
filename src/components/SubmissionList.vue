@@ -84,7 +84,7 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
-import { formatGrade, filterSubmissions, sortSubmissions } from '@/utils';
+import { formatGrade, filterSubmissions, sortSubmissions, parseBool } from '@/utils';
 import SubmissionsExporter from './SubmissionsExporter';
 import Loader from './Loader';
 import SubmitButton from './SubmitButton';
@@ -114,8 +114,8 @@ export default {
     data() {
         return {
             showRubricModal: false,
-            latestOnly: (this.$route.query.latest == null) || this.$route.query.latest.toString() !== 'false',
-            mineOnly: (this.$route.query.mine == null) || this.$route.query.mine.toString() !== 'false',
+            latestOnly: parseBool(this.$route.query.latest, true),
+            mineOnly: parseBool(this.$route.query.mine, true),
             currentPage: 1,
             filter: this.$route.query.q || '',
             latest: this.getLatest(this.submissions),
@@ -205,7 +205,7 @@ export default {
                                                     s.assignee.id === this.userId);
         this.$refs.table.sortBy = this.$route.query.sortBy || 'user';
         // Fuck you bootstrapVue (sortDesc should've been sortAsc).
-        this.$refs.table.sortDesc = this.$route.query.sortAsc || true;
+        this.$refs.table.sortDesc = parseBool(this.$route.query.sortAsc, true);
     },
 
     methods: {
@@ -239,8 +239,8 @@ export default {
                 name: 'submission',
                 params: { submissionId: submission.id },
                 query: {
-                    mine: this.mineOnly || undefined,
-                    latest: this.latestOnly || undefined,
+                    mine: this.mineOnly == null ? undefined : this.mineOnly,
+                    latest: this.latestOnly == null ? undefined : this.latestOnly,
                     search: this.filter || undefined,
                     // Fuck you bootstrapVue (sortDesc should've been sortAsc)
                     sortBy: this.$refs.table.sortBy,
@@ -254,10 +254,12 @@ export default {
                 latest: this.latestOnly,
                 mine: this.mineOnly,
             };
-            if (this.filter) {
-                query.q = this.filter;
-            }
-            this.$router.replace({ query });
+            query.q = this.filter || undefined;
+            this.$router.replace({
+                query: Object.assign(
+                    {}, this.$route.query, query,
+                ),
+            });
         },
 
         isEmptyObject(obj) {

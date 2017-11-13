@@ -87,3 +87,16 @@ export function sortSubmissions(a, b, sortBy) {
 
     return 0;
 }
+
+/**
+ * Parse the given value as a boolean.
+ * If it is a boolean return it, if it is 'false' or 'true' convert
+ * that to its correct boolean value, otherwise return `dflt`.
+ */
+export function parseBool(value, dflt = true) {
+    if ((typeof value) === 'boolean') return value;
+    else if (value === 'false') return false;
+    else if (value === 'true') return true;
+
+    return dflt;
+}
