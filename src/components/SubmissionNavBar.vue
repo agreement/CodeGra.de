@@ -134,13 +134,16 @@ export default {
         getItemText(submission) {
             const date = moment.utc(submission.created_at, moment.ISO_8601)
                 .local().format('DD-MM-YYYY HH:mm');
+            const grade = formatGrade(submission.grade);
             let text = `${submission.user.name} - ${date}`;
-            if (submission.grade != null) {
-                text += ` [${formatGrade(submission.grade)}]`;
+
+            if (grade != null) {
+                text += ` [${grade}]`;
             }
             if (submission.assignee) {
                 text += ` (${submission.assignee.name})`;
             }
+
             return text;
         },
 
