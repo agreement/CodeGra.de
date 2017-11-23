@@ -43,6 +43,15 @@
                         <toggle v-model="darkMode" label-on="dark" label-off="light"/>
                     </td>
                 </tr>
+                <tr v-if="showRevision">
+                    <td>Revision</td>
+                    <td>
+                        <b-input-group>
+                            <b-form-radio v-model="selectedRevision"
+                                          :options="revisionOptions"/>
+                        </b-input-group>
+                    </td>
+                </tr>
             </tbody>
         </table>
     </div>
@@ -51,6 +60,8 @@
 <script>
 import { listLanguages } from 'highlightjs';
 import Multiselect from 'vue-multiselect';
+
+import { cmpNoCase } from '@/utils';
 
 import Toggle from './Toggle';
 import Loader from './Loader';
@@ -78,6 +89,10 @@ export default {
             default: true,
         },
         showTheme: {
+            type: Boolean,
+            default: true,
+        },
+        showRevision: {
             type: Boolean,
             default: true,
         },
@@ -115,8 +130,7 @@ export default {
     data() {
         const languages = listLanguages();
         languages.push('plain');
-        languages.sort((a, b) =>
-                       a.toLowerCase().localeCompare(b.toLowerCase()));
+        languages.sort(cmpNoCase);
         languages.unshift('Default');
         return {
             loading: true,
@@ -128,6 +142,21 @@ export default {
             whiteLoading: false,
             initial: true,
             selectedLanguage: -1,
+            selectedRevision: this.$route.query.revision || 'student',
+            revisionOptions: [
+                {
+                    text: 'Student',
+                    value: 'student',
+                },
+                {
+                    text: 'Teacher',
+                    value: 'teacher',
+                },
+                {
+                    text: 'Diff',
+                    value: 'diff',
+                },
+            ],
         };
     },
 
@@ -180,6 +209,10 @@ export default {
                 this.whiteLoading = false;
                 this.$emit('whitespace', val);
             });
+        },
+
+        selectedRevision(val) {
+            this.$emit('revision', val);
         },
     },
 };

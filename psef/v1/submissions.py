@@ -16,7 +16,8 @@ import psef.auth as auth
 import psef.files
 import psef.models as models
 import psef.helpers as helpers
-from psef import db, app, current_user
+from psef import app, current_user
+from psef.models import db
 from psef.errors import APICodes, APIException
 from psef.models import FileOwner
 from psef.helpers import (

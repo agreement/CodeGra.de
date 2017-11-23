@@ -241,7 +241,8 @@ def test_lti_no_course_roles(
     ('correct.tar.gz'),
 ])
 def test_lti_grade_passback(
-    test_client, app, logged_in, ta_user, filename, monkeypatch, patch
+    test_client, app, logged_in, ta_user, filename, monkeypatch, patch,
+    monkeypatch_celery
 ):
     due_at = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 
@@ -333,15 +334,14 @@ def test_lti_grade_passback(
             return res[0]
 
     def set_grade(token, grade, work_id):
-        with app.app_context():
-            test_client.req(
-                'patch',
-                f'/api/v1/submissions/{work_id}',
-                200,
-                data={'grade': grade,
-                      'feedback': 'feedback'},
-                headers={'Authorization': f'Bearer {token}'},
-            )
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{work_id}',
+            200,
+            data={'grade': grade,
+                  'feedback': 'feedback'},
+            headers={'Authorization': f'Bearer {token}'},
+        )
 
     assig, token = do_lti_launch()
     work = get_upload_file(token, assig['id'])
@@ -360,48 +360,47 @@ def test_lti_grade_passback(
     patch_delete.called = False
     patch_replace.called = False
 
-    with app.app_context():
+    test_client.req(
+        'patch',
+        f'/api/v1/assignments/{assig["id"]}',
+        204,
+        data={
+            'state': 'done',
+        },
+        headers={'Authorization': f'Bearer {token}'},
+    )
+
+    assert patch_replace.called
+    assert not patch_delete.called
+    assert patch_replace.args[0] == '0.5'
+    assert patch_replace.kwargs['result_data'] is None
+    patch_delete.called = False
+    patch_replace.called = False
+
+    if patch:
         test_client.req(
-            'patch',
-            f'/api/v1/assignments/{assig["id"]}',
-            204,
-            data={
-                'state': 'done',
-            },
+            'get',
+            f'/api/v1/submissions/{work["id"]}/grade_history/',
+            200,
+            result=[
+                {
+                    'changed_at': str,
+                    'is_rubric': False,
+                    'grade': float,
+                    'passed_back': True,
+                    'user': dict,
+                }
+            ],
             headers={'Authorization': f'Bearer {token}'},
         )
 
-        assert patch_replace.called
-        assert not patch_delete.called
-        assert patch_replace.args[0] == '0.5'
-        assert patch_replace.kwargs['result_data'] is None
-        patch_delete.called = False
-        patch_replace.called = False
-
-        if patch:
-            test_client.req(
-                'get',
-                f'/api/v1/submissions/{work["id"]}/grade_history/',
-                200,
-                result=[
-                    {
-                        'changed_at': str,
-                        'is_rubric': False,
-                        'grade': float,
-                        'passed_back': True,
-                        'user': dict,
-                    }
-                ],
-                headers={'Authorization': f'Bearer {token}'},
-            )
-
-        set_grade(token, 6, work['id'])
-        assert patch_replace.called
-        assert not patch_delete.called
-        assert patch_replace.args[0] == '0.6'
-        assert patch_replace.kwargs['result_data'] is None
-        patch_delete.called = False
-        patch_replace.called = False
+    set_grade(token, 6, work['id'])
+    assert patch_replace.called
+    assert not patch_delete.called
+    assert patch_replace.args[0] == '0.6'
+    assert patch_replace.kwargs['result_data'] is None
+    patch_delete.called = False
+    patch_replace.called = False
 
     set_grade(token, None, work['id'])
 

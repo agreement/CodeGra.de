@@ -12,7 +12,7 @@ import flask  # type: ignore
 import werkzeug
 
 import psef
-import psef.json
+import psef.json as json
 import psef.errors
 import psef.models
 
@@ -256,10 +256,10 @@ def ensure_json_dict(json: JSONType) -> t.Dict[str, JSONType]:
 
 def extended_jsonify(obj: T, status_code: int=200) -> ExtendedJSONResponse[T]:
     try:
-        psef.app.json_encoder = psef.json.CustomExtendedJSONEncoder
+        psef.app.json_encoder = json.CustomExtendedJSONEncoder
         response = flask.make_response(flask.jsonify(obj))
     finally:
-        psef.app.json_encoder = psef.json.CustomJSONEncoder
+        psef.app.json_encoder = json.CustomJSONEncoder
     response.status_code = status_code
     return response
 

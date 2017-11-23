@@ -98,6 +98,7 @@ import 'vue-awesome/icons/clock-o';
 import 'vue-awesome/icons/pencil';
 import 'vue-awesome/icons/check';
 
+import { cmpOneNull, cmpNoCase } from '@/utils';
 import * as assignmentState from '../store/assignment-states';
 
 export default {
@@ -194,47 +195,34 @@ export default {
 
     methods: {
         sortTable(a, b, sortBy) {
-            const oneNull = (first, second) => {
-                if (!first && !second) {
-                    return 0;
-                } else if (!first) {
-                    return 1;
-                } else if (!second) {
-                    return -1;
-                }
-                return null;
-            };
-
-            const comp = (first, second) => first.toLowerCase().localeCompare(second.toLowerCase());
-
             if (typeof a[sortBy] === 'number' && typeof b[sortBy] === 'number') {
                 return a[sortBy] - b[sortBy];
             } else if (sortBy === 'name' || sortBy === 'deadline') {
                 const first = a[sortBy];
                 const second = b[sortBy];
 
-                const ret = oneNull(first, second);
+                const ret = cmpOneNull(first, second);
 
-                return ret === null ? comp(first, second) : ret;
+                return ret === null ? cmpNoCase(first, second) : ret;
             } else if (sortBy === 'course_name') {
                 const first = a.course;
                 const second = b.course;
 
-                const ret = oneNull(first, second);
+                const ret = cmpOneNull(first, second);
 
-                return ret === null ? comp(first.name, second.name) : ret;
+                return ret === null ? cmpNoCase(first.name, second.name) : ret;
             } else if (sortBy === 'course_role') {
                 const first = a.course;
                 const second = b.course;
 
-                const ret = oneNull(first, second);
+                const ret = cmpOneNull(first, second);
 
-                return ret === null ? comp(first.role, second.role) : ret;
+                return ret === null ? cmpNoCase(first.role, second.role) : ret;
             } else if (sortBy === 'state') {
                 const first = a.state;
                 const second = b.state;
 
-                const ret = oneNull(first, second);
+                const ret = cmpOneNull(first, second);
 
                 const states = [
                     assignmentState.HIDDEN,

@@ -2,34 +2,19 @@
 """
 import os
 import copy
+import time
 import datetime
-import threading
 from random import shuffle
 
 import pytest
 
+import psef
 import psef.models as m
 import psef.linters as l
 
 run_error = pytest.mark.run_error
 perm_error = pytest.mark.perm_error
 get_works = pytest.mark.get_works
-
-
-@pytest.fixture(autouse=True)
-def monkey_patch_thread(monkeypatch):
-    class MyThread:
-        def __init__(self, target, args=None):
-            self.run = target
-            self.args = [] if args is None else args
-
-        def start(self):
-            print(self.args)
-            self.run(*self.args)
-
-    monkeypatch.setattr(threading, 'Thread', MyThread)
-    yield
-
 
 ALL_LINTERS = sorted(['Flake8', 'MixedWhitespace', 'Pylint'])
 
@@ -111,9 +96,11 @@ ALL_LINTERS = sorted(['Flake8', 'MixedWhitespace', 'Pylint'])
 )
 def test_linters(
     ta_user, named_user, test_client, logged_in, use_ta, assignment_real_works,
-    linter_cfgs_exp, request, error_template, session
+    linter_cfgs_exp, request, error_template, session, monkeypatch_celery
 ):
     assignment, single_work = assignment_real_works
+    assig_id = assignment.id
+    del assignment
     run_err = request.node.get_marker('run_error')
 
     if run_err:
@@ -137,19 +124,41 @@ def test_linters(
 
             code = run_err.get('error') or 200
 
-            test_client.req(
+            res = test_client.req(
                 'post',
-                f'/api/v1/assignments/{assignment.id}/linter',
+                f'/api/v1/assignments/{assig_id}/linter',
                 code,
                 data=data,
                 result=error_template if run_err.get('error') else {
-                    'done': 0 if run_err.get('crash') == linter else 3,
-                    'working': 0,
+                    'done': int,
+                    'working': int,
                     'id': str,
-                    'crashed': 3 if run_err.get('crash') == linter else 0,
+                    'crashed': int,
                     'name': linter,
                 }
             )
+
+            if not run_err.get('error'):
+                linter_id = res['id']
+                for _ in range(60):
+                    res = test_client.req(
+                        'get',
+                        f'/api/v1/linters/{linter_id}',
+                        code,
+                        data=data,
+                        result=error_template if run_err.get('error') else dict
+                    )
+                    if run_err.get('crash') == linter and res['crashed'] == 3:
+                        assert res['done'] == 0
+                        assert res['working'] == 0
+                        break
+                    elif res['done'] == 3:
+                        assert res['crashed'] == 0
+                        assert res['working'] == 0
+                        break
+                    time.sleep(0.1)
+                else:
+                    assert False
 
         result = []
         for linter in ALL_LINTERS:
@@ -174,7 +183,7 @@ def test_linters(
 
         linter_result = test_client.req(
             'get',
-            f'/api/v1/assignments/{assignment.id}/linters/',
+            f'/api/v1/assignments/{assig_id}/linters/',
             code if set_perm_err else 200,
             result=error_template if set_perm_err else result,
         )
@@ -249,7 +258,17 @@ def test_linters(
 
 
 @pytest.mark.parametrize('with_works', [True], indirect=True)
-def test_whitespace_linter(ta_user, test_client, assignment, logged_in):
+def test_whitespace_linter(
+    ta_user, test_client, assignment, logged_in, monkeypatch
+):
+    called = False
+
+    def patch(*args, **kwargs):
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(psef.tasks, 'lint_instances', patch)
+
     with logged_in(ta_user):
         test_client.req(
             'post',
@@ -258,7 +277,7 @@ def test_whitespace_linter(ta_user, test_client, assignment, logged_in):
             data={'name': 'MixedWhitespace',
                   'cfg': 'ANY'},
             result={
-                'done': 3,
+                'done': 4,
                 'working': 0,
                 'id': str,
                 'crashed': 0,
@@ -268,6 +287,7 @@ def test_whitespace_linter(ta_user, test_client, assignment, logged_in):
         res = test_client.req(
             'get', f'/api/v1/assignments/{assignment.id}', 200
         )
+        assert not called
         assert res
         assert res['whitespace_linter']
 
@@ -280,12 +300,14 @@ def test_whitespace_linter(ta_user, test_client, assignment, logged_in):
 )
 def test_lint_later_submission(
     test_client, logged_in, assignment, exps, error_template, session,
-    filename, ta_user, student_user
+    filename, ta_user, student_user, monkeypatch_celery
 ):
+    assig_id = assignment.id
+
     with logged_in(ta_user):
         test_client.req(
             'post',
-            f'/api/v1/assignments/{assignment.id}/linter',
+            f'/api/v1/assignments/{assig_id}/linter',
             200,
             data={'name': 'Flake8',
                   'cfg': ''},
@@ -301,7 +323,7 @@ def test_lint_later_submission(
     with logged_in(student_user):
         single_work = test_client.req(
             'post',
-            f'/api/v1/assignments/{assignment.id}/submission',
+            f'/api/v1/assignments/{assig_id}/submission',
             201,
             real_data={
                 'file':
@@ -340,16 +362,15 @@ def test_lint_later_submission(
 
 @pytest.mark.parametrize('with_works', [True], indirect=True)
 def test_already_running_linter(
-    ta_user, test_client, assignment, logged_in, monkeypatch, error_template
+    ta_user, test_client, assignment, logged_in, error_template, monkeypatch
 ):
-    class MyThread:
-        def __init__(self, *args, **kwargs):
-            pass
+    called = False
 
-        def start(self):
-            pass
+    def patch(*args, **kwargs):
+        nonlocal called
+        called = True
 
-    monkeypatch.setattr(threading, 'Thread', MyThread)
+    monkeypatch.setattr(psef.tasks, 'lint_instances', patch)
 
     with logged_in(ta_user):
         test_client.req(
@@ -360,12 +381,13 @@ def test_already_running_linter(
                   'cfg': 'ANY'},
             result={
                 'done': 0,
-                'working': 3,
+                'working': 4,
                 'id': str,
                 'crashed': 0,
                 'name': 'Flake8',
             }
         )
+        assert called
 
         res = test_client.req(
             'get',
@@ -373,6 +395,7 @@ def test_already_running_linter(
             200,
         )
         found = 0
+
         for r in res:
             if r['name'] == 'Flake8':
                 found += 1
@@ -391,7 +414,7 @@ def test_already_running_linter(
 
 @pytest.mark.parametrize('with_works', [True], indirect=True)
 def test_non_existing_linter(
-    ta_user, test_client, assignment, logged_in, monkeypatch, error_template
+    ta_user, test_client, assignment, logged_in, error_template
 ):
     with logged_in(ta_user):
         test_client.req(

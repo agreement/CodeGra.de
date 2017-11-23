@@ -1,4 +1,4 @@
-TEST_FILE?=
+TEST_FILE?=psef_test/
 SHELL=/bin/bash
 TEST_FLAGS?=
 PYTHON?=env/bin/python3.6
@@ -11,11 +11,11 @@ test_setup:
 
 .PHONY: test_quick
 test_quick: test_setup
-	DEBUG=on env/bin/pytest --cov psef --cov-report term-missing psef_test/$(TEST_FILE) -vvvvv -x $(TEST_FLAGS)
+	DEBUG=on env/bin/pytest --cov psef --cov-report term-missing $(TEST_FILE) -vvvvv -x $(TEST_FLAGS)
 
 .PHONY: test
 test: test_setup
-	DEBUG=on env/bin/pytest --cov psef --cov-report term-missing psef_test/$(TEST_FILE) -vvvvv $(TEST_FLAGS)
+	DEBUG=on env/bin/pytest --cov psef --cov-report term-missing $(TEST_FILE) -vvvvv $(TEST_FLAGS)
 
 .PHONY: reset_db
 reset_db:
@@ -37,20 +37,25 @@ db_upgrade:
 test_data:
 	DEBUG_ON=True $(PYTHON) $(CURDIR)/manage.py test_data
 
+.PHONY: start_dev_celery
+start_dev_celery:
+	DEBUG=on env/bin/celery worker --app=runcelery:celery -E -l info
+
 .PHONY: start_dev_server
 start_dev_server:
 	DEBUG=on ./.scripts/start_dev.sh python
 
 .PHONY: start_dev_npm
-start_dev_npm:
-	./.scripts/generate_privacy.py
+start_dev_npm: privacy_statement
 	DEBUG=on ./.scripts/start_dev.sh npm
 
-privacy_statement:
+.PHONY: privacy_statement
+privacy_statement: src/components/PrivacyNote.vue
+src/components/PrivacyNote.vue:
 	./.scripts/generate_privacy.py
 
-build_front-end:
-	./.scripts/generate_privacy.py
+.PHONY: build_front-end
+build_front-end: privacy_statement
 	npm run build
 
 .PHONY: seed_data

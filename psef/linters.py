@@ -16,9 +16,10 @@ import subprocess
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 
+import psef
 import psef.files
 import psef.models as models
-from psef import app
+from psef.models import db
 from psef.helpers import get_all_subclasses
 
 
@@ -175,9 +176,6 @@ class LinterRunner():
         """
         self.linter = cls(cfg)  # type: Linter
 
-        # We don't have any type for sqlalchemy sessions
-        self.session: t.Any = None
-
     def run(self, linter_instance_ids: t.Sequence[int]) -> None:
         """Run this linter runner on the given works.
 
@@ -190,27 +188,20 @@ class LinterRunner():
 
         :returns: Nothing
         """
-        if app.config.get('TESTING', False):
-            self.session = psef.db.session
-        else:  # pragma: no cover
-            engine = sqlalchemy.create_engine(
-                app.config['SQLALCHEMY_DATABASE_URI'],
-                **app.config['DATABASE_CONNECT_OPTIONS']
-            )
-            self.session = sessionmaker(bind=engine, autoflush=False)()
-
         for linter_instance_id in linter_instance_ids:
-            linter_instance = self.session.query(models.LinterInstance
-                                                 ).get(linter_instance_id)
+            linter_instance = db.session.query(models.LinterInstance
+                                               ).get(linter_instance_id)
+
+            # This should never happen however it is better to check here.
+            if linter_instance is None:  # pragma: no cover
+                continue
+
             try:
                 self.test(linter_instance)
             except Exception as e:
                 traceback.print_exc()
                 linter_instance.state = models.LinterState.crashed
-                self.session.commit()
-
-        if not app.config.get('TESTING', False):  # pragma: no cover
-            self.session.close()
+                db.session.commit()
 
     def test(self, linter_instance: models.LinterInstance) -> None:
         """Test the given code (:class:`models.Work`) and add generated
@@ -226,7 +217,7 @@ class LinterRunner():
         res: t.Dict[int, t.Mapping[int, t.Sequence[t.Tuple[str, str]]]]
         res = {}
 
-        code = self.session.query(models.File).filter_by(
+        code = db.session.query(models.File).filter_by(
             work_id=linter_instance.work_id,
             parent=None,
         ).one()
@@ -263,15 +254,15 @@ class LinterRunner():
 
         do(files, '')
 
-        self.session.query(models.LinterComment).filter_by(
-            linter_id=linter_instance.id
-        ).delete()
+        models.LinterComment.query.filter_by(linter_id=linter_instance.id
+                                             ).delete()
 
         for comment in linter_instance.add_comments(res):
-            self.session.add(comment)
+            db.session.add(comment)
+
         linter_instance.state = models.LinterState.done
 
-        self.session.commit()
+        db.session.commit()
 
 
 def get_all_linters(

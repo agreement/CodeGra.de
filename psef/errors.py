@@ -4,7 +4,6 @@ from enum import IntEnum, unique
 from flask import Response, jsonify
 
 import psef
-from psef import app
 
 
 @unique
@@ -28,6 +27,8 @@ class APICodes(IntEnum):
     INVALID_OAUTH_REQUEST = 14
     DISABLED_FEATURE = 15
     UNKOWN_ERROR = 16
+    INVALID_FILE_IN_ARCHIVE = 17
+    NO_FILES_SUBMITTED = 18
 
 
 class APIException(Exception):
@@ -47,7 +48,7 @@ class APIException(Exception):
         description: str,
         api_code: APICodes,
         status_code: int,
-        **rest: t.Mapping[t.Any, t.Any]
+        **rest: t.Any,
     ) -> None:
         super(APIException, self).__init__()
         self.status_code = status_code
@@ -64,20 +65,21 @@ class APIException(Exception):
         ret = dict(self.rest)  # type: t.MutableMapping[t.Any, t.Any]
         ret['message'] = self.message
         ret['description'] = self.description
-        ret['code'] = self.api_code
+        ret['code'] = self.api_code.name
         return ret
 
 
-@app.errorhandler(APIException)
-def handle_api_error(error: APIException) -> Response:
-    """Handle an :class:`APIException` by converting it to a
-    :class:`flask.Response`.
+def init_app(app: t.Any) -> None:
+    @app.errorhandler(APIException)
+    def handle_api_error(error: APIException) -> Response:
+        """Handle an :class:`APIException` by converting it to a
+        :class:`flask.Response`.
 
-    :param APIException error: The error that occurred
-    :returns: A response with the JSON serialized error as content.
-    :rtype: flask.Response
-    """
-    response = jsonify(error)
-    response.status_code = error.status_code
-    psef.db.session.expire_all()
-    return response
+        :param APIException error: The error that occurred
+        :returns: A response with the JSON serialized error as content.
+        :rtype: flask.Response
+        """
+        response = jsonify(error)
+        response.status_code = error.status_code
+        psef.models.db.session.expire_all()
+        return response

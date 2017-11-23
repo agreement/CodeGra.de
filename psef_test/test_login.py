@@ -420,7 +420,7 @@ def test_reset_password(
                 raise Exception
 
     mailer = StubMailer()
-    monkeypatch.setattr(psef, 'mail', mailer)
+    monkeypatch.setattr(psef.mail, 'mail', mailer)
 
     test_client.req(
         'patch',

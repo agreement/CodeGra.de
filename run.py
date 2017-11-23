@@ -4,4 +4,5 @@
 import psef
 
 if __name__ == '__main__':
-    psef.app.run(host='0.0.0.0', port=5000, debug=True)
+    app = psef.create_app()
+    app.run(host='0.0.0.0', port=5000, debug=True)

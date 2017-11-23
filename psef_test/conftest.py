@@ -14,7 +14,6 @@ import psef
 import manage
 import psef.auth as a
 import psef.models as m
-from psef import _db, jwt
 
 TESTDB = 'test_project.db'
 TESTDB_PATH = "/tmp/psef/psef-{}".format(TESTDB)
@@ -37,6 +36,11 @@ def app(request):
         'TESTING': True,
         'DEBUG': True,
         'UPLOAD_DIR': f'/tmp/psef/uploads',
+        'CELERY_CONFIG':
+            {
+                'BROKER_URL': 'redis:///',
+                'BACKEND_URL': 'redis:///'
+            },
         'MIRROR_UPLOAD_DIR': f'/tmp/psef/mirror_uploads',
         'MAX_UPLOAD_SIZE': 2 ** 20,  # 1mb
         'LTI_CONSUMER_KEY_SECRETS': {
@@ -51,7 +55,19 @@ def app(request):
     else:
         settings_override['SQLALCHEMY_DATABASE_URI'] = TEST_DATABASE_URI
         settings_override['_USING_SQLITE'] = True
-    app = psef.create_app(settings_override)
+
+    settings_override['CELERY_CONFIG'] = {
+        'CELERY_TASK_ALWAYS_EAGER': True,
+        'CELERY_TASK_EAGER_PROPAGATES': True,
+    }
+    app = psef.create_app(settings_override, skip_celery=True)
+
+    psef.tasks.celery.conf.update(
+        {
+            'task_always_eager': False,
+            'task_eager_propagates': False,
+        }
+    )
 
     # Establish an application context before running the tests.
     with app.app_context():
@@ -62,8 +78,8 @@ def app(request):
 
             def __call__(self, environ, start_response):
                 if (_TOKENS and
-                    _TOKENS[-1] is not None and
-                    'HTTP_AUTHORIZATION' not in environ):
+                        _TOKENS[-1] is not None and
+                        'HTTP_AUTHORIZATION' not in environ):
                     environ['HTTP_AUTHORIZATION'] = f'Bearer {_TOKENS[-1]}'
                 return self.app(environ, start_response)
 
@@ -136,7 +152,7 @@ def test_client(app):
 @pytest.fixture
 def error_template():
     yield {
-        'code': int,
+        'code': str,
         'message': str,
         'description': str,
     }
@@ -160,7 +176,8 @@ def logged_in():
             res = None
         else:
             _TOKENS.append(
-                jwt.create_access_token(identity=user.id, fresh=True)
+                psef.auth.jwt.
+                create_access_token(identity=user.id, fresh=True)
             )
             res = user
 
@@ -239,36 +256,24 @@ def db(app, request):
     if os.path.exists(TESTDB_PATH):
         os.unlink(TESTDB_PATH)
 
-    _db.app = app
+    if not request.config.getoption('--postgresql'):
+        psef.models.db.create_all()
+
+    manage.app = app
+    manage.seed_force(psef.models.db)
+    manage.test_data(psef.models.db)
+
+    yield psef.models.db
+
     if request.config.getoption('--postgresql'):
-        flask_migrate.upgrade()
-    else:
-        psef._patch_sqlite()
-        _db.create_all()
-
-    connection = _db.engine.connect()
-    options = dict(bind=connection, binds={})
-    session = _db.create_scoped_session(options=options)
-    session.commit()
-    db.session = session
-
-    manage.seed()
-    manage.test_data()
-
-    connection.close()
-    session.remove()
-
-    yield _db
-
-    _db.drop_all()
-    if request.config.getoption('--postgresql'):
-        _db.create_all()
+        psef.models.db.drop_all()
+        psef.models.db.create_all()
     else:
         os.unlink(TESTDB_PATH)
 
 
-@pytest.fixture(scope='function')
-def session(db, request):
+@pytest.fixture
+def session(app, db):
     """Creates a new database session for a test."""
     connection = db.engine.connect()
     transaction = connection.begin()
@@ -276,13 +281,28 @@ def session(db, request):
     options = dict(bind=connection, binds={}, autoflush=False)
     session = db.create_scoped_session(options=options)
 
-    db.session = session
+    psef.models.db.session = session
 
     yield session
 
     transaction.rollback()
-    connection.close()
-    session.remove()
+
+    try:
+        session.remove()
+        connection.close()
+    except:
+        pass
+
+    db.session.begin(subtransactions=True)
+
+
+@pytest.fixture
+def monkeypatch_celery(app, monkeypatch):
+    psef.tasks.celery.conf.task_always_eager = True
+    psef.tasks.celery.conf.task_eager_propagates = True
+    yield
+    psef.tasks.celery.conf.task_always_eager = False
+    psef.tasks.celery.conf.task_eager_propagates = False
 
 
 @pytest.fixture(params=['Programmeertalen'])
@@ -318,7 +338,7 @@ def assignment(course_name, state_is_hidden, session, request, with_works):
     session.commit()
 
     if with_works:
-        names = ['Stupid1', 'Stupid2', 'Stupid3']
+        names = ['Stupid1', 'Stupid2', 'Stupid3', 'Œlµo']
         if with_works != 'single':
             names += names
         for uname in names:

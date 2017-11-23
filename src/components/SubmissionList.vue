@@ -22,7 +22,7 @@
                            style="float: right;"
                            v-if="rubric"/>
             <submissions-exporter v-if="canDownload && submissions.length"
-                                  :table="getTable"
+                                  :get-submissions="filter => filter ? filteredSubmissions : submissions"
                                   :assignment-id="assignment.id"
                                   :filename="exportFilename">
                 Export feedback
@@ -42,19 +42,19 @@
 
         <b-table striped hover
                  ref="table"
-                 v-on:row-clicked='gotoSubmission'
-                 :items="submissions"
+                 @row-clicked='gotoSubmission'
+                 @sort-changed="sortChanged"
+                 :items="filteredSubmissions"
                  :fields="fields"
                  :current-page="currentPage"
-                 :sort-compare="sortTable"
-                 :filter="filterItems"
+                 :sort-compare="sortSubmissions"
                  :show-empty="true"
                  class="submissions-table">
             <template slot="user" scope="item">
                 {{item.value.name ? item.value.name : '-'}}
             </template>
             <template slot="grade" scope="item">
-                {{item.value ? parseFloat(item.value).toFixed(2) : '-'}}
+                {{formatGrade(item.value) || '-'}}
             </template>
             <template slot="created_at" scope="item">
                 {{item.value ? item.value : '-'}}
@@ -84,6 +84,7 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex';
+import { formatGrade, filterSubmissions, sortSubmissions, parseBool } from '@/utils';
 import SubmissionsExporter from './SubmissionsExporter';
 import Loader from './Loader';
 import SubmitButton from './SubmitButton';
@@ -113,8 +114,8 @@ export default {
     data() {
         return {
             showRubricModal: false,
-            latestOnly: this.$route.query.latest !== 'false',
-            mineOnly: this.$route.query.mine !== 'false',
+            latestOnly: parseBool(this.$route.query.latest, true),
+            mineOnly: parseBool(this.$route.query.mine, true),
             currentPage: 1,
             filter: this.$route.query.q || '',
             latest: this.getLatest(this.submissions),
@@ -153,6 +154,27 @@ export default {
         exportFilename() {
             return this.assignment ? `${this.assignment.course.name}-${this.assignment.name}.csv` : null;
         },
+
+        filteredSubmissions() {
+            // WARNING: We need to access all, do not change!
+            if ([
+                this.submissions,
+                this.latestOnly,
+                this.mineOnly,
+                this.userId,
+                this.filter,
+            ].indexOf(undefined) !== -1) {
+                return [];
+            }
+
+            return filterSubmissions(
+                this.submissions,
+                this.latestOnly,
+                this.mineOnly,
+                this.userId,
+                this.filter,
+            );
+        },
     },
 
     watch: {
@@ -181,46 +203,12 @@ export default {
 
         this.assigneeFilter = this.submissions.some(s => s.assignee &&
                                                     s.assignee.id === this.userId);
-        this.$refs.table.sortBy = 'user';
+        this.$refs.table.sortBy = this.$route.query.sortBy || 'user';
+        // Fuck you bootstrapVue (sortDesc should've been sortAsc).
+        this.$refs.table.sortDesc = parseBool(this.$route.query.sortAsc, true);
     },
 
     methods: {
-        sortTable(a, b, sortBy) {
-            const oneNull = (first, second) => {
-                if (!first && !second) {
-                    return 0;
-                } else if (!first) {
-                    return 1;
-                } else if (!second) {
-                    return -1;
-                }
-                return null;
-            };
-
-            const comp = (first, second) => first.toLowerCase().localeCompare(second.toLowerCase());
-
-            if (typeof a[sortBy] === 'number' && typeof b[sortBy] === 'number') {
-                return a[sortBy] - b[sortBy];
-            } else if (sortBy === 'user' || sortBy === 'assignee') {
-                const first = a[sortBy];
-                const second = b[sortBy];
-
-                const ret = oneNull(first, second);
-                if (ret !== null) return ret;
-
-                return comp(first.name, second.name);
-            } else if (sortBy === 'created_at' || sortBy === 'grade') {
-                const first = a[sortBy];
-                const second = b[sortBy];
-
-                const ret = oneNull(first, second);
-                if (ret !== null) return ret;
-
-                return comp(first, second);
-            }
-
-            return 0;
-        },
         getLatest(submissions) {
             const latest = {};
             submissions.forEach((item) => {
@@ -231,15 +219,33 @@ export default {
             return latest;
         },
 
+        sortChanged(context) {
+            this.$router.replace({
+                query: Object.assign(
+                    // Fuck you bootstrapVue (sortDesc should've been sortAsc)
+                    {}, this.$route.query, { sortBy: context.sortBy, sortAsc: context.sortDesc },
+                ),
+            });
+        },
+
         getTable() {
             return this.$refs ? this.$refs.table : null;
         },
 
         gotoSubmission(submission) {
             this.submit();
+
             this.$router.push({
                 name: 'submission',
                 params: { submissionId: submission.id },
+                query: {
+                    mine: this.mineOnly == null ? undefined : this.mineOnly,
+                    latest: this.latestOnly == null ? undefined : this.latestOnly,
+                    search: this.filter || undefined,
+                    // Fuck you bootstrapVue (sortDesc should've been sortAsc)
+                    sortBy: this.$refs.table.sortBy,
+                    sortAsc: this.$refs.table.sortDesc,
+                },
             });
         },
 
@@ -248,10 +254,12 @@ export default {
                 latest: this.latestOnly,
                 mine: this.mineOnly,
             };
-            if (this.filter) {
-                query.q = this.filter;
-            }
-            this.$router.replace({ query });
+            query.q = this.filter || undefined;
+            this.$router.replace({
+                query: Object.assign(
+                    {}, this.$route.query, query,
+                ),
+            });
         },
 
         isEmptyObject(obj) {
@@ -314,6 +322,9 @@ export default {
         ...mapActions({
             hasPermission: 'user/hasPermission',
         }),
+
+        formatGrade,
+        sortSubmissions,
     },
 
     components: {

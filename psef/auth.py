@@ -7,8 +7,19 @@ import oauth2
 from mypy_extensions import NoReturn
 
 import psef
-from psef import app, jwt
+import flask_jwt_extended as flask_jwt
 from psef.errors import APICodes, APIException
+
+jwt = flask_jwt.JWTManager()
+
+
+def init_app(app: t.Any) -> None:
+    jwt.init_app(app)
+
+    @app.before_request
+    def reset_perm_cache() -> None:
+        global _PERM_CACHE
+        _PERM_CACHE = {}
 
 
 class PermissionException(APIException):
@@ -174,12 +185,6 @@ def ensure_can_view_files(
 
 
 _PERM_CACHE = {}  # type: t.MutableMapping[t.Tuple[str, t.Optional[int]], bool]
-
-
-@app.before_request
-def reset_perm_cache() -> None:
-    global _PERM_CACHE
-    _PERM_CACHE = {}
 
 
 def ensure_permission(permission_name: str, course_id: int=None) -> None:

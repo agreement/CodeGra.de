@@ -37,15 +37,12 @@ export default {
 <style lang="less" scoped>
 @import '~mixins.less';
 
-footer {
+.footer {
     padding: 20px;
-    height: 100%;
     /* Vertically center the text there */
     line-height: 100%;
     text-align: center;
-}
 
-.footer {
     a {
         .default-link-colors;
         cursor: pointer;

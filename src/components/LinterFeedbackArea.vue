@@ -1,6 +1,6 @@
 <template>
-    <div :class="{ 'linter-feedback-inner': feedback != null }">
-        <b-popover placement="bottom" triggers="hover" v-if="feedback != null">
+    <div :class="{ 'linter-feedback-inner': feedback != null }" v-if="feedback != null">
+        <b-popover placement="bottom" triggers="hover">
             <div class="linter-toggle" v-on:click="toggleShow"></div>
             <div slot="content">
                 <table class="linter-feedback">

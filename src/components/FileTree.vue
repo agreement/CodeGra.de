@@ -1,23 +1,40 @@
 <template>
-    <div class="file-tree" v-bind:class="{ collapsed: isCollapsed, }">
-        <div v-on:click="toggle($event)">
-            <icon name="caret-right" class="caret-icon" v-if="isCollapsed"/>
-            <icon name="caret-down" class="caret-icon" v-else/>
-            <icon name="folder" class="dir-icon" v-if="isCollapsed"/>
-            <icon name="folder-open" class="dir-icon" v-else/>
-            <a>{{ tree.name }}</a>
+    <div class="file-tree" :class="{ collapsed: isCollapsed, }">
+        <div class="directory" :class="{ faded: depth > 0 && !dirHasRevision(tree) }" @click="toggle($event)">
+            <span class="label">
+                <icon name="caret-right" class="caret-icon" v-if="isCollapsed"/>
+                <icon name="caret-down" class="caret-icon" v-else/>
+                <icon name="folder" class="dir-icon" v-if="isCollapsed"/>
+                <icon name="folder-open" class="dir-icon" v-else/>
+                {{ tree.name }}
+                <b-popover v-if="depth > 0 && dirHasRevision(tree)"
+                           triggers="hover"
+                           content="This directory has a file with a teacher's revision"
+                           class="rev-popover"
+                           @click.native.stop>
+                    *
+                </b-popover>
+            </span>
         </div>
         <ol v-show="!isCollapsed">
-            <li v-for="f in tree.entries">
+            <li v-for="f in tree.entries"
+                class="file"
+                :class="{ faded: diffMode && !fileHasRevision(f), active: fileIsSelected(f) }">
                 <file-tree :tree="f"
                            :collapsed="!fileInTree($route.params.fileId, f)"
+                           :depth="depth + 1"
                            v-if="f.entries"/>
-                <router-link :class="{ 'active-file': $route.params.fileId == f.id }"
-                             :to="getFileRoute(f.id)"
-                             replace
+                <router-link replace :to="getFileRoute(f)"
+                             class="label"
                              v-else>
                     <icon name="file" class="file-icon"/>{{ f.name }}
                 </router-link>
+                <b-popover v-if="fileHasRevision(f)"
+                           triggers="hover"
+                           content="This file has a teacher's revision"
+                           class="rev-popover">
+                    *
+                </b-popover>
             </li>
         </ol>
     </div>
@@ -44,6 +61,10 @@ export default {
             type: Boolean,
             default: true,
         },
+        depth: {
+            type: Number,
+            default: 0,
+        },
     },
 
     data() {
@@ -55,13 +76,20 @@ export default {
         };
     },
 
+    computed: {
+        diffMode() {
+            return this.$route.query.revision === 'diff';
+        },
+    },
+
     methods: {
         toggle(event) {
             event.stopPropagation();
             this.isCollapsed = !this.isCollapsed;
         },
 
-        getFileRoute(fileId) {
+        getFileRoute(file) {
+            const fileId = file.id || file.ids[0] || file.ids[1];
             return {
                 name: 'submission_file',
                 params: {
@@ -70,6 +98,7 @@ export default {
                     submissionId: this.submissionId,
                     fileId,
                 },
+                query: this.$route.query,
             };
         },
 
@@ -80,6 +109,33 @@ export default {
                         return true;
                     }
                 } else if (Number(tree.entries[i].id) === Number(fileId)) {
+                    return true;
+                }
+            }
+            return false;
+        },
+
+        fileIsSelected(f) {
+            const selectedId = this.$route.params.fileId;
+            const fileId = f.id || (f.ids && (f.ids[0] || f.ids[1]));
+            return Number(selectedId) === Number(fileId);
+        },
+
+        hasRevision(f) {
+            if (f.entries) {
+                return this.dirHasRevision(f);
+            }
+            return this.fileHasRevision(f);
+        },
+
+        fileHasRevision(f) {
+            return f.revision !== undefined ||
+                (f.ids && f.ids[0] !== f.ids[1]);
+        },
+
+        dirHasRevision(d) {
+            for (let i = 0; i < d.entries.length; i += 1) {
+                if (this.hasRevision(d.entries[i])) {
                     return true;
                 }
             }
@@ -101,6 +157,7 @@ export default {
     user-select: none;
     cursor: default;
     color: @color-primary;
+
     #app.dark & {
         color: @text-color-dark;
     }
@@ -111,7 +168,10 @@ export default {
     }
 
     .active-file {
-        font-weight: bold;
+    }
+
+    .directory .label:hover {
+        cursor: pointer;
     }
 
     ol {
@@ -120,6 +180,17 @@ export default {
         padding: 0;
         padding-left: 1.5em;
         overflow: hidden;
+    }
+
+    .file, .directory {
+        &.faded > .label {
+            opacity: .6;
+        }
+
+        &.active > .label {
+            opacity: 1;
+            font-weight: bold;
+        }
     }
 
     .caret-icon {
@@ -133,6 +204,11 @@ export default {
     .file-icon {
         width: 1em;
         margin-right: .5em;
+    }
+
+    .rev-popover {
+        display: inline;
+        cursor: pointer;
     }
 }
 </style>

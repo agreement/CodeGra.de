@@ -12,7 +12,9 @@
                     <snippet-manager></snippet-manager>
                 </b-card>
                 <b-card header="Preferences">
-                    <preference-manager :show-language="false" :show-whitespace="false"/>
+                    <preference-manager :show-language="false"
+                                        :show-whitespace="false"
+                                        :show-revision="false"/>
                 </b-card>
             </div>
         </div>
@@ -83,13 +85,15 @@ export default {
 </script>
 
 <style lang="less" scoped>
+@import "~mixins.less";
+
 .row > div:not(.col-12) .card:not(:first-child) {
     margin-top: 15px;
-}
 
-@media (max-width: 768px) {
-    .row > div:not(.col-12):not(:first-child) .card {
-        margin-top: 15px;
+    @media-no-medium {
+        .card {
+            margin-top: 15px;
+        }
     }
 }
 </style>

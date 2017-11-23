@@ -7,8 +7,7 @@
                 :editable="editable"
                 :submission="submission"
                 :rubric="rubric"
-                ref="rubricViewer">
-            </rubric-viewer>
+                ref="rubricViewer"/>
         </b-collapse>
         <b-alert :class="{closed: Object.keys($refs.rubricViewer.outOfSync).length === 0,
                          'out-of-sync-alert': true,}"
@@ -55,7 +54,9 @@
                                                :disabled="!showDeleteButton"
                                                class="delete-button"
                                                style="height: 100%;"
-                                               :label="rubricOverridden ? '↩' : '✖'"/>
+                                               label="">
+                                               <icon :name="rubricOverridden ? 'reply' : 'times'"/>
+                                </submit-button>
                             </b-popover>
                         </b-input-group-button>
 
@@ -83,7 +84,7 @@
                               :rows="3"
                               ref="field"
                               v-model="feedback"
-                              @keydown.native.ctrl.enter="putFeedback"
+                              @keydown.ctrl.enter="putFeedback"
                               @keydown.native.tab.capture="expandSnippet"
                               :disabled="!editable"/>
                 </b-input-group>
@@ -97,7 +98,10 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/bars';
 import 'vue-awesome/icons/info';
 import 'vue-awesome/icons/refresh';
+import 'vue-awesome/icons/reply';
+import 'vue-awesome/icons/times';
 import { mapActions, mapGetters } from 'vuex';
+import { formatGrade } from '@/utils';
 import RubricViewer from './RubricViewer';
 import SubmitButton from './SubmitButton';
 import GradeHistory from './GradeHistory';
@@ -127,10 +131,11 @@ export default {
     data() {
         return {
             feedback: this.submission.comment,
-            grade: this.submission.grade ? this.submission.grade.toFixed(2) : null,
+            grade: formatGrade(this.submission.grade),
             rubricPoints: {},
             rubricHasSelectedItems: false,
             gradeHistory: false,
+            externalGrade: formatGrade(this.submission.grade),
         };
     },
 
@@ -144,6 +149,7 @@ export default {
             }
             return 'Delete grade';
         },
+
         showDeleteButton() {
             if (!this.editable) {
                 return false;
@@ -151,20 +157,23 @@ export default {
             if (this.showRubric) {
                 return this.rubricHasSelectedItems || this.rubricOverridden;
             }
-            return this.grade !== null;
+            return this.grade != null;
         },
+
         showRubric() {
             return this.rubric && this.rubric.rubrics.length;
         },
 
         rubricOverridden() {
-            if (!this.showRubric || this.grade === null) {
+            if (!this.showRubric || this.grade == null) {
                 return false;
             }
-            const rubricGrade = ((this.rubricPoints.selected / this.rubricPoints.max)
-                                 * 10)
-                  .toFixed(2);
-            return this.grade !== rubricGrade;
+            if (!this.rubricHasSelectedItems) {
+                return true;
+            }
+            const rubricGrade = Math.max(0,
+                (this.rubricPoints.selected / this.rubricPoints.max) * 10);
+            return this.grade !== formatGrade(rubricGrade);
         },
 
         rubricScore() {
@@ -181,7 +190,7 @@ export default {
     watch: {
         submission() {
             this.feedback = this.submission.comment || '';
-            this.grade = this.submission.grade || 0;
+            this.grade = formatGrade(this.submission.grade) || 0;
         },
 
         rubric() {
@@ -191,7 +200,7 @@ export default {
         },
 
         rubricPoints({ selected, max, grade }) {
-            this.grade = grade ? parseFloat(grade).toFixed(2) : grade;
+            this.grade = formatGrade(grade) || null;
             this.rubricHasSelectedItems = this.$refs.rubricViewer.hasSelectedItems;
             this.rubricSelected = selected;
             this.rubricTotal = max;
@@ -232,6 +241,7 @@ export default {
             if (this.$refs.gradeHistory) {
                 this.$refs.gradeHistory.updateHistory();
             }
+            this.externalGrade = this.grade;
             this.$emit('gradeUpdated', this.grade);
         },
 
@@ -244,7 +254,7 @@ export default {
             }
             req.then(({ data }) => {
                 if (data.grade !== undefined) {
-                    this.grade = data.grade ? parseFloat(data.grade).toFixed(2) : data.grade;
+                    this.grade = formatGrade(data.grade) || null;
                     this.gradeUpdated(data.grade);
                 }
             });
@@ -257,7 +267,8 @@ export default {
             const grade = parseFloat(this.grade);
             const overrideGrade = this.rubricOverridden || !this.showRubric;
 
-            if (!(grade >= 0 && grade <= 10) && overrideGrade) {
+            if (!(grade >= 0 && grade <= 10) && overrideGrade &&
+                    this.externalGrade !== this.grade) {
                 this.$refs.submitButton.fail(`Grade '${this.grade}' must be between 0 and 10`);
                 return;
             }
@@ -265,7 +276,7 @@ export default {
             const viewer = this.$refs.rubricViewer;
             const viewerReq = viewer ? viewer.submitAllItems() : Promise.resolve();
             const data = { feedback: this.feedback || '' };
-            if (overrideGrade) {
+            if (overrideGrade && this.externalGrade !== this.grade) {
                 data.grade = grade;
             }
 
@@ -299,6 +310,8 @@ export default {
 </script>
 
 <style lang="less" scoped>
+@import "~mixins.less";
+
 input,
 textarea {
     &:disabled {
@@ -311,6 +324,10 @@ textarea {
 .rubric-overridden {
     background: fade(#f0ad4e, 50%) !important;
     cursor: help;
+
+    #app.dark & {
+        color: @text-color;
+    }
 }
 
 .out-of-sync-alert {
@@ -335,9 +352,8 @@ textarea {
 .grade-history {
     margin-top: 0.5em;
     width: 100%;
-}
-@media (min-width: 768px) {
-    .grade-history {
+
+    @media-medium {
         margin-bottom: -1em;
     }
 }

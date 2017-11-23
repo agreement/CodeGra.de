@@ -773,6 +773,7 @@ def test_add_assignment(
                 'deadline': str,
                 'description': str,
                 'whitespace_linter': False,
+                'cgignore': None,
             }
         )
 

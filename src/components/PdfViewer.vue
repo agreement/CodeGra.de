@@ -56,6 +56,7 @@ export default {
             this.pdfURL = '';
             this.$http.get(`/api/v1/code/${this.id}?type=file-url`).then(({ data }) => {
                 this.loading = false;
+                this.$emit('load');
                 this.pdfURL = `/api/v1/files/${data.name}?not_as_attachment&mime=application/pdf`;
             }, ({ response }) => {
                 this.error = `An error occurred while loading the PDF: ${response.data.message}.`;

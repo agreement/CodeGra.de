@@ -5,7 +5,6 @@ the database.
 """
 import os
 import typing as t
-import threading
 
 import werkzeug
 from flask import request, safe_join, after_this_request, send_from_directory

@@ -4,25 +4,53 @@ This module defines all the objects in the database in their relation.
 
 import os
 import enum
+import math
 import uuid
 import typing as t
 import datetime
-import threading
-from concurrent import futures
+from random import shuffle
+from itertools import cycle
+from collections import defaultdict
 
+from sqlalchemy import event
 from itsdangerous import URLSafeTimedSerializer
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy_utils import PasswordType
 from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
 import psef.auth as auth
-from psef import db, app, jwt
+from psef import app
 from psef.helpers import get_request_start_time
 
+db = SQLAlchemy(session_options={'autocommit': False, 'autoflush': False})
+
+
+def init_app(app: t.Any) -> None:
+    db.init_app(app)
+
+    if app.config['_USING_SQLITE']:  # pragma: no cover
+        with app.app_context():
+
+            @event.listens_for(db.engine, "connect")
+            def do_connect(
+                dbapi_connection: t.Any, connection_record: t.Any
+            ) -> None:
+                # disable pysqlite's emitting of the BEGIN statement entirely.
+                # also stops it from emitting COMMIT before any DDL.
+                dbapi_connection.isolation_level = None
+                dbapi_connection.execute('pragma foreign_keys=ON')
+
+            @event.listens_for(db.engine, "begin")
+            def do_begin(conn: t.Any) -> None:
+                # emit our own BEGIN
+                conn.execute("BEGIN")
+
+
 UUID_LENGTH = 36
+T = t.TypeVar('T')
 
 if t.TYPE_CHECKING:  # pragma: no cover
-    T = t.TypeVar('T')
 
     class Base:
         query = None  # type: t.ClassVar[t.Any]
@@ -65,6 +93,9 @@ if t.TYPE_CHECKING:  # pragma: no cover
             ...
 
         def __iter__(self) -> t.Iterator[T]:
+            ...
+
+        def delete(self) -> None:
             ...
 
 else:
@@ -148,6 +179,29 @@ class LTIProvider(Base):
             codegra.de
         """
         return app.config['LTI_CONSUMER_KEY_SECRETS'][self.key]
+
+
+class AssignmentAssignedGrader(Base):
+    """The class creates the link between an :class:`User` and an
+    :class:`Assignment`.
+
+    The user linked to the assignment is an assigned grader. In this link the
+    weight is the weight this user was given when assigning.
+    """
+    if t.TYPE_CHECKING:  # pragma: no cover
+        query: t.ClassVar[_MyQuery['AssignmentAssignedGrader']]
+        query = Base.query
+    __tablename__ = 'AssignmentAssignedGrader'
+    weight: float = db.Column('weight', db.Float, nullable=False)
+    user_id: int = db.Column(
+        'User_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
+    )
+    assignment_id: int = db.Column(
+        'Assignment_id', db.Integer,
+        db.ForeignKey('Assignment.id', ondelete='CASCADE')
+    )
+
+    __table_args__ = (db.PrimaryKeyConstraint(assignment_id, user_id), )
 
 
 class AssignmentResult(Base):
@@ -483,6 +537,8 @@ class User(Base):
     :ivar email: The e-mail of this user.
     :ivar password: The password of this user, it is automatically hashed.
     :ivar assignment_results: The way this user can do LTI grade passback.
+    :ivar assignments_assigned: A mapping between assignment_ids and
+        :py:class:`AssignmentAssignedGrader` objects.
     """
     # Python 3 implicitly set __hash__ to None if we override __eq__
     # We set it back to its default implementation
@@ -522,6 +578,14 @@ class User(Base):
             'pbkdf2_sha512',
         ], deprecated=[]),
         nullable=True
+    )
+
+    assignments_assigned: t.MutableMapping[
+        int, AssignmentAssignedGrader
+    ] = db.relationship(
+        'AssignmentAssignedGrader',
+        collection_class=attribute_mapped_collection('assignment_id'),
+        backref=db.backref('user', lazy='select')
     )
 
     assignment_results: t.MutableMapping[
@@ -772,7 +836,7 @@ class User(Base):
         return self.active
 
     @staticmethod
-    @jwt.user_loader_callback_loader
+    @psef.auth.jwt.user_loader_callback_loader
     def load_user(user_id: int) -> t.Optional['User']:
         return User.query.get(int(user_id))
 
@@ -973,8 +1037,11 @@ class Work(Base):
             if not linter_cls.RUN_LINTER:
                 return
 
-            runner = psef.linters.LinterRunner(linter_cls, linter.config)
-            threading.Thread(target=runner.run, args=([instance.id], )).start()
+            psef.tasks.lint_instances(
+                linter.name,
+                linter.config,
+                [instance.id],
+            )
 
     @property
     def grade(self) -> float:
@@ -1016,7 +1083,7 @@ class Work(Base):
         db.session.add(history)
         db.session.flush()
         if passback:
-            self.passback_grade()
+            psef.tasks.passback_grades([self.id])
 
     @property
     def selected_rubric_points(self) -> float:
@@ -1465,9 +1532,9 @@ class File(Base):
                 (
                     child.list_contents(exclude)
                     for child in
-                    self.children.filter(File.fileowner != exclude).all()
+                    self.children.filter(File.fileowner != exclude)
                 ),
-                key=lambda el: el['name']
+                key=lambda el: el['name'].lower()
             )
             return {
                 "name": self.name,
@@ -1538,7 +1605,10 @@ class LinterComment(Base):
     __tablename__ = "LinterComment"  # type: str
     id: int = db.Column('id', db.Integer, primary_key=True)
     file_id: int = db.Column(
-        'File_id', db.Integer, db.ForeignKey('File.id'), index=True
+        'File_id',
+        db.Integer,
+        db.ForeignKey('File.id', ondelete='CASCADE'),
+        index=True
     )
     linter_id: str = db.Column(db.Unicode, db.ForeignKey('LinterInstance.id'))
 
@@ -1570,8 +1640,12 @@ class Comment(Base):
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['Comment']]
     __tablename__ = "Comment"
-    file_id: int = db.Column('File_id', db.Integer, db.ForeignKey('File.id'))
-    user_id: int = db.Column('User_id', db.Integer, db.ForeignKey('User.id'))
+    file_id: int = db.Column(
+        'File_id', db.Integer, db.ForeignKey('File.id', ondelete='CASCADE')
+    )
+    user_id: int = db.Column(
+        'User_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
+    )
     line: int = db.Column('line', db.Integer)
     comment: str = db.Column('comment', db.Unicode)
     __table_args__ = (db.PrimaryKeyConstraint(file_id, line), )
@@ -1732,7 +1806,9 @@ class LinterInstance(Base):
         default=LinterState.running,
         nullable=False
     )
-    work_id: int = db.Column('Work_id', db.Integer, db.ForeignKey('Work.id'))
+    work_id: int = db.Column(
+        'Work_id', db.Integer, db.ForeignKey('Work.id', ondelete='CASCADE')
+    )
     tester_id: int = db.Column(
         db.Unicode, db.ForeignKey('AssignmentLinter.id')
     )
@@ -1807,6 +1883,7 @@ class Assignment(Base):
     __tablename__ = "Assignment"
     id: int = db.Column('id', db.Integer, primary_key=True)
     name: str = db.Column('name', db.Unicode)
+    cgignore: str = db.Column('cgignore', db.Unicode)
     state: _AssignmentStateEnum = db.Column(
         'state',
         db.Enum(_AssignmentStateEnum),
@@ -1825,6 +1902,15 @@ class Assignment(Base):
     # All stuff for LTI
     lti_assignment_id: str = db.Column(db.Unicode, unique=True)
     lti_outcome_service_url: str = db.Column(db.Unicode)
+
+    assigned_graders: t.MutableMapping[
+        int, AssignmentAssignedGrader
+    ] = db.relationship(
+        'AssignmentAssignedGrader',
+        cascade='delete-orphan, delete',
+        collection_class=attribute_mapped_collection('user_id'),
+        backref=db.backref('assignment', lazy='select')
+    )
 
     assignment_results: t.MutableMapping[
         int, AssignmentResult
@@ -1852,15 +1938,12 @@ class Assignment(Base):
     linters: t.Iterable['AssignmentLinter']
 
     def _submit_grades(self) -> None:
-        if app.config['_USING_SQLITE']:
-            for sub in self.get_all_latest_submissions():
-                sub.passback_grade()
-        # This line is covered using the postgresql tests, however that data
-        # won't be send to coveralls so we ignore it.
-        else:  # pragma: no cover
-            with futures.ThreadPoolExecutor() as pool:
-                for sub in self.get_all_latest_submissions():
-                    pool.submit(sub.passback_grade)
+        subs = t.cast(
+            t.List[t.Tuple[int]],
+            self.get_from_latest_submissions(Work.id).all()
+        )
+        for i in range(0, len(subs), 10):
+            psef.tasks.passback_grades([s[0] for s in subs[i:i + 10]])
 
     @property
     def is_lti(self) -> bool:
@@ -1976,6 +2059,7 @@ class Assignment(Base):
             'name': self.name,
             'is_lti': self.is_lti,
             'course': self.course,
+            'cgignore': self.cgignore,
             'whitespace_linter': self.whitespace_linter,
         }
 
@@ -2001,24 +2085,169 @@ class Assignment(Base):
         else:  # pragma: no cover
             raise TypeError
 
-    def get_all_latest_submissions(self) -> '_MyQuery[Work]':
-        """Get a list of all the latest submissions (:class:`Work`) by each
-        :class:`User` who has submitted at least one work for this assignment.
+    def get_from_latest_submissions(self, *to_query: T) -> '_MyQuery[T]':
+        """Get the given fields from all last submitted submissions.
 
-        :returns: The latest submissions
+        :param to_query: The field to get from the last submitted submissions.
+        :returns: A query object with the given fields selected from the last
+            submissions.
         """
         sub = db.session.query(
             Work.user_id.label('user_id'),  # type: ignore
             func.max(Work.created_at).label('max_date')
         ).filter_by(assignment_id=self.id
                     ).group_by(Work.user_id).subquery('sub')
-        return Work.query.join(
+        return db.session.query(*to_query).select_from(Work).join(
             sub,
             and_(
                 sub.c.user_id == Work.user_id,
                 sub.c.max_date == Work.created_at
             )
         ).filter(Work.assignment_id == self.id)
+
+    def get_all_latest_submissions(self) -> '_MyQuery[Work]':
+        """Get a list of all the latest submissions (:class:`Work`) by each
+        :class:`User` who has submitted at least one work for this assignment.
+
+        :returns: The latest submissions.
+        """
+        # get_from_latest_submissions uses SQLAlchemy magic that MyPy cannot
+        # encode.
+        return self.get_from_latest_submissions(t.cast(Work, Work))
+
+    def get_divided_amount_missing(
+        self
+    ) -> t.Tuple[t.Mapping[int, float], t.Callable[[int], t.Mapping[int, float]
+                                                   ]]:
+        """Get a mapping between user and the amount of submissions that they
+        should be assigned but are not.
+
+        For example if we have two graders, John and Dorian that respectively
+        have the weights 1 and 1 assigned. Lets say we have three submissions
+        divided in such a way that John has to grade 2 and Dorian has to grade
+        one, then our function we return that John is missing -0.5 submissions
+        and Dorian is missing 0.5.
+
+        .. note::
+
+            If ``self.assigned_graders`` is empty this function and its
+            recalculate will always return an empty directory.
+
+        :returns: A mapping between user int and the amount missing as
+            described above. Furthermore it returns a function that can be used
+            to recalculate this mapping by given it the user id of the user
+            that was assigned a submission.
+        """
+        if not self.assigned_graders:
+            return {}, lambda _: {}
+
+        total_weight = sum(w.weight for w in self.assigned_graders.values())
+
+        amount_subs: int
+        amount_subs = self.get_from_latest_submissions(  # type: ignore
+            func.count(),
+        ).scalar()
+
+        divided_amount: t.MutableMapping[int, float] = defaultdict(lambda: 0.0)
+        for u_id, amount in self.get_from_latest_submissions(  # type: ignore
+            Work.assigned_to, func.count()
+        ).group_by(Work.assigned_to):
+            divided_amount[u_id] = amount
+
+        missing = {}
+        for user_id, assigned in self.assigned_graders.items():
+            missing[user_id] = (assigned.weight / total_weight *
+                                amount_subs) - divided_amount[user_id]
+
+        def recalculate(user_id: int) -> t.MutableMapping[int, float]:
+            nonlocal amount_subs
+
+            amount_subs += 1
+            divided_amount[user_id] += 1
+            missing = {}
+
+            for user_id, assigned in self.assigned_graders.items():
+                missing[user_id
+                        ] = (assigned.weight / total_weight *
+                             amount_subs) - divided_amount[user_id]
+
+            return missing
+
+        return missing, recalculate
+
+    def divide_submissions(
+        self, user_weights: t.Sequence[t.Tuple[User, float]]
+    ) -> None:
+        """Divide all newest submissions for this assignment between the given
+        users.
+
+        This methods prefers to keep submissions assigned to the same grader as
+        much as possible. To get completely new and random assignments first
+        clear all old assignments.
+
+        :param user_weights: A list of tuples that map users and the weights.
+            The weights are used to determine how many submissions should be
+            assigned to a single user.
+        :returns: Nothing.
+        """
+        # First check if there were changes in the weights
+        if len(user_weights) == len(self.assigned_graders):
+            for user, weight in user_weights:
+                if (user.id not in self.assigned_graders or
+                        self.assigned_graders[user.id].weight != weight):
+                    break
+            else:
+                return
+
+        submissions = self.get_all_latest_submissions().all()
+        shuffle(submissions)
+
+        counts: t.MutableMapping[int, int] = defaultdict(lambda: 0)
+        user_submissions: t.MutableMapping[int, t.List[Work]]
+        user_submissions = defaultdict(lambda: [])
+
+        # Remove all users not in user_weights
+        new_users = set(u.id for u, _ in user_weights)
+        for submission in submissions:
+            if submission.assigned_to not in new_users:
+                submission.assigned_to = None
+            else:
+                counts[submission.assigned_to] += 1
+            user_submissions[submission.assigned_to].append(submission)
+
+        new_total_weight = sum(weight for _, weight in user_weights)
+
+        negative_weights, positive_weights = {}, {}
+        for user, new_weight in user_weights:
+            percentage = (new_weight / new_total_weight)
+            new = percentage * len(submissions)
+
+            if new < counts[user.id]:
+                negative_weights[user.id] = counts[user.id] - new
+            elif new > counts[user.id]:
+                positive_weights[user.id] = new - counts[user.id]
+
+        for user_id, delete_amount in negative_weights.items():
+            for sub in user_submissions[user_id][:round(delete_amount)]:
+                user_submissions[None].append(sub)
+
+        to_assign: t.List[int] = []
+        if positive_weights:
+            ratio = math.ceil(1 / min(1, max(positive_weights.values())))
+            for user_id, new_amount in positive_weights.items():
+                to_assign += [user_id] * round(new_amount * ratio)
+
+        shuffle(to_assign)
+        for sub, user_id in zip(user_submissions[None], cycle(to_assign)):
+            sub.assigned_to = user_id
+
+        self.assigned_graders = {}
+        for user, weight in user_weights:
+            db.session.add(
+                AssignmentAssignedGrader(
+                    weight=weight, user_id=user.id, assignment=self
+                )
+            )
 
 
 class Snippet(Base):

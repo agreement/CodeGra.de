@@ -4,6 +4,7 @@
             <b-input-group-button>
                 <submit-button :disabled="this.file === null"
                                @click.prevent="submit"
+                               :show-error="showError"
                                ref="submitButton"/>
             </b-input-group-button>
             <b-form-file id="fileUploader"
@@ -31,6 +32,10 @@ export default {
             type: Boolean,
             default: false,
         },
+        showError: {
+            type: Boolean,
+            default: true,
+        },
     },
 
     data() {
@@ -39,17 +44,22 @@ export default {
         };
     },
 
-    methods: {
-        submit() {
+    computed: {
+        requestData() {
             const fdata = new FormData();
             fdata.append('file', this.file);
+            return fdata;
+        },
+    },
 
+    methods: {
+        submit() {
             return this.$refs.submitButton.submit(
-                this.$http.post(this.url, fdata).then((res) => {
+                this.$http.post(this.url, this.requestData).then((res) => {
                     this.$emit('response', res);
-                }, ({ response: { data: { message } } }) => {
-                    this.$emit('error', message);
-                    throw message;
+                }, ({ response }) => {
+                    this.$emit('error', response);
+                    throw response.data.message;
                 }),
             );
         },

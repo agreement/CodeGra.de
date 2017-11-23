@@ -79,6 +79,7 @@ import 'vue-awesome/icons/pencil';
 import 'vue-awesome/icons/floppy-o';
 import 'vue-awesome/icons/ban';
 
+import { cmpNoCase, cmpOneNull } from '@/utils';
 import Loader from './Loader';
 import SubmitButton from './SubmitButton';
 
@@ -118,35 +119,22 @@ export default {
 
     methods: {
         sortTable(a, b, sortBy) {
-            const oneNull = (first, second) => {
-                if (!first && !second) {
-                    return 0;
-                } else if (!first) {
-                    return 1;
-                } else if (!second) {
-                    return -1;
-                }
-                return null;
-            };
-
-            const comp = (first, second) => first.toLowerCase().localeCompare(second.toLowerCase());
-
             if (typeof a[sortBy] === 'number' && typeof b[sortBy] === 'number') {
                 return a[sortBy] - b[sortBy];
             } else if (sortBy === 'User') {
                 const first = a[sortBy];
                 const second = b[sortBy];
 
-                const ret = oneNull(first, second);
+                const ret = cmpOneNull(first, second);
 
-                return ret === null ? comp(first.name, second.name) : ret;
+                return ret === null ? cmpNoCase(first.name, second.name) : ret;
             } else if (sortBy === 'CourseRole') {
                 const first = a.CourseRole;
                 const second = b.CourseRole;
 
-                const ret = oneNull(first, second);
+                const ret = cmpOneNull(first, second);
 
-                return ret === null ? comp(first.name, second.name) : ret;
+                return ret === null ? cmpNoCase(first.name, second.name) : ret;
             }
             return 0;
         },
