@@ -29,7 +29,7 @@ _known_archive_extensions = tuple(archive.extension_map.keys())
 
 # Gestolen van Erik Kooistra
 _bb_txt_format = re.compile(
-    r"(?P<assignment_name>.+)_(?P<student_id>\d+)_attempt_"
+    r"(?P<assignment_name>.+)_(?P<student_id>.+?)_attempt_"
     r"(?P<datetime>\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}).txt"
 )
 
@@ -496,18 +496,19 @@ def process_blackboard_zip(
     def get_files(info: blackboard.SubmissionInfo) -> t.List[FileStorage]:
         files = []
         for blackboard_file in info.files:
-            name = blackboard_file.original_name
+            if isinstance(blackboard_file, blackboard.FileInfo):
+                name = blackboard_file.original_name
+                stream = open(
+                    os.path.join(tmpdir, blackboard_file.name), mode='rb'
+                )
+            else:
+                name = blackboard_file[0]
+                stream = io.BytesIO(blackboard_file[1])
+
             if name == '__WARNING__':
                 name = '__WARNING__ (User)'
 
-            files.append(
-                FileStorage(
-                    stream=open(
-                        os.path.join(tmpdir, blackboard_file.name), mode='rb'
-                    ),
-                    filename=name,
-                )
-            )
+            files.append(FileStorage(stream=stream, filename=name))
         return files
 
     tmpdir = extract_to_temp(
@@ -526,9 +527,7 @@ def process_blackboard_zip(
             )
 
             try:
-                files = get_files(info)
-                tree = process_files(files)
-                map(lambda f: f.close(), files)
+                tree = process_files(get_files(info))
             except:
                 files = get_files(info)
                 files.append(
@@ -540,7 +539,6 @@ def process_blackboard_zip(
                     )
                 )
                 tree = process_files(files, force_txt=True)
-                map(lambda f: f.close(), files)
 
             submissions.append((info, tree))
         if not submissions:

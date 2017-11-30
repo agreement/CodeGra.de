@@ -6,9 +6,8 @@ import datetime
 from functools import reduce
 from collections import defaultdict
 
-import pytest
-
 import psef
+import pytest
 import psef.models as m
 from psef.errors import APICodes
 from psef.helpers import ensure_keys_in_dict
@@ -1319,7 +1318,7 @@ def test_get_all_submissions(
                                 }],
                         'name': 'top',
                         'id': int,
-                        'username': '0000003',
+                        'username': 'GEEN_INT',
                 },
                 'Stupid2': {
                         'entries': [{
@@ -1336,6 +1335,15 @@ def test_get_all_submissions(
                         'name': 'top',
                         'id': int,
                         'username': '0000002',
+                },
+                'Stupid3': {
+                        'entries': [{
+                                    'name': 'Comment',
+                                    'id': int
+                                }],
+                        'name': 'top',
+                        'id': int,
+                        'username': '0000004',
                 },
             }
         ),
