@@ -79,10 +79,16 @@ export function sortSubmissions(a, b, sortBy) {
         const first = a[sortBy];
         const second = b[sortBy];
 
-        const ret = cmpOneNull(first, second);
+        let ret = cmpOneNull(first, second);
         if (ret !== null) return ret;
 
-        return cmpNoCase(formatGrade(first), formatGrade(second));
+        const firstF = parseFloat(first);
+        const secondF = parseFloat(second);
+
+        ret = cmpOneNull(firstF, secondF);
+        if (ret !== null) return ret;
+
+        return firstF - secondF;
     }
 
     return 0;
