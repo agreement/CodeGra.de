@@ -55,7 +55,11 @@
                  :filter="filterItems"
                  :show-empty="true">
             <template slot="name" scope="item">
-                {{item.value ? item.value : '-'}}
+                <a class="invisible-link"
+                   href="#"
+                   @click.prevent>
+                    {{item.value ? item.value : '-'}}
+                </a>
             </template>
             <template slot="course_name" scope="item">
                 {{item.item.course.name ? item.item.course.name : '-'}}

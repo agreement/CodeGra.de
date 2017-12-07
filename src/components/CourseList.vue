@@ -15,7 +15,11 @@
                 :filter="filter"
                 :show-empty="true">
             <template slot="name" scope="item">
-                {{item.value ? item.value : '-'}}
+                <a class="invisible-link"
+                   href="#"
+                   @click.prevent>
+                    {{item.value ? item.value : '-'}}
+                </a>
             </template>
             <template slot="role" scope="item">
                 {{item.value ? item.value : '-'}}

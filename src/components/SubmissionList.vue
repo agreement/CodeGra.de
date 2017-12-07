@@ -51,7 +51,11 @@
                  :show-empty="true"
                  class="submissions-table">
             <template slot="user" scope="item">
-                {{item.value.name ? item.value.name : '-'}}
+                <a class="invisible-link"
+                   href="#"
+                   @click.prevent>
+                   {{item.value.name ? item.value.name : '-'}}
+                </a>
             </template>
             <template slot="grade" scope="item">
                 {{formatGrade(item.value) || '-'}}

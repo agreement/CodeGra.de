@@ -1,7 +1,9 @@
 <template>
     <div class="manage-course">
         <div class="assignment-manager collapse-wrapper">
-            <h3 @click="toggleDiv('assignment-manager')">Assignments</h3>
+            <h3 @click="toggleDiv('assignment-manager')">
+                <a class="invisible-link" href="#" @click.prevent>Assignments</a>
+            </h3>
             <b-collapse id="assignment-manager" visible>
                 <b-form-fieldset v-if="assignments.length > 0">
                     <b-input-group>
@@ -33,13 +35,17 @@
         </div>
 
         <div class="collapse-wrapper">
-            <h3 @click="toggleDiv('users-manager')">Users</h3>
+            <h3 @click="toggleDiv('users-manager')">
+                <a class="invisible-link" href="#" @click.prevent>Users</a>
+            </h3>
             <b-collapse id="users-manager">
                 <users-manager :course="course"/>
             </b-collapse>
         </div>
         <div class="collapse-wrapper">
-            <h3 @click="toggleDiv('permissions-manager')">Roles</h3>
+            <h3 @click="toggleDiv('permissions-manager')">
+                <a class="invisible-link" href="#" @click.prevent>Roles</a>
+            </h3>
             <b-collapse id="permissions-manager">
                 <permissions-manager :courseId="course.id"/>
             </b-collapse>
