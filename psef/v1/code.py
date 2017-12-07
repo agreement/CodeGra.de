@@ -8,6 +8,7 @@ APIs are used to manipulate student submitted code and the related feedback.
 import shutil
 import typing as t
 
+import sqlalchemy.sql as sql
 from flask import request, make_response
 from sqlalchemy.orm import make_transient
 
@@ -16,9 +17,8 @@ import psef.files
 import psef.models as models
 import psef.helpers as helpers
 from psef import app, current_user
-from psef.models import db
 from psef.errors import APICodes, APIException
-from psef.models import FileOwner
+from psef.models import FileOwner, db
 from psef.helpers import (
     JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
     ensure_keys_in_dict, make_empty_response
@@ -235,12 +235,19 @@ def delete_code(file_id: int) -> EmptyResponse:
     .. :quickref: Code; Delete the given file.
 
     If a student does this request before the deadline, the file will be
-    completely deleted. , if the request is done after the deadline the user
+    completely deleted. If the request is done after the deadline the user
     doing the delete will be removed from the ownership of the file and if
     there are no owners left the file is deleted.
 
+    If the file owner of the given file is the same as that of the user doing
+    the request (so the file will be completely deleted) the given file should
+    not have any comments (Linter or normal) associated with it. If it still
+    has comments the request will fail with error code 400.
+
     :returns: Nothing.
 
+    :raises APIException: If the request will result in wrong
+        state. (INVALID_STATE)
     :raises APIException: If there is not file with the given id.
         (OBJECT_ID_NOT_FOUND)
     :raises APIException: If you do not have permission to delete the given
@@ -272,6 +279,18 @@ def delete_code(file_id: int) -> EmptyResponse:
     if code.fileowner == other:
         _raise_invalid()
     elif code.fileowner == current:
+        if db.session.query(
+            sql.or_(
+                models.Comment.query.filter_by(file_id=code.id).exists(),
+                models.LinterComment.query.filter_by(file_id=code.id).exists(),
+            )
+        ).scalar():
+            raise APIException(
+                'You cannot delete this file as it has comments',
+                f'The file "{file_id}" has comments associated with it.',
+                APICodes.INVALID_STATE,
+                400,
+            )
         code.delete_from_disk()
         db.session.delete(code)
     elif code.fileowner == models.FileOwner.both:

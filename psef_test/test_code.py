@@ -520,6 +520,71 @@ def test_delete_code_twice(
 
 
 @pytest.mark.parametrize(
+    'filename', ['../test_submissions/multiple_dir_archive.zip'],
+    indirect=True
+)
+def test_delete_code_with_comment(
+    assignment_real_works, test_client, request, error_template, ta_user,
+    logged_in, session
+):
+    assignment, work = assignment_real_works
+    work_id = work['id']
+
+    with logged_in(ta_user):
+        res = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/files/',
+            200,
+            result={
+                'entries': list,
+                'id': int,
+                'name': str,
+            }
+        )
+        assignment.deadline = datetime.datetime.utcnow() - datetime.timedelta(
+            days=1
+        )
+        session.commit()
+
+        f = res['entries'][0]['entries'][0]
+        print(f)
+        new_f = test_client.req(
+            'patch',
+            f'/api/v1/code/{f["id"]}',
+            200,
+            query={'operation': 'content'},
+            result={'name': f['name'],
+                    'id': int,
+                    'is_directory': False},
+            real_data='WOWSERS123',
+        )
+
+        assert new_f['id'] != f['id'], 'Should have a new file'
+
+        test_client.req(
+            'put',
+            f'/api/v1/code/{new_f["id"]}/comments/0',
+            204,
+            data={'comment': 'GOED!'},
+        )
+
+        req = test_client.get(
+            f'/api/v1/code/{new_f["id"]}',
+        )
+        assert req.status_code == 200, 'Request had no errors'
+        assert req.get_data(
+            as_text=True
+        ) == 'WOWSERS123', 'The teacher revision was used'
+
+        test_client.req(
+            'delete',
+            f'/api/v1/code/{new_f["id"]}',
+            400,
+            result=error_template,
+        )
+
+
+@pytest.mark.parametrize(
     'filename', ['../test_submissions/single_dir_archive.zip'], indirect=True
 )
 def test_update_code(
