@@ -13,7 +13,7 @@ from itertools import cycle
 from collections import defaultdict
 
 from sqlalchemy import event
-from itsdangerous import URLSafeTimedSerializer
+from itsdangerous import BadSignature, URLSafeTimedSerializer
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy_utils import PasswordType
 from sqlalchemy.sql.expression import or_, and_, func, null, false
@@ -607,7 +607,7 @@ class User(Base):
     def has_permission(
         self,
         permission: t.Union[str, Permission],
-        course_id: t.Union['Course', int]=None
+        course_id: t.Union['Course', int] = None
     ) -> bool:
         """Check whether this user has the specified global or course
         :class:`Permission`.
@@ -755,7 +755,7 @@ class User(Base):
 
         return (not link) if permission.default_value else link
 
-    def get_all_permissions(self, course_id: t.Union['Course', int]=None
+    def get_all_permissions(self, course_id: t.Union['Course', int] = None
                             ) -> t.Mapping[str, bool]:
         """Get all global permissions (:class:`Permission`) of this user or all
         course permissions of the user in a specific :class:`Course`.
@@ -810,7 +810,7 @@ class User(Base):
                 max_age=psef.app.config['RESET_TOKEN_TIME'],
                 salt=self.reset_token
             )
-        except:
+        except BadSignature:
             import traceback
             traceback.print_exc()
             raise psef.auth.PermissionException(
@@ -874,9 +874,9 @@ class Course(Base):
 
     def __init__(
         self,
-        name: str=None,
-        lti_course_id: str=None,
-        lti_provider: LTIProvider=None
+        name: str = None,
+        lti_course_id: str = None,
+        lti_provider: LTIProvider = None
     ) -> None:
         self.name = name
         self.lti_course_id = lti_course_id
@@ -1089,7 +1089,7 @@ class Work(Base):
     def selected_rubric_points(self) -> float:
         return sum(item.points for item in self.selected_items)
 
-    def passback_grade(self, initial: bool=False) -> None:
+    def passback_grade(self, initial: bool = False) -> None:
         """Initiates a passback of the grade to the LTI consumer via the
         :class:`LTIProvider`.
 
@@ -1119,9 +1119,9 @@ class Work(Base):
                 self.assignment.assignment_results[self.user_id].sourcedid,
                 url=url,
             )
-            sq = db.session.query(GradeHistory.id).filter_by(
-                work_id=self.id
-            ).order_by(
+            sq = db.session.query(
+                GradeHistory.id
+            ).filter_by(work_id=self.id).order_by(
                 GradeHistory.changed_at.desc(),  # type: ignore
             ).limit(1).with_for_update()
             db.session.query(GradeHistory).filter_by(
@@ -1133,7 +1133,7 @@ class Work(Base):
             )
 
     def select_rubric_items(
-        self, items: t.List['RubricItem'], user: User, override: bool=False
+        self, items: t.List['RubricItem'], user: User, override: bool = False
     ) -> None:
         """ Selects the given :class:`RubricItem`.
 
@@ -1230,9 +1230,7 @@ class Work(Base):
             }
 
     def add_file_tree(
-        self,
-        session: 'orm.scoped_session',
-        tree: 'psef.files.ExtractFileTree'
+        self, session: 'orm.scoped_session', tree: 'psef.files.ExtractFileTree'
     ) -> None:
         """Add the given tree to given session.
 
@@ -1249,10 +1247,8 @@ class Work(Base):
         return self._add_file_tree(session, tree, None)
 
     def _add_file_tree(
-        self,
-        session: 'orm.scoped_session',
-        tree: 'psef.files.ExtractFileTree',
-        top: 'File'
+        self, session: 'orm.scoped_session',
+        tree: 'psef.files.ExtractFileTree', top: 'File'
     ) -> None:
         """Add the given tree to the session with top as parent.
 
@@ -1964,13 +1960,12 @@ class Assignment(Base):
 
         :returns: The maximum amount of points.
         """
-        sub = db.session.query(func.max(RubricItem.points).label('max_val')
-                               ).join(
-                                   RubricRow,
-                                   RubricRow.id == RubricItem.rubricrow_id
-                               ).filter(
-                                   RubricRow.assignment_id == self.id
-                               ).group_by(RubricRow.id).subquery('sub')
+        sub = db.session.query(
+            func.max(RubricItem.points).label('max_val')
+        ).join(RubricRow, RubricRow.id == RubricItem.rubricrow_id
+               ).filter(RubricRow.assignment_id == self.id).group_by(
+                   RubricRow.id
+               ).subquery('sub')
         return db.session.query(func.sum(sub.c.max_val)).scalar()
 
     @property
@@ -2095,8 +2090,8 @@ class Assignment(Base):
         sub = db.session.query(
             Work.user_id.label('user_id'),  # type: ignore
             func.max(Work.created_at).label('max_date')
-        ).filter_by(assignment_id=self.id
-                    ).group_by(Work.user_id).subquery('sub')
+        ).filter_by(assignment_id=self.id).group_by(Work.user_id
+                                                    ).subquery('sub')
         return db.session.query(*to_query).select_from(Work).join(
             sub,
             and_(

@@ -30,7 +30,7 @@ class PermissionException(APIException):
         super(PermissionException, self).__init__(*args, **kwargs)
 
 
-def _raise_login_exception(desc: str='No user was logged in.') -> NoReturn:
+def _raise_login_exception(desc: str = 'No user was logged in.') -> NoReturn:
     raise PermissionException(
         'You need to be logged in to do this.', desc, APICodes.NOT_LOGGED_IN,
         401
@@ -42,7 +42,7 @@ def _raise_login_exception(desc: str='No user was logged in.') -> NoReturn:
 @jwt.invalid_token_loader
 @jwt.needs_fresh_token_loader
 def _handle_jwt_errors(
-    reason: str='No user was logged in.',
+    reason: str = 'No user was logged in.',
 ) -> 'psef.helpers.JSONResponse[PermissionException]':
     return psef.helpers.jsonify(
         PermissionException(
@@ -187,7 +187,7 @@ def ensure_can_view_files(
 _PERM_CACHE = {}  # type: t.MutableMapping[t.Tuple[str, t.Optional[int]], bool]
 
 
-def ensure_permission(permission_name: str, course_id: int=None) -> None:
+def ensure_permission(permission_name: str, course_id: int = None) -> None:
     """Ensure that the current user is logged and has the given permission.
 
     :param permission_name: The name of the permission to check for.
@@ -231,7 +231,7 @@ def ensure_permission(permission_name: str, course_id: int=None) -> None:
 
 
 def permission_required(
-    permission_name: str, course_id: int=None
+    permission_name: str, course_id: int = None
 ) -> t.Callable:
     """A decorator used to make sure the function decorated is only called with
     certain permissions.
@@ -279,9 +279,9 @@ class RequestValidatorMixin(object):
     def is_valid_request(
         self,
         request: t.Any,
-        parameters: t.MutableMapping[str, str]={},
-        fake_method: t.Any=None,
-        handle_error: bool=True
+        parameters: t.MutableMapping[str, str] = {},
+        fake_method: t.Any = None,
+        handle_error: bool = True
     ) -> bool:
         '''
         Validates an OAuth request using the python-oauth2 library:
@@ -316,8 +316,7 @@ class RequestValidatorMixin(object):
         return True
 
     def parse_request(
-        self,
-        request: t.Any,
+        self, request: t.Any,
         parameters: t.Optional[t.MutableMapping[str, str]],
         fake_method: t.Optional[t.Any]
     ) -> t.Tuple[str, str, t.MutableMapping[str, str],
@@ -353,8 +352,8 @@ class _FlaskOAuthValidator(RequestValidatorMixin):
     def parse_request(
         self,
         req: 'flask.Request',
-        parameters: t.MutableMapping[str, str]=None,
-        fake_method: t.Any=None
+        parameters: t.MutableMapping[str, str] = None,
+        fake_method: t.Any = None
     ) -> t.Tuple[str, str, t.MutableMapping[str, str], t.MutableMapping[str,
                                                                         str]]:
         '''
@@ -367,7 +366,7 @@ def ensure_valid_oauth(
     key: str,
     secret: str,
     request: t.Any,
-    parser_cls: t.Type=_FlaskOAuthValidator
+    parser_cls: t.Type = _FlaskOAuthValidator
 ) -> None:
     """Make sure the given oauth key and secret is valid for the given request.
 

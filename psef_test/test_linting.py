@@ -23,12 +23,13 @@ ALL_LINTERS = sorted(['Flake8', 'MixedWhitespace', 'Pylint'])
     'filename,linter_cfgs_exp',
     [
         (
-            'test_flake8.tar.gz',
-            [('Flake8', '', ['W191', 'E211', 'E201', 'E202'])]
+            'test_flake8.tar.gz', [
+                ('Flake8', '', ['W191', 'E211', 'E201', 'E202'])
+            ]
         ),
-        run_error(
-            error=400,
-        )(('test_flake8.tar.gz', [('Flake8', False, '')])),
+        run_error(error=400, )(
+            ('test_flake8.tar.gz', [('Flake8', False, '')])
+        ),
         run_error(error=400)(('test_flake8.tar.gz', [('Flake8', 5, '')])),
         run_error(error=400)(('test_flake8.tar.gz', [(6, '666', '')])),
         run_error(error=400)(('test_flake8.tar.gz', [(False, False, '')])),
@@ -225,7 +226,9 @@ def test_linters(
                 'get',
                 f'/api/v1/code/{code_id}',
                 200 if can_see_comm else perm_err.kwargs['error'],
-                query={'type': 'linter-feedback'},
+                query={
+                    'type': 'linter-feedback'
+                },
             ).items(),
             key=lambda el: el[0]
         )
@@ -346,7 +349,9 @@ def test_lint_later_submission(
                 'get',
                 f'/api/v1/code/{code_id}',
                 200,
-                query={'type': 'linter-feedback'},
+                query={
+                    'type': 'linter-feedback'
+                },
             ).items(),
             key=lambda el: el[0]
         )

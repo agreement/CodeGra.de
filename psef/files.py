@@ -154,7 +154,7 @@ def get_file_contents(code: models.File) -> bytes:
 def restore_directory_structure(
     code: models.File,
     parent: str,
-    exclude: models.FileOwner=models.FileOwner.teacher
+    exclude: models.FileOwner = models.FileOwner.teacher
 ) -> FileTree:
     """Restores the directory structure recursively for a code submission (a
     :class:`.models.Work`).
@@ -296,7 +296,7 @@ def is_archive(file: FileStorage) -> bool:
 def extract_to_temp(
     file: FileStorage,
     ignore_filter: IgnoreFilterManager,
-    handle_ignore: IgnoreHandling=IgnoreHandling.keep
+    handle_ignore: IgnoreHandling = IgnoreHandling.keep
 ) -> str:
     """Extracts the contents of file into a temporary directory.
 
@@ -334,8 +334,8 @@ def extract_to_temp(
 
 def extract(
     file: FileStorage,
-    ignore_filter: IgnoreFilterManager=None,
-    handle_ignore: IgnoreHandling=IgnoreHandling.keep
+    ignore_filter: IgnoreFilterManager = None,
+    handle_ignore: IgnoreHandling = IgnoreHandling.keep
 ) -> t.Optional[ExtractFileTree]:
     """Extracts all files in archive with random name to uploads folder.
 
@@ -374,7 +374,7 @@ def extract(
         shutil.rmtree(tmpdir)
 
 
-def random_file_path(config_key: str='UPLOAD_DIR') -> t.Tuple[str, str]:
+def random_file_path(config_key: str = 'UPLOAD_DIR') -> t.Tuple[str, str]:
     """Generates a new random file path in the upload directory.
 
     :param config_key: The key to use to find the basedir of the random file
@@ -419,9 +419,9 @@ def dehead_filetree(tree: ExtractFileTree) -> ExtractFileTree:
 
 def process_files(
     files: t.MutableSequence[FileStorage],
-    force_txt: bool=False,
-    ignore_filter: IgnoreFilterManager=None,
-    handle_ignore: IgnoreHandling=IgnoreHandling.keep,
+    force_txt: bool = False,
+    ignore_filter: IgnoreFilterManager = None,
+    handle_ignore: IgnoreHandling = IgnoreHandling.keep,
 ) -> ExtractFileTree:
     """Process the given files by extracting, moving and saving their tree
     structure.
@@ -528,7 +528,7 @@ def process_blackboard_zip(
 
             try:
                 tree = process_files(get_files(info))
-            except:
+            except Exception:
                 files = get_files(info)
                 files.append(
                     FileStorage(

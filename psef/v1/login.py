@@ -5,6 +5,7 @@ User object of the logged in user.
 """
 import typing as t
 
+import flask_jwt_extended as flask_jwt
 from flask import request
 from validate_email import validate_email
 
@@ -58,9 +59,8 @@ def login() -> ExtendedJSONResponse[t.Mapping[str, t.Union[models.User, str]]]:
     # we have to return the same error for a wrong email as for a wrong
     # password!
     user: t.Optional[models.User]
-    user = db.session.query(models.User).filter(
-        models.User.username == username
-    ).first()
+    user = db.session.query(models.User
+                            ).filter(models.User.username == username).first()
 
     if user is None or user.password != password:
         raise APIException(
@@ -82,7 +82,7 @@ def login() -> ExtendedJSONResponse[t.Mapping[str, t.Union[models.User, str]]]:
             'user':
                 user,
             'access_token':
-                jwt.create_access_token(
+                flask_jwt.create_access_token(
                     identity=user.id,
                     fresh=True,
                 )
@@ -194,7 +194,7 @@ def get_user_update(
         return jsonify(
             {
                 'access_token':
-                    jwt.create_access_token(
+                    flask_jwt.create_access_token(
                         identity=user.id,
                         fresh=True,
                     )
@@ -216,7 +216,7 @@ def get_user_update(
 
     def _ensure_password(
         changed: str,
-        msg: str='To change your {} you need a correct old password.'
+        msg: str = 'To change your {} you need a correct old password.'
     ) -> None:
         if current_user.password != old_password:
             raise APIException(

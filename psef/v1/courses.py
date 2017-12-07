@@ -28,8 +28,10 @@ if t.TYPE_CHECKING:  # pragma: no cover
     import sqlalchemy  # NOQA
 
 _UserCourse = TypedDict(
-    '_UserCourse', {'User': models.User,
-                    'CourseRole': models.CourseRole}
+    '_UserCourse', {
+        'User': models.User,
+        'CourseRole': models.CourseRole
+    }
 )
 
 
@@ -69,9 +71,9 @@ def delete_role(course_id: int, role_id: int) -> EmptyResponse:
                 403
             )
 
-    sql = db.session.query(models.user_course).filter(
-        models.user_course.c.course_id == role_id
-    ).exists()
+    sql = db.session.query(
+        models.user_course
+    ).filter(models.user_course.c.course_id == role_id).exists()
     if db.session.query(sql).scalar():
         raise APIException(
             'There are still users with this role',
@@ -220,9 +222,10 @@ def get_all_course_roles(course_id: int) -> JSONResponse[t.Union[t.Sequence[
     auth.ensure_permission('can_manage_course', course_id)
 
     course_roles: t.Sequence[models.CourseRole]
-    course_roles = models.CourseRole.query.filter_by(
-        course_id=course_id
-    ).order_by(models.CourseRole.name).all()
+    course_roles = models.CourseRole.query.filter_by(course_id=course_id
+                                                     ).order_by(
+                                                         models.CourseRole.name
+                                                     ).all()
 
     if request.args.get('with_roles') == 'true':
         res = []

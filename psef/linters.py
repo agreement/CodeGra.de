@@ -107,7 +107,7 @@ class Pylint(Linter):
             args = line.split(str(sep))
             try:
                 emit(args[0], int(args[1]), *args[2:])
-            except:
+            except (IndexError, ValueError):
                 pass
 
 
@@ -141,11 +141,12 @@ class Flake8(Linter):
 
         if out.returncode != 0:
             raise ValueError(res)
+
         for line in res.split('\n'):
             args = line.split(str(sep))
             try:
                 emit(args[0], int(args[1]), *args[2:])
-            except:
+            except (IndexError, ValueError):
                 pass
 
 

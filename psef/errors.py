@@ -43,12 +43,8 @@ class APIException(Exception):
     """
 
     def __init__(
-        self,
-        message: str,
-        description: str,
-        api_code: APICodes,
-        status_code: int,
-        **rest: t.Any,
+        self, message: str, description: str, api_code: APICodes,
+        status_code: int, **rest: t.Any
     ) -> None:
         super(APIException, self).__init__()
         self.status_code = status_code

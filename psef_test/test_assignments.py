@@ -290,18 +290,18 @@ err400 = http_err(error=400)
 
 
 @pytest.mark.parametrize(
-    'item_description', [err400(None), 'new idesc',
-                         err400(5)]
+    'item_description',
+    [err400(None), 'new idesc', err400(5)]
 )
 @pytest.mark.parametrize('item_header', [err400(None), 'new ihead', err400(5)])
 @pytest.mark.parametrize('item_points', [err400(None), 5.3, 11, err400('Wow')])
 @pytest.mark.parametrize(
-    'row_description', [err400(None), 'new rdesc',
-                        err400(5)]
+    'row_description',
+    [err400(None), 'new rdesc', err400(5)]
 )
 @pytest.mark.parametrize(
-    'row_header', [err400(None), 'new rheader',
-                   err400(5)]
+    'row_header',
+    [err400(None), 'new rheader', err400(5)]
 )
 def test_add_rubric_row(
     item_description, item_points, row_description, row_header, assignment,
@@ -352,8 +352,8 @@ def test_add_rubric_row(
 
 
 @pytest.mark.parametrize(
-    'item_description', [err400(None), 'new idesc',
-                         err400(5)]
+    'item_description',
+    [err400(None), 'new idesc', err400(5)]
 )
 @pytest.mark.parametrize('item_header', [err400(None), 'new ihead', err400(5)])
 @pytest.mark.parametrize('item_points', [err400(None), 5.3, 11, err400('Wow')])
@@ -414,24 +414,24 @@ def test_update_rubric_row(
 
 
 @pytest.mark.parametrize(
-    'item_description', [err400(None), 'You did well',
-                         err400(5)]
+    'item_description',
+    [err400(None), 'You did well', err400(5)]
 )
 @pytest.mark.parametrize(
-    'item_header', [err400(None), 'You very well',
-                    err400(5)]
+    'item_header',
+    [err400(None), 'You very well', err400(5)]
 )
 @pytest.mark.parametrize(
-    'item_points', [err400(None), 5.3, 5, 11,
-                    err400('Wow')]
+    'item_points',
+    [err400(None), 5.3, 5, 11, err400('Wow')]
 )
 @pytest.mark.parametrize(
-    'row_description', [err400(None), 'A row desc',
-                        err400(5)]
+    'row_description',
+    [err400(None), 'A row desc', err400(5)]
 )
 @pytest.mark.parametrize(
-    'row_header', [err400(None), 'A row header',
-                   err400(5)]
+    'row_header',
+    [err400(None), 'A row header', err400(5)]
 )
 def test_get_and_add_rubric_row(
     item_description, item_points, row_description, row_header, assignment,
@@ -481,7 +481,9 @@ def test_get_and_add_rubric_row(
                 f'/api/v1/assignments/{assignment.id}/rubrics/',
                 code,
                 result=res,
-                data={'rows': [row]}
+                data={
+                    'rows': [row]
+                }
             )
             test_client.req(
                 'get',
@@ -573,7 +575,9 @@ def test_update_add_rubric_wrong_permissions(
             f'/api/v1/assignments/{assignment.id}/rubrics/',
             marker.kwargs['error'],
             result=error_template,
-            data={'rows': [rubric]}
+            data={
+                'rows': [rubric]
+            }
         )
         res['code'] = (
             APICodes.NOT_LOGGED_IN
@@ -584,7 +588,9 @@ def test_update_add_rubric_wrong_permissions(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
             200,
-            data={'rows': [rubric]}
+            data={
+                'rows': [rubric]
+            }
         )
     with logged_in(named_user):
         res = test_client.req(
@@ -1013,7 +1019,9 @@ def test_divide_assignments(
                     f'/api/v1/assignments/{assignment.id}/divide',
                     400,
                     result=error_template,
-                    data={'graders': d}
+                    data={
+                        'graders': d
+                    }
                 )
 
         test_client.req(
@@ -1021,8 +1029,10 @@ def test_divide_assignments(
             f'/api/v1/assignments/{assignment.id}/divide',
             code,
             result=res,
-            data={'graders': {i: 1
-                              for i in grader_ids}}
+            data={
+                'graders': {i: 1
+                            for i in grader_ids}
+            }
         )
         assigs = test_client.req(
             'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
@@ -1052,8 +1062,9 @@ def test_divide_assignments(
                 seen.add(assig['user']['email'])
                 grader_assigs[assig['assignee']['id']].add(assig['id'])
             assert (
-                len(grader_assigs[grader_ids[0]]) ==
-                len(grader_assigs[grader_ids[1]])
+                len(grader_assigs[grader_ids[0]]) == len(
+                    grader_assigs[grader_ids[1]]
+                )
             )
             test_client.req(
                 'patch',
@@ -1079,17 +1090,21 @@ def test_divide_assignments(
                 len(grader_assigs2[grader_ids[0]]) <
                 len(grader_assigs2[grader_ids[1]])
             )
-            assert grader_assigs[grader_ids[0]
-                                 ].issuperset(grader_assigs2[grader_ids[0]])
-            assert grader_assigs[grader_ids[1]
-                                 ].issubset(grader_assigs2[grader_ids[1]])
+            assert grader_assigs[grader_ids[0]].issuperset(
+                grader_assigs2[grader_ids[0]]
+            )
+            assert grader_assigs[grader_ids[1]].issubset(
+                grader_assigs2[grader_ids[1]]
+            )
             test_client.req(
                 'patch',
                 f'/api/v1/assignments/{assignment.id}/divide',
                 code,
                 result=res,
-                data={'graders': {i: j
-                                  for i, j in zip(grader_ids, [1.5, 3])}}
+                data={
+                    'graders': {i: j
+                                for i, j in zip(grader_ids, [1.5, 3])}
+                }
             )
             assert assigs == test_client.req(
                 'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
@@ -1099,7 +1114,9 @@ def test_divide_assignments(
             'patch',
             f'/api/v1/assignments/{assignment.id}/divide',
             204,
-            data={'graders': {}}
+            data={
+                'graders': {}
+            }
         )
         for assig in test_client.req(
             'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
@@ -1148,8 +1165,10 @@ def test_get_all_graders(
             'patch',
             f'/api/v1/assignments/{assignment.id}/divide',
             204,
-            data={'graders': {g: 1
-                              for g in graders}}
+            data={
+                'graders': {g: 1
+                            for g in graders}
+            }
         )
 
     with logged_in(named_user):
@@ -1191,8 +1210,9 @@ def test_get_all_graders(
         http_err(error=403)('admin'),
         http_err(error=401)('NOT_LOGGED_IN'),
         'Devin Hillenius',
-        pytest.mark.
-        no_grade(pytest.mark.no_others(pytest.mark.no_hidden('Stupid1'))),
+        pytest.mark.no_grade(
+            pytest.mark.no_others(pytest.mark.no_hidden('Stupid1'))
+        ),
     ],
     indirect=True
 )
@@ -1824,9 +1844,11 @@ def test_ignored_upload_files(
                 'get',
                 f'/api/v1/submissions/{res["id"]}/files/',
                 200,
-                result={'entries': entries,
-                        'id': int,
-                        'name': f'{dirname}'}
+                result={
+                    'entries': entries,
+                    'id': int,
+                    'name': f'{dirname}'
+                }
             )
 
             res = test_client.req(
@@ -1854,7 +1876,9 @@ def test_ignored_upload_files(
             'patch',
             f'/api/v1/assignments/{assignment.id}',
             204,
-            data={'ignore': '*'}
+            data={
+                'ignore': '*'
+            }
         )
 
     with logged_in(named_user):
@@ -1877,7 +1901,9 @@ def test_ignored_upload_files(
             'patch',
             f'/api/v1/assignments/{assignment.id}',
             204,
-            data={'ignore': '*\n!dir/'}
+            data={
+                'ignore': '*\n!dir/'
+            }
         )
 
     with logged_in(named_user):
@@ -1908,7 +1934,9 @@ def test_ignored_upload_files(
             'patch',
             f'/api/v1/assignments/{assignment.id}',
             204,
-            data={'ignore': '*'}
+            data={
+                'ignore': '*'
+            }
         )
 
     with logged_in(named_user):
@@ -1957,7 +1985,9 @@ def test_ignored_upload_files(
             'patch',
             f'/api/v1/assignments/{assignment.id}',
             204,
-            data={'ignore': '# Nothing'}
+            data={
+                'ignore': '# Nothing'
+            }
         )
 
     with logged_in(named_user):

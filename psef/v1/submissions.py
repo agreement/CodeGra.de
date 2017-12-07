@@ -218,9 +218,7 @@ def get_rubric(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
 
 @api.route('/submissions/<int:submission_id>/rubricitems/', methods=['PATCH'])
 @helpers.feature_required('RUBRICS')
-def select_rubric_items(
-    submission_id: int,
-) -> EmptyResponse:
+def select_rubric_items(submission_id: int, ) -> EmptyResponse:
     """Select the given rubric items for the given submission.
 
     .. :quickref: Submission; Select multiple rubric items.
@@ -471,9 +469,9 @@ def get_grade_history(submission_id: int
     auth.ensure_permission('can_see_grade_history', work.assignment.course_id)
 
     hist: t.MutableSequence[models.GradeHistory]
-    hist = db.session.query(models.GradeHistory).filter_by(
-        work_id=work.id
-    ).order_by(
+    hist = db.session.query(
+        models.GradeHistory
+    ).filter_by(work_id=work.id).order_by(
         models.GradeHistory.changed_at.desc(),  # type: ignore
     ).all()
 

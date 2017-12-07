@@ -185,7 +185,7 @@ def get_file_url(file: models.File) -> str:
     return name
 
 
-def get_feedback(file: models.File, linter: bool=False) -> _FeedbackMapping:
+def get_feedback(file: models.File, linter: bool = False) -> _FeedbackMapping:
     """Returns the :class:`.models.Comment` objects attached to the given
     :class:`.models.File` if the user can see them, else returns an empty dict.
 
@@ -205,9 +205,8 @@ def get_feedback(file: models.File, linter: bool=False) -> _FeedbackMapping:
         auth.ensure_can_see_grade(file.work)
 
         if linter:
-            comments = db.session.query(models.LinterComment).filter_by(
-                file_id=file.id
-            ).all()
+            comments = db.session.query(models.LinterComment
+                                        ).filter_by(file_id=file.id).all()
 
             for linter_comment in comments:  # type: models.LinterComment
                 line = str(linter_comment.line)
@@ -216,9 +215,8 @@ def get_feedback(file: models.File, linter: bool=False) -> _FeedbackMapping:
                 name = linter_comment.linter.tester.name
                 res[line].append((name, linter_comment))  # type: ignore
         else:
-            comments = db.session.query(models.Comment).filter_by(
-                file_id=file.id
-            ).all()
+            comments = db.session.query(models.Comment
+                                        ).filter_by(file_id=file.id).all()
 
             for human_comment in comments:  # type: models.Comment
                 res[str(human_comment.line)] = human_comment

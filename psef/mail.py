@@ -38,7 +38,7 @@ def send_reset_password_email(user: models.User) -> None:
     )
     try:
         mail.send(message)
-    except:
+    except Exception:
         raise APIException(
             'Something went wrong sending the email, '
             'please contact your site admin',

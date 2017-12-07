@@ -87,7 +87,9 @@ def test_login(
             'get',
             '/api/v1/login',
             401 if error else 200,
-            headers={'Authorization': f'Bearer {access_token}'}
+            headers={
+                'Authorization': f'Bearer {access_token}'
+            }
         )
 
     test_client.req('get', '/api/v1/login', 401)
@@ -213,8 +215,8 @@ def test_login_duplicate_email(
 
 
 @pytest.mark.parametrize(
-    'new_password', [needs_password('wow'), '',
-                     missing_error(None)]
+    'new_password',
+    [needs_password('wow'), '', missing_error(None)]
 )
 @pytest.mark.parametrize(
     'email', [
@@ -436,7 +438,9 @@ def test_reset_password(
         'patch',
         f'/api/v1/login?type=reset_email',
         204,
-        data={'username': ta_user.username}
+        data={
+            'username': ta_user.username
+        }
     )
     assert mailer.called
     msg = str(mailer.msg)
@@ -501,7 +505,9 @@ def test_reset_password(
             'get',
             '/api/v1/login',
             200,
-            headers={'Authorization': f'Bearer {atoken}'}
+            headers={
+                'Authorization': f'Bearer {atoken}'
+            }
         )
 
     test_client.req(

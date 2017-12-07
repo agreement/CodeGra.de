@@ -1,5 +1,6 @@
 # -*- py-isort-options: '("-sg *"); -*-
 # Import flask and template operators
+import sys
 from flask import Flask, render_template, g, current_app
 from celery import Celery
 import typing as t
@@ -44,7 +45,7 @@ else:
     current_user = flask_jwt.current_user
 
 
-def create_app(config: t.Mapping=None, skip_celery: bool=False) -> t.Any:
+def create_app(config: t.Mapping = None, skip_celery: bool = False) -> t.Any:
     app = Flask(__name__)
 
     @app.before_request
@@ -106,9 +107,11 @@ def create_app(config: t.Mapping=None, skip_celery: bool=False) -> t.Any:
     if not skip_celery:  # pragma: no cover
         try:
             psef.tasks.add(2, 3)
-        except:  # pragma: no cover
-            raise Exception(
-                'Celery is not responding! Please check your config'
+        except Exception:  # pragma: no cover
+            print(
+                'Celery is not responding! Please check your config',
+                file=sys.stderr
             )
+            raise
 
     return app

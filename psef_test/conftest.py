@@ -7,6 +7,7 @@ import contextlib
 
 import pytest
 import flask_migrate
+import flask_jwt_extended as flask_jwt
 from flask import _app_ctx_stack as ctx_stack
 from werkzeug.local import LocalProxy
 
@@ -176,8 +177,7 @@ def logged_in():
             res = None
         else:
             _TOKENS.append(
-                psef.auth.jwt.
-                create_access_token(identity=user.id, fresh=True)
+                flask_jwt.create_access_token(identity=user.id, fresh=True)
             )
             res = user
 
@@ -223,9 +223,8 @@ def admin_user(session):
 
 @pytest.fixture
 def pse_course(session):
-    return session.query(m.Course).filter_by(
-        name="Project Software Engineering"
-    ).one()
+    return session.query(m.Course
+                         ).filter_by(name="Project Software Engineering").one()
 
 
 @pytest.fixture
@@ -245,9 +244,9 @@ def bs_course(session):
 
 @pytest.fixture
 def prolog_course(session):
-    return session.query(m.Course).filter_by(
-        name="Introductie Logisch programmeren"
-    ).one()
+    return session.query(
+        m.Course
+    ).filter_by(name="Introductie Logisch programmeren").one()
 
 
 @pytest.fixture(scope='session', autouse=True)

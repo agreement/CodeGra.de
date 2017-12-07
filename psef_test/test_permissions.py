@@ -18,9 +18,8 @@ should_raise = pytest.mark.should_raise
         ('can_submit_own_work', (False, True, False)),
         ('can_see_others_work', (True, False, False)),
         ('can_see_assignments', (True, True, False)),
-        should_raise(
-            ('add_user', (False, False, False)),
-        )  # This is not a real permission
+        should_raise(('add_user', (False, False, False)),
+                     )  # This is not a real permission
     ]
 )
 def test_course_permissions(
@@ -79,11 +78,15 @@ def test_non_existing_permission(
             'get',
             '/api/v1/permissions/',
             404,
-            query={'course_id': bs_course.id,
-                   'permission': perm}
+            query={
+                'course_id': bs_course.id,
+                'permission': perm
+            }
         )
         test_client.req(
-            'get', f'/api/v1/permissions/', 404, query={'permission': perm}
+            'get', f'/api/v1/permissions/', 404, query={
+                'permission': perm
+            }
         )
 
 
@@ -160,8 +163,10 @@ def test_get_all_permissions(
             'get',
             f'/api/v1/permissions/',
             200,
-            query={'course_id': 'all',
-                   'permission': permission}
+            query={
+                'course_id': 'all',
+                'permission': permission
+            }
         )
         assert len(course_perms) == len(named_user.courses)
         print([(c, cr.name, cr.id) for c, cr in named_user.courses.items()])

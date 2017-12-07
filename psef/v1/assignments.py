@@ -389,9 +389,7 @@ def add_assignment_rubric(assignment_id: int
 
 
 def add_new_rubric_row(
-    assig: models.Assignment,
-    header: str,
-    description: str,
+    assig: models.Assignment, header: str, description: str,
     items: t.Sequence[JSONType]
 ) -> int:
     """Add new rubric row to the assignment.
@@ -436,11 +434,8 @@ def add_new_rubric_row(
 
 
 def patch_rubric_row(
-    assig: models.Assignment,
-    header: str,
-    description: str,
-    rubric_row_id: t.Any,
-    items: t.Sequence[JSONType]
+    assig: models.Assignment, header: str, description: str,
+    rubric_row_id: t.Any, items: t.Sequence[JSONType]
 ) -> int:
     """Update a rubric row of the assignment.
 
@@ -716,9 +711,9 @@ def get_all_graders(
     assignment = helpers.get_or_404(models.Assignment, assignment_id)
     auth.ensure_permission('can_manage_course', assignment.course_id)
 
-    permission = db.session.query(models.Permission.id).filter(
-        models.Permission.name == 'can_grade_work'
-    ).as_scalar()
+    permission = db.session.query(
+        models.Permission.id
+    ).filter(models.Permission.name == 'can_grade_work').as_scalar()
 
     us = db.session.query(
         models.User.id, models.User.name, models.user_course.c.course_id
@@ -734,8 +729,9 @@ def get_all_graders(
 
     result: t.Sequence[t.Tuple[str, int]] = db.session.query(
         us.c.name, us.c.id
-    ).join(per, us.c.course_id == per.c.course_role_id
-           ).order_by(expression.func.lower(us.c.name)).all()
+    ).join(per, us.c.course_id == per.c.course_role_id).order_by(
+        expression.func.lower(us.c.name)
+    ).all()
 
     divided: t.MutableMapping[int, float] = defaultdict(lambda: 0)
     for u in models.AssignmentAssignedGrader.query.filter_by(
@@ -835,7 +831,7 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
     file: 'FileStorage' = request.files['file']
     try:
         submissions = psef.files.process_blackboard_zip(file)
-    except:
+    except Exception:
         submissions = []
     if not submissions:
         raise APIException(
@@ -1015,7 +1011,7 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
 
     try:
         linter_cls = linters.get_linter_by_name(name)
-    except:
+    except ValueError:
         raise APIException(
             f'No linter named "{name}" was found',
             (

@@ -254,7 +254,8 @@ def ensure_json_dict(json: JSONType) -> t.Dict[str, JSONType]:
     )
 
 
-def extended_jsonify(obj: T, status_code: int=200) -> ExtendedJSONResponse[T]:
+def extended_jsonify(obj: T,
+                     status_code: int = 200) -> ExtendedJSONResponse[T]:
     try:
         psef.app.json_encoder = json.CustomExtendedJSONEncoder
         response = flask.make_response(flask.jsonify(obj))
@@ -264,7 +265,7 @@ def extended_jsonify(obj: T, status_code: int=200) -> ExtendedJSONResponse[T]:
     return response
 
 
-def jsonify(obj: T, status_code: int=200) -> JSONResponse[T]:
+def jsonify(obj: T, status_code: int = 200) -> JSONResponse[T]:
     response = flask.make_response(flask.jsonify(obj))
     response.status_code = status_code
     return response
