@@ -1,86 +1,128 @@
 {
   "can_add_users": {
     "default_value": false,
-    "course_permission": false
+    "course_permission": false,
+    "short_description": "Add users",
+    "long_description": "Users with this permission can add other users to the website."
   },
   "can_submit_own_work": {
     "default_value": true,
-    "course_permission": true
+    "course_permission": true,
+    "short_description": "Submit own work",
+    "long_description": "Users with this permission can submit their work to assignments of this course. Usually only students have this permission."
   },
   "can_edit_others_work": {
     "default_value": false,
-    "course_permission": true
+    "course_permission": true,
+    "short_description": "Edit others work",
+    "long_description": "Users with this permission can edit files in the submissions of this course. Usually TAs and teachers have this permission, so they can change files in the CodeGra.de filesystem if code doesn't compile, for example."
   },
   "can_grade_work": {
     "default_value": false,
-    "course_permission": true
+    "course_permission": true,
+    "short_description": "Grade submission",
+    "long_description": "Users with this permission can grade submissions."
   },
   "can_see_grade_before_open": {
     "default_value": false,
-    "course_permission": true
+    "course_permission": true,
+    "short_description": "See grade before done",
+    "long_description": "Users with this permission can see the grade for a submission before an assignment is set to \"done\"."
   },
   "can_see_others_work": {
     "default_value": false,
-    "course_permission": true
+    "course_permission": true,
+    "short_description": "See others submission",
+    "long_description": "Users with this permission can see submissions of other users of this course."
   },
   "can_see_assignments": {
     "default_value": true,
-    "course_permission": true
+    "course_permission": true,
+    "short_description": "See assignments",
+    "long_description": "Users with this permission can view the assignments of this course."
   },
   "can_see_hidden_assignments": {
     "default_value": false,
-    "course_permission": true
+    "course_permission": true,
+    "short_description": "See hidden assignments",
+    "long_description": "Users with this permission can view assignments of this course that are set to \"hidden\"."
   },
   "can_use_snippets": {
     "default_value": true,
-    "course_permission": false
+    "course_permission": false,
+    "short_description": "Snippets",
+    "long_description": "Users with this permission can use the snippets feature on the website."
   },
   "can_edit_own_info": {
     "default_value": true,
-    "course_permission": false
+    "course_permission": false,
+    "short_description": "Edit user info",
+    "long_description": "Users with this permission can edit their own personal information."
   },
   "can_edit_own_password": {
     "default_value": true,
-    "course_permission": false
+    "course_permission": false,
+    "short_description": "Edit password",
+    "long_description": "Users with this permission can edit their own password."
   },
   "can_use_linter": {
     "default_value": false,
-    "course_permission": true
+    "course_permission": true,
+    "short_description": "Linter",
+    "long_description": "Users with this permission can run linters on all submissions of an assignment."
   },
   "can_manage_course": {
     "default_value": false,
-    "course_permission": true
+    "course_permission": true,
+    "short_description": "Manage course",
+    "long_description": "Users with this permission can update various course information via the course management page."
   },
   "can_upload_after_deadline": {
     "default_value": false,
-    "course_permission": true
+    "course_permission": true,
+    "short_description": "Upload after deadline",
+    "long_description": "Users with this permission can submit their work after the deadline of an assignment."
   },
   "can_create_courses": {
     "default_value": false,
-    "course_permission": false
+    "course_permission": false,
+    "short_description": "Create course",
+    "long_description": "Users with this permission can create new courses."
   },
   "can_see_assignee": {
     "default_value": false,
-    "course_permission": true
+    "course_permission": true,
+    "short_description": "See assignee",
+    "long_description": "Users with this permission can see who is assigned to assess a submission."
   },
   "manage_rubrics": {
     "default_value": false,
-    "course_permission": true
+    "course_permission": true,
+    "short_description": "Manage rubrics",
+    "long_description": "Users with this permission can update the rubrics for the assignments of this course."
   },
   "can_view_own_teacher_files": {
     "default_value": true,
-    "course_permission": true
+    "course_permission": true,
+    "short_description": "View teacher revision",
+    "long_description": "Users with this permission can view the teacher's revision of their submitted work."
   },
   "can_see_grade_history": {
     "default_value": false,
-    "course_permission": true
+    "course_permission": true,
+    "short_description": "Grade history",
+    "long_description": "Users with this permission can see the grade history of an assignment."
   },
   "can_delete_submission": {
     "default_value": false,
-    "course_permission": true
+    "course_permission": true,
+    "short_description": "Delete submission",
+    "long_description": "Users with this permission can delete submissions."
   },
   "can_manage_site_users": {
     "default_value": false,
-    "course_permission": false
+    "course_permission": false,
+    "short_description": "Manage site users",
+    "long_description": "Users with this permission can change the global permissions for other users on the site."
   }
 }

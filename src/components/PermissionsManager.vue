@@ -15,7 +15,13 @@
                     :response="true">
 
                 <template slot="name" scope="item">
-                    <span v-if="item.value !== 'Remove'">{{ item.value }}</span>
+                    <span v-if="item.value !== 'Remove'">
+                        {{ item.item.title }}
+                        <description-popover
+                            hug-text
+                            :description="item.item.description"
+                            placement="right"/>
+                    </span>
                     <b v-else-if="showDeleteRole">{{ item.value }}</b>
                 </template>
                 <template v-for="(_, field) in fields" :slot="field === 'name' ? `|||____$name$__||||${Math.random()}` : field" scope="item" v-if="field != 'name'">
@@ -74,7 +80,9 @@ import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/pencil';
 import 'vue-awesome/icons/floppy-o';
 import 'vue-awesome/icons/ban';
+import 'vue-awesome/icons/info';
 
+import DescriptionPopover from './DescriptionPopover';
 import Loader from './Loader';
 
 export default {
@@ -150,15 +158,21 @@ export default {
                         own: item.own,
                     };
                     let i = 0;
-                    Object.keys(item.perms).forEach((key) => {
+                    Object.entries(item.perms).forEach(([name, value]) => {
                         if (!this.items[i]) {
-                            this.items[i] = { name: key };
+                            this.items[i] = {
+                                name,
+                                title: Permissions[name].short_description,
+                                description: Permissions[name].long_description,
+                            };
                         }
-                        this.items[i][item.name] = item.perms[key];
+                        this.items[i][item.name] = value;
                         i += 1;
                     });
                 });
-                this.items.push({ name: 'Remove' });
+                if (this.showDeleteRole) {
+                    this.items.push({ name: 'Remove' });
+                }
             });
         },
         changeButton(permName, field) {
@@ -246,6 +260,7 @@ export default {
     components: {
         Icon,
         Loader,
+        DescriptionPopover,
     },
 };
 </script>
@@ -288,5 +303,14 @@ table.permissions-table {
     width: 100%;
     overflow-x: auto;
     margin-bottom: 0.3em;
+}
+
+.info-popover {
+    cursor: pointer;
+    display: inline-block;
+
+    sup {
+        padding: 0 .25em;
+    }
 }
 </style>

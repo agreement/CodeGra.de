@@ -169,7 +169,6 @@ def test_get_all_permissions(
             }
         )
         assert len(course_perms) == len(named_user.courses)
-        print([(c, cr.name, cr.id) for c, cr in named_user.courses.items()])
         for course_id, has in course_perms.items():
             assert has == named_user.has_permission(permission, int(course_id))
 

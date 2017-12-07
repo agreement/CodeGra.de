@@ -32,6 +32,7 @@ import PrivacyNote from './PrivacyNote';
 import PreferenceManager from './PreferenceManager';
 import Toggle from './Toggle';
 import CGIgnoreFile from './CGIgnoreFile';
+import DescriptionPopover from './DescriptionPopover';
 
 export {
     Linters,
@@ -68,4 +69,5 @@ export {
     PreferenceManager,
     Toggle,
     CGIgnoreFile,
+    DescriptionPopover,
 };

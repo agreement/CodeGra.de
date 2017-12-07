@@ -54,6 +54,8 @@ def seed_force(db=None):
             if old_perm is not None:
                 old_perm.default_value = perm['default_value']
                 old_perm.course_permission = perm['course_permission']
+                old_perm.short_description = perm['short_description']
+                old_perm.long_description = perm['long_description']
             else:
                 db.session.add(m.Permission(name=name, **perm))
 

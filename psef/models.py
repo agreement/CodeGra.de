@@ -260,6 +260,9 @@ class Permission(Base):
         'course_permission', db.Boolean, index=True
     )
 
+    short_description: str = db.deferred(db.Column('short_desc', db.Unicode))
+    long_description: str = db.deferred(db.Column('long_desc', db.Unicode))
+
 
 class CourseRole(Base):
     """
@@ -489,8 +492,8 @@ class Role(Base):
         """Get all course permissions (:class:`Permission`) for this role.
 
         :returns: A name boolean mapping where the name is the name of the
-            permission and the value indicates if this user has this
-            permission.
+                  permission and the value indicates if this user has this
+                  permission.
         """
         perms: t.Sequence[Permission] = (
             Permission.query.
@@ -498,7 +501,7 @@ class Role(Base):
                 course_permission=False
             ).all()
         )
-        result = {}
+        result: t.MutableMapping[str, bool] = {}
         for perm in perms:
             if perm.name in self._permissions:
                 result[perm.name] = not perm.default_value
@@ -763,8 +766,8 @@ class User(Base):
         :param course_id: The course or course id
 
         :returns: A name boolean mapping where the name is the name of the
-            permission and the value indicates if this user has this
-            permission.
+                  permission and the value indicates if this user has this
+                  permission.
         """
         if isinstance(course_id, Course):
             course_id = course_id.id

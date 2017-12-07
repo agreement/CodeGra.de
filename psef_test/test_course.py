@@ -521,8 +521,9 @@ def test_add_courseroles(
                         )
                     )
                     for perm_n, value in role['perms'].items():
-                        perm = session.query(m.Permission
-                                             ).filter_by(name=perm_n).one()
+                        perm = session.query(m.Permission).filter_by(
+                            name=perm_n,
+                        ).one()
                         assert perm.default_value == value
                         assert perm.course_permission
 
