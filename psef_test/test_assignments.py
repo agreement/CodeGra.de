@@ -912,7 +912,6 @@ def test_upload_files(
             if assignment.is_open or named_user.has_permission(
                 'can_upload_after_deadline', assignment.course_id
             ):
-                false_val = False if named_user.name == 'Stupid1' else None
                 res = test_client.req(
                     'post',
                     f'/api/v1/assignments/{assignment.id}/submission',
@@ -928,9 +927,9 @@ def test_upload_files(
                         'id': int,
                         'user': named_user.__to_json__(),
                         'created_at': str,
-                        'assignee': false_val,
-                        'grade': false_val,
-                        'comment': false_val,
+                        'assignee': None,
+                        'grade': None,
+                        'comment': None,
                     }
                 )
 
@@ -1235,9 +1234,9 @@ def test_get_all_submissions(
 
             res = [
                 {
-                    'assignee': False if no_hide else r.assignee,
-                    'grade': False if no_grade else r.grade,
-                    'comment': False if no_grade else r.comment,
+                    'assignee': None if no_hide else r.assignee,
+                    'grade': None if no_grade else r.grade,
+                    'comment': None if no_grade else r.comment,
                     'id': r.id,
                     'user': dict,
                     'created_at': r.created_at.isoformat(),

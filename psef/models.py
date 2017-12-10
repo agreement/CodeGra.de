@@ -1157,8 +1157,33 @@ class Work(Base):
         """Returns the JSON serializable representation of this work.
 
         The representation is based on the permissions (:class:`Permission`) of
-        the logged in :class:`User`. Namely the assignee and feedback
-        attributes are only included if the current user can see them.
+        the logged in :class:`User`. Namely the assignee, feedback, and grade
+        attributes are only included if the current user can see them,
+        otherwise they are set to `None`.
+
+        The resulting object will look like this:
+
+        .. code:: python
+
+            {
+                'id': int # Submission id.
+                'user': User # User that submitted this work.
+                'created_at': str # Submission date in ISO-8601 datetime
+                                  # format.
+                'grade': t.Optional[float] # Grade for this submission, or
+                                              # None if the submission hasn't
+                                              # been graded yet or if the
+                                              # logged in user doesn't have
+                                              # permission to see the grade.
+                'comment': t.Optional[str] # General feedback comment for
+                                              # this submission, or None in
+                                              # the same cases as the grade.
+                'assignee': t.Optional[User] # User assigned to grade this
+                                                # submission, or None if the
+                                                # logged in user doesn't have
+                                                # permission to see the
+                                                # assignee.
+            }
 
         :returns: A dict containing JSON serializable representations of the
                   attributes of this work.
@@ -1175,13 +1200,13 @@ class Work(Base):
             )
             item['assignee'] = self.assignee
         except auth.PermissionException:
-            item['assignee'] = False
+            item['assignee'] = None
 
         try:
             auth.ensure_can_see_grade(self)
         except auth.PermissionException:
-            item['grade'] = False
-            item['comment'] = False
+            item['grade'] = None
+            item['comment'] = None
         else:
             item['grade'] = self.grade
             item['comment'] = self.comment
@@ -1195,16 +1220,24 @@ class Work(Base):
         .. code:: python
 
             {
-                'rubrics': t.List[RubricRow] # A list of all the
-                                             # rubrics for this work.
-                'selected': t.List[RubricItem] # A list of all the
-                                               # selected rubric items
-                                               # for this work.
+                'rubrics': t.List[RubricRow] # A list of all the rubrics for
+                                             # this work.
+                'selected': t.List[RubricItem] # A list of all the selected
+                                               # rubric items for this work,
+                                               # or an empty list if the logged
+                                               # in user doesn't have
+                                               # permission to see the rubric.
                 'points': {
-                    'max': float # The maximal amount of points
-                                 # for this rubric.
-                    'selected': float # The amount of point that is
-                                      # selected for this work.
+                    'max': t.Optional[float] # The maximal amount of points
+                                                # for this rubric, or `None` if
+                                                # logged in user doesn't have
+                                                # permission to see the rubric.
+                    'selected': t.Optional[float] # The amount of point that
+                                                     # is selected for this
+                                                     # work, or `None` if the
+                                                     # logged in user doesn't
+                                                     # have permission to see
+                                                     # the rubric.
                 }
             }
 
@@ -1227,6 +1260,11 @@ class Work(Base):
         except auth.PermissionException:
             return {
                 'rubrics': self.assignment.rubric_rows,
+                'selected': [],
+                'points': {
+                    'max': None,
+                    'selected': None,
+                },
             }
 
     def add_file_tree(

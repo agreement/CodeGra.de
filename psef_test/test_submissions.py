@@ -363,7 +363,17 @@ def test_selecting_rubric(
                 )
 
         res = {'rubrics': rubric}
-        if not error:
+        if error:
+            res.update(
+                {
+                    'selected': [],
+                    'points': {
+                        'max': None,
+                        'selected': None,
+                    },
+                },
+            )
+        else:
             res.update(
                 {
                     'selected': list,
