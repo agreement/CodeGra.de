@@ -260,9 +260,6 @@ class Permission(Base):
         'course_permission', db.Boolean, index=True
     )
 
-    short_description: str = db.deferred(db.Column('short_desc', db.Unicode))
-    long_description: str = db.deferred(db.Column('long_desc', db.Unicode))
-
 
 class CourseRole(Base):
     """
