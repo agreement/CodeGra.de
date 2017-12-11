@@ -20,6 +20,11 @@ case "$TO_RUN" in
     "tests"|"postgres-test")
         pytest -vvvv $TEST_FLAGS "$(pwd)/psef_test/"
         res="$?"
+        if [[ "$res" -eq 0 ]]; then
+            cd docs || exit 1
+            make html
+            res="$?"
+        fi
         set +o xtrace
         ;;
     "mypy")

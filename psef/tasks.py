@@ -14,10 +14,22 @@ import psef as p
 
 if t.TYPE_CHECKING:  # pragma: no cover
 
+    class CeleryTask:
+        def delay(self, *args: t.Any, **kwargs: t.Any) -> t.Any:
+            ...
+
+        def apply_async(self, *args: t.Any, **kwargs: t.Any) -> t.Any:
+            ...
+
     class Celery:
         def __init__(self, name: str) -> None:
             self.conf: t.MutableMapping[t.Any, t.Any] = {}
-            self.task: t.Any
+
+        def init_app(self, app: t.Any) -> None:
+            ...
+
+        def task(self, callback: t.Any) -> CeleryTask:
+            return CeleryTask()
 else:
     Celery = _Celery
 
@@ -64,7 +76,7 @@ celery = MyCelery('psef')
 def init_app(app: t.Any) -> None:
     celery.conf.update(app.config['CELERY_CONFIG'])
     # This is a weird class that is like a dict but not really.
-    celery.conf.task_ignore_result = True  # type: ignore
+    celery.conf.update({'task_ignore_result': True})
     celery.init_app(app)
 
 

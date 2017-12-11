@@ -46,9 +46,11 @@ before_script:
   - export PYTHONPATH="$PYTHONPATH:$(pwd)"
   - export DEBUG_ON=True
   - psql -c 'create database travis_ci_test;' -U postgres
+  - pip install travis-sphinx
 
 script:
   - bash ./.travis/run
+  - "[[ $TO_RUN = 'coverage' ]] && travis-sphinx build --source=docs/ || true"
 
 after_success:
-  "[[ $TO_RUN = 'coverage' ]] && ( coveralls; codecov; )"
+  "[[ $TO_RUN = 'coverage' ]] && ( coveralls; codecov; travis-sphinx deploy; )"

@@ -16,7 +16,7 @@ from functools import reduce
 
 import archive
 from werkzeug.utils import secure_filename
-from mypy_extensions import NoReturn
+from mypy_extensions import NoReturn, TypedDict
 from werkzeug.datastructures import FileStorage
 
 import psef.models as models
@@ -32,8 +32,15 @@ _bb_txt_format = re.compile(
     r"(?P<assignment_name>.+)_(?P<student_id>.+?)_attempt_"
     r"(?P<datetime>\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}).txt"
 )
+FileTreeBase = TypedDict('FileTreeBase', {
+    'name': str,
+    'id': int,
+})
 
-FileTree = t.MutableMapping[str, t.Union[int, str, t.MutableSequence[t.Any]]]
+
+class FileTree(FileTreeBase, total=False):
+    entries: t.MutableSequence[t.Any]
+
 
 # PEP 484 does not support recursive types (because why design a new type
 # system that has remotely advanced features, see Go why you should never do

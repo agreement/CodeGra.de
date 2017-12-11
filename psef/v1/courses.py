@@ -15,8 +15,8 @@ import psef.auth as auth
 import psef.models as models
 import psef.helpers as helpers
 from psef import LTI_ROLE_LOOKUPS, current_user
-from psef.models import db
 from psef.errors import APICodes, APIException
+from psef.models import db
 from psef.helpers import (
     JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
     ensure_keys_in_dict, make_empty_response
@@ -208,12 +208,12 @@ def get_all_course_roles(course_id: int) -> JSONResponse[t.Union[t.Sequence[
     :returns: An array of all course roles for the given course.
 
     :>jsonarr perms: All permissions this role has as returned
-        by :py:meth:`models.CourseRole.get_all_permissions`.
+        by :py:meth:`.models.CourseRole.get_all_permissions`.
     :>jsonarrtype perms: :py:class:`t.Mapping[str, bool]`
     :>jsonarr bool own: True if the current course role is the current users
         course role.
     :>jsonarr ``**rest``: The course role as returned by
-        :py:meth:`models.CourseRole.__to_json__`
+        :py:meth:`.models.CourseRole.__to_json__`
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the user can not manage the course with the
@@ -341,9 +341,9 @@ def get_all_course_users(course_id: int
     :returns: A response containing the JSON serialized users and course roles
 
     :>jsonarr User:  A member of the given course.
-    :>jsonarrtype User: :py:class:`~models.User`
+    :>jsonarrtype User: :py:class:`~.models.User`
     :>jsonarr CourseRole: The role that this user has.
-    :>jsonarrtype CourseRole: :py:class:`~models.CourseRole`
+    :>jsonarrtype CourseRole: :py:class:`~.models.CourseRole`
 
     :raises APIException: If there is no course with the given id.
                           (OBJECT_ID_NOT_FOUND)
@@ -381,7 +381,7 @@ def get_all_course_assignments(
     :param int course_id: The id of the course
     :returns: A response containing the JSON serialized assignments sorted by
         deadline of the assignment. See
-        :py:func:`models.Assignment.__to_json__` for the way assignments are
+        :py:func:`.models.Assignment.__to_json__` for the way assignments are
         given.
 
     :raises APIException: If there is no course with the given id.

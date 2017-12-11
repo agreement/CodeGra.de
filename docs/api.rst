@@ -77,16 +77,21 @@ Http status codes
 
 Http status codes should be used to convey the status of the request.
 The entire list of status codes can be found online. However these are
-the most important ones: - **200**: Everything went OK and the server
-should return a useful result. - **201**: This status should be used
-when a new resource is created after a POST, PUT request. - **204**:
-This status should be used if the request was correct but no content
-should be returned. - **400**: Should be signaled when a request was
-invalid. - **401**: Should be used when the user is not authorized, so
-if the user is not logged in. - **403**: Should be used when the user is
-logged in but the user is not authorized to see the requested object(s).
-- **404**: Should be used when the requested object does not exist. -
-**410**: Should be used if the object is no longer available.
+the most important ones:
+
+-  **200**: Everything went OK and the server should return a useful
+   result.
+-  **201**: This status should be used when a new resource is created
+   after a POST, PUT request.
+-  **204**: This status should be used if the request was correct but
+   no content should be returned.
+-  **400**: Should be signaled when a request was invalid.
+-  **401**: Should be used when the user is not authorized, so if the
+   user is not logged in.
+-  **403**: Should be used when the user is logged in but the user is
+   not authorized to see the requested object(s).
+-  **404**: Should be used when the requested object does not exist.
+-  **410**: Should be used if the object is no longer available.
 
 Response
 ^^^^^^^^
@@ -97,11 +102,14 @@ all.
 
 This means that even if the status code is not 2xx (so not success),
 there should be a response. In this case the response should be a JSON
-object with at least the following keys: - **message**: A short message
-that is somewhat useful for a non technical user. - **description**: A
-technical error message that is somewhat useful for debugging purposes
-(please note that you should **NOT** send sensitive information). -
-**code**: The error code that should uniquely identify the error.
+object with at least the following keys:
+
+-  **message**: A short message that is somewhat useful for a non
+   technical user.
+-  **description**: A technical error message that is somewhat useful
+   for debugging purposes (please note that you should **NOT** send
+   sensitive information).
+-  **code**: The error code that should uniquely identify the error.
 
 A error message may be nested, where the nested errors should be in an
 array behind the key ``errors`` and every item in the array should be a
@@ -124,9 +132,9 @@ working.
 API documentation of PSEF
 -----------------------------
 
-.. qrefflask:: psef:app
+.. qrefflask:: psef:create_app()
    :undoc-static:
 
-.. autoflask:: psef:app
+.. autoflask:: psef:create_app()
   :endpoints:
   :order: path

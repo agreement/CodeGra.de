@@ -19,6 +19,7 @@ from sqlalchemy_utils import PasswordType
 from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
+import psef
 import psef.auth as auth
 from psef import app
 from psef.helpers import get_request_start_time
@@ -99,7 +100,6 @@ if t.TYPE_CHECKING:  # pragma: no cover
             ...
 
 else:
-    import psef
     Base = db.Model
 
 permissions = db.Table(
@@ -209,8 +209,9 @@ class AssignmentResult(Base):
     :class:`Assignment` in the database and the external users LIS sourcedid.
 
     :ivar sourcedid: The ``sourcedid`` for this user for this assignment.
-    :ivar user_id: The id of the user this belongs to.
-    :ivar assignment_id: The id of the assignment this belongs to.
+    :ivar ~.AssignmentResult.user_id: The id of the user this belongs to.
+    :ivar ~.AssignmentResult.assignment_id: The id of the assignment this
+        belongs to.
     """
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['AssignmentResult']]
@@ -267,7 +268,7 @@ class CourseRole(Base):
     :class:`Course`.
 
     :ivar name: The name of this role in the course.
-    :ivar course_id: The :py:class:`Course` this role belongs to.
+    :ivar ~.CourseRole.course_id: The :py:class:`Course` this role belongs to.
     """
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['CourseRole']]
@@ -1296,9 +1297,9 @@ class Work(Base):
         :param top: The parent file
         :returns: Nothing
         """
-        for new_top, children in tree.items():
+        for old_top, children in tree.items():
             new_top = File(
-                work=self, is_directory=True, name=new_top, parent=top
+                work=self, is_directory=True, name=old_top, parent=top
             )
             session.add(new_top)
             for child in children:
@@ -2042,7 +2043,7 @@ class Assignment(Base):
             has the permission ``can_see_grade_before_open``
 
         :returns: True if there is an :py:class:`.AssignmentLinter` with name
-        ``MixedWhitespace`` and ``assignment_id``.
+            ``MixedWhitespace`` and ``assignment_id``.
         """
         try:
             if not self.is_done:
@@ -2323,8 +2324,8 @@ class RubricRow(Base):
     This class forms the link between :class:`Assignment` and
     :class:`RubricItem` and holds information about the row.
 
-    :ivar assignment_id: The assignment id of the assignment that belows to
-        this rubric row.
+    :ivar ~.RubricRow.assignment_id: The assignment id of the assignment that
+        belows to this rubric row.
     """
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['RubricRow']]

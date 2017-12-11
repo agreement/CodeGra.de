@@ -67,7 +67,7 @@ def get_file(
     .. :quickref: File; Get an uploaded file directory.
 
     .. note::
-        Only files uploaded using :py:func:`post_file` may be retrieved.
+        Only files uploaded using :http:post:`/api/v1/files/` may be retrieved.
 
     :param str file_name: The filename of the file to get.
     :returns: The requested file.

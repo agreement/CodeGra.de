@@ -17,9 +17,8 @@ import psef.files
 import psef.models as models
 import psef.helpers as helpers
 from psef import app, current_user
-from psef.models import db
 from psef.errors import APICodes, APIException
-from psef.models import FileOwner
+from psef.models import FileOwner, db
 from psef.helpers import (
     JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
     ensure_keys_in_dict, make_empty_response, filter_single_or_404
@@ -42,8 +41,8 @@ def get_submission(
 
     This API has some options based on the 'type' argument in the request
 
-    - If ``type == 'zip'`` see :py:func:`get_zip`
-    - If ``type == 'feedback'`` see :py:func:`get_feedback`
+    - If ``type == 'zip'`` see :py:func:`.get_zip`
+    - If ``type == 'feedback'`` see :py:func:`.submissions.get_feedback`
 
     :param int submission_id: The id of the submission
     :returns: A response with the JSON serialized submission as content unless
@@ -489,7 +488,7 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
         is ignored, otherwise a regular file is created.
 
     :returns: Stat information about the new file, see
-        :py:func:`psef.files.get_stat_information`
+        :py:func:`.files.get_stat_information`
 
     :raises APIException: If the request is bigger than the maximum upload
         size. (REQUEST_TOO_LARGE)
@@ -602,7 +601,7 @@ def get_dir_contents(submission_id: int
     :returns: A response with the JSON serialized directory structure as
         content and return code 200. For the exact structure see
         :py:meth:`.File.list_contents`. If path is given the return value will
-        be stat datastructure, see :py:func:`files.get_stat_information`.
+        be stat datastructure, see :py:func:`.files.get_stat_information`.
 
     :query int file_id: The file id of the directory to get. If this is not
         given the parent directory for the specified submission is used.

@@ -101,9 +101,9 @@ def me() -> t.Union[JSONResponse[t.Union[models.User, t.Mapping[int, str]]],
 
     :query type: If this is ``roles`` a mapping between course_id and role name
         will be returned, if this is ``extended`` the result of
-        :py:meth:`models.User.__extended_to_json__()` will be returned. If this
-        is something else or not present the result of
-        :py:meth:`models.User.__to_json__()` will be returned.
+        :py:meth:`.models.User.__extended_to_json__()` will be returned. If
+        this is something else or not present the result of
+        :py:meth:`.models.User.__to_json__()` will be returned.
     :returns: A response containing the JSON serialized user
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
@@ -130,7 +130,7 @@ def get_user_update(
         a password.
 
     - If ``type`` is ``reset_password`` reset the password of the user with the
-        given user_id with the given token to the given ``new_password``.
+      given user_id with the given token to the given ``new_password``.
     - If ``type`` is ``reset_email`` send a email to the user with the given
       username that enables this user to reset its password.
     - Otherwise change user info of the currently logged in user.
@@ -142,7 +142,7 @@ def get_user_update(
     :<json int user_id: The id of the user, only when type is reset_password.
     :<json str username: The username of the user, only when type is
         reset_email.
-    :<json str token : The reset password token. Only if type is
+    :<json str token: The reset password token. Only if type is
         reset_password.
     :<json str email: The new email of the user.
     :<json str name: The new full name of the user.

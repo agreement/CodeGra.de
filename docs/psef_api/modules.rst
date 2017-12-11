@@ -5,3 +5,4 @@ Source code documentation of psef
    :maxdepth: 2
 
    psef
+   psef.v1

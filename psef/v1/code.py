@@ -132,12 +132,12 @@ def get_code(file_id: int
     argument type in the request different functions are called.
 
     - If ``type == 'metadata'`` the JSON serialized :class:`.models.File` is
-        returned.
+      returned.
     - If ``type == 'file-url'`` or ``type == 'pdf'`` (deprecated) an object
-        with a single key, `name`, with as value the return values of
-        :py:func:`get_file_url`.
+      with a single key, `name`, with as value the return values of
+      :py:func:`.get_file_url`.
     - If ``type == 'feedback'`` or ``type == 'linter-feedback'`` see
-        :py:func:`get_feedback`
+      :py:func:`.code.get_feedback`
     - Otherwise the content of the file is returned as plain text.
 
     :param int file_id: The id of the file

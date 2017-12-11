@@ -244,7 +244,7 @@ class LinterRunner():
 
         tmpdir = None
 
-        def do(tree: t.MutableMapping[str, t.Any], parent: str) -> None:
+        def do(tree: psef.files.FileTree, parent: str) -> None:
             parent = os.path.join(parent, tree['name'])
             if 'entries' in tree:  # this is dir:
                 for entry in tree['entries']:

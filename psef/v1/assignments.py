@@ -44,7 +44,7 @@ def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
 
     .. :quickref: Assignment; Get all assignments.
 
-    :returns: An array of :py:class:`Assignment` items encoded in JSON.
+    :returns: An array of :py:class:`.models.Assignment` items encoded in JSON.
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
@@ -237,7 +237,7 @@ def get_assignment_rubric(assignment_id: int
     .. :quickref: Assignment; Get the rubric of an assignment.
 
     :param int assignment_id: The id of the assignment
-    :returns: A list of JSON of :class:`models.RubricRows` items
+    :returns: A list of JSON of :class:`.models.RubricRows` items
 
     :raises APIException: If no assignment with given id exists.
         (OBJECT_ID_NOT_FOUND)
@@ -267,8 +267,8 @@ def delete_rubric(assignment_id: int) -> EmptyResponse:
 
     .. :quickref: Assignment; Delete the rubric of an assignment.
 
-    :param assignment_id: The id of the :class:`models.Assignment` whose rubric
-        should be deleted.
+    :param assignment_id: The id of the :class:`.models.Assignment` whose
+        rubric should be deleted.
     :returns: Nothing.
 
     :raises PermissionException: If the user does not have the
@@ -397,7 +397,7 @@ def add_new_rubric_row(
     :param assig: The assignment to add the rubric row to
     :param header: The name of the new rubric row.
     :param description: The description of the new rubric row.
-    :param items: The items (:py:class:`models.RubricItem`) that should be
+    :param items: The items (:py:class:`.models.RubricItem`) that should be
         added to the new rubric row, the JSONType should be a dictionary with
         the keys ``description`` (:py:class:`str`), ``header``
         (:py:class:`str`) and ``points`` (:py:class:`float`).
@@ -509,10 +509,11 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
 
     An extra get parameter ``ignored_files`` can be given to determine how to
     handle ignored files. The options are:
+
     - ``ignore``, this the default, sipmly do nothing about ignored files.
     - ``delete``, delete the ignored files.
-    - ``error``, raise an :py:class:`APIException` when there are ignored files
-      in the archive.
+    - ``error``, raise an :py:class:`.APIException` when there are ignored
+      files in the archive.
 
     :param int assignment_id: The id of the assignment
     :returns: A JSON serialized work and with the status code 201.
@@ -909,12 +910,12 @@ def get_linters(assignment_id: int
     :rtype: flask.Response
 
     :>jsonarr str state: The state of the linter, which can be ``new``, or any
-        state from :py:class:`models.LinterState`.
+        state from :py:class:`.models.LinterState`.
     :>jsonarr str name: The name of this linter.
     :>jsonarr str id: The id of the linter, this will only be present when
         ``state`` is not ``new``.
     :>jsonarr ``*rest``: All items as described in
-        :py:func:`linters.get_all_linters`
+        :py:func:`.linters.get_all_linters`
 
     :raises APIException: If no assignment with given id exists.
                           (OBJECT_ID_NOT_FOUND)
