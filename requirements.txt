@@ -2,7 +2,7 @@ alembic==0.9.6
 celery==4.1.0
 coverage==4.4.2
 Flask==0.12.2
-Flask-JWT-Extended==3.3.4
+Flask-JWT-Extended==3.4.0
 Flask-Mail==0.9.1
 Flask-Migrate==2.1.1
 Flask-Script==2.0.6
@@ -27,7 +27,7 @@ SQLAlchemy-Utils==0.32.21
 Werkzeug==0.13
 python-archive==0.2
 flake8==3.5.0
-pylint==1.7.5
+pylint==1.8.1
 git+https://github.com/i-kiwamu/python3-oauth2.git
 click==6.7
 lxml==4.1.1
@@ -36,7 +36,7 @@ sphinx-rtd-theme==0.2.4
 Sphinx==1.6.5
 git+https://github.com/libre-man/HTTPdomain#subdirectory=httpdomain
 git+https://github.com/libre-man/sphinx-autodoc-typehints
-mypy==0.550
+mypy==0.560
 mypy-extensions==0.3.0
 yapf==0.20.0
 isort==4.2.15
