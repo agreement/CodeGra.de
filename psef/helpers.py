@@ -4,20 +4,49 @@ This module implements generic helpers and convenience functions.
 
 :license: AGPLv3, see LICENSE for details.
 """
+import abc
 import typing as t
 import datetime
 from functools import wraps, reduce
 
 import flask  # type: ignore
 import werkzeug
+from typing_extensions import Protocol
 
 import psef
 import psef.json as json
 import psef.errors
 import psef.models
 
-#: Any thingy
+#: Type vars
 T = t.TypeVar('T')
+Z = t.TypeVar('Z', bound='Comparable')
+Y = t.TypeVar('Y', bound='psef.models.Base')
+
+
+class Comparable(Protocol):  # pragma: no cover
+    """A protocol that for comparable variables.
+
+    To satisfy this protocol a object should implement the ``__eq__``,
+    ``__lt__``, ``__gt__``, ``__le__`` and``__ge__`` magic functions.
+    """
+
+    @abc.abstractmethod
+    def __eq__(self, other: t.Any) -> bool:
+        ...
+
+    @abc.abstractmethod
+    def __lt__(self: Z, other: Z) -> bool:
+        ...
+
+    def __gt__(self: Z, other: Z) -> bool:
+        return (not self < other) and self != other
+
+    def __le__(self: Z, other: Z) -> bool:
+        return self < other or self == other
+
+    def __ge__(self: Z, other: Z) -> bool:
+        return (not self < other)
 
 
 def get_all_subclasses(cls: t.Type[T]) -> t.Iterable[t.Type['T']]:
@@ -36,6 +65,41 @@ def get_all_subclasses(cls: t.Type[T]) -> t.Iterable[t.Type['T']]:
         all_subclasses.extend(get_all_subclasses(subclass))
 
     return all_subclasses
+
+
+def between(min_bound: Z, item: Z, max_bound: Z) -> Z:
+    """Make sure ``item`` is between two bounds.
+
+    >>> between(0, 5, 10)
+    5
+    >>> between(0, -1, 10)
+    0
+    >>> between(0, 11, 10)
+    10
+    >>> between(10, 5, 0)
+    Traceback (most recent call last):
+    ...
+    ValueError: `min_bound` cannot be higher than `max_bound`
+
+    .. note::
+
+        ``min_bound`` cannot be larger than ``max_bound``. They can be equal.
+
+    :param min_bound: The minimum this function should return
+    :param max_bound: The maximum this function should return
+    :param item: The item to check
+    :returns: ``item`` if it is between ``min_bound`` and ``max_bound``,
+        otherwise the bound is returned that is closest to the item.
+    """
+    if min_bound > max_bound:
+        raise ValueError('`min_bound` cannot be higher than `max_bound`')
+
+    if item <= min_bound:
+        return min_bound
+    elif item >= max_bound:
+        return max_bound
+
+    return item
 
 
 def get_request_start_time() -> datetime.datetime:
@@ -99,9 +163,6 @@ class EmptyResponse:
 
     def __init__(self) -> None:  # pragma: no cover
         raise NotImplementedError("Do not use this class as actual data")
-
-
-Y = t.TypeVar('Y', bound='psef.models.Base')
 
 
 def _filter_or_404(model: t.Type[Y], get_all: bool,
@@ -254,8 +315,20 @@ def ensure_json_dict(json: JSONType) -> t.Dict[str, JSONType]:
     )
 
 
-def extended_jsonify(obj: T,
-                     status_code: int = 200) -> ExtendedJSONResponse[T]:
+def extended_jsonify(
+    obj: T,
+    status_code: int = 200,
+) -> ExtendedJSONResponse[T]:
+    """Create a response with the given object ``obj`` as json payload.
+
+    This function differs from :py:func:`jsonify` by that it used the
+    ``__extended_to_json__`` magic function if it is available.
+
+    :param obj: The object that will be jsonified using
+        :py:class:`~.psef.json.CustomExtendedJSONEncoder`
+    :param statuscode: The status code of the response
+    :returns: The response with the jsonified object as payload
+    """
     try:
         psef.app.json_encoder = json.CustomExtendedJSONEncoder
         response = flask.make_response(flask.jsonify(obj))
@@ -266,6 +339,13 @@ def extended_jsonify(obj: T,
 
 
 def jsonify(obj: T, status_code: int = 200) -> JSONResponse[T]:
+    """Create a response with the given object ``obj`` as json payload.
+
+    :param obj: The object that will be jsonified using
+        :py:class:`~.psef.json.CustomJSONEncoder`
+    :param statuscode: The status code of the response
+    :returns: The response with the jsonified object as payload
+    """
     response = flask.make_response(flask.jsonify(obj))
     response.status_code = status_code
     return response

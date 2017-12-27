@@ -286,7 +286,7 @@ def get_all_linters(
         >>> MyLinter.DEFAULT_OPTIONS = {'wow': 'sers'}
         >>> all_linters = get_all_linters()
         >>> sorted(all_linters.keys())
-        ['Flake8', 'MyLinter', 'Pylint']
+        ['Flake8', 'MixedWhitespace', 'MyLinter', 'Pylint']
         >>> linter = all_linters['MyLinter']
         >>> linter == {'desc': 'Description', 'opts': {'wow': 'sers'} }
         True

@@ -4,6 +4,7 @@ import zipfile
 import datetime
 
 import pytest
+from pytest import approx
 
 import psef.models as m
 
@@ -250,6 +251,100 @@ def test_patch_non_existing_submission(
 
 
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
+def test_negative_points(
+    request, test_client, logged_in, error_template, ta_user,
+    assignment_real_works, session
+):
+    assignment, work = assignment_real_works
+    work_id = work['id']
+
+    rubric = {
+        'rows': [{
+            'header': 'My header',
+            'description': 'My description',
+            'items': [{
+                'description': '5points',
+                'header': 'bladie',
+                'points': 5
+            }, {
+                'description': '10points',
+                'header': 'bladie',
+                'points': 10,
+            }]
+        }, {
+            'header': 'Compensation',
+            'description': 'WOW',
+            'items': [{
+                'description': 'BLA',
+                'header': 'Negative',
+                'points': -1,
+            }],
+        }]
+    }  # yapf: disable
+    max_points = 9
+
+    with logged_in(ta_user):
+        rubric = test_client.req(
+            'put',
+            f'/api/v1/assignments/{assignment.id}/rubrics/',
+            200,
+            data=rubric
+        )
+        rubric = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/rubrics/',
+            200,
+            result={
+                'rubrics': list,
+                'selected': [],
+                'points': {
+                    'max': max_points,
+                    'selected': 0
+                }
+            }
+        )['rubrics']
+
+    def get_rubric_item(head, desc):
+        for row in rubric:
+            if row['header'] == head:
+                for item in row['items']:
+                    if item['description'] == desc:
+                        return item
+
+    with logged_in(ta_user):
+        to_select = [
+            get_rubric_item('Compensation', 'BLA'),
+        ]
+        points = [-1]
+        for item, point in zip(to_select, points):
+            test_client.req(
+                'patch',
+                f'/api/v1/submissions/{work_id}/rubricitems/{item["id"]}',
+                204,
+                result=None
+            )
+            with logged_in(ta_user):
+                work = test_client.req(
+                    'get', f'/api/v1/submissions/{work_id}', 200
+                )
+                assert work['grade'] == 0
+
+                test_client.req(
+                    'get',
+                    f'/api/v1/submissions/{work_id}/rubrics/',
+                    200,
+                    result={
+                        'rubrics': rubric,
+                        'selected': list,
+                        'points': {
+                            'max': max_points,
+                            'selected': point
+                        }
+                    }
+                )
+
+
+@pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
@@ -299,9 +394,17 @@ def test_selecting_rubric(
                 'header': 'bladie',
                 'points': 2,
             }]
+        }, {
+            'header': 'Compensation',
+            'description': 'WOW',
+            'items': [{
+                'description': 'BLA',
+                'header': 'Never selected',
+                'points': -1,
+            }],
         }]
     }  # yapf: disable
-    max_points = 12
+    max_points = 11
 
     with logged_in(ta_user):
         rubric = test_client.req(
@@ -334,10 +437,10 @@ def test_selecting_rubric(
     with logged_in(named_user):
         to_select = [
             get_rubric_item('My header', '10points'),
+            get_rubric_item('My header2', '2points'),
             get_rubric_item('My header', '5points'),
-            get_rubric_item('My header2', '2points')
         ]
-        points = [10, 5, 5 + 2]
+        points = [10, 10 + 2, 5 + 2]
         result_point = points[-1]
         for item, point in zip(to_select, points):
             test_client.req(
@@ -347,6 +450,16 @@ def test_selecting_rubric(
                 result=error_template if error else None
             )
             with logged_in(ta_user):
+                work = test_client.req(
+                    'get', f'/api/v1/submissions/{work_id}', 200
+                )
+                if error:
+                    assert work['grade'] is None
+                else:
+                    assert approx(work['grade']) == approx(
+                        min(10 * point / max_points, 10)
+                    )
+
                 test_client.req(
                     'get',
                     f'/api/v1/submissions/{work_id}/rubrics/',

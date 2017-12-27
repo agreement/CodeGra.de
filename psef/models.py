@@ -22,7 +22,7 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 import psef
 import psef.auth as auth
 from psef import app
-from psef.helpers import get_request_start_time
+from psef.helpers import between, get_request_start_time
 
 db = SQLAlchemy(session_options={'autocommit': False, 'autoflush': False})
 
@@ -1058,7 +1058,7 @@ class Work(Base):
                 return None
             max_points = self.assignment.max_rubric_points
             selected = sum(item.points for item in self.selected_items)
-            return max((selected / max_points) * 10, 0)
+            return between(0, selected / max_points * 10, 10)
         return self._grade
 
     def set_grade(self, new_grade: float, user: User) -> None:
