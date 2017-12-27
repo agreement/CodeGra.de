@@ -15,7 +15,7 @@ from collections import defaultdict
 from sqlalchemy import event
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy_utils import PasswordType
+from sqlalchemy_utils import PasswordType, force_auto_coercion
 from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
@@ -29,6 +29,7 @@ db = SQLAlchemy(session_options={'autocommit': False, 'autoflush': False})
 
 def init_app(app: t.Any) -> None:
     db.init_app(app)
+    force_auto_coercion()
 
     if app.config['_USING_SQLITE']:  # pragma: no cover
         with app.app_context():

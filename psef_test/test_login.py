@@ -406,8 +406,15 @@ def test_update_user_info_permissions(
         )
 
 
+@pytest.mark.parametrize('to_null', [True, False])
 def test_reset_password(
-    test_client, session, error_template, ta_user, monkeypatch, app
+    test_client,
+    session,
+    error_template,
+    ta_user,
+    monkeypatch,
+    app,
+    to_null,
 ):
     class StubMailer():
         def __init__(self):
@@ -431,6 +438,10 @@ def test_reset_password(
         data={'username': ta_user.username},
         result=error_template,
     )
+
+    if to_null:
+        ta_user.password = None
+        session.commit()
 
     mailer.do_raise = False
 
@@ -521,3 +532,13 @@ def test_reset_password(
     )
 
     assert not mailer.called
+
+    test_client.req(
+        'post',
+        f'/api/v1/login',
+        200,
+        data={
+            'username': ta_user.username,
+            'password': '2o2',
+        }
+    )
