@@ -879,6 +879,7 @@ def test_get_zip_file(
                 files = set(f.filename for f in files)
                 assert files == set(
                     [
+                        'multiple_dir_archive/',
                         'multiple_dir_archive/dir/single_file_work',
                         'multiple_dir_archive/dir/single_file_work_copy',
                         'multiple_dir_archive/dir2/single_file_work',
@@ -926,6 +927,7 @@ def test_get_teacher_zip_file(
 
     assert get_files(ta_user, False) == set(
         [
+            'multiple_dir_archive/',
             'multiple_dir_archive/dir/single_file_work',
             'multiple_dir_archive/dir/single_file_work_copy',
             'multiple_dir_archive/dir2/single_file_work',
@@ -944,6 +946,7 @@ def test_get_teacher_zip_file(
     })
     assert get_files(ta_user, False) == set(
         [
+            'multiple_dir_archive/',
             'multiple_dir_archive/dir/single_file_work_copy',
             'multiple_dir_archive/dir2/single_file_work_copy'
         ]
@@ -966,6 +969,7 @@ def test_get_teacher_zip_file(
 
     assert get_files(student_user, False) == set(
         [
+            'multiple_dir_archive/',
             'multiple_dir_archive/dir/single_file_work_copy',
             'multiple_dir_archive/dir2/single_file_work_copy'
         ]

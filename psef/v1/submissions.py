@@ -140,18 +140,25 @@ def get_zip(work: models.Work,
 
     path, name = psef.files.random_file_path('MIRROR_UPLOAD_DIR')
 
-    with open(path, 'w+b') as fp:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Restore the files to tmpdir
-            psef.files.restore_directory_structure(code, tmpdir, exclude_owner)
+    with open(
+        path,
+        'w+b',
+    ) as fp, tempfile.TemporaryDirectory(
+        suffix='dir',
+    ) as tmpdir, zipfile.ZipFile(
+        fp,
+        'w',
+        compression=zipfile.ZIP_DEFLATED,
+    ) as zipf:
+        # Restore the files to tmpdir
+        psef.files.restore_directory_structure(code, tmpdir, exclude_owner)
 
-            zipf = zipfile.ZipFile(fp, 'w', compression=zipfile.ZIP_DEFLATED)
-            for root, dirs, files in os.walk(tmpdir):
-                for file in files:
-                    path = os.path.join(root, file)
-                    zipf.write(path, path[len(tmpdir):])
-            zipf.close()
-        fp.flush()
+        zipf.write(tmpdir, code.name)
+
+        for root, dirs, files in os.walk(tmpdir):
+            for file in files:
+                path = os.path.join(root, file)
+                zipf.write(path, path[len(tmpdir):])
 
     return {
         'name': name,
