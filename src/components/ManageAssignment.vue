@@ -50,7 +50,7 @@
             <b-popover placement="top" :triggers="assignment.is_lti ? ['hover'] : []" content="Not available for LTI assignments">
                 <b-form-fieldset>
                     <b-input-group left="Name">
-                        <b-form-input type="text" v-model="assignment.name" @keyup.native.enter="updateName" :disabled="assignment.is_lti"/>
+                        <b-form-input type="text" v-model="assignmentTempName" @keyup.native.enter="updateName" :disabled="assignment.is_lti"/>
                         <b-input-group-button>
                             <submit-button @click="updateName" ref="updateName" :disabled="assignment.is_lti"/>
                         </b-input-group-button>
@@ -138,7 +138,12 @@ export default {
             assignmentState,
             pendingState: '',
             UserConfig,
+            assignmentTempName: '',
         };
+    },
+
+    mounted() {
+        this.assignmentTempName = this.assignment.name;
     },
 
     computed: {
@@ -172,9 +177,11 @@ export default {
 
         updateName() {
             const req = this.$http.patch(this.assignmentUrl, {
-                name: this.assignment.name,
+                name: this.assignmentTempName,
             });
-            this.$refs.updateName.submit(req.catch((err) => {
+            this.$refs.updateName.submit(req.then(() => {
+                this.assignment.name = this.assignmentTempName;
+            }, (err) => {
                 throw err.response.data.message;
             }));
         },
