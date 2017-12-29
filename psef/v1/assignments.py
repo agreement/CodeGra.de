@@ -847,6 +847,10 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
     for sub in assignment.get_all_latest_submissions():
         sub_lookup[sub.user_id] = sub
 
+    student_course_role = models.CourseRole.query.filter_by(
+        name='Student', course_id=assignment.course_id
+    ).first()
+
     for submission_info, submission_tree in submissions:
         user = models.User.query.filter_by(
             username=submission_info.student_id
@@ -854,22 +858,19 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
 
         if user is None:
             # TODO: Check if this role still exists
-            perms = {
-                assignment.course_id:
-                    models.CourseRole.query.filter_by(
-                        name='Student', course_id=assignment.course_id
-                    ).first()
-            }
             user = models.User(
                 name=submission_info.student_name,
                 username=submission_info.student_id,
-                courses=perms,
+                courses={assignment.course_id: student_course_role},
                 email='',
                 password=submission_info.student_id,
                 role=models.Role.query.filter_by(name='Student').first()
             )
 
             db.session.add(user)
+        else:
+            user.courses[assignment.course_id] = student_course_role
+
         work = models.Work(
             assignment_id=assignment.id,
             user=user,

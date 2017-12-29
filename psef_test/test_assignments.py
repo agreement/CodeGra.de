@@ -6,8 +6,9 @@ import datetime
 from functools import reduce
 from collections import defaultdict
 
-import psef
 import pytest
+
+import psef
 import psef.models as m
 from psef.errors import APICodes
 from psef.helpers import ensure_keys_in_dict
@@ -815,7 +816,6 @@ def test_updating_wrong_rubric(
                     'name': 'single_file_work_copy'
                 }
             ], 'dir', ['.tar.gz', '.zip']
-
         ),
         (
             'single_dir_archive', [
@@ -827,7 +827,6 @@ def test_updating_wrong_rubric(
                     'name': 'single_file_work_copy'
                 }
             ], 'dir', ['.tar.gz', '.zip']
-
         ), (
             'multiple_dir_archive', [
                 {
@@ -1376,8 +1375,19 @@ def test_get_all_submissions(
 # yapf: enable
 def test_upload_blackboard_zip(
     test_client, logged_in, named_user, assignment, filename, result,
-    error_template, request
+    error_template, request, ta_user, session
 ):
+    course_id = assignment.course_id
+
+    def get_student_users():
+        users = test_client.req(
+            'get', f'/api/v1/courses/{course_id}/users/', 200, list
+        )
+        return set(
+            u['User']['name'] for u in users
+            if u['CourseRole']['name'] == 'Student'
+        )
+
     marker = request.node.get_marker('http_err')
     with logged_in(named_user):
         if marker is not None:
@@ -1386,6 +1396,21 @@ def test_upload_blackboard_zip(
             code = 204
         else:
             code = 400
+
+        if code == 204:
+            crole = m.CourseRole.query.filter_by(
+                name='Student', course_id=course_id
+            ).one()
+            session.query(
+                m.user_course,
+            ).filter(m.user_course.c.course_id == crole.id).delete(False)
+            session.commit()
+            session.query(m.User).filter_by(name='Stupid1').update(
+                {
+                    'username': result['Stupid1']['username']
+                }
+            )
+            assert get_student_users() == set()
 
         res = test_client.req(
             'post',
@@ -1438,6 +1463,11 @@ def test_upload_blackboard_zip(
                 )
                 found_us = m.User.query.filter_by(name=name).all()
                 assert any(u.username == username for u in found_us)
+
+                with logged_in(ta_user):
+                    student_users = get_student_users()
+                    print(student_users, result)
+                    assert student_users == set(result.keys())
         else:
             assert not res
 
@@ -1760,7 +1790,6 @@ def test_assign_after_blackboard_zip(
                  'entries': [{'name': 'dir', 'id': int, 'entries': []}]
              }]}
         )
-
     ]
 )
 @pytest.mark.parametrize('named_user', ['Stupid1'],
