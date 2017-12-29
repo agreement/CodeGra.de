@@ -1,7 +1,6 @@
 <template>
     <div class="cgignore-file form-control">
         <textarea class="form-control"
-                  id="" name=""
                   rows="10"
                   v-model="content"
                   @keyup.ctrl.enter="updateIgnore"/>
