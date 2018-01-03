@@ -44,8 +44,22 @@ export default {
         ]).then(([assignments, course]) => {
             let data = assignments.data;
             for (let i = 0, len = data.length; i < len; i += 1) {
-                data[i].deadline = moment.utc(data[i].deadline, moment.ISO_8601).local().format('YYYY-MM-DDTHH:mm');
-                data[i].created_at = moment.utc(data[i].created_at, moment.ISO_8601).local().format('YYYY-MM-DDTHH:mm');
+                const deadline = moment.utc(data[i].deadline, moment.ISO_8601).local();
+                const reminderTime = moment.utc(data[i].reminder_time, moment.ISO_8601).local();
+                let defaultReminderTime = deadline.add(7, 'days');
+
+                if (defaultReminderTime.isBefore(moment())) {
+                    defaultReminderTime = moment().add(3, 'days');
+                }
+
+                data[i].deadline = deadline.format('YYYY-MM-DDTHH:mm');
+                data[i].created_at = moment.utc(data[i].created_at, moment.ISO_8601)
+                    .local()
+                    .format('YYYY-MM-DDTHH:mm');
+                data[i].reminder_time = (reminderTime.isValid() ?
+                                         reminderTime :
+                                         defaultReminderTime)
+                    .format('YYYY-MM-DDTHH:mm');
             }
             this.assignments = data;
 

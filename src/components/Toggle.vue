@@ -41,6 +41,13 @@ export default {
         };
     },
 
+    watch: {
+        value(newVal) {
+            this.current = newVal;
+            this.update();
+        },
+    },
+
     mounted() {
         this.update();
     },

@@ -8,13 +8,13 @@ the APIs in this module are mostly used to manipulate
 import os
 import typing as t
 import numbers
+import datetime
 import threading
 from random import shuffle
 from collections import defaultdict
 
 import flask
 import dateutil
-import sqlalchemy.sql.expression as expression
 from flask import request, send_file, after_this_request
 
 import psef
@@ -23,8 +23,9 @@ import psef.files
 import psef.models as models
 import psef.helpers as helpers
 import psef.linters as linters
+import psef.parsers as parsers
 from psef import app, current_user
-from psef.errors import APICodes, APIException
+from psef.errors import APICodes, APIWarnings, APIException, make_warning
 from psef.ignore import IgnoreFilterManager
 from psef.models import db
 from psef.helpers import (
@@ -160,6 +161,13 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
         empty. (OPTIONAL)
     :<json str deadline: The new deadline of the assignment. This should be a
         ISO 8061 date without timezone information. (OPTIONAL)
+    :<json str reminder_type: The new reminder type, can be `none`,
+        `assigned_only` and `all_graders`. See
+        :class:`.models.AssignmentReminderType` for what each option
+        means. (OPTIONAL if reminder_time is not present)
+    :<json str reminder_time: The time reminders should be sent. This should be
+        an ISO 8061 date without timezone information. (OPTIONAL if
+        reminder_type is not present)
 
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
@@ -172,21 +180,19 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
                                  assignment. (INCORRECT_PERMISSION)
     """
     assig = helpers.get_or_404(models.Assignment, assignment_id)
-
     auth.ensure_permission('can_manage_course', assig.course_id)
-
     content = ensure_json_dict(request.get_json())
 
     if 'state' in content:
         ensure_keys_in_dict(content, [('state', str)])
         state = t.cast(str, content['state'])
 
-        if state in ['hidden', 'open', 'done']:
+        try:
             assig.set_state(state)
-        else:
+        except TypeError:
             raise APIException(
                 'The selected state is not valid',
-                'The state {} is not a valid state'.format(content['state']),
+                'The state {} is not a valid state'.format(state),
                 APICodes.INVALID_PARAM, 400
             )
 
@@ -207,21 +213,37 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
     if 'deadline' in content:
         ensure_keys_in_dict(content, [('deadline', str)])
         deadline = t.cast(str, content['deadline'])
-
-        try:
-            assig.deadline = dateutil.parser.parse(deadline)
-        except ValueError:
-            raise APIException(
-                'The given deadline is not valid!',
-                '{} cannot be parsed by dateutil'.format(deadline),
-                APICodes.INVALID_PARAM, 400
-            )
+        assig.deadline = parsers.parse_datetime(deadline)
 
     if 'ignore' in content:
         ensure_keys_in_dict(content, [('ignore', str)])
         ignore = t.cast(str, content['ignore'])
-
         assig.cgignore = ignore
+
+    if 'reminder_type' in content or 'reminder_time' in content:
+        ensure_keys_in_dict(
+            content, [('reminder_type', str),
+                      ('reminder_time', str)]
+        )
+
+        reminder_type = parsers.parse_enum(
+            t.cast(str, content['reminder_type']),
+            models.AssignmentReminderType
+        )
+        reminder_time = parsers.parse_datetime(
+            t.cast(str, content['reminder_time'])
+        )
+
+        if (reminder_time - datetime.datetime.utcnow()).total_seconds() < 60:
+            raise APIException(
+                (
+                    'The given date is not far enough from the current time, '
+                    'it should be at least 60 seconds in the future.'
+                ), f'{reminder_time} is not atleast 60 seconds in the future',
+                APICodes.INVALID_PARAM, 400
+            )
+
+        assig.change_reminder(reminder_type, reminder_time)
 
     db.session.commit()
 
@@ -702,6 +724,7 @@ def get_all_graders(
     :>jsonarr int id: The user id of this grader.
     :>jsonarr bool divided: Is this user assigned to any submission for this
         assignment.
+    :>jsonarr bool done: Is this user done grading?
 
     :raises APIException: If no assignment with given id exists.
                           (OBJECT_ID_NOT_FOUND)
@@ -712,27 +735,7 @@ def get_all_graders(
     assignment = helpers.get_or_404(models.Assignment, assignment_id)
     auth.ensure_permission('can_manage_course', assignment.course_id)
 
-    permission = db.session.query(
-        models.Permission.id
-    ).filter(models.Permission.name == 'can_grade_work').as_scalar()
-
-    us = db.session.query(
-        models.User.id, models.User.name, models.user_course.c.course_id
-    ).join(models.user_course,
-           models.User.id == models.user_course.c.user_id).subquery('us')
-    per = db.session.query(models.course_permissions.c.course_role_id).join(
-        models.CourseRole,
-        models.CourseRole.id == models.course_permissions.c.course_role_id
-    ).filter(
-        models.course_permissions.c.permission_id == permission,
-        models.CourseRole.course_id == assignment.course_id
-    ).subquery('per')
-
-    result: t.Sequence[t.Tuple[str, int]] = db.session.query(
-        us.c.name, us.c.id
-    ).join(per, us.c.course_id == per.c.course_role_id).order_by(
-        expression.func.lower(us.c.name)
-    ).all()
+    result = assignment.get_all_graders(sort=True)
 
     divided: t.MutableMapping[int, float] = defaultdict(lambda: 0)
     for u in models.AssignmentAssignedGrader.query.filter_by(
@@ -746,9 +749,115 @@ def get_all_graders(
                 'id': res[1],
                 'name': res[0],
                 'weight': divided[res[1]],
+                'done': res[2],
             } for res in result
         ]
     )
+
+
+@api.route(
+    '/assignments/<int:assignment_id>/graders/<int:grader_id>/done',
+    methods=['DELETE']
+)
+@auth.login_required
+def set_grader_to_not_done(
+    assignment_id: int, grader_id: int
+) -> EmptyResponse:
+    """Indicate that the given grader is not yet done grading the given
+    `:class:.models.Assignment`.
+
+    .. :quickref: Assignment; Set the grader status to 'not done'.
+
+    :param assignment_id: The id of the assignment the grader is not yet done
+        grading.
+    :param grader_id: The id of the `:class:.models.User` that is not yet done
+        grading.
+    :returns: An empty response with return code 204
+
+    :raises APIException: If the given grader was not indicated as done before
+        calling this endpoint. (INVALID_STATE)
+    :raises PermissionException: If the current user wants to change a status
+        of somebody else but the user does not have the `can_manage_course`
+        permission. (INCORRECT_PERMISSION)
+    :raises PermissionException: If the current user wants to change its own
+        status but does not have the `can_manage_course` or the
+        `can_grade_work` permission. (INCORRECT_PERMISSION)
+    """
+    assig = helpers.get_or_404(models.Assignment, assignment_id)
+
+    if current_user.id == grader_id:
+        auth.ensure_permission('can_grade_work', assig.course_id)
+    else:
+        auth.ensure_permission('can_manage_course', assig.course_id)
+
+    for finished_grader in assig.finished_graders:
+        if finished_grader.user_id == grader_id:
+            db.session.delete(finished_grader)
+            db.session.commit()
+            return make_empty_response()
+
+    raise APIException(
+        'The grader is not finished!',
+        f'The grader {grader_id} is not done.',
+        APICodes.INVALID_STATE,
+        400,
+    )
+
+
+@api.route(
+    '/assignments/<int:assignment_id>/graders/<int:grader_id>/done',
+    methods=['POST']
+)
+@auth.login_required
+def set_grader_to_done(assignment_id: int, grader_id: int) -> EmptyResponse:
+    """Indicate that the given grader is done grading the given
+    `:class:.models.Assignment`.
+
+    .. :quickref: Assignment; Set the grader status to 'done'.
+
+    :param assignment_id: The id of the assignment the grader is done grading.
+    :param grader_id: The id of the `:class:.models.User` that is done grading.
+    :returns: An empty response with return code 204
+
+    :raises APIException: If the given grader was indicated as done before
+        calling this endpoint. (INVALID_STATE)
+    :raises PermissionException: If the current user wants to change a status
+        of somebody else but the user does not have the `can_manage_course`
+        permission. (INCORRECT_PERMISSION)
+    :raises PermissionException: If the current user wants to change its own
+        status but does not have the `can_manage_course` or the
+        `can_grade_work` permission. (INCORRECT_PERMISSION)
+    """
+    assig = helpers.get_or_404(models.Assignment, assignment_id)
+
+    if current_user.id == grader_id:
+        auth.ensure_permission('can_grade_work', assig.course_id)
+    else:
+        auth.ensure_permission('can_manage_course', assig.course_id)
+
+    if any(g.user_id == grader_id for g in assig.finished_graders):
+        raise APIException(
+            'The grader is already finished!',
+            f'The grader {grader_id} is already done.',
+            APICodes.INVALID_STATE,
+            400,
+        )
+
+    grader_done = models.AssignmentGraderDone(
+        user_id=grader_id, assignment_id=assig.id
+    )
+    db.session.add(grader_done)
+    db.session.commit()
+
+    if assig.has_non_graded_submissions(grader_id):
+        return make_empty_response(
+            make_warning(
+                'You have non graded work!',
+                APIWarnings.GRADER_NOT_DONE,
+            )
+        )
+
+    return make_empty_response()
 
 
 @api.route('/assignments/<int:assignment_id>/submissions/', methods=['GET'])

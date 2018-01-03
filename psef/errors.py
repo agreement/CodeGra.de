@@ -5,6 +5,16 @@ from flask import Response, jsonify
 
 import psef
 
+HttpWarning = t.NewType('HttpWarning', str)
+
+
+@unique
+class APIWarnings(IntEnum):
+    """API codes used to signal warnings to the client.
+    """
+    DEPRICATED = 0
+    GRADER_NOT_DONE = 1
+
 
 @unique
 class APICodes(IntEnum):
@@ -63,6 +73,15 @@ class APIException(Exception):
         ret['description'] = self.description
         ret['code'] = self.api_code.name
         return ret
+
+
+def make_warning(warning_text: str, code: APIWarnings) -> HttpWarning:
+    return HttpWarning(
+        '{:03d} CodeGrad.de "{}"'.format(
+            code.value,
+            warning_text.replace('"', '\\"'),
+        )
+    )
 
 
 def init_app(app: t.Any) -> None:

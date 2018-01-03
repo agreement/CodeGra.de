@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 This module implements generic helpers and convenience functions.
 
@@ -315,9 +314,18 @@ def ensure_json_dict(json: JSONType) -> t.Dict[str, JSONType]:
     )
 
 
+def _maybe_add_warning(
+    response: flask.Response,
+    warning: t.Optional[psef.errors.HttpWarning],
+) -> None:
+    if warning is not None:
+        response.headers['Warning'] = warning
+
+
 def extended_jsonify(
     obj: T,
     status_code: int = 200,
+    warning: t.Optional[psef.errors.HttpWarning] = None,
 ) -> ExtendedJSONResponse[T]:
     """Create a response with the given object ``obj`` as json payload.
 
@@ -327,6 +335,7 @@ def extended_jsonify(
     :param obj: The object that will be jsonified using
         :py:class:`~.psef.json.CustomExtendedJSONEncoder`
     :param statuscode: The status code of the response
+    :param warning: The warning that should be added to the response
     :returns: The response with the jsonified object as payload
     """
     try:
@@ -335,27 +344,46 @@ def extended_jsonify(
     finally:
         psef.app.json_encoder = json.CustomJSONEncoder
     response.status_code = status_code
+
+    _maybe_add_warning(response, warning)
+
     return response
 
 
-def jsonify(obj: T, status_code: int = 200) -> JSONResponse[T]:
+def jsonify(
+    obj: T,
+    status_code: int = 200,
+    warning: t.Optional[psef.errors.HttpWarning] = None,
+) -> JSONResponse[T]:
     """Create a response with the given object ``obj`` as json payload.
 
     :param obj: The object that will be jsonified using
         :py:class:`~.psef.json.CustomJSONEncoder`
     :param statuscode: The status code of the response
+    :param warning: The warning that should be added to the response
     :returns: The response with the jsonified object as payload
     """
     response = flask.make_response(flask.jsonify(obj))
     response.status_code = status_code
+
+    _maybe_add_warning(response, warning)
+
     return response
 
 
-def make_empty_response() -> EmptyResponse:
+def make_empty_response(
+    warning: t.Optional[psef.errors.HttpWarning] = None,
+) -> EmptyResponse:
     """Create an empty response.
+
+    :param warning: The warning that should be added to the response
+    :returns: A empty response with status code 204
     """
     response = flask.make_response('')
     response.status_code = 204
+
+    _maybe_add_warning(response, warning)
+
     return response
 
 

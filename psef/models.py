@@ -1,5 +1,7 @@
 """
 This module defines all the objects in the database in their relation.
+
+:license: AGPLv3, see LICENSE for details.
 """
 
 import os
@@ -100,6 +102,12 @@ if t.TYPE_CHECKING:  # pragma: no cover
         def delete(self) -> None:
             ...
 
+        def having(self, *args: t.Any) -> '_MyQuery[T]':
+            ...
+
+        def group_by(self, arg: t.Any) -> '_MyQuery[T]':
+            ...
+
 else:
     Base = db.Model
 
@@ -194,6 +202,28 @@ class AssignmentAssignedGrader(Base):
         query = Base.query
     __tablename__ = 'AssignmentAssignedGrader'
     weight: float = db.Column('weight', db.Float, nullable=False)
+    user_id: int = db.Column(
+        'User_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
+    )
+    assignment_id: int = db.Column(
+        'Assignment_id', db.Integer,
+        db.ForeignKey('Assignment.id', ondelete='CASCADE')
+    )
+
+    __table_args__ = (db.PrimaryKeyConstraint(assignment_id, user_id), )
+
+
+class AssignmentGraderDone(Base):
+    """This class creates the link between an :class:`User` and an
+    :class:`Assignment` that exists only when the grader is done.
+
+    If a user is linked to the assignment this indicates that this user is done
+    with grading.
+    """
+    if t.TYPE_CHECKING:  # pragma: no cover
+        query: t.ClassVar[_MyQuery['AssignmentGraderDone']]
+        query = Base.query
+    __tablename__ = 'AssignmentGraderDone'
     user_id: int = db.Column(
         'User_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
     )
@@ -1287,8 +1317,10 @@ class Work(Base):
         return self._add_file_tree(session, tree, None)
 
     def _add_file_tree(
-        self, session: 'orm.scoped_session',
-        tree: 'psef.files.ExtractFileTree', top: 'File'
+        self,
+        session: 'orm.scoped_session',
+        tree: 'psef.files.ExtractFileTree',
+        top: 'File',
     ) -> None:
         """Add the given tree to the session with top as parent.
 
@@ -1911,8 +1943,38 @@ class _AssignmentStateEnum(enum.IntEnum):
     done = 2
 
 
+@enum.unique
+class AssignmentReminderType(enum.IntEnum):
+    """Describes what type of reminder should be send.
+
+    :param none: Nobody should be e-mailed.
+    :param assigned_only: Only graders that are assigned will be notified.
+    :param all_graders: All users that have the permission to grade.
+    """
+    none: int = 0
+    assigned_only: int = 1
+    all_graders: int = 2
+
+
 class Assignment(Base):
     """This class describes a :class:`Course` specific assignment.
+
+    :ivar name: The name of the assignment.
+    :ivar cgignore: The .cgignore file of this assignment.
+    :ivar state: The current state the assignment is in.
+    :ivar description: UNUSED
+    :ivar course: The course this assignment belongs to.
+    :ivar created_at: The date this assignment was added.
+    :ivar deadline: The deadline of this assignment.
+    :ivar _mail_task_id: This is the id of the current task that will email all
+        the TA's to hurry up with grading.
+    :ivar :reminder_email_time: The time the reminder email should be send. To
+        see if we should actually send these reminders look at `reminder_type`
+    :ivar reminder_type: The type of reminder that should be send.
+    :ivar assigned_graders: All graders that are assigned to grade mapped by
+        user_id to `AssignmentAssignedGrader` object.
+    :ivar rubric_rows: The rubric rows that make up the rubric for this
+        assignment.
     """
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type:  t.ClassVar[_MyQuery['Assignment']]
@@ -1935,6 +1997,25 @@ class Assignment(Base):
     )
     deadline: datetime.datetime = db.Column('deadline', db.DateTime)
 
+    _mail_task_id: t.Optional[str] = db.Column(
+        'mail_task_id',
+        db.Unicode,
+        nullable=True,
+        default=None,
+    )
+    _reminder_email_time: datetime.datetime = db.Column(
+        'reminder_email_time',
+        db.DateTime,
+        default=None,
+        nullable=True,
+    )
+    reminder_type: AssignmentReminderType = db.Column(
+        'reminder_type',
+        db.Enum(AssignmentReminderType),
+        nullable=False,
+        default=AssignmentReminderType.none,
+    )
+
     # All stuff for LTI
     lti_assignment_id: str = db.Column(db.Unicode, unique=True)
     lti_outcome_service_url: str = db.Column(db.Unicode)
@@ -1947,6 +2028,12 @@ class Assignment(Base):
         collection_class=attribute_mapped_collection('user_id'),
         backref=db.backref('assignment', lazy='select')
     )
+
+    finished_graders = db.relationship(
+        'AssignmentGraderDone',
+        backref=db.backref('assignment'),
+        cascade='delete-orphan, delete',
+    )  # type: t.MutableSequence['AssignmentGraderDone']
 
     assignment_results: t.MutableMapping[
         int, AssignmentResult
@@ -1980,6 +2067,47 @@ class Assignment(Base):
         )
         for i in range(0, len(subs), 10):
             psef.tasks.passback_grades([s[0] for s in subs[i:i + 10]])
+
+    def change_reminder(
+        self,
+        reminder_type: AssignmentReminderType,
+        date: t.Optional[datetime.datetime],
+    ) -> None:
+        if self._mail_task_id is not None:
+            psef.tasks.celery.control.revoke(self._mail_task_id)
+
+        self.reminder_type = reminder_type
+        self._reminder_email_time = date
+
+        if reminder_type == AssignmentReminderType.none:
+            self._mail_task_id = None
+        else:
+            res = psef.tasks.send_reminder_mail((self.id, ), eta=date)
+            self._mail_task_id = res.id
+
+    def has_non_graded_submissions(self, user_id: int) -> bool:
+        """Check if the user with the given ``user_id`` has submissions
+        assigned without a grade.
+
+        :param user_id: The id of the user to check for
+        :returns: A boolean indicating if user has work assigned that does not
+            have grade or a selected rubric item
+        """
+        latest = self.get_from_latest_submissions(Work.id)
+        sql = latest.filter(
+            Work.assigned_to == user_id,
+        ).join(
+            work_rubric_item,
+            work_rubric_item.c.work_id == Work.id,
+            isouter=True
+        ).having(
+            and_(
+                func.count(work_rubric_item.c.rubricitem_id) == 0,
+                Work._grade.is_(None)  # type: ignore
+            )
+        ).group_by(Work.id)
+
+        return db.session.query(sql.exists()).scalar()
 
     @property
     def is_lti(self) -> bool:
@@ -2079,13 +2207,20 @@ class Assignment(Base):
                 'course': models.Course, # Course of this assignment.
                 'whitespace_linter': bool, # Has the whitespace linter
                                            # run on this assignment.
+                'reminder_type': str # The kind of reminder that will be send.
+                                     # If you don't have the permission to see
+                                     # this it will always be the string
+                                     # 'none'.
+                'reminder_time': str, # ISO UTC date. This will be `null` if
+                                      # you don't have the permission to see
+                                      # this or if it is unset.
             }
 
         :returns: An object as described above.
 
         .. todo:: Remove description from Assignment model.
         """
-        return {
+        res = {
             'id': self.id,
             'state': self.state_name,
             'description': self.description,
@@ -2096,7 +2231,19 @@ class Assignment(Base):
             'course': self.course,
             'cgignore': self.cgignore,
             'whitespace_linter': self.whitespace_linter,
+            'reminder_type': AssignmentReminderType.none.name,
+            'reminder_time': None,
         }
+
+        try:
+            auth.ensure_permission('can_manage_course', self.course_id)
+            res['reminder_type'] = self.reminder_type.name
+            if self._reminder_email_time is not None:
+                res['reminder_time'] = self._reminder_email_time.isoformat()
+        except auth.PermissionException:
+            pass
+
+        return res
 
     def set_state(self, state: str) -> None:
         """Update the current state (class:`_AssignmentStateEnum`).
@@ -2117,7 +2264,7 @@ class Assignment(Base):
             self.state = _AssignmentStateEnum.done
             if self.lti_outcome_service_url is not None:
                 self._submit_grades()
-        else:  # pragma: no cover
+        else:
             raise TypeError
 
     def get_from_latest_submissions(self, *to_query: T) -> '_MyQuery[T]':
@@ -2283,6 +2430,59 @@ class Assignment(Base):
                     weight=weight, user_id=user.id, assignment=self
                 )
             )
+
+    def get_all_graders(
+        self, sort: bool = True
+    ) -> '_MyQuery[t.Tuple[str, int, bool]]':
+        """Get all graders for this assignment.
+
+        The graders are retrieved from the database using a single query. The
+        return value is a query with three items selected: the first is the
+        name of the grader, the second is the database id of the user object
+        of grader and the third and last is a boolean indicating if this grader
+        is done grading. You can use this query as an iterator.
+
+        :param sort: Should the graders be sorted by name.
+        :returns: A query with items selected as described above.
+        """
+        us = db.session.query(
+            User.name.label("name"),  # type: ignore
+            User.id.label("id"),  # type: ignore
+            (
+                ~AssignmentGraderDone.user_id.is_(None)  # type: ignore
+            ).label("done"),
+            user_course.c.course_id.label("course_id"),
+        ).join(
+            AssignmentGraderDone,
+            and_(
+                User.id == AssignmentGraderDone.user_id,
+                AssignmentGraderDone.assignment_id == self.id,
+            ),
+            isouter=True
+        ).join(
+            user_course,
+            User.id == user_course.c.user_id,
+        ).subquery('us')
+
+        per = db.session.query(course_permissions.c.course_role_id).join(
+            CourseRole,
+            CourseRole.id == course_permissions.c.course_role_id,
+        ).join(
+            Permission,
+            course_permissions.c.permission_id == Permission.id,
+        ).filter(
+            CourseRole.course_id == self.course_id,
+            Permission.name == 'can_grade_work',
+        ).subquery('per')
+
+        res = db.session.query(us.c.name, us.c.id, us.c.done).join(
+            per, us.c.course_id == per.c.course_role_id
+        )
+
+        if sort:
+            res = res.order_by(func.lower(us.c.name))
+
+        return res
 
 
 class Snippet(Base):

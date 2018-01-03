@@ -24,6 +24,7 @@ if t.TYPE_CHECKING:  # pragma: no cover
     class Celery:
         def __init__(self, name: str) -> None:
             self.conf: t.MutableMapping[t.Any, t.Any] = {}
+            self.control: t.Any
 
         def init_app(self, app: t.Any) -> None:
             ...
@@ -86,8 +87,10 @@ def _lint_instances_1(
     cfg: str,
     linter_instance_ids: t.Sequence[int],
 ) -> None:
-    p.linters.LinterRunner(p.linters.get_linter_by_name(linter_name),
-                           cfg).run(linter_instance_ids)
+    p.linters.LinterRunner(
+        p.linters.get_linter_by_name(linter_name),
+        cfg,
+    ).run(linter_instance_ids)
 
 
 @celery.task
@@ -102,6 +105,45 @@ def _passback_grades_1(submission_ids: t.Sequence[int]) -> None:
 
 
 @celery.task
+def _send_reminder_mail_1(assignment_id: int) -> None:
+    assig = p.models.Assignment.query.get(assignment_id)
+    finished = set(g.user_id for g in assig.finished_graders)
+
+    if (assig is None or
+        assig.reminder_type == p.models.AssignmentReminderType.none
+    ):
+        return
+
+    to_mail: t.Iterable[int]
+
+    if assig.reminder_type == p.models.AssignmentReminderType.assigned_only:
+        to_mail = (
+            g.user_id
+            for g in p.models.AssignmentAssignedGrader.query.
+            filter_by(assignment_id=assignment_id)
+        )
+    elif assig.reminder_type == p.models.AssignmentReminderType.all_graders:
+        to_mail = (item[1] for item in assig.get_all_graders(sort=False))
+
+    with p.mail.mail.connect() as conn:
+        for user_id in to_mail:
+            if user_id in finished:
+                continue
+
+            try:
+                p.mail.send_grade_reminder_email(
+                    assig,
+                    p.models.User.query.get(user_id),
+                    conn,
+                )
+            except Exception:  # pragma: no cover
+                # This happens if mail sending fails or if the user has no
+                # e-mail address.
+                # TODO: add some sort of logging system.
+                pass
+
+
+@celery.task
 def _add_1(a: int, b: int) -> int:  # pragma: no cover
     """This function is used for testing if celery works. What it actually does
     is completely irrelevant.
@@ -112,3 +154,4 @@ def _add_1(a: int, b: int) -> int:  # pragma: no cover
 passback_grades = _passback_grades_1.delay
 lint_instances = _lint_instances_1.delay
 add = _add_1.delay
+send_reminder_mail = _send_reminder_mail_1.apply_async

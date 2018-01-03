@@ -72,14 +72,39 @@
             <div class="row">
                 <div class="col-lg-5 divide-comp-wrapper">
                     <h5>Divide submissions</h5>
-                    <divide-submissions :assignment="assignment"/>
+                    <loader class="text-center" v-if="gradersLoading"/>
+                    <divide-submissions :assignment="assignment" :graders="graders" v-else/>
 
-                    <h5 style="margin-top: 1em">CGIgnore file</h5>
+                    <h5 class="header-top-margin">CGIgnore file</h5>
                     <CGIgnoreFile :assignment="assignment"/>
+
+                    <h5 class="header-top-margin">
+                        Finished grading
+                        <description-popover
+                            description="Indicate that a grader is done with
+                            grading. All graders that have indicated that they
+                            are done will not receive notification e-mails."
+                            />
+                    </h5>
+                    <loader class="text-center" v-if="gradersLoading"/>
+                    <finished-grader-toggles :assignment="assignment" :graders="graders" v-else/>
                 </div>
                 <div class="col-lg-7 linter-comp-wrapper">
                     <h5>Linters</h5>
                     <linters :assignment="assignment"></linters>
+
+                    <h5>
+                        Grade reminders
+                        <description-popover
+                            description="Send a reminder e-mail to the selected
+                                         graders on the selected time if they
+                                         have not yet finished grading."
+                            />
+                    </h5>
+                    <div class="form-control">
+                        <grade-reminder :assignment="assignment"
+                                        class="grade-reminder"/>
+                    </div>
                 </div>
             </div>
 
@@ -112,6 +137,7 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/eye-slash';
 import 'vue-awesome/icons/clock-o';
 import 'vue-awesome/icons/check';
+import { convertToUTC } from '@/utils';
 
 import DivideSubmissions from './DivideSubmissions';
 import FileUploader from './FileUploader';
@@ -120,6 +146,9 @@ import Loader from './Loader';
 import SubmitButton from './SubmitButton';
 import RubricEditor from './RubricEditor';
 import CGIgnoreFile from './CGIgnoreFile';
+import GradeReminder from './GradeReminder';
+import DescriptionPopover from './DescriptionPopover';
+import FinishedGraderToggles from './FinishedGraderToggles';
 
 import * as assignmentState from '../store/assignment-states';
 
@@ -138,18 +167,24 @@ export default {
             assignmentState,
             pendingState: '',
             UserConfig,
+            graders: [],
+            gradersLoading: true,
             assignmentTempName: '',
         };
-    },
-
-    mounted() {
-        this.assignmentTempName = this.assignment.name;
     },
 
     computed: {
         assignmentUrl() {
             return `/api/v1/assignments/${this.assignment.id}`;
         },
+    },
+
+    mounted() {
+        this.assignmentTempName = this.assignment.name;
+        this.$http.get(`/api/v1/assignments/${this.assignment.id}/graders/`).then(({ data }) => {
+            this.gradersLoading = false;
+            this.graders = data;
+        });
     },
 
     methods: {
@@ -188,7 +223,7 @@ export default {
 
         updateDeadline() {
             const req = this.$http.patch(this.assignmentUrl, {
-                deadline: this.assignment.deadline,
+                deadline: convertToUTC(this.assignment.deadline),
             });
             this.$refs.updateDeadline.submit(req.catch((err) => {
                 throw err.response.data.message;
@@ -215,6 +250,9 @@ export default {
         Icon,
         RubricEditor,
         CGIgnoreFile,
+        GradeReminder,
+        DescriptionPopover,
+        FinishedGraderToggles,
     },
 };
 </script>
@@ -222,6 +260,10 @@ export default {
 <style lang="less" scoped>
 .manage-assignment {
     flex-grow: 1;
+}
+
+.header-top-margin {
+    margin-top: 1em;
 }
 
 .header {

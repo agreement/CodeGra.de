@@ -32,10 +32,7 @@ def set_bool(
 
 
 def set_float(
-    out: t.MutableMapping[str, t.Any],
-    parser: t.Any,
-    item: str,
-    default: float
+    out: t.MutableMapping[str, t.Any], parser: t.Any, item: str, default: float
 ) -> None:
     val = parser.getfloat(item)
     out[item] = float(default if val is None else val)
@@ -157,10 +154,28 @@ set_str(
 <p>Dear {user_name},
 
 This email lets you reset your password on <a
-href="{site_url}">{site_url}</a>. If you goto <a href="{url}">this page</a>
+href="{site_url}">{site_url}</a>. If you go to <a href="{url}">this page</a>
 you can reset your password there. Please do not reply to this email.
 
 If you have not triggered this action please ignore this email.</p>
+    """.strip(),
+)
+set_str(
+    CONFIG,
+    backend_ops,
+    'REMINDER_TEMPLATE',
+    """
+<p>Dear {user_name},
+
+This email is a reminder that you have work left to grade on the assignment
+"{assig_name}" on <a href="{site_url}">{site_url}</a>. If you go to <a
+href="{site_url}/courses/{course_id}/assignments/{assig_id}/submissions">this
+page</a> you can directly continue grading, which of course is joyful business
+on CodeGra.de! Good luck with grading.
+
+This email was automatically sent because of reminder that was set for this
+assignment and you have not yet indicated you were done grading. You can
+indicate this <a href="{site_url}/courses/{course_id}">here</a>.
     """.strip(),
 )
 

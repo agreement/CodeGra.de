@@ -1,3 +1,5 @@
+import moment from 'moment';
+
 export function formatGrade(grade) {
     const g = parseFloat(grade);
     return Number.isNaN(g) ? null : g.toFixed(2);
@@ -105,4 +107,18 @@ export function parseBool(value, dflt = true) {
     else if (value === 'true') return true;
 
     return dflt;
+}
+
+export function convertToUTC(timeStr) {
+    return moment(timeStr, moment.ISO_8601).utc().format('YYYY-MM-DDTHH:mm');
+}
+
+export function parseWarningHeader(warningStr) {
+    const arr = warningStr.split(' ');
+
+    const code = parseFloat(arr[0]);
+    const agent = arr[1];
+    const text = arr.slice(2).join(' ').replace(/\\"/g, '"').slice(1, -1);
+
+    return { code, agent, text };
 }

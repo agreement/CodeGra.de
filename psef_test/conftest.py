@@ -101,6 +101,7 @@ def test_client(app):
         query=None,
         data=None,
         real_data=None,
+        include_response=False,
         **kwargs
     ):
         if real_data is None:
@@ -144,6 +145,9 @@ def test_client(app):
 
         if result is not None:
             checker({'top': val}, {'top': result})
+
+        if include_response:
+            return res, rv
         return res
 
     client.req = req
@@ -352,6 +356,31 @@ def assignment(course_name, state_is_hidden, session, request, with_works):
 @pytest.fixture
 def filename(request):
     yield request.param
+
+
+@pytest.fixture
+def stub_function_class():
+    class StubFunction:
+        def __init__(self, ret_func=lambda: None):
+            self.args = []
+            self.kwargs = []
+            self.rets = []
+            self.ret_func = ret_func
+
+        def __call__(self, *args, **kwargs):
+            self.args.append(args)
+            self.kwargs.append(kwargs)
+            self.rets.append(self.ret_func())
+            return self.rets[-1]
+
+        @property
+        def called(self):
+            return len(self.args) > 0
+
+        def reset(self):
+            self.__init__(self.ret_func)
+
+    yield StubFunction
 
 
 @pytest.fixture

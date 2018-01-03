@@ -3,7 +3,7 @@
                :content="description"
                triggers="hover"
                class="description-popover"
-               style="{ float: hugText ? 'none' : 'right' }">
+               :style="{ float: hugText ? 'none' : 'right' }">
         <sup v-if="hugText" class="desc-pop-span">
             <icon name="info" scale="0.75"/>
         </sup>

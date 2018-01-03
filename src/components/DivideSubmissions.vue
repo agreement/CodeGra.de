@@ -1,7 +1,6 @@
 <template>
     <div class="divide-submissions">
-        <loader class="text-center" v-if="loading"></loader>
-        <div class="form-control" v-else>
+        <div class="form-control">
             <div class="grader-list">
                 <b-input-group class="grader">
                     <b class="input-group-addon">Grader</b>
@@ -52,13 +51,11 @@ export default {
             type: Object,
             default: null,
         },
-    },
 
-    data() {
-        return {
-            graders: [],
-            loading: true,
-        };
+        graders: {
+            type: Array,
+            default: [],
+        },
     },
 
     computed: {
@@ -68,14 +65,6 @@ export default {
                                     tot + (grader.weight || 0), 0),
                 1);
         },
-    },
-
-    mounted() {
-        this.loading = true;
-        this.$http.get(`/api/v1/assignments/${this.assignment.id}/graders/`).then(({ data }) => {
-            this.loading = false;
-            this.graders = data;
-        });
     },
 
     methods: {
