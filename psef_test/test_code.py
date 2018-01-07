@@ -747,7 +747,7 @@ def test_rename_code(
     def create_file(path):
         return test_client.req(
             'post',
-            f'/api/v1/submissions/{work_id}/files/?path={path}',
+            f'/api/v1/submissions/{work_id}/file?path={path}',
             200,
         )['id']
 

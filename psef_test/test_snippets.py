@@ -38,7 +38,7 @@ def test_simple_add_delete(
             snips.append(snip)
             test_client.req(
                 'put',
-                '/api/v1/snippet',
+                '/api/v1/snippets/',
                 error or 201,
                 data=snip,
                 result=error_template if error else {
@@ -87,7 +87,7 @@ def test_simple_update(
             snips.append(snip)
             test_client.req(
                 'put',
-                '/api/v1/snippet',
+                '/api/v1/snippets/',
                 error or 201,
                 data=snip,
                 result=error_template if error else {
@@ -107,7 +107,7 @@ def test_simple_update(
             snips[0]['value'] = 'dag dag'
             test_client.req(
                 'put',
-                '/api/v1/snippet',
+                '/api/v1/snippets/',
                 201,
                 data={
                     'value': snips[0]['value'],
@@ -143,7 +143,7 @@ def test_full_update(named_user, logged_in, test_client):
             snips.append(snip)
             test_client.req(
                 'put',
-                '/api/v1/snippet',
+                '/api/v1/snippets/',
                 201,
                 data=snip,
                 result={
@@ -183,7 +183,7 @@ def test_modify_others_snippet(named_user, ta_user, test_client, logged_in):
         snip = {'key': 'k', 'value': 'v'}
         snip = test_client.req(
             'put',
-            '/api/v1/snippet',
+            '/api/v1/snippets/',
             201,
             data=snip,
             result={

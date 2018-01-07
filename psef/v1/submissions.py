@@ -309,7 +309,7 @@ def unselect_rubric_item(
 
 @api.route(
     "/submissions/<int:submission_id>/rubricitems/<int:rubricitem_id>",
-    methods=['PATCH']
+    methods=['POST']
 )
 @helpers.feature_required('RUBRICS')
 @helpers.feature_required('INCREMENTAL_RUBRIC_SUBMISSION')
@@ -484,15 +484,17 @@ def get_grade_history(submission_id: int
     return jsonify(hist)
 
 
-@api.route("/submissions/<int:submission_id>/files/", methods=['POST'])
+@api.route("/submissions/<int:submission_id>/file", methods=['POST'])
 def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
     """Create a new file or directory for the given submission.
 
     .. :quickref: Submission; Create a new file or directory for a submission.
 
-    :param str path: The path of the new file to create. If the path ends in
+    :qparam str path: The path of the new file to create. If the path ends in
         a forward slash a new directory is created and the body of the request
         is ignored, otherwise a regular file is created.
+    :param int submission_id: The id of the submission the file should be
+        created in.
 
     :returns: Stat information about the new file, see
         :py:func:`.files.get_stat_information`

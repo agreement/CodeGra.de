@@ -461,7 +461,7 @@ def test_lti_assignment_create(
         course = assig['course']
         test_client.req(
             'post',
-            f'/api/v1/courses/{course["id"]}/assignments/',
+            f'/api/v1/courses/{course["id"]}/assignment',
             400,
             data={
                 'name': 'wow',

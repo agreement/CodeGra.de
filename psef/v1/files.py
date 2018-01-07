@@ -23,12 +23,12 @@ from psef.helpers import (
 from . import api
 
 
-@api.route("/files/", methods=['POST'])
+@api.route("/file", methods=['POST'])
 @auth.login_required
 def post_file() -> JSONResponse[str]:
     """Temporarily store some data on the server.
 
-    .. :quickref: File; Safe a file temporarily on the server.
+    .. :quickref: File; Save a file temporarily on the server.
 
     .. note::
         The posted data will be removed after 60 seconds.

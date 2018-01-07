@@ -145,7 +145,7 @@ def test_add_course(
 
         course = test_client.req(
             'post',
-            f'/api/v1/courses/',
+            f'/api/v1/course',
             error or 200,
             data=data,
             result=error_template if error else {
@@ -305,8 +305,8 @@ def test_add_user_to_course(
             data['role_id'] = role.id
 
         res = test_client.req(
-            'put',
-            f'/api/v1/courses/{course.id}/users/',
+            'post',
+            f'/api/v1/courses/{course.id}/user',
             error or 201,
             data=data,
             result=error_template if error else {
@@ -343,17 +343,13 @@ def test_add_user_to_course(
         data_error(error=403)('thomas_schaper@example.com'),
         ('stupid1@example.com'),
         ('admin@example.com'),
-        data_error(error=404)(-1),
-        data_error(error=400)(True),
-        data_error(error=400)(None),
     ]
 )
 @pytest.mark.parametrize('role_n', ['Student', 'Teacher'])
 @pytest.mark.parametrize('include_role', [True, missing_error(False)])
-@pytest.mark.parametrize('include_user_id', [True, missing_error(False)])
 def test_update_user_in_course(
     logged_in, named_user, test_client, request, session, course_n, role_n,
-    include_user_id, include_role, error_template, to_update
+    include_role, error_template, to_update
 ):
     perm_err = request.node.get_marker('perm_error')
     data_err = request.node.get_marker('data_error')
@@ -379,14 +375,12 @@ def test_update_user_in_course(
 
     with logged_in(named_user):
         data = {}
-        if include_user_id:
-            data['user_id'] = user_id
         if include_role:
             data['role_id'] = role.id
 
         test_client.req(
-            'put',
-            f'/api/v1/courses/{course.id}/users/',
+            'patch',
+            f'/api/v1/courses/{course.id}/users/{user_id}',
             error or 204,
             result=error_template if error else None,
             data=data,
@@ -494,7 +488,7 @@ def test_add_courseroles(
             data['name'] = role_name
         test_client.req(
             'post',
-            f'/api/v1/courses/{course.id}/roles/',
+            f'/api/v1/courses/{course.id}/role',
             error or 204,
             data=data,
             result=error_template if error else None
@@ -698,7 +692,7 @@ def test_delete_lti_courseroles(
     with logged_in(ta_user):
         test_client.req(
             'post',
-            f'/api/v1/courses/{course.id}/roles/',
+            f'/api/v1/courses/{course.id}/role',
             204,
             data={'name': 'NEW_ROLE'},
         )
@@ -760,9 +754,9 @@ def test_add_assignment(
         if name is not None:
             data['name'] = name
 
-        assig = test_client.req(
+        test_client.req(
             'post',
-            f'/api/v1/courses/{course.id}/assignments/',
+            f'/api/v1/courses/{course.id}/assignment',
             error or 200,
             data=data,
             result=error_template if error else {

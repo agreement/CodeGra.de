@@ -11,8 +11,8 @@ import psef.auth as auth
 import psef.models as models
 import psef.helpers as helpers
 from psef import current_user
-from psef.models import db
 from psef.errors import APICodes, APIException
+from psef.models import db
 from psef.helpers import (
     JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
     ensure_keys_in_dict, make_empty_response
@@ -21,7 +21,7 @@ from psef.helpers import (
 from . import api
 
 
-@api.route('/snippet', methods=['PUT'])
+@api.route('/snippets/', methods=['PUT'])
 @auth.permission_required('can_use_snippets')
 def add_snippet() -> JSONResponse[models.Snippet]:
     """Add or modify a :class:`.models.Snippet` by key.

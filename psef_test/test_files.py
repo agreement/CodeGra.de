@@ -30,7 +30,7 @@ def test_get_code_metadata(
     with logged_in(named_user):
         res = test_client.req(
             'post',
-            '/api/v1/files/',
+            '/api/v1/file',
             error or 201,
             real_data=filestr,
             result=error_template if error else str,

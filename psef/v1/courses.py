@@ -87,7 +87,7 @@ def delete_role(course_id: int, role_id: int) -> EmptyResponse:
     return make_empty_response()
 
 
-@api.route('/courses/<int:course_id>/roles/', methods=['POST'])
+@api.route('/courses/<int:course_id>/role', methods=['POST'])
 def add_role(course_id: int) -> EmptyResponse:
     """Add a new :class:`.models.CourseRole` to the given
     :class:`.models.Course`.
@@ -239,94 +239,102 @@ def get_all_course_roles(course_id: int) -> JSONResponse[t.Union[t.Sequence[
     return jsonify(course_roles)
 
 
-@api.route('/courses/<int:course_id>/users/', methods=['PUT'])
-def set_course_permission_user(
-    course_id: int
-) -> t.Union[EmptyResponse, JSONResponse[_UserCourse]]:
-    """Set the :class:`.models.CourseRole` of a :class:`.models.User` in the
-    given :class:`.models.Course`.
+@api.route('/courses/<int:course_id>/users/<int:user_id>', methods=['PATCH'])
+def give_user_course_role(course_id: int, user_id: int) -> EmptyResponse:
+    """Change the :class:`.models.CourseRole` of a given :class:`.models.User`
+        for a given :class:`.models.Course`.
 
-    .. :quickref: Course; Change the course role for a user.
+    .. :quickref: Course; Change the role of a specific user.
+
+    :<json int role_id: The id of the new role of the user.
 
     :param int course_id: The id of the course
-    :returns: If the user_id parameter is set in the request the response will
-              be empty with return code 204. Otherwise the response will
-              contain the JSON serialized user and course role with return code
-              201
+    :param int user_id: The id of the user of which the role should be changed.
+    :returns: An empty response with code 204.
 
-    :raises APIException: If the parameter role_id or not at least one of
-                          user_id and user_email are in the request.
-                          (MISSING_REQUIRED_PARAM)
-    :raises APIException: If no role with the given role_id or no user
-                          with the supplied parameters exists.
-                          (OBJECT_ID_NOT_FOUND)
-    :raises APIException: If the user was selected by email and the user is
-                          already in the course. (INVALID_PARAM)
-    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
-    :raises PermissionException: If the user can not manage the course with the
-                                 given id. (INCORRECT_PERMISSION)
-
-    .. todo::
-        This function should probability be splitted.
+    :raises APIException: If the given user is the current
+        user. (INCORRECT_PERMISSION)
     """
     auth.ensure_permission('can_manage_course', course_id)
 
     content = ensure_json_dict(request.get_json())
-    ensure_keys_in_dict(content, [('role_id', int)])
+
+    ensure_keys_in_dict(content, [
+        ('role_id', int),
+    ])
     role_id = t.cast(int, content['role_id'])
 
     role = helpers.filter_single_or_404(
         models.CourseRole, models.CourseRole.id == role_id,
         models.CourseRole.course_id == course_id
     )
+    user = helpers.get_or_404(models.User, user_id)
 
-    res: t.Union[EmptyResponse, JSONResponse[_UserCourse]]
-
-    if 'user_id' in content:
-        ensure_keys_in_dict(content, [('user_id', int)])
-        user_id = t.cast(int, content['user_id'])
-
-        user = helpers.get_or_404(models.User, user_id)
-
-        if user.id == current_user.id:
-            raise APIException(
-                'You cannot change your own role',
-                'The user requested and the current user are the same',
-                APICodes.INCORRECT_PERMISSION, 403
-            )
-
-        res = make_empty_response()
-    elif 'username' in content:
-        ensure_keys_in_dict(content, [('username', str)])
-
-        user = helpers.filter_single_or_404(
-            models.User, models.User.username == content['username']
-        )
-
-        if course_id in user.courses:
-            raise APIException(
-                'The specified user is already in this course',
-                'The user {} is in course {}'.format(user.id, course_id),
-                APICodes.INVALID_PARAM, 400
-            )
-
-        res = jsonify(
-            {
-                'User': user,
-                'CourseRole': role,
-            }, status_code=201
-        )
-    else:
+    if user.id == current_user.id:
         raise APIException(
-            'None of the keys "user_id" or "role_id" were found', (
-                'The given content ({})'
-                ' does  not contain "user_id" or "user_email"'
-            ).format(content), APICodes.MISSING_REQUIRED_PARAM, 400
+            'You cannot change your own role',
+            'The user requested and the current user are the same',
+            APICodes.INCORRECT_PERMISSION, 403
         )
 
     user.courses[role.course_id] = role
     db.session.commit()
-    return res
+
+    return make_empty_response()
+
+
+@api.route('/courses/<int:course_id>/user', methods=['POST'])
+def set_course_permission_user(course_id: int) -> JSONResponse[_UserCourse]:
+    """Add a :class:`.models.User` to a given :class:`.models.Course` with a
+        given :class:`.models.CourseRole`.
+
+    .. :quickref: Course; Add a user to a course with specific role.
+
+    :<json int role_id: The id of the role to add to the selected user.
+    :<json str username: The username of the user that should be selected.
+
+    :param int course_id: The id of the course
+    :returns: The JSON serialized user and course role with return code
+        201.
+
+    :raises APIException: If the selected user is already in the
+        course. (INVALID_PARAM)
+    """
+    auth.ensure_permission('can_manage_course', course_id)
+
+    content = ensure_json_dict(request.get_json())
+
+    ensure_keys_in_dict(content, [
+        ('role_id', int),
+        ('username', str),
+    ])
+    role_id = t.cast(int, content['role_id'])
+    username = t.cast(str, content['username'])
+
+    role = helpers.filter_single_or_404(
+        models.CourseRole, models.CourseRole.id == role_id,
+        models.CourseRole.course_id == course_id
+    )
+    user = helpers.filter_single_or_404(
+        models.User, models.User.username == username
+    )
+
+    if course_id in user.courses:
+        raise APIException(
+            'The specified user is already in this course',
+            'The user {} is in course {}'.format(user.id, course_id),
+            APICodes.INVALID_PARAM, 400
+        )
+
+    user.courses[role.course_id] = role
+    db.session.commit()
+
+    return jsonify(
+        {
+            'User': user,
+            'CourseRole': role,
+        }, status_code=201
+    )
 
 
 @api.route('/courses/<int:course_id>/users/', methods=['GET'])
@@ -397,9 +405,9 @@ def get_all_course_assignments(
     return jsonify(course.get_all_visible_assignments())
 
 
-@api.route('/courses/<int:course_id>/assignments/', methods=['POST'])
+@api.route('/courses/<int:course_id>/assignment', methods=['POST'])
 def create_new_assignment(course_id: int) -> JSONResponse[models.Assignment]:
-    """Create a new course for the given assignment.
+    """Create a new assignment for the given course.
 
     .. :quickref: Course; Create a new assignment in a course.
 
@@ -436,7 +444,7 @@ def create_new_assignment(course_id: int) -> JSONResponse[models.Assignment]:
     return jsonify(assig)
 
 
-@api.route('/courses/', methods=['POST'])
+@api.route('/course', methods=['POST'])
 @auth.permission_required('can_create_courses')
 def add_course() -> JSONResponse[models.Course]:
     """Add a new :class:`.models.Course`.
