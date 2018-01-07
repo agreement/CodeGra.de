@@ -8,6 +8,7 @@ APIs are used to manipulate student submitted code and the related feedback.
 import shutil
 import typing as t
 
+import werkzeug
 import sqlalchemy.sql as sql
 from flask import request, make_response
 from sqlalchemy.orm import make_transient
@@ -25,9 +26,6 @@ from psef.helpers import (
 )
 
 from . import api
-
-if t.TYPE_CHECKING:  # pragma: no cover
-    import werkzeug  # NOQA
 
 _HumanFeedback = models.Comment
 _LinterFeedback = t.MutableSequence[t.Tuple[str, models.LinterComment]]
@@ -120,10 +118,9 @@ def remove_comment(id: int, line: int) -> EmptyResponse:
 
 @api.route("/code/<int:file_id>", methods=['GET'])
 @auth.login_required
-def get_code(file_id: int
-             ) -> t.Union['werkzeug.wrappers.Response', JSONResponse[
-                 t.Union[t.Mapping[str, str], models.File, _FeedbackMapping]
-             ]]:
+def get_code(file_id: int) -> t.Union[werkzeug.wrappers.Response, JSONResponse[
+    t.Union[t.Mapping[str, str], models.File, _FeedbackMapping]
+]]:
     """Get data from the :class:`.models.File` with the given id.
 
     .. :quickref: Code; Get code or its metadata.

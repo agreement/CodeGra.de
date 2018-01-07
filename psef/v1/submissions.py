@@ -20,8 +20,9 @@ from psef import app, current_user
 from psef.errors import APICodes, APIException
 from psef.models import FileOwner, db
 from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
-    ensure_keys_in_dict, make_empty_response, filter_single_or_404
+    JSONType, JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
+    ensure_json_dict, extended_jsonify, ensure_keys_in_dict,
+    make_empty_response, filter_single_or_404
 )
 
 from . import api
@@ -34,7 +35,7 @@ if t.TYPE_CHECKING:  # pragma: no cover
 @auth.login_required
 def get_submission(
     submission_id: int
-) -> JSONResponse[t.Union[models.Work, t.Mapping[str, str]]]:
+) -> ExtendedJSONResponse[t.Union[models.Work, t.Mapping[str, str]]]:
     """Get the given submission (:class:`.models.Work`).
 
     .. :quickref: Submission; Get a single submission.
@@ -73,11 +74,11 @@ def get_submission(
             request.args.get('owner'),
             work.assignment.course_id,
         )
-        return jsonify(get_zip(work, exclude_owner))
+        return extended_jsonify(get_zip(work, exclude_owner))
     elif request.args.get('type') == 'feedback':
         auth.ensure_can_see_grade(work)
-        return jsonify(get_feedback(work))
-    return jsonify(work)
+        return extended_jsonify(get_feedback(work))
+    return extended_jsonify(work)
 
 
 def get_feedback(work: models.Work) -> t.Mapping[str, str]:

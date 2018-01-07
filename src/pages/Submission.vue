@@ -374,7 +374,7 @@ export default {
 
         getAllSubmissions() {
             return this.$http.get(
-                `/api/v1/assignments/${this.assignmentId}/submissions/`,
+                `/api/v1/assignments/${this.assignmentId}/submissions/?extended`,
             ).then(({ data: submissions }) => {
                 this.submissions = submissions;
                 this.submission = submissions.find(sub =>

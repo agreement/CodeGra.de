@@ -16,6 +16,8 @@ from collections import defaultdict
 
 from sqlalchemy import event
 from itsdangerous import BadSignature, URLSafeTimedSerializer
+from sqlalchemy.orm import deferred
+from werkzeug.utils import cached_property
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy_utils import PasswordType, force_auto_coercion
 from sqlalchemy.sql.expression import or_, and_, func, null, false
@@ -94,6 +96,9 @@ if t.TYPE_CHECKING:  # pragma: no cover
             ...
 
         def filter_by(self, *args: t.Any, **kwargs: t.Any) -> '_MyQuery[T]':
+            ...
+
+        def options(self, *args: t.Any) -> '_MyQuery[T]':
             ...
 
         def __iter__(self) -> t.Iterator[T]:
@@ -1027,7 +1032,7 @@ class Work(Base):
         'User_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
     )
     _grade: float = db.Column('grade', db.Float, default=None)
-    comment: str = db.Column('comment', db.Unicode, default=None)
+    comment: str = deferred(db.Column('comment', db.Unicode, default=None))
     created_at: datetime.datetime = db.Column(
         db.DateTime, default=datetime.datetime.utcnow
     )
@@ -1185,7 +1190,7 @@ class Work(Base):
 
         self.set_grade(None, user)
 
-    def __to_json__(self) -> t.Mapping[str, t.Any]:
+    def __to_json__(self) -> t.MutableMapping[str, t.Any]:
         """Returns the JSON serializable representation of this work.
 
         The representation is based on the permissions (:class:`Permission`) of
@@ -1207,9 +1212,6 @@ class Work(Base):
                                               # been graded yet or if the
                                               # logged in user doesn't have
                                               # permission to see the grade.
-                'comment': t.Optional[str] # General feedback comment for
-                                              # this submission, or None in
-                                              # the same cases as the grade.
                 'assignee': t.Optional[User] # User assigned to grade this
                                                 # submission, or None if the
                                                 # logged in user doesn't have
@@ -1238,11 +1240,36 @@ class Work(Base):
             auth.ensure_can_see_grade(self)
         except auth.PermissionException:
             item['grade'] = None
-            item['comment'] = None
         else:
             item['grade'] = self.grade
-            item['comment'] = self.comment
         return item
+
+    def __extended_to_json__(self) -> t.Mapping[str, t.Any]:
+        """Create a extended JSON serializable representation of this object.
+
+        This object will look like this:
+
+        .. code:: python
+
+            {
+                'comment': t.Optional[str] # General feedback comment for
+                                           # this submission, or None in
+                                           # the same cases as the grade.
+                **self.__to_json__()
+            }
+
+        :returns: A object as described above.
+        """
+        res = self.__to_json__()
+
+        try:
+            auth.ensure_can_see_grade(self)
+        except auth.PermissionException:
+            res['comment'] = None
+        else:
+            res['comment'] = self.comment
+
+        return res
 
     def __rubric_to_json__(self) -> t.Mapping[str, t.Any]:
         """Converts a rubric of a work to a object that is JSON serializable.
@@ -2117,7 +2144,7 @@ class Assignment(Base):
         """
         return self.lti_outcome_service_url is not None
 
-    @property
+    @cached_property
     def max_rubric_points(self) -> t.Optional[float]:
         """Get the maximum amount of points possible for the rubric
 

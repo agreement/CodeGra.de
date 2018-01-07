@@ -917,7 +917,7 @@ def test_upload_files(
             ):
                 res = test_client.req(
                     'post',
-                    f'/api/v1/assignments/{assignment.id}/submission',
+                    f'/api/v1/assignments/{assignment.id}/submission?extended',
                     201,
                     real_data={
                         'file':
@@ -932,7 +932,6 @@ def test_upload_files(
                         'created_at': str,
                         'assignee': None,
                         'grade': None,
-                        'comment': None,
                     }
                 )
 
@@ -1222,9 +1221,17 @@ def test_get_all_graders(
     ],
     indirect=True
 )
+@pytest.mark.parametrize('extended', [True, False])
 def test_get_all_submissions(
-    with_works, state_is_hidden, named_user, logged_in, test_client, request,
-    assignment, error_template
+    with_works,
+    state_is_hidden,
+    named_user,
+    logged_in,
+    test_client,
+    request,
+    assignment,
+    error_template,
+    extended,
 ):
     marker = request.node.get_marker('http_err')
     no_hide = request.node.get_marker('no_hidden')
@@ -1235,31 +1242,34 @@ def test_get_all_submissions(
             code = 403
         elif marker is None:
             code = 200
-            res = m.Work.query.filter_by(assignment_id=assignment.id)
+            works = m.Work.query.filter_by(assignment_id=assignment.id)
             if request.node.get_marker('no_others') is not None:
-                res = res.filter_by(user_id=named_user.id)
+                works = works.filter_by(user_id=named_user.id)
 
-            res = [
-                {
-                    'assignee': None if no_hide else r.assignee,
-                    'grade': None if no_grade else r.grade,
-                    'comment': None if no_grade else r.comment,
-                    'id': r.id,
-                    'user': dict,
-                    'created_at': r.created_at.isoformat(),
-                }
-                for r in
-                sorted(res.all(), key=lambda el: el.created_at, reverse=True)
-            ]
+            res = []
+            for work in sorted(
+                works, key=lambda w: w.created_at, reverse=True
+            ):
+                res.append(
+                    {
+                        'assignee': None if no_hide else work.assignee,
+                        'grade': None if no_grade else work.grade,
+                        'id': work.id,
+                        'user': dict,
+                        'created_at': work.created_at.isoformat(),
+                    }
+                )
+                if extended:
+                    res[-1]['comment'] = None if no_grade else work.comment
         else:
             code = marker.kwargs['error']
 
         print(named_user if isinstance(named_user, str) else named_user.name)
+        url = f'/api/v1/assignments/{assignment.id}/submissions/'
+        if extended:
+            url += '?extended'
         test_client.req(
-            'get',
-            f'/api/v1/assignments/{assignment.id}/submissions/',
-            code,
-            result=res if code == 200 else error_template
+            'get', url, code, result=res if code == 200 else error_template
         )
 
 

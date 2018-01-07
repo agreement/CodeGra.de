@@ -16,6 +16,7 @@ from collections import defaultdict
 import flask
 import dateutil
 from flask import request, send_file, after_this_request
+from sqlalchemy.orm import joinedload, undefer_group
 
 import psef
 import psef.auth as auth
@@ -29,8 +30,9 @@ from psef.errors import APICodes, APIWarnings, APIException, make_warning
 from psef.ignore import IgnoreFilterManager
 from psef.models import db
 from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
-    ensure_keys_in_dict, make_empty_response
+    JSONType, JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
+    ensure_json_dict, extended_jsonify, ensure_keys_in_dict,
+    make_empty_response
 )
 
 from . import linters as linters_routes
@@ -860,13 +862,21 @@ def set_grader_to_done(assignment_id: int, grader_id: int) -> EmptyResponse:
     return make_empty_response()
 
 
+WorkList = t.Sequence[models.Work]
+
+
 @api.route('/assignments/<int:assignment_id>/submissions/', methods=['GET'])
-def get_all_works_for_assignment(assignment_id: int
-                                 ) -> JSONResponse[t.Sequence[models.Work]]:
+def get_all_works_for_assignment(
+    assignment_id: int
+) -> t.Union[JSONResponse[WorkList], ExtendedJSONResponse[WorkList]]:
     """Return all :class:`.models.Work` objects for the given
     :class:`.models.Assignment`.
 
     .. :quickref: Assignment; Get all works for an assignment.
+
+    :qparam boolean extended: Whether to get extended or normal
+        :class:`.models.Work` objects. The default value is ``false``, you can
+        enable extended by passing ``true``, ``1`` or an empty string.
 
     :param int assignment_id: The id of the assignment
     :returns: A response containing the JSON serialized submissions.
@@ -884,17 +894,24 @@ def get_all_works_for_assignment(assignment_id: int
             'can_see_hidden_assignments', assignment.course_id
         )
 
-    obj = models.Work.query.filter_by(assignment_id=assignment_id)
+    obj = models.Work.query.filter_by(
+        assignment_id=assignment_id,
+    ).options(joinedload(
+        models.Work.selected_items,
+    )).order_by(t.cast(t.Any, models.Work.created_at).desc())
+
     if not current_user.has_permission(
         'can_see_others_work', course_id=assignment.course_id
     ):
         obj = obj.filter_by(user_id=current_user.id)
 
-    res: t.Sequence[models.Work] = (
-        obj.order_by(models.Work.created_at.desc()).all()  # type: ignore
-    )
+    extended = request.args.get('extended', 'false').lower()
 
-    return jsonify(res)
+    if extended in {'true', '1', ''}:
+        obj = obj.options(undefer_group(models.Work.comment))
+        return extended_jsonify(obj.all())
+    else:
+        return jsonify(obj.all())
 
 
 @api.route("/assignments/<int:assignment_id>/submissions/", methods=['POST'])
