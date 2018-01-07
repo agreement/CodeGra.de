@@ -11,6 +11,7 @@ import psef.models as m
 http_error = pytest.mark.http_error
 perm_error = pytest.mark.perm_error
 data_error = pytest.mark.data_error
+late_data_error = pytest.mark.late_data_error
 
 
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
@@ -132,8 +133,8 @@ def test_get_grade_history(
 )
 @pytest.mark.parametrize(
     'grade', [
-        data_error(-1),
-        data_error(11),
+        late_data_error(-1),
+        late_data_error(11),
         data_error('err'),
         None,
         4,
@@ -157,9 +158,12 @@ def test_patch_submission(
 
     perm_err = request.node.get_marker('perm_error')
     data_err = request.node.get_marker('data_error')
-    if perm_err:
+    late_data_err = request.node.get_marker('late_data_error')
+    if data_err:
+        error = 400
+    elif perm_err:
         error = perm_err.kwargs['error']
-    elif data_err:
+    elif late_data_err:
         error = 400
     else:
         error = False

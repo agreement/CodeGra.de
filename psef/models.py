@@ -9,6 +9,7 @@ import enum
 import math
 import uuid
 import typing as t
+import numbers
 import datetime
 from random import shuffle
 from itertools import cycle
@@ -1092,7 +1093,11 @@ class Work(Base):
             return between(0, selected / max_points * 10, 10)
         return self._grade
 
-    def set_grade(self, new_grade: float, user: User) -> None:
+    def set_grade(
+        self,
+        new_grade: t.Optional[t.Union[numbers.Real, float]],
+        user: User,
+    ) -> None:
         """Set the grade to the new grade.
 
         .. note:: This also passes back the grade to LTI if this is necessary
@@ -1102,7 +1107,7 @@ class Work(Base):
         :param user: The user setting the new grade.
         :returns: Nothing
         """
-        self._grade = new_grade
+        self._grade = None if new_grade is None else float(new_grade)
         passback = self.assignment.should_passback
         grade = self.grade
         history = GradeHistory(

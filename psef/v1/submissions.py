@@ -20,8 +20,9 @@ from psef import app, current_user
 from psef.errors import APICodes, APIException
 from psef.models import FileOwner, db
 from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
-    ensure_keys_in_dict, make_empty_response, filter_single_or_404
+    JSONType, NotGiven, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
+    ensure_keys_in_dict, make_empty_response, filter_single_or_404,
+    with_items_in_request
 )
 
 from . import api
@@ -351,7 +352,17 @@ def select_rubric_item(
 
 
 @api.route("/submissions/<int:submission_id>", methods=['PATCH'])
-def patch_submission(submission_id: int) -> JSONResponse[models.Work]:
+@with_items_in_request(
+    [],
+    [
+        [('feedback', str)],
+        [('grade', (numbers.Real, type(None)))],
+    ],
+)
+def patch_submission(
+    submission_id: int, feedback: t.Union[NotGiven, str],
+    grade: t.Union[NotGiven, None, numbers.Real]
+) -> JSONResponse[models.Work]:
     """Update the given submission (:class:`.models.Work`) if it already
     exists.
 
@@ -373,25 +384,17 @@ def patch_submission(submission_id: int) -> JSONResponse[models.Work]:
         given id (INCORRECT_PERMISSION)
     """
     work = helpers.get_or_404(models.Work, submission_id)
-    content = ensure_json_dict(request.get_json())
-
     auth.ensure_permission('can_grade_work', work.assignment.course_id)
 
-    if 'feedback' in content:
-        ensure_keys_in_dict(content, [('feedback', str)])
-        feedback = t.cast(str, content['feedback'])
-
+    if not isinstance(feedback, NotGiven):
         work.comment = feedback
 
-    if 'grade' in content:
-        ensure_keys_in_dict(content, [('grade', (numbers.Real, type(None)))])
-        grade = t.cast(t.Optional[float], content['grade'])
-
+    if not isinstance(grade, NotGiven):
         if not (grade is None or (0 <= float(grade) <= 10)):
             raise APIException(
                 'Grade submitted not between 0 and 10',
                 f'Grade for work with id {submission_id} '
-                f'is {content["grade"]} which is not between 0 and 10',
+                f'is {grade} which is not between 0 and 10',
                 APICodes.INVALID_PARAM, 400
             )
 
@@ -402,7 +405,10 @@ def patch_submission(submission_id: int) -> JSONResponse[models.Work]:
 
 
 @api.route("/submissions/<int:submission_id>/grader", methods=['PATCH'])
-def update_submission_grader(submission_id: int) -> EmptyResponse:
+@with_items_in_request([('user_id', int)])
+def update_submission_grader(
+    submission_id: int, user_id: int
+) -> EmptyResponse:
     """Change the assigned grader of the given submission.
 
     .. :quickref: Submission; Update grader for the submission.
@@ -417,9 +423,6 @@ def update_submission_grader(submission_id: int) -> EmptyResponse:
         permission to grade this submission. (INCORRECT_PERMISSION)
     """
     work = helpers.get_or_404(models.Work, submission_id)
-    content = ensure_json_dict(request.get_json())
-    ensure_keys_in_dict(content, [('user_id', int)])
-    user_id = t.cast(int, content['user_id'])
 
     auth.ensure_permission('can_manage_course', work.assignment.course_id)
 
@@ -485,7 +488,13 @@ def get_grade_history(submission_id: int
 
 
 @api.route("/submissions/<int:submission_id>/files/", methods=['POST'])
-def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
+@with_items_in_request(
+    [(('path', 'pathname'), str)], get_source=lambda: request.args
+)
+def create_new_file(
+    submission_id: int,
+    pathname: str,
+) -> JSONResponse[t.Mapping[str, t.Any]]:
     """Create a new file or directory for the given submission.
 
     .. :quickref: Submission; Create a new file or directory for a submission.
@@ -512,9 +521,6 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
     else:
         new_owner = FileOwner.teacher
 
-    ensure_keys_in_dict(request.args, [('path', str)])
-
-    pathname = request.args.get('path', None)
     # `create_dir` means that the last file should be a dir or not.
     patharr, create_dir = psef.files.split_path(pathname)
 

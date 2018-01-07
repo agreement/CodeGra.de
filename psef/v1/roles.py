@@ -18,7 +18,7 @@ from psef.errors import APICodes, APIException
 from psef.models import db
 from psef.helpers import (
     JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
-    ensure_keys_in_dict, make_empty_response
+    ensure_keys_in_dict, make_empty_response, with_items_in_request
 )
 
 from . import api
@@ -56,7 +56,10 @@ def get_all_roles() -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
 
 @api.route('/roles/<int:role_id>', methods=['PATCH'])
 @auth.permission_required('can_manage_site_users')
-def set_role_permission(role_id: int) -> EmptyResponse:
+@with_items_in_request([(('permission', 'perm_name'), str), ('value', bool)])
+def set_role_permission(
+    role_id: int, perm_name: str, value: bool
+) -> EmptyResponse:
     """Update the :class:`.models.Permission` of a given
     :class:`.models.Role`.
 
@@ -72,13 +75,6 @@ def set_role_permission(role_id: int) -> EmptyResponse:
     :raises PermissionException: If the current user does not have the
         ``can_manage_site_users`` permission. (INCORRECT_PERMISSION)
     """
-    content = ensure_json_dict(request.get_json())
-
-    ensure_keys_in_dict(content, [('permission', str), ('value', bool)])
-
-    perm_name = t.cast(str, content['permission'])
-    value = t.cast(bool, content['value'])
-
     if (
             current_user.role_id == role_id and
             perm_name == 'can_manage_site_users'
@@ -96,9 +92,7 @@ def set_role_permission(role_id: int) -> EmptyResponse:
     )
 
     role = helpers.get_or_404(models.Role, role_id)
-
     role.set_permission(perm, value)
-
     db.session.commit()
 
     return make_empty_response()

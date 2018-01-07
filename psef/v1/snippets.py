@@ -11,19 +11,26 @@ import psef.auth as auth
 import psef.models as models
 import psef.helpers as helpers
 from psef import current_user
-from psef.models import db
 from psef.errors import APICodes, APIException
+from psef.models import db
 from psef.helpers import (
     JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
-    ensure_keys_in_dict, make_empty_response
+    ensure_keys_in_dict, make_empty_response, with_items_in_request
 )
 
 from . import api
 
 
 @api.route('/snippet', methods=['PUT'])
+@with_items_in_request(
+    [(('value', 'snippet_value'), str),
+     (('key', 'snippet_key'), str)]
+)
 @auth.permission_required('can_use_snippets')
-def add_snippet() -> JSONResponse[models.Snippet]:
+def add_snippet(
+    snippet_value: str,
+    snippet_key: str,
+) -> JSONResponse[models.Snippet]:
     """Add or modify a :class:`.models.Snippet` by key.
 
     .. :quickref: Snippet; Add or modify a snippet.
@@ -39,20 +46,17 @@ def add_snippet() -> JSONResponse[models.Snippet]:
     :raises PermissionException: If the user can not user snippets
                                  (INCORRECT_PERMISSION)
     """
-    content = ensure_json_dict(request.get_json())
-    ensure_keys_in_dict(content, [('value', str), ('key', str)])
-    value = t.cast(str, content['value'])
-
     snippet: models.Snippet = models.Snippet.query.filter_by(
-        user_id=current_user.id, key=content['key']
+        user_id=current_user.id, key=snippet_key
     ).first()
+
     if snippet is None:
         snippet = models.Snippet(
-            key=content['key'], value=content['value'], user=current_user
+            key=snippet_key, value=snippet_value, user=current_user
         )
         db.session.add(snippet)
     else:
-        snippet.value = value
+        snippet.value = snippet_value
 
     db.session.commit()
 
@@ -79,7 +83,15 @@ def get_snippets() -> JSONResponse[t.Sequence[models.Snippet]]:
 
 @api.route('/snippets/<int:snippet_id>', methods=['PATCH'])
 @auth.permission_required('can_use_snippets')
-def patch_snippet(snippet_id: int) -> EmptyResponse:
+@with_items_in_request(
+    [(('value', 'snippet_value'), str),
+     (('key', 'snippet_key'), str)]
+)
+def patch_snippet(
+    snippet_id: int,
+    snippet_value: str,
+    snippet_key: str,
+) -> EmptyResponse:
     """Modify the :class:`.models.Snippet` with the given id.
 
     .. :quickref: Snippet; Change a snippets key and value.
@@ -98,12 +110,6 @@ def patch_snippet(snippet_id: int) -> EmptyResponse:
     :raises PermissionException: If the user can not use snippets.
                                  (INCORRECT_PERMISSION)
     """
-    content = ensure_json_dict(request.get_json())
-
-    ensure_keys_in_dict(content, [('key', str), ('value', str)])
-    key = t.cast(str, content['key'])
-    value = t.cast(str, content['value'])
-
     snip = helpers.get_or_404(models.Snippet, snippet_id)
 
     if snip.user_id != current_user.id:
@@ -114,8 +120,8 @@ def patch_snippet(snippet_id: int) -> EmptyResponse:
             ), APICodes.INCORRECT_PERMISSION, 403
         )
 
-    snip.key = key
-    snip.value = value
+    snip.key = snippet_key
+    snip.value = snippet_value
     db.session.commit()
 
     return make_empty_response()

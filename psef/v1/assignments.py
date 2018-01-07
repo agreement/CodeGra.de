@@ -30,7 +30,7 @@ from psef.ignore import IgnoreFilterManager
 from psef.models import db
 from psef.helpers import (
     JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
-    ensure_keys_in_dict, make_empty_response
+    ensure_keys_in_dict, make_empty_response, with_items_in_request
 )
 
 from . import linters as linters_routes
@@ -1075,7 +1075,12 @@ def get_linters(assignment_id: int
 
 
 @api.route('/assignments/<int:assignment_id>/linter', methods=['POST'])
-def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
+@with_items_in_request([('cfg', str), ('name', str)])
+def start_linting(
+    assignment_id: int,
+    cfg: str,
+    name: str,
+) -> JSONResponse[models.AssignmentLinter]:
     """Starts running a specific linter on all the latest submissions
     (:class:`.models.Work`) of the given :class:`.models.Assignment`.
 
@@ -1093,25 +1098,19 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
     :raises PermissionException: If the user can not user linters in this
                                  course. (INCORRECT_PERMISSION)
     """
-    content = ensure_json_dict(request.get_json())
-
     assig = helpers.get_or_404(models.Assignment, assignment_id)
     auth.ensure_permission('can_use_linter', assig.course_id)
-
-    ensure_keys_in_dict(content, [('cfg', str), ('name', str)])
-    cfg = t.cast(str, content['cfg'])
-    name = t.cast(str, content['name'])
 
     if db.session.query(
         models.LinterInstance.query.filter(
             models.AssignmentLinter.assignment_id == assignment_id,
-            models.AssignmentLinter.name == content['name']
+            models.AssignmentLinter.name == name
         ).exists()
     ).scalar():
         raise APIException(
             'There is still a linter instance running',
             'There is a linter named "{}" running for assignment {}'.format(
-                content['name'], assignment_id
+                name, assignment_id
             ), APICodes.INVALID_STATE, 409
         )
 

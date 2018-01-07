@@ -4,23 +4,26 @@ This module implements generic helpers and convenience functions.
 :license: AGPLv3, see LICENSE for details.
 """
 import abc
+import enum
 import typing as t
 import datetime
+import operator
 from functools import wraps, reduce
 
 import flask  # type: ignore
 import werkzeug
-from typing_extensions import Protocol
 
 import psef
 import psef.json as json
 import psef.errors
 import psef.models
+from typing_extensions import NoReturn, Protocol
 
 #: Type vars
 T = t.TypeVar('T')
 Z = t.TypeVar('Z', bound='Comparable')
 Y = t.TypeVar('Y', bound='psef.models.Base')
+InstanceType = t.Union[t.Type, t.Tuple[t.Type, ...]]
 
 
 class Comparable(Protocol):  # pragma: no cover
@@ -249,8 +252,7 @@ def get_or_404(model: t.Type[Y], object_id: t.Any) -> Y:
 
 
 def ensure_keys_in_dict(
-    mapping: t.Mapping[T, t.Any],
-    keys: t.Sequence[t.Tuple[T, t.Union[t.Type, t.Tuple[t.Type, ...]]]]
+    mapping: t.Mapping[T, t.Any], keys: t.Sequence[t.Tuple[T, InstanceType]]
 ) -> None:
     """Ensure that the given keys are in the given mapping.
 
@@ -413,5 +415,130 @@ def feature_required(feature_name: str) -> t.Callable:
                 )
 
         return decorated_function
+
+    return decorator
+
+
+class NotGiven(enum.Enum):
+    _token: int = 0
+
+
+_empty = NotGiven._token
+
+_DictItem = t.Tuple[t.Union[str, t.Tuple[str, str]], InstanceType]
+
+
+def with_items_in_request(
+    required: t.Sequence[_DictItem],
+    optional_pairs: t.Sequence[t.Sequence[_DictItem]] = None,
+    get_source: t.Optional[t.Callable[[], t.Dict[str, JSONType]]] = None,
+) -> t.Callable[[T], T]:
+    def get_source_name(orig: t.Union[str, t.Tuple[str, str]]) -> str:
+        if isinstance(orig, tuple):
+            return orig[0]
+        else:
+            return orig
+
+    def get_function_name(orig: t.Union[str, t.Tuple[str, str]]) -> str:
+        if isinstance(orig, tuple):
+            return orig[1]
+        else:
+            return orig
+
+    if optional_pairs is None:
+        optional_pairs = []
+
+    required_set = set(get_source_name(name) for name, _ in required)
+    for optional in optional_pairs:
+        for name, _ in optional:
+            if get_source_name(name) in required_set:
+                raise ValueError(
+                    f'The param "{name}" cannot be optional and required'
+                )
+
+    def raise_mypy_err(check_type: InstanceType, annot_t: t.Any) -> NoReturn:
+        raise ValueError(
+            f'The types to check on ("{check_type}") is not the '
+            f'is not the same as the annotations ("{annot_t}")'
+        )
+
+    def check_items(
+        annots: t.Dict[str, t.Any],
+        items: t.Iterable[_DictItem],
+    ) -> None:
+        for _n, check_type in items:
+            name = get_function_name(_n)
+
+            if name not in annots:
+                raise ValueError(
+                    f'The required option "{name}" is not a '
+                    'param to the given function.'
+                )
+
+            annot_t = annots[name]
+
+            if isinstance(check_type, tuple):
+                if not isinstance(annot_t, type(t.Union)):
+                    raise ValueError(
+                        f'The argument "{name}" is checked for multiple types '
+                        'but can be a single type according to annotations'
+                    )
+
+                if t.Union[(check_type)] != annot_t:
+                    raise_mypy_err(check_type, annot_t)
+            elif annot_t != check_type:
+                raise_mypy_err(check_type, annot_t)
+
+    def ensure_and_copy(
+        res: t.Dict[str, t.Any],
+        vals: t.Dict[str, t.Any],
+        required: t.Sequence[_DictItem],
+    ) -> None:
+        ensure_keys_in_dict(
+            vals,
+            [(get_source_name(k), v) for k, v in required]
+        )
+        for k, _ in required:
+            res[get_function_name(k)] = vals[get_source_name(k)]
+
+    def decorator(f: T) -> T:
+        check_items(f.__annotations__, required)
+        for optional in optional_pairs:
+            opts = (
+                (
+                    name,
+                    (NotGiven, ) + types
+                    if isinstance(types, tuple) else tuple(
+                        (NotGiven, types),
+                    ),
+                ) for name, types in optional
+            )
+            check_items(
+                f.__annotations__,
+                opts,
+            )
+
+        @wraps(t.cast(t.Any, f))
+        def decorated_function(*args: t.Any, **kwargs: t.Any) -> T:
+            if get_source is None:
+                source = ensure_json_dict(flask.request.get_json())
+            else:
+                source = get_source()
+
+            ensure_and_copy(kwargs, source, required)
+
+            for optional in optional_pairs:
+                if any(name in source for name, _ in optional):
+                    ensure_and_copy(kwargs, source, optional)
+                else:
+                    updated = {
+                        get_function_name(name): _empty
+                        for name, _ in optional
+                    }
+                    kwargs.update(updated)
+
+            return t.cast(t.Callable, f)(*args, **kwargs)
+
+        return t.cast(T, decorated_function)
 
     return decorator
