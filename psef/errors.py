@@ -39,6 +39,7 @@ class APICodes(IntEnum):
     UNKOWN_ERROR = 16
     INVALID_FILE_IN_ARCHIVE = 17
     NO_FILES_SUBMITTED = 18
+    RATE_LIMIT_EXCEEDED = 19
 
 
 class APIException(Exception):

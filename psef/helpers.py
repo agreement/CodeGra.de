@@ -3,6 +3,7 @@ This module implements generic helpers and convenience functions.
 
 :license: AGPLv3, see LICENSE for details.
 """
+import re
 import abc
 import typing as t
 import datetime
@@ -64,6 +65,27 @@ def get_all_subclasses(cls: t.Type[T]) -> t.Iterable[t.Type['T']]:
         all_subclasses.extend(get_all_subclasses(subclass))
 
     return all_subclasses
+
+
+def escape_like(unescaped_like: str) -> str:
+    r"""Escape a string used for the LIKE clause by escaping all wildcards.
+
+    .. note::
+
+      The escape characters are "%", "_" and "\". They are escaped by placing a
+      "\" before them.
+
+    >>> escape_like('hello')
+    'hello'
+    >>> escape_like('This is % a _ string\%')
+    'This is \\% a \\_ string\\\\\\%'
+    >>> escape_like('%')
+    '\\%'
+
+    :param unescaped_like: The string to escape
+    :returns: The same string but escaped
+    """
+    return re.sub(r'(%|_|\\)', r'\\\1', unescaped_like)
 
 
 def between(min_bound: Z, item: Z, max_bound: Z) -> Z:

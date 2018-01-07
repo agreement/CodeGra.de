@@ -37,6 +37,8 @@ def app(request):
         'TESTING': True,
         'DEBUG': True,
         'UPLOAD_DIR': f'/tmp/psef/uploads',
+        'RATELIMIT_STRATEGY': 'moving-window',
+        'RATELIMIT_HEADERS_ENABLED': True,
         'CELERY_CONFIG':
             {
                 'BROKER_URL': 'redis:///',
@@ -151,6 +153,7 @@ def test_client(app):
         return res
 
     client.req = req
+    psef.limiter.reset()
     yield client
 
 

@@ -124,5 +124,11 @@
     "course_permission": false,
     "short_description": "Manage site users",
     "long_description": "Users with this permission can change the global permissions for other users on the site."
+  },
+  "can_search_users": {
+    "default_value": true,
+    "course_permission": false,
+    "short_description": "Search users",
+    "long_description": "Users with this permission can search for users on the side, this means they can see all other users on the site."
   }
 }

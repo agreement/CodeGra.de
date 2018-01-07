@@ -221,35 +221,6 @@ export default {
 <style lang="less">
 @import '~mixins.less';
 
-.dark-selects-colors {
-    .multiselect__tags {
-        input {
-            background-color: @color-primary !important;
-            color: @text-color-dark;
-        }
-        background-color: @color-primary !important;
-        border-color: @color-primary-darker;
-    }
-    .multiselect__content-wrapper {
-        background: @color-primary;
-        border: @color-primary-darker;
-        color: @text-color-dark;
-    }
-    .multiselect__option--highlight {
-        background: @color-primary-darker;
-        &::after {
-            background: @color-primary-darker;
-        }
-    }
-    .multiselect__option--selected {
-        color: white;
-        background: @color-primary-darkest;
-        &::after {
-            background: @color-primary-darkest;
-        }
-    }
-}
-
 .pref-manager {
     #app.dark ~ .popover & .table {
         .dark-table-colors;

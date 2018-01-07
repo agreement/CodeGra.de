@@ -396,3 +396,35 @@
         }
     }
 }
+
+.dark-selects-colors {
+    .multiselect__tags {
+        input {
+            background-color: @color-primary !important;
+            color: @text-color-dark;
+        }
+        .multiselect__spinner {
+            background-color: @color-primary !important;
+        }
+        background-color: @color-primary !important;
+        border-color: @color-primary-darker;
+    }
+    .multiselect__content-wrapper {
+        background: @color-primary;
+        border-color: @color-primary-darker;
+        color: @text-color-dark;
+    }
+    .multiselect__option--highlight {
+        background: @color-primary-darker;
+        &::after {
+            background: @color-primary-darker;
+        }
+    }
+    .multiselect__option--selected {
+        color: white;
+        background: @color-primary-darkest;
+        &::after {
+            background: @color-primary-darkest;
+        }
+    }
+}

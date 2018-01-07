@@ -4,6 +4,7 @@
   },
   "Student": {
     "permissions": [
+      "can_search_users",
       "can_use_snippets",
       "can_edit_own_info",
       "can_edit_own_password"
@@ -11,6 +12,7 @@
   },
   "Staff": {
     "permissions": [
+      "can_search_users",
       "can_use_snippets",
       "can_edit_own_info",
       "can_edit_own_password"
@@ -18,6 +20,7 @@
   },
   "Admin": {
     "permissions": [
+      "can_search_users",
       "can_use_snippets",
       "can_edit_own_info",
       "can_add_users",

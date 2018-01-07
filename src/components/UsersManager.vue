@@ -46,10 +46,31 @@
                 content="You cannot add users to a lti course.">
             <b-form-fieldset class="add-student">
                 <b-input-group>
+                    <multiselect v-model="newStudentUsername"
+                                 :hide-selected="false"
+                                 :options="students"
+                                 :multiple="false"
+                                 :searchable="true"
+                                 @search-change="asyncFind"
+                                 :internal-search="true"
+                                 :custom-label="o => `${o.name} (${o.username})`"
+                                 :loading="loadingStudents"
+                                 placeholder="New student"
+                                 label="name"
+                                 track-by="username"
+                                 v-if="canSearchUsers">
+                        <span slot="noResult" v-if="searchQuery && searchQuery.length < 3">
+                            Please give a larger search string.
+                        </span>
+                        <span slot="noResult" v-else>
+                            No results were found. You can search on name and username.
+                        </span>
+                    </multiselect>
                     <b-form-input v-model="newStudentUsername"
                                   placeholder="New students username"
                                   :disabled="course.is_lti"
-                                  @keyup.native.ctrl.enter="addUser"/>
+                                  @keyup.native.ctrl.enter="addUser"
+                                  v-else/>
 
                     <b-dropdown class="drop"
                                 :text="newRole ? newRole.name : 'Role'"
@@ -72,8 +93,9 @@
 </template>
 
 <script>
-import { mapGetters } from 'vuex';
+import { mapGetters, mapActions } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
+import Multiselect from 'vue-multiselect';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/pencil';
 import 'vue-awesome/icons/floppy-o';
@@ -96,8 +118,13 @@ export default {
             filter: '',
             updating: {},
             newStudentUsername: '',
+            students: [],
             newRole: '',
             error: '',
+            canSearchUsers: false,
+            loadingStudents: false,
+            stopLoadingStudents: () => {},
+            searchQuery: null,
             fields: {
                 User: {
                     label: 'Name',
@@ -118,6 +145,45 @@ export default {
     },
 
     methods: {
+        asyncFind(query) {
+            this.stopLoadingStudents();
+            this.searchQuery = query;
+
+            if (query.length < 3) {
+                this.students = [];
+                this.loadingStudents = false;
+            } else {
+                this.loadingStudents = true;
+                let stop = false;
+                let id;
+                id = setTimeout(() => {
+                    this.$http.get('/api/v1/users/', { params: { q: query } }).then(({ data }) => {
+                        if (stop) {
+                            return;
+                        }
+
+                        this.loadingStudentsCallback = null;
+                        this.students = data;
+                        this.loadingStudents = false;
+                    }, (err) => {
+                        if (stop) {
+                            return;
+                        }
+
+                        if (err.response.data.code === 'RATE_LIMIT_EXCEEDED') {
+                            id = setTimeout(() => this.asyncFind(query), 1000);
+                        } else {
+                            throw err;
+                        }
+                    });
+                }, 250);
+
+                this.stopLoadingStudents = () => {
+                    clearTimeout(id);
+                    stop = true;
+                };
+            }
+        },
         sortTable(a, b, sortBy) {
             if (typeof a[sortBy] === 'number' && typeof b[sortBy] === 'number') {
                 return a[sortBy] - b[sortBy];
@@ -174,11 +240,11 @@ export default {
 
             if (this.newRole === '') {
                 btn.fail('You have to select a role!');
-            } else if (this.newStudentUsername === '') {
+            } else if (this.newStudentUsername === '' || this.newStudentUsername == null) {
                 btn.fail('You have to add a non empty username!');
             } else {
                 btn.submit(this.$http.put(`/api/v1/courses/${this.courseId}/users/`, {
-                    username: this.newStudentUsername,
+                    username: this.newStudentUsername.username || this.newStudentUsername,
                     role_id: this.newRole.id,
                 }).then(({ data }) => {
                     this.newRole = '';
@@ -189,9 +255,17 @@ export default {
                 })));
             }
         },
+
+        ...mapActions({
+            hasPermission: 'user/hasPermission',
+        }),
     },
 
     mounted() {
+        this.hasPermission({ name: 'can_search_users' }).then((val) => {
+            this.canSearchUsers = val;
+        });
+
         Promise.all([
             this.getAllUsers(),
             this.getAllRoles(),
@@ -207,6 +281,7 @@ export default {
         Icon,
         Loader,
         SubmitButton,
+        Multiselect,
     },
 };
 </script>
@@ -252,12 +327,37 @@ table.users-table .dropdown {
 
 <style lang="less" scoped>
 .add-student {
-    .btn-group {
-        height: 100%;
-    }
     .btn {
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
+    }
+}
+</style>
+
+<style lang="less">
+@import '~mixins.less';
+
+#app.dark .add-student {
+    .dark-selects-colors;
+}
+
+.add-student .multiselect {
+    .multiselect__tags {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    .multiselect__option--highlight {
+        background: @color-primary;
+        &::after {
+            background: @color-primary;
+        }
+        &.multiselect__option--selected {
+            background: #d9534f !important;
+            &::after {
+                background: #d9534f !important;
+            }
+        }
     }
 }
 </style>
