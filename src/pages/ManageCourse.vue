@@ -46,7 +46,7 @@ export default {
             for (let i = 0, len = data.length; i < len; i += 1) {
                 const deadline = moment.utc(data[i].deadline, moment.ISO_8601).local();
                 const reminderTime = moment.utc(data[i].reminder_time, moment.ISO_8601).local();
-                let defaultReminderTime = deadline.add(7, 'days');
+                let defaultReminderTime = deadline.clone().add(7, 'days');
 
                 if (defaultReminderTime.isBefore(moment())) {
                     defaultReminderTime = moment().add(3, 'days');
