@@ -112,7 +112,7 @@ def test_linters(
     get_work = request.node.get_marker('get_works')
     perm_err = request.node.get_marker('perm_error')
     set_perm_err = (not use_ta) and perm_err
-    if set_perm_err:
+    if set_perm_err and not run_err.get('error'):
         run_err['error'] = set_perm_err.kwargs['error']
 
     with logged_in(ta_user if use_ta else named_user):
@@ -185,7 +185,7 @@ def test_linters(
         linter_result = test_client.req(
             'get',
             f'/api/v1/assignments/{assig_id}/linters/',
-            code if set_perm_err else 200,
+            perm_err.kwargs.get('error') if set_perm_err else 200,
             result=error_template if set_perm_err else result,
         )
 
