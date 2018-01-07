@@ -840,9 +840,9 @@ def test_get_zip_file(
 ):
     assignment, work = assignment_real_works
     if get_own:
-        work_id = m.Work.query.filter_by(
-            user=named_user
-        ).order_by(m.Work.created_at.desc()).first().id
+        work_id = m.Work.query.filter_by(user=named_user).order_by(
+            m.Work.created_at.desc()
+        ).first().id
     else:
         work_id = work['id']
 
@@ -962,11 +962,9 @@ def test_get_teacher_zip_file(
 
     m.Assignment.query.filter_by(
         id=m.Work.query.get(work_id).assignment_id,
-    ).update(
-        {
-            'state': m._AssignmentStateEnum.done,
-        },
-    )
+    ).update({
+        'state': m._AssignmentStateEnum.done,
+    }, )
 
     assert get_files(student_user, False) == set(
         [
@@ -1057,14 +1055,18 @@ def test_add_file(
             f'/api/v1/submissions/{work_id}/file',
             404,
             result=error_template,
-            query={'path': '/non/existing/'}
+            query={
+                'path': '/non/existing/'
+            }
         )
         test_client.req(
             'post',
             f'/api/v1/submissions/{work_id}/file',
             400,
             result=error_template,
-            query={'path': '/too_short/'}
+            query={
+                'path': '/too_short/'
+            }
         )
 
         res = test_client.req(
@@ -1137,9 +1139,9 @@ def test_add_file(
             real_data='TEAER_FILE',
         )
 
-        session.query(m.Assignment).filter_by(
-            id=m.Work.query.get(work_id).assignment_id
-        ).update(
+        session.query(
+            m.Assignment
+        ).filter_by(id=m.Work.query.get(work_id).assignment_id).update(
             {
                 'deadline':
                     datetime.datetime.utcnow() - datetime.timedelta(days=1)
@@ -1177,9 +1179,9 @@ def test_add_file(
         )
 
     with logged_in(ta_user):
-        session.query(m.Assignment).filter_by(
-            id=m.Work.query.get(work_id).assignment_id
-        ).update(
+        session.query(
+            m.Assignment
+        ).filter_by(id=m.Work.query.get(work_id).assignment_id).update(
             {
                 'deadline':
                     datetime.datetime.utcnow() + datetime.timedelta(days=1)
@@ -1316,9 +1318,9 @@ def test_add_file(
             }
         )
 
-        session.query(m.Assignment).filter_by(
-            id=m.Work.query.get(work_id).assignment_id
-        ).update(
+        session.query(
+            m.Assignment
+        ).filter_by(id=m.Work.query.get(work_id).assignment_id).update(
             {
                 'deadline':
                     datetime.datetime.utcnow() + datetime.timedelta(days=1)
@@ -1330,8 +1332,8 @@ def test_add_file(
     'filename', ['../test_submissions/single_dir_archive.zip'], indirect=True
 )
 @pytest.mark.parametrize(
-    'named_user', ['Thomas Schaper',
-                   http_error(error=403)('Stupid1')],
+    'named_user',
+    ['Thomas Schaper', http_error(error=403)('Stupid1')],
     indirect=True
 )
 @pytest.mark.parametrize('graders', [(['Thomas Schaper', 'Devin Hillenius'])])
@@ -1358,8 +1360,10 @@ def test_change_grader(
                 'patch',
                 f'/api/v1/assignments/{assignment.id}/divide',
                 204,
-                data={'graders': {g: 1
-                                  for g in grader_ids}}
+                data={
+                    'graders': {g: 1
+                                for g in grader_ids}
+                }
             )
             submission = test_client.req(
                 'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
@@ -1373,7 +1377,9 @@ def test_change_grader(
                 f'/api/v1/submissions/{submission["id"]}/grader',
                 404,
                 result=error_template,
-                data={'user_id': 100000}
+                data={
+                    'user_id': 100000
+                }
             )
             with logged_in(ta_user):
                 submission = test_client.req(
@@ -1388,7 +1394,9 @@ def test_change_grader(
                 f'/api/v1/submissions/{submission["id"]}/grader',
                 400,
                 result=error_template,
-                data={'user_id': stupid1_id}
+                data={
+                    'user_id': stupid1_id
+                }
             )
             with logged_in(ta_user):
                 submission = test_client.req(
@@ -1405,7 +1413,9 @@ def test_change_grader(
             f'/api/v1/submissions/{submission["id"]}/grader',
             code,
             result=res,
-            data={'user_id': new_grader_id}
+            data={
+                'user_id': new_grader_id
+            }
         )
         with logged_in(ta_user):
             submission = test_client.req(
