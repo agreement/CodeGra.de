@@ -52,8 +52,8 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
 import { SubmissionList, Loader, SubmitButton } from '@/components';
+import { MANAGE_COURSE_PERMISSIONS } from '@/constants';
 import moment from 'moment';
 
 import FileUploader from '@/components/FileUploader';
@@ -72,7 +72,7 @@ export default {
             assignment: null,
             course: null,
             canDownload: false,
-            canManage: true,
+            canManage: false,
             rubric: null,
             inLTI: window.inLTI,
             wrongFiles: [],
@@ -83,9 +83,11 @@ export default {
         assignmentId() {
             return this.$route.params.assignmentId;
         },
+
         courseId() {
             return this.$route.params.courseId;
         },
+
         courseRoute() {
             if (this.canManage) {
                 return { name: 'assignment_manage', params: { courseId: this.course.id } };
@@ -115,14 +117,17 @@ export default {
 
             setPageTitle(`${assignment.name} ${pageTitleSep} Submissions`);
 
-            this.hasPermission([
-                'can_submit_own_work',
-                'can_see_others_work',
-                'can_see_grade_before_open',
-                'can_manage_course',
-            ]).then(([submit, others, before, manage]) => {
+            this.$hasPermission(
+                [
+                    'can_submit_own_work',
+                    'can_see_others_work',
+                    'can_see_grade_before_open',
+                    ...MANAGE_COURSE_PERMISSIONS,
+                ],
+                this.courseId,
+            ).then(([submit, others, before, ...manage]) => {
                 this.canUpload = submit && this.assignment.state === assignmentState.SUBMITTING;
-                this.canManage = manage;
+                this.canManage = manage.some(x => x);
 
                 if (others) {
                     if (this.assignment.state === assignmentState.DONE) {
@@ -163,9 +168,6 @@ export default {
             this.wrongFiles = err.data.invalid_files;
             this.$root.$emit('show::modal', 'wrong-files-modal');
         },
-        hasPermission(perm) {
-            return this.u_hasPermission({ name: perm, course_id: this.courseId });
-        },
 
         overrideSubmit(type, btn) {
             const requestData = this.$refs.uploader.requestData;
@@ -193,10 +195,6 @@ export default {
                 return sub;
             });
         },
-
-        ...mapActions({
-            u_hasPermission: 'user/hasPermission',
-        }),
     },
 
     components: {

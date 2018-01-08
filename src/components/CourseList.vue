@@ -2,7 +2,10 @@
     <div>
         <div class="row">
             <b-input-group class="col-12">
-                <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
+                <input v-model="filter"
+                       class="form-control"
+                       placeholder="Type to Search"
+                       v-on:keyup.enter="submit"/>
             </b-input-group>
         </div>
 

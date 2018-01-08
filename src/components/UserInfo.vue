@@ -103,8 +103,6 @@
 <script>
 import validator from 'email-validator';
 
-import { mapActions } from 'vuex';
-
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/eye';
@@ -146,9 +144,8 @@ export default {
         this.loading = true;
         Promise.all([
             this.$http.get('/api/v1/login'),
-            this.hasPermission({ name: 'can_edit_own_info' }),
-            this.hasPermission({ name: 'can_edit_own_password' }),
-        ]).then(([{ data }, canEditInfo, canEditPw]) => {
+            this.$hasPermission(['can_edit_own_info', 'can_edit_own_password']),
+        ]).then(([{ data }, [canEditInfo, canEditPw]]) => {
             this.canEditInfo = canEditInfo;
             this.canEditPw = canEditPw;
 
@@ -160,10 +157,6 @@ export default {
     },
 
     methods: {
-        ...mapActions({
-            hasPermission: 'user/hasPermission',
-        }),
-
         reset() {
             this.name = this.$store.state.user.name;
             this.email = this.$store.state.user.email;

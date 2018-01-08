@@ -553,7 +553,7 @@ def test_add_courseroles(
 @pytest.mark.parametrize(
     'perm_name', [
         missing_error(error=400)(5),
-        'can_manage_course',
+        'can_edit_course_roles',
         missing_error(error=400)(None),
         'can_grade_work',
         data_error(error=404)('non_existing'),
@@ -573,7 +573,7 @@ def test_update_courseroles(
         error = missing_err.kwargs['error']
     elif data_err:
         error = data_err.kwargs['error']
-    elif user_role == role_name and perm_name == 'can_manage_course':
+    elif user_role == role_name and perm_name == 'can_edit_course_roles':
         error = 403
     else:
         error = False

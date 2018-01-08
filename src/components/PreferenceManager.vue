@@ -29,11 +29,11 @@
                     <td>Code font size</td>
                     <td>
                         <b-input-group right="px">
-                            <b-form-input v-model="fontSize"
-                                          class="fontsize-select"
-                                          style="z-index: 0;"
-                                          type="number"
-                                          min="1"/>
+                            <input v-model="fontSize"
+                                   class="form-control fontsize-select"
+                                   style="z-index: 0;"
+                                   type="number"
+                                   min="1"/>
                         </b-input-group>
                     </td>
                 </tr>

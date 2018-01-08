@@ -64,6 +64,10 @@ if t.TYPE_CHECKING:  # pragma: no cover
         def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
             pass
 
+    class DbColumn(t.Generic[T]):
+        def in_(self, val: t.Union[t.Sequence[T], 'DbColumn']) -> 'DbColumn':
+            ...
+
     class _MyQuery(t.Generic[T], t.Iterable):
         def get(self, *args: t.Any, **kwargs: t.Any) -> t.Union[T, None]:
             ...
@@ -427,7 +431,7 @@ class CourseRole(Base):
 
             {
                 'student': {
-                    'can_manage_course': <Permission-object>,
+                    'can_edit_assignment_info': <Permission-object>,
                     'can_submit_own_work': <Permission-object>
                 }
             }
@@ -644,7 +648,7 @@ class User(Base):
     def has_permission(
         self,
         permission: t.Union[str, Permission],
-        course_id: t.Union['Course', int] = None
+        course_id: t.Union['Course', int, None] = None
     ) -> bool:
         """Check whether this user has the specified global or course
         :class:`Permission`.
@@ -675,45 +679,64 @@ class User(Base):
                     )
             return False
 
-    def get_permission_in_courses(self, perm: t.Union[str, Permission]
-                                  ) -> t.Mapping[int, bool]:
-        """Check for a specific course :class:`Permission` in all courses
+    def get_permissions_in_courses(
+        self,
+        perms: t.Sequence[str],
+    ) -> t.Mapping[int, t.Mapping[str, bool]]:
+        """Check for specific :class:`Permission`s in all courses
         (:class:`Course`) the user is enrolled in.
 
-        :param perm: The permission or its name to check for.
-        :returns: An int bool mapping where the int is the course id and the
-            the bool whether the user has the permission in the course with
-            thid id
+        Please note that passing an empty ``perms`` object is
+        supported. However the resulting mapping will be empty.
+
+        >>> User().get_permissions_in_courses([])
+        {}
+
+        :param perms: The permissions names to check for.
+        :returns: A mapping where the first keys indicate the course id,
+            the values at this are a mapping between the given permission names
+            and a boolean indicating if the current user has this permission
+            for the course with this course id.
         """
-        permission: Permission
-        if isinstance(perm, str):
-            permission = Permission.query.filter_by(  # type: ignore
-                name=perm).first()
-        else:
-            permission = perm
-        assert permission.course_permission
+        if not perms:
+            return {}
+
+        permissions = psef.helpers.filter_all_or_404(
+            Permission,
+            t.cast('DbColumn[str]', Permission.name).in_(perms)
+        )
 
         course_roles = db.session.query(user_course.c.course_id).join(
             User, User.id == user_course.c.user_id
         ).filter(User.id == self.id).subquery('course_roles')
 
-        crp = db.session.query(course_permissions.c.course_role_id).join(
-            Permission, course_permissions.c.permission_id == Permission.id
-        ).filter(Permission.id == permission.id).subquery('crp')
+        crp = db.session.query(
+            course_permissions.c.course_role_id,
+            Permission.id,
+        ).join(
+            Permission,
+            course_permissions.c.permission_id == Permission.id,
+        ).filter(Permission.id.in_(p.id for p in permissions)).subquery('crp')
 
-        res: t.Sequence[t.Tuple[int]]
-        res = db.session.query(course_roles.c.course_id).join(
-            crp, course_roles.c.course_id == crp.c.course_role_id
+        res: t.Sequence[t.Tuple[int, int]]
+        res = db.session.query(course_roles.c.course_id, crp.c.id).join(
+            crp,
+            course_roles.c.course_id == crp.c.course_role_id,
+            isouter=False,
         ).all()
 
-        course_ids: t.Set[int]
-        course_ids = set(course_id[0] for course_id in res)
+        lookup: t.Mapping[int, t.Set[int]] = defaultdict(set)
+        for course_role_id, permission_id in res:
+            lookup[permission_id].add(course_role_id)
 
-        return {
-            course_role.course_id:
-            (course_role.id in course_ids) != permission.default_value
-            for course_role in self.courses.values()
-        }
+        out: t.MutableMapping[int, t.Mapping[str, bool]] = {}
+        for course_id, cr in self.courses.items():
+            out[course_id] = {
+                p.name: (cr.id in lookup[p.id]) != p.default_value
+                for p in permissions
+            }
+
+        return out
 
     @property
     def can_see_hidden(self) -> bool:
@@ -792,8 +815,9 @@ class User(Base):
 
         return (not link) if permission.default_value else link
 
-    def get_all_permissions(self, course_id: t.Union['Course', int] = None
-                            ) -> t.Mapping[str, bool]:
+    def get_all_permissions(
+        self, course_id: t.Union['Course', int, None] = None
+    ) -> t.Mapping[str, bool]:
         """Get all global permissions (:class:`Permission`) of this user or all
         course permissions of the user in a specific :class:`Course`.
 
@@ -2263,7 +2287,10 @@ class Assignment(Base):
         }
 
         try:
-            auth.ensure_permission('can_manage_course', self.course_id)
+            auth.ensure_permission(
+                'can_grade_work',
+                self.course_id,
+            )
             res['reminder_type'] = self.reminder_type.name
             if self._reminder_email_time is not None:
                 res['reminder_time'] = self._reminder_email_time.isoformat()

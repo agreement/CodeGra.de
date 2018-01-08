@@ -1,3 +1,4 @@
+import Vue from 'vue';
 import axios from 'axios';
 import * as types from '../mutation-types';
 
@@ -6,7 +7,6 @@ const getters = {
     id: state => state.id,
     snippets: state => state.snippets,
     name: state => state.name,
-    permissions: state => state.permissions,
     canSeeHidden: state => state.canSeeHidden,
 };
 
@@ -45,50 +45,6 @@ const actions = {
             }).catch(() => {
                 setTimeout(() => actions.refreshSnippets({ commit }).then(resolve), 1000 * 15);
             });
-        });
-    },
-    hasPermission({ commit, state }, perm) {
-        return new Promise((resolve) => {
-            const getPermission = () => {
-                if (state.permissions === null) {
-                    return {};
-                } else if (perm.course_id == null) {
-                    return state.permissions;
-                }
-                return state.permissions[`course_${perm.course_id}`];
-            };
-
-            const getPermissionvalues = () => {
-                if (typeof perm.name === 'string') {
-                    return [getPermission()[perm.name]];
-                }
-                return perm.name.map(val => getPermission()[val]);
-            };
-
-            const checkPermission = () => {
-                const res = getPermissionvalues().map(val => val === true);
-                if (typeof perm.name === 'string') {
-                    return res[0];
-                }
-                return res;
-            };
-
-            if (getPermission() === undefined ||
-                getPermissionvalues().some(val => val === undefined)) {
-                axios.get('/api/v1/permissions/', {
-                    params: perm.course_id ? { course_id: perm.course_id } : {},
-                }).then((response) => {
-                    commit(types.PERMISSIONS, { response: response.data, perm });
-                    resolve(checkPermission());
-                }, () => resolve(false));
-            } else {
-                if (Math.random() < 0.005) {
-                    axios.get('/api/v1/permissions/').then((response) => {
-                        commit(types.PERMISSIONS, { response: response.data, perm });
-                    });
-                }
-                resolve(checkPermission());
-            }
         });
     },
     logout({ commit }) {
@@ -139,29 +95,14 @@ const mutations = {
     [types.SNIPPETS](state, snippets) {
         state.snippets = snippets;
     },
-    [types.PERMISSIONS](state, { response, perm }) {
-        if (perm.course_id !== undefined) {
-            if (!state.permissions) {
-                state.permissions = {};
-            }
-            state.permissions[`course_${perm.course_id}`] = response;
-        } else {
-            if (!state.permissions) {
-                state.permissions = {};
-            }
-            Object.keys(response).forEach((key) => {
-                state.permissions[key] = response[key];
-            });
-        }
-    },
     [types.LOGOUT](state) {
         state.id = 0;
         state.name = '';
         state.email = '';
         state.snippets = null;
-        state.permissions = null;
         state.canSeeHidden = false;
         state.jwtToken = null;
+        Vue.prototype.$clearPermissions();
     },
     [types.NEW_SNIPPET](state, { key, value }) {
         state.snippets[key] = { value };
@@ -178,7 +119,6 @@ const mutations = {
         state.jwtToken = data.access_token;
     },
     [types.CLEAR_CACHE](state) {
-        state.permissions = null;
         state.snippets = null;
     },
 };
@@ -191,7 +131,6 @@ export default {
         email: '',
         name: '',
         snippets: null,
-        permissions: null,
         canSeeHidden: false,
         username: '',
     },

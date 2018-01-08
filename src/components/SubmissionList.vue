@@ -2,7 +2,10 @@
     <div class="submission-list">
         <b-form-fieldset>
             <b-input-group>
-                <b-form-input v-model="filter" placeholder="Type to Search" @keyup.enter="submit"></b-form-input>
+                <input v-model="filter"
+                       class="form-control"
+                       placeholder="Type to Search"
+                       @keyup.enter="submit"/>
 
                 <b-form-checkbox class="input-group-addon" v-model="latestOnly" @change="submit"
                     v-if="latest.length !== submissions.length">
@@ -87,7 +90,7 @@
 </template>
 
 <script>
-import { mapActions, mapGetters } from 'vuex';
+import { mapGetters } from 'vuex';
 import { formatGrade, filterSubmissions, sortSubmissions, parseBool } from '@/utils';
 import SubmissionsExporter from './SubmissionsExporter';
 import Loader from './Loader';
@@ -188,10 +191,10 @@ export default {
     },
 
     mounted() {
-        this.hasPermission({
-            name: 'can_manage_course',
-            course_id: this.assignment.course.id,
-        }).then((canChangeAssignee) => {
+        this.$hasPermission(
+            'can_assign_graders',
+            this.assignment.course.id,
+        ).then((canChangeAssignee) => {
             if (canChangeAssignee) {
                 this.$http.get(`/api/v1/assignments/${this.assignment.id}/graders/`).then((res) => {
                     const assignees = res.data.map(ass =>
@@ -322,10 +325,6 @@ export default {
                 console.log(response);
             });
         },
-
-        ...mapActions({
-            hasPermission: 'user/hasPermission',
-        }),
 
         formatGrade,
         sortSubmissions,

@@ -63,6 +63,7 @@ def app(request):
         'CELERY_TASK_ALWAYS_EAGER': True,
         'CELERY_TASK_EAGER_PROPAGATES': True,
     }
+
     app = psef.create_app(settings_override, skip_celery=True)
 
     psef.tasks.celery.conf.update(

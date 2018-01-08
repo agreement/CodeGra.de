@@ -1,7 +1,9 @@
 <template>
 <div>
     <b-input-group left="Time to send">
-        <b-form-input type="datetime-local" v-model="assignment.reminder_time"/>
+        <input type="datetime-local"
+               class="form-control"
+               v-model="assignment.reminder_time"/>
     </b-input-group>
     <b-form-radio v-model="assignment.reminder_type"
                   class="grade-options"

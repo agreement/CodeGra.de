@@ -34,6 +34,7 @@ import Toggle from './Toggle';
 import CGIgnoreFile from './CGIgnoreFile';
 import GradeReminder from './GradeReminder';
 import DescriptionPopover from './DescriptionPopover';
+import AssignmentState from './AssignmentState';
 import FinishedGraderToggles from './FinishedGraderToggles';
 
 export {
@@ -73,5 +74,6 @@ export {
     CGIgnoreFile,
     GradeReminder,
     DescriptionPopover,
+    AssignmentState,
     FinishedGraderToggles,
 };

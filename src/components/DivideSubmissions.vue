@@ -54,7 +54,7 @@ export default {
 
         graders: {
             type: Array,
-            default: [],
+            default: null,
         },
     },
 

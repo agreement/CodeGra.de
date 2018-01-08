@@ -144,4 +144,24 @@ def create_app(config: t.Mapping = None, skip_celery: bool = False) -> t.Any:
             )
             raise
 
+    if hasattr(app, 'debug') and app.debug:  # pragma: no cover
+        import flask_sqlalchemy
+        import flask  # NOQA
+
+        @app.after_request
+        def print_queries(res):  # type: ignore
+            queries = flask_sqlalchemy.get_debug_queries()
+            print(
+                (
+                    '\n{} - - made {} amount of queries totaling '
+                    '{:.4f} seconds. The longest took {:.4f} seconds.'
+                ).format(
+                    flask.request.path,
+                    len(queries),
+                    sum(q.duration for q in queries) if queries else 0,
+                    max(q.duration for q in queries) if queries else 0,
+                )
+            )
+            return res
+
     return app

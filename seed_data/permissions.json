@@ -71,11 +71,47 @@
     "short_description": "Linter",
     "long_description": "Users with this permission can run linters on all submissions of an assignment."
   },
-  "can_manage_course": {
+  "can_edit_assignment_info": {
     "default_value": false,
     "course_permission": true,
-    "short_description": "Manage course",
-    "long_description": "Users with this permission can update various course information via the course management page."
+    "short_description": "Edit assignment info",
+    "long_description": "Users with this permission can update the assignment info such as name, deadline and status."
+  },
+  "can_assign_graders": {
+    "default_value": false,
+    "course_permission": true,
+    "short_description": "Assign graders",
+    "long_description": "Users with this permission can assign a grader to submissions of assignments."
+  },
+  "can_edit_cgignore": {
+    "default_value": false,
+    "course_permission": true,
+    "short_description": "Edit .cgignore",
+    "long_description": "Users with this permission can edit the .cgignore file for an assignment."
+  },
+  "can_upload_bb_zip": {
+    "default_value": false,
+    "course_permission": true,
+    "short_description": "Upload BlackBoard zip",
+    "long_description": "Users with this permission can upload a zip file with submissions in the BlackBoard format."
+  },
+  "can_edit_course_roles": {
+    "default_value": false,
+    "course_permission": true,
+    "short_description": "Edit course roles",
+    "long_description": "Users with this permission can assign or remove permissions from course roles and add new course roles."
+  },
+  "can_edit_course_users": {
+    "default_value": false,
+    "course_permission": true,
+    "short_description": "Edit course users",
+    "long_description": "Users with this permission can add users to this course and assign roles to those users."
+  },
+  "can_create_assignment": {
+    "default_value": false,
+    "course_permission": true,
+    "short_description": "Create assignment",
+    "long_description": "Users with this permission can create new assignments for this course."
   },
   "can_upload_after_deadline": {
     "default_value": false,
@@ -124,6 +160,18 @@
     "course_permission": false,
     "short_description": "Manage site users",
     "long_description": "Users with this permission can change the global permissions for other users on the site."
+  },
+  "can_update_grader_status": {
+    "default_value": false,
+    "course_permission": true,
+    "short_description": "Update grader status",
+    "long_description": "Users with this permission can change the status of graders for this course, whether they are done grading their assigned submissions or not."
+  },
+  "can_update_grading_reminder": {
+    "default_value": false,
+    "course_permission": true,
+    "short_description": "Update grading reminder",
+    "long_description": "Users with this permission can change the type of grading reminder and the time it is sent for assignments of this course."
   },
   "can_search_users": {
     "default_value": true,

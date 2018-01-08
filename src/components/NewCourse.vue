@@ -3,9 +3,10 @@
         <div @keyup.ctrl.enter="submit">
             <b-form-fieldset class="add-course">
                 <b-input-group>
-                    <b-form-input  type="text"
-                                   placeholder="New course name"
-                                   v-model="name"/>
+                    <input type="text"
+                           class="form-control"
+                           placeholder="New course name"
+                           v-model="name"/>
                     <b-button-group>
                         <submit-button ref="submit"
                                        @click="submit"

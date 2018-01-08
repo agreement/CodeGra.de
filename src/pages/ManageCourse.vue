@@ -9,6 +9,7 @@
         <manage-course v-else
                        :assignments="assignments"
                        :course="course"
+                       :permissions="permissions"
                        @created="(assig) => { assignments.push(assig); }"/>
     </div>
 </template>
@@ -16,6 +17,8 @@
 <script>
 import { ManageCourse, Loader } from '@/components';
 import moment from 'moment';
+
+import { MANAGE_COURSE_PERMISSIONS } from '@/constants';
 
 import { setPageTitle } from './title';
 
@@ -28,6 +31,7 @@ export default {
             loading: true,
             created: false,
             course: null,
+            permissions: {},
         };
     },
 
@@ -41,7 +45,14 @@ export default {
         Promise.all([
             this.$http.get(`/api/v1/courses/${this.courseId}/assignments/`),
             this.$http.get(`/api/v1/courses/${this.courseId}`),
-        ]).then(([assignments, course]) => {
+            this.$hasPermission(
+                MANAGE_COURSE_PERMISSIONS,
+                this.courseId,
+                true,
+            ),
+        ]).then(([assignments, course, perms]) => {
+            this.permissions = perms;
+
             let data = assignments.data;
             for (let i = 0, len = data.length; i < len; i += 1) {
                 const deadline = moment.utc(data[i].deadline, moment.ISO_8601).local();

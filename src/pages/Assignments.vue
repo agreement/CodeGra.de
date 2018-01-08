@@ -9,7 +9,7 @@
 </template>
 
 <script>
-import { mapGetters, mapActions } from 'vuex';
+import { mapGetters } from 'vuex';
 import { AssignmentList, Loader } from '@/components';
 import moment from 'moment';
 
@@ -49,11 +49,6 @@ export default {
     components: {
         AssignmentList,
         Loader,
-    },
-    methods: {
-        ...mapActions({
-            hasPermission: 'user/hasPermission',
-        }),
     },
     computed: {
         ...mapGetters('user', [

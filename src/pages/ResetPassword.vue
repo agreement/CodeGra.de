@@ -4,9 +4,16 @@
                          @keyup.native.ctrl.enter="submit">
             <h4>Reset your password</h4>
             <b-input-group left="New password">
-                <b-form-input  :type="newPwVisible ? 'text' : 'password'"
-                               tabindex="1"
-                               v-model="newPw"/>
+                <input v-if="newPwVisible"
+                       type="text"
+                       class="form-control"
+                       tabindex="1"
+                       v-model="newPw"/>
+                <input v-else
+                       type"password"
+                       class="form-control"
+                       tabindex="1"
+                       v-model="newPw"/>
                 <b-input-group-button slot="right">
                     <b-button @click="newPwVisible = !newPwVisible" >
                         <icon v-if="!newPwVisible" name="eye"/>
@@ -15,9 +22,16 @@
                 </b-input-group-button>
             </b-input-group>
             <b-input-group left="Confirm password">
-                <b-form-input  :type="confirmPwVisible ? 'text' : 'password'"
-                               tabindex="2"
-                               v-model="confirmPw"/>
+                <input v-if="confirmPwVisible"
+                       type="text"
+                       class="form-control"
+                       tabindex="2"
+                       v-model="confirmPw"/>
+                <input v-else
+                       type="password"
+                       class="form-control"
+                       tabindex="2"
+                       v-model="confirmPw"/>
                 <b-input-group-button slot="right">
                     <b-button @click="confirmPwVisible = !confirmPwVisible" >
                         <icon v-if="!confirmPwVisible" name="eye"/>

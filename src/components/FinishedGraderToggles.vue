@@ -31,6 +31,7 @@
                     <td>
                         <toggle label-on="Done"
                                 label-off="Grading"
+                                :disabled="!others && $store.getters['user/id'] != grader.id"
                                 style="width: 100%;"
                                 v-model="grader.done"
                                 @input="toggleGrader(grader)"/>
@@ -63,6 +64,11 @@ export default {
         graders: {
             type: Array,
             default: null,
+        },
+
+        others: {
+            type: Boolean,
+            default: false,
         },
     },
 

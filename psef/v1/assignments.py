@@ -182,7 +182,7 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
                                  assignment. (INCORRECT_PERMISSION)
     """
     assig = helpers.get_or_404(models.Assignment, assignment_id)
-    auth.ensure_permission('can_manage_course', assig.course_id)
+    auth.ensure_permission('can_edit_assignment_info', assig.course_id)
     content = ensure_json_dict(request.get_json())
 
     if 'state' in content:
@@ -657,7 +657,7 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
     """
     assignment = helpers.get_or_404(models.Assignment, assignment_id)
 
-    auth.ensure_permission('can_manage_course', assignment.course_id)
+    auth.ensure_permission('can_assign_graders', assignment.course_id)
 
     content = ensure_json_dict(request.get_json())
     ensure_keys_in_dict(content, [('graders', dict)])
@@ -735,7 +735,7 @@ def get_all_graders(
                                  this assignment. (INCORRECT_PERMISSION)
     """
     assignment = helpers.get_or_404(models.Assignment, assignment_id)
-    auth.ensure_permission('can_manage_course', assignment.course_id)
+    auth.ensure_permission('can_see_assignee', assignment.course_id)
 
     result = assignment.get_all_graders(sort=True)
 
@@ -779,10 +779,10 @@ def set_grader_to_not_done(
     :raises APIException: If the given grader was not indicated as done before
         calling this endpoint. (INVALID_STATE)
     :raises PermissionException: If the current user wants to change a status
-        of somebody else but the user does not have the `can_manage_course`
-        permission. (INCORRECT_PERMISSION)
+        of somebody else but the user does not have the
+        `can_update_grader_status` permission. (INCORRECT_PERMISSION)
     :raises PermissionException: If the current user wants to change its own
-        status but does not have the `can_manage_course` or the
+        status but does not have the `can_update_grader_status` or the
         `can_grade_work` permission. (INCORRECT_PERMISSION)
     """
     assig = helpers.get_or_404(models.Assignment, assignment_id)
@@ -790,7 +790,7 @@ def set_grader_to_not_done(
     if current_user.id == grader_id:
         auth.ensure_permission('can_grade_work', assig.course_id)
     else:
-        auth.ensure_permission('can_manage_course', assig.course_id)
+        auth.ensure_permission('can_update_grader_status', assig.course_id)
 
     for finished_grader in assig.finished_graders:
         if finished_grader.user_id == grader_id:
@@ -824,10 +824,10 @@ def set_grader_to_done(assignment_id: int, grader_id: int) -> EmptyResponse:
     :raises APIException: If the given grader was indicated as done before
         calling this endpoint. (INVALID_STATE)
     :raises PermissionException: If the current user wants to change a status
-        of somebody else but the user does not have the `can_manage_course`
-        permission. (INCORRECT_PERMISSION)
+        of somebody else but the user does not have the
+        `can_update_grader_status` permission. (INCORRECT_PERMISSION)
     :raises PermissionException: If the current user wants to change its own
-        status but does not have the `can_manage_course` or the
+        status but does not have the `can_update_grader_status` or the
         `can_grade_work` permission. (INCORRECT_PERMISSION)
     """
     assig = helpers.get_or_404(models.Assignment, assignment_id)
@@ -835,7 +835,7 @@ def set_grader_to_done(assignment_id: int, grader_id: int) -> EmptyResponse:
     if current_user.id == grader_id:
         auth.ensure_permission('can_grade_work', assig.course_id)
     else:
-        auth.ensure_permission('can_manage_course', assig.course_id)
+        auth.ensure_permission('can_update_grader_status', assig.course_id)
 
     if any(g.user_id == grader_id for g in assig.finished_graders):
         raise APIException(
@@ -938,7 +938,7 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
         course attached to the assignment. (INCORRECT_PERMISSION)
     """
     assignment = helpers.get_or_404(models.Assignment, assignment_id)
-    auth.ensure_permission('can_manage_course', assignment.course_id)
+    auth.ensure_permission('can_upload_bb_zip', assignment.course_id)
 
     if len(request.files) == 0:
         raise APIException(

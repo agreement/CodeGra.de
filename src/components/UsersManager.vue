@@ -2,9 +2,10 @@
     <loader v-if="loading"/>
     <div class="users-manager" v-else>
         <b-form-fieldset>
-            <b-form-input v-model="filter"
-                          placeholder="Type to Search"
-                          v-on:keyup.enter="submit"/>
+            <input v-model="filter"
+                   class="form-control"
+                   placeholder="Type to Search"
+                   v-on:keyup.enter="submit"/>
         </b-form-fieldset>
         <b-table striped
                  ref="table"
@@ -66,11 +67,12 @@
                             No results were found. You can search on name and username.
                         </span>
                     </multiselect>
-                    <b-form-input v-model="newStudentUsername"
-                                  placeholder="New students username"
-                                  :disabled="course.is_lti"
-                                  @keyup.native.ctrl.enter="addUser"
-                                  v-else/>
+                    <input v-model="newStudentUsername"
+                           class="form-control"
+                           placeholder="New students username"
+                           :disabled="course.is_lti"
+                           @keyup.native.ctrl.enter="addUser"
+                           v-else/>
 
                     <b-dropdown class="drop"
                                 :text="newRole ? newRole.name : 'Role'"
@@ -93,7 +95,7 @@
 </template>
 
 <script>
-import { mapGetters, mapActions } from 'vuex';
+import { mapGetters } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
 import Multiselect from 'vue-multiselect';
 import 'vue-awesome/icons/times';
@@ -255,14 +257,10 @@ export default {
                 })));
             }
         },
-
-        ...mapActions({
-            hasPermission: 'user/hasPermission',
-        }),
     },
 
     mounted() {
-        this.hasPermission({ name: 'can_search_users' }).then((val) => {
+        this.$hasPermission('can_search_users').then((val) => {
             this.canSearchUsers = val;
         });
 

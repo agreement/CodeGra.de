@@ -17,6 +17,7 @@ import App from '@/App';
 import router from '@/router';
 import store from './store';
 import * as mutationTypes from './store/mutation-types';
+import PermissionStore from './permissions';
 
 Vue.use(BootstrapVue);
 Vue.use(Toasted);
@@ -91,6 +92,11 @@ axios.interceptors.response.use(response => response, (() => {
     };
 })());
 
+const permissionStore = new PermissionStore(axios);
+
+Vue.prototype.$clearPermissions = (...args) => permissionStore.clearCache(...args);
+Vue.prototype.$hasPermission = (...args) => permissionStore.hasPermission(...args);
+
 /* eslint-disable no-new */
 const app = new Vue({
     el: '#app',
@@ -111,6 +117,7 @@ const app = new Vue({
 // Clear some items in vuex store on CTRL-F5
 document.addEventListener('keydown', (event) => {
     if (event.code === 'F5' && event.ctrlKey) {
+        permissionStore.clearCache();
         app.$store.commit(`user/${mutationTypes.CLEAR_CACHE}`);
     }
 }, true);

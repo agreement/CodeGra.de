@@ -2,9 +2,10 @@
     <loader v-if="loading"/>
     <div class="permission-manager" v-else>
         <b-form-fieldset>
-            <b-form-input v-model="filter"
-                          placeholder="Type to Search"
-                          v-on:keyup.enter="submit"/>
+            <input v-model="filter"
+                   class="form-control"
+                   placeholder="Type to Search"
+                   v-on:keyup.enter="submit"/>
         </b-form-fieldset>
         <div class="table-wrapper">
             <b-table striped
@@ -54,9 +55,10 @@
         </div>
         <b-form-fieldset class="add-role" v-if="showAddRole">
             <b-input-group>
-                <b-form-input v-model="newRoleName"
-                              placeholder="Name of new role"
-                              @keyup.native.ctrl.enter="addRole"/>
+                <input v-model="newRoleName"
+                       class="form-control"
+                       placeholder="Name of new role"
+                       @keyup.native.ctrl.enter="addRole"/>
 
                 <b-popover :show="addError !== ''" :content="addError">
                     <b-button-group>
@@ -92,7 +94,7 @@ export default {
         courseId: {},
 
         fixedPermission: {
-            default: 'can_manage_course',
+            default: 'can_edit_course_roles',
             type: String,
         },
 

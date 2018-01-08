@@ -422,7 +422,7 @@ def update_submission_grader(submission_id: int) -> EmptyResponse:
     ensure_keys_in_dict(content, [('user_id', int)])
     user_id = t.cast(int, content['user_id'])
 
-    auth.ensure_permission('can_manage_course', work.assignment.course_id)
+    auth.ensure_permission('can_assign_graders', work.assignment.course_id)
 
     grader = helpers.get_or_404(models.User, user_id)
     if not grader.has_permission('can_grade_work', work.assignment.course_id):
@@ -451,7 +451,7 @@ def delete_submission_grader(submission_id: int) -> EmptyResponse:
     """
     work = helpers.get_or_404(models.Work, submission_id)
 
-    auth.ensure_permission('can_manage_course', work.assignment.course_id)
+    auth.ensure_permission('can_assign_graders', work.assignment.course_id)
 
     work.assignee = None
     db.session.commit()

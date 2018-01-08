@@ -13,8 +13,8 @@ from flask import request
 import psef.auth as auth
 import psef.models as models
 import psef.helpers as helpers
-from psef.models import db
 from psef.errors import APICodes, APIException
+from psef.models import db
 from psef.helpers import (
     JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
     make_empty_response

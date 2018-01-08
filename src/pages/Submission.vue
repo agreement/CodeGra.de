@@ -129,7 +129,6 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/download';
 import 'vue-awesome/icons/times';
@@ -306,16 +305,16 @@ export default {
     mounted() {
         this.loading = true;
         Promise.all([
-            this.hasPermission({
-                name: [
+            this.$hasPermission(
+                [
                     'can_grade_work',
                     'can_see_grade_before_open',
                     'can_delete_submission',
                     'can_view_own_teacher_files',
                     'can_edit_others_work',
                 ],
-                course_id: this.courseId,
-            }),
+                this.courseId,
+            ),
             this.getAssignment(),
             this.getAllSubmissions(),
         ]).then(([[canGrade, canSeeGrade, canDeleteSubmission, ownTeacher, editOthersWork]]) => {
@@ -561,10 +560,6 @@ export default {
                     this.submission);
             }
         },
-
-        ...mapActions({
-            hasPermission: 'user/hasPermission',
-        }),
 
         whitespaceChanged(val) {
             this.showWhitespace = val;
