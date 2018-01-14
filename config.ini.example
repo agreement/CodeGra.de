@@ -162,6 +162,11 @@
 # `rubrics` is not set to `true`.
 # incremental_rubric_submission = true
 
+# Should it be possible to register on the website. This makes it possible for
+# any body to register an account on the website. The role they are given is
+# determined by `default_role` (see above).
+# register = true
+
 # All LTI consumer keys mapped to secret keys. Please add your own, these ARE
 # case sensitive.
 [LTI Consumer keys]

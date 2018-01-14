@@ -36,7 +36,7 @@ def login() -> ExtendedJSONResponse[t.Mapping[str, t.Union[models.User, str]]]:
     :returns: A response containing the JSON serialized user
 
     :<json str email: The email of the user to log in.
-    :<json str password: The password of the user to log in.
+    :<json str username: The password of the user to log in.
 
     :>json user: The user that was logged in.
     :>jsonobj user: :py:class:`~.models.User`

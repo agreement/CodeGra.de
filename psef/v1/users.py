@@ -8,13 +8,18 @@ directory "login" should be used.
 """
 import typing as t
 
-from flask import request
+import flask_jwt_extended as flask_jwt
+from flask import request, current_app
+from validate_email import validate_email
+from flask_limiter.util import get_remote_address
 from sqlalchemy.sql.expression import or_
 
 import psef.auth as auth
 import psef.models as models
-from psef import limiter, current_user
+import psef.helpers as helpers
+from psef import app, limiter, current_user
 from psef.errors import APICodes, APIException
+from psef.models import db
 from psef.helpers import (
     JSONType, JSONResponse, EmptyResponse, jsonify, escape_like,
     ensure_json_dict, ensure_keys_in_dict, make_empty_response
@@ -62,3 +67,89 @@ def search_users() -> JSONResponse[t.Sequence[models.User]]:
         ) for col in [models.User.name, models.User.username]
     ]
     return jsonify(models.User.query.filter(or_(*likes)).all())
+
+
+@api.route('/user', methods=['POST'])
+@helpers.feature_required('REGISTER')
+@limiter.limit('1 per second', key_func=get_remote_address)
+def register_user() -> JSONResponse[t.Mapping[str, str]]:
+    """Create a new :class:`.models.User`.
+
+    .. :quickref: User; Create a new user by registering it.
+
+    :<json str username: The username of the new user.
+    :<json str password: The password of the new user.
+    :<json str email: The email of the new user.
+    :<json str name: The full name of the new user.
+
+    :>json str access_token: The JWT token that can be used to log in the newly
+        created user.
+
+    :raises APIException: If the not all given strings are at least 1
+        char. (INVALID_PARAM)
+    :raises APIException: If there is already a user with the given
+        username. (OBJECT_ALREADY_EXISTS)
+    :raises APIException: If the given email is not a valid
+        email. (INVALID_PARAM)
+    """
+    content = ensure_json_dict(request.get_json())
+    ensure_keys_in_dict(
+        content,
+        [('username', str),
+         ('password', str),
+         ('email', str),
+         ('name', str)]
+    )
+    username = t.cast(str, content['username'])
+    password = t.cast(str, content['password'])
+    email = t.cast(str, content['email'])
+    name = t.cast(str, content['name'])
+
+    if not all([username, password, email, name]):
+        raise APIException(
+            'All fields should contain at least one character',
+            (
+                'The lengths of the given password, username and '
+                'email were not all larger than 1'
+            ),
+            APICodes.INVALID_PARAM,
+            400,
+        )
+
+    if db.session.query(
+        models.User.query.filter_by(username=username).exists()
+    ).scalar():
+        raise APIException(
+            'The given username is already in use',
+            f'The username "{username}" is taken',
+            APICodes.OBJECT_ALREADY_EXISTS,
+            400,
+        )
+
+    if not validate_email(email):
+        raise APIException(
+            'The given email is not valid',
+            f'The email "{email}"',
+            APICodes.INVALID_PARAM,
+            400,
+        )
+
+    role = models.Role.query.filter_by(
+        name=current_app.config['DEFAULT_ROLE']
+    ).one()
+    user = models.User(
+        username=username,
+        password=password,
+        email=email,
+        name=name,
+        role=role,
+        active=True
+    )
+    db.session.add(user)
+    db.session.commit()
+
+    token: str = flask_jwt.create_access_token(
+        identity=user.id,
+        fresh=True,
+    )
+    return jsonify({'access_token': token})

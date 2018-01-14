@@ -209,6 +209,9 @@ set_bool(
     CONFIG['FEATURES'], feature_ops, 'INCREMENTAL_RUBRIC_SUBMISSION', True
 )
 
+# Should it be possible to register
+set_bool(CONFIG['FEATURES'], feature_ops, 'REGISTER', True)
+
 ############
 # LTI keys #
 ############

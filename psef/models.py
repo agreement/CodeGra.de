@@ -2019,7 +2019,7 @@ class Assignment(Base):
     :ivar deadline: The deadline of this assignment.
     :ivar _mail_task_id: This is the id of the current task that will email all
         the TA's to hurry up with grading.
-    :ivar :reminder_email_time: The time the reminder email should be send. To
+    :ivar reminder_email_time: The time the reminder email should be send. To
         see if we should actually send these reminders look at `reminder_type`
     :ivar reminder_type: The type of reminder that should be send.
     :ivar assigned_graders: All graders that are assigned to grade mapped by

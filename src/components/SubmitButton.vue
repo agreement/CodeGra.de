@@ -6,6 +6,7 @@
         <b-button :disabled="pending || disabled"
                   :variant="variants[state]"
                   :size="size"
+                  :tabindex="tabindex"
                   @click="$emit('click', $event)">
             <loader :scale="1" :center="false" v-if="pending"/>
             <span v-else-if="label">{{ label }}</span>
@@ -35,6 +36,9 @@ export default {
     },
 
     props: {
+        tabindex: {
+            default: '0',
+        },
         popoverPlacement: {
             type: String,
             default: 'top',

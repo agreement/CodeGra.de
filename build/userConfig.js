@@ -28,6 +28,7 @@ config.features = Object.assign({}, {
     automatic_lti_role: true,
     LTI: true,
     incremental_rubric_submission: true,
+    register: true,
 }, userConfig.Features);
 
 module.exports = config;

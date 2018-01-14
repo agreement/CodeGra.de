@@ -1,8 +1,9 @@
 <template>
     <b-popover :placement="placement"
                :content="description"
-               triggers="hover"
+               :triggers="triggers"
                class="description-popover"
+               :show="show"
                :style="{ float: hugText ? 'none' : 'right' }">
         <sup v-if="hugText" class="desc-pop-span">
             <icon name="info" scale="0.75"/>
@@ -23,6 +24,16 @@ export default {
     props: {
         description: {
             type: String,
+        },
+
+        triggers: {
+            type: [String, Array],
+            default: 'hover',
+        },
+
+        show: {
+            type: Boolean,
+            default: false,
         },
 
         hugText: {

@@ -52,7 +52,7 @@ def limiter_key_func() -> None:  # pragma: no cover
     """This is the default key function for the limiter.
 
     The key function should be set locally at every place the limiter is used
-    so this function always raises a :py:exception:`ValueError`.
+    so this function always raises a :py:exc:`ValueError`.
     """
     raise ValueError('Key function should be overridden')
 

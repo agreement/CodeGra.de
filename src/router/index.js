@@ -1,7 +1,7 @@
 import Vue from 'vue';
 import Router from 'vue-router';
 import store from '@/store';
-import { ResetPassword, LTILaunch, Assignments, Courses, Home, Login, ManageCourse, Submission, Submissions, User } from '@/pages';
+import { ResetPassword, LTILaunch, Assignments, Courses, Home, Login, ManageCourse, Submission, Submissions, User, Registration } from '@/pages';
 
 import { setPageTitle } from '@/pages/title';
 
@@ -71,12 +71,25 @@ const router = new Router({
             name: 'assignment_manage',
             component: ManageCourse,
         },
+        {
+            path: '/register',
+            name: 'register',
+            component: Registration,
+        },
     ],
 });
 
 // Stores path of page that requires login when user is not
 // logged in, so we can restore it when the user logs in.
 let restorePath = '';
+
+const notLoggedInRoutes = new Set([
+    'home',
+    'lti-launch',
+    'reset-password',
+    'login',
+    'register',
+]);
 
 router.beforeEach((to, from, next) => {
     // Unset page title. Pages will set  title,
@@ -89,7 +102,7 @@ router.beforeEach((to, from, next) => {
         const path = restorePath;
         restorePath = '';
         next({ path });
-    } else if (!loggedIn && to.path !== '/login' && to.name !== 'home' && to.name !== 'lti-launch' && to.name !== 'reset-password') {
+    } else if (!loggedIn && !notLoggedInRoutes.has(to.name)) {
         store.dispatch('user/verifyLogin').then(() => {
             next();
         }).catch(() => {

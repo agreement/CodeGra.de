@@ -405,7 +405,7 @@ def create_new_assignment(course_id: int) -> JSONResponse[models.Assignment]:
 
     :param int course_id: The course to create an assignment in.
 
-    :>json str name: The name of the new assignment.
+    :<json str name: The name of the new assignment.
 
     :returns: The newly created assignment.
 
