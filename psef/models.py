@@ -27,8 +27,15 @@ import psef
 import psef.auth as auth
 from psef import app
 from psef.helpers import between, get_request_start_time
+from psef.model_types import T, MyDb, DbColumn, MySession
 
-db = SQLAlchemy(session_options={'autocommit': False, 'autoflush': False})
+db = t.cast(
+    'MyDb',
+    SQLAlchemy(session_options={
+        'autocommit': False,
+        'autoflush': False
+    })
+)
 
 
 def init_app(app: t.Any) -> None:
@@ -54,69 +61,9 @@ def init_app(app: t.Any) -> None:
 
 
 UUID_LENGTH = 36
-T = t.TypeVar('T')
 
-if t.TYPE_CHECKING:  # pragma: no cover
-
-    class Base:
-        query = None  # type: t.ClassVar[t.Any]
-
-        def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
-            pass
-
-    class DbColumn(t.Generic[T]):
-        def in_(self, val: t.Union[t.Sequence[T], 'DbColumn']) -> 'DbColumn':
-            ...
-
-    class _MyQuery(t.Generic[T], t.Iterable):
-        def get(self, *args: t.Any, **kwargs: t.Any) -> t.Union[T, None]:
-            ...
-
-        def all(self) -> t.List[T]:
-            ...
-
-        def first(self) -> t.Optional[T]:
-            ...
-
-        def exists(self) -> bool:
-            ...
-
-        def count(self) -> int:
-            ...
-
-        def one(self) -> T:
-            ...
-
-        def update(self, vals: t.Mapping[str, t.Any]) -> None:
-            ...
-
-        def join(self, *args: t.Any, **kwargs: t.Any) -> '_MyQuery[T]':
-            ...
-
-        def order_by(self, *args: t.Any, **kwargs: t.Any) -> '_MyQuery[T]':
-            ...
-
-        def filter(self, *args: t.Any, **kwargs: t.Any) -> '_MyQuery[T]':
-            ...
-
-        def filter_by(self, *args: t.Any, **kwargs: t.Any) -> '_MyQuery[T]':
-            ...
-
-        def options(self, *args: t.Any) -> '_MyQuery[T]':
-            ...
-
-        def __iter__(self) -> t.Iterator[T]:
-            ...
-
-        def delete(self) -> None:
-            ...
-
-        def having(self, *args: t.Any) -> '_MyQuery[T]':
-            ...
-
-        def group_by(self, arg: t.Any) -> '_MyQuery[T]':
-            ...
-
+if t.TYPE_CHECKING:  # pragma: no cover:
+    from psef.model_types import _MyQuery, Base
 else:
     Base = db.Model
 
@@ -712,11 +659,14 @@ class User(Base):
 
         crp = db.session.query(
             course_permissions.c.course_role_id,
-            Permission.id,
+            t.cast(DbColumn[int], Permission.id),
         ).join(
             Permission,
             course_permissions.c.permission_id == Permission.id,
-        ).filter(Permission.id.in_(p.id for p in permissions)).subquery('crp')
+        ).filter(
+            t.cast(DbColumn[int],
+                   Permission.id).in_(p.id for p in permissions)
+        ).subquery('crp')
 
         res: t.Sequence[t.Tuple[int, int]]
         res = db.session.query(course_roles.c.course_id, crp.c.id).join(
@@ -1005,10 +955,14 @@ class GradeHistory(Base):
     passed_back: bool = db.Column('passed_back', db.Boolean, default=False)
 
     work_id: int = db.Column(
-        'Work_id', db.Integer, db.ForeignKey('Work.id', ondelete='CASCADE')
+        'Work_id',
+        db.Integer,
+        db.ForeignKey('Work.id', ondelete='CASCADE'),
     )
     user_id: int = db.Column(
-        'User_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
+        'User_id',
+        db.Integer,
+        db.ForeignKey('User.id', ondelete='CASCADE'),
     )
 
     work = db.relationship('Work', foreign_keys=work_id)  # type: 'Work'
@@ -1121,7 +1075,13 @@ class Work(Base):
             return between(0, selected / max_points * 10, 10)
         return self._grade
 
-    def set_grade(self, new_grade: float, user: User) -> None:
+    def set_grade(
+        self,
+        new_grade: float,
+        user: User,
+        add_to_session: bool = True,
+        never_passback: bool = False,
+    ) -> GradeHistory:
         """Set the grade to the new grade.
 
         .. note:: This also passes back the grade to LTI if this is necessary
@@ -1129,6 +1089,9 @@ class Work(Base):
 
         :param new_grade: The new grade to set
         :param user: The user setting the new grade.
+        :param add_to_session: Add the newly created history file to the
+            current session.
+        :param never_passback: Never passback the new grade.
         :returns: Nothing
         """
         self._grade = new_grade
@@ -1141,10 +1104,12 @@ class Work(Base):
             work=self,
             user=user
         )
-        db.session.add(history)
-        db.session.flush()
-        if passback:
+        if add_to_session:
+            db.session.add(history)
+        if not never_passback and passback:
             psef.tasks.passback_grades([self.id])
+
+        return history
 
     @property
     def selected_rubric_points(self) -> float:
@@ -1181,12 +1146,12 @@ class Work(Base):
                 url=url,
             )
             sq = db.session.query(
-                GradeHistory.id
+                t.cast(DbColumn[int], GradeHistory.id)
             ).filter_by(work_id=self.id).order_by(
                 GradeHistory.changed_at.desc(),  # type: ignore
             ).limit(1).with_for_update()
-            db.session.query(GradeHistory).filter_by(
-                id=sq.as_scalar(),
+            db.session.query(GradeHistory).filter(
+                GradeHistory.id == sq.as_scalar(),
             ).update(
                 {
                     'passed_back': True
@@ -1474,7 +1439,7 @@ class Work(Base):
             if parent is not None:
                 parent = parent.c.id
 
-            parent = db.session.query(File.id).filter(
+            parent = db.session.query(t.cast(DbColumn[int], File.id)).filter(
                 File.name == pathpart,
                 File.parent_id == parent,
                 File.work_id == self.id,
@@ -1549,7 +1514,7 @@ class File(Base):
     )
 
     is_directory: bool = db.Column('is_directory', db.Boolean)
-    parent_id: int = db.Column(db.Integer, db.ForeignKey('File.id'))
+    parent_id = db.Column('parent_id', db.Integer, db.ForeignKey('File.id'))
 
     # This variable is generated from the backref from the parent
     children: '_MyQuery["File"]'
@@ -1647,19 +1612,21 @@ class File(Base):
         if not self.is_directory:
             return {"name": self.name, "id": self.id}
         else:
-            children = sorted(
-                (
-                    child.list_contents(exclude)
-                    for child in
-                    self.children.filter(File.fileowner != exclude)
-                ),
-                key=lambda el: el['name'].lower()
-            )
+            children = [
+                child.list_contents(exclude)
+                for child in self.get_sorted_children(exclude)
+            ]
             return {
                 "name": self.name,
                 "id": self.id,
                 "entries": children,
             }
+
+    def get_sorted_children(self, exclude: FileOwner) -> t.List['File']:
+        return sorted(
+            self.children.filter(File.fileowner != exclude),
+            key=lambda el: el.name.lower(),
+        )
 
     def rename_code(
         self,
@@ -1729,7 +1696,9 @@ class LinterComment(Base):
         db.ForeignKey('File.id', ondelete='CASCADE'),
         index=True
     )
-    linter_id: str = db.Column(db.Unicode, db.ForeignKey('LinterInstance.id'))
+    linter_id = db.Column(
+        'linter_id', db.Unicode, db.ForeignKey('LinterInstance.id')
+    )
 
     line: int = db.Column('line', db.Integer)
     linter_code: str = db.Column('linter_code', db.Unicode)
@@ -1928,8 +1897,8 @@ class LinterInstance(Base):
     work_id: int = db.Column(
         'Work_id', db.Integer, db.ForeignKey('Work.id', ondelete='CASCADE')
     )
-    tester_id: int = db.Column(
-        db.Unicode, db.ForeignKey('AssignmentLinter.id')
+    tester_id: str = db.Column(
+        'tester_id', db.Unicode, db.ForeignKey('AssignmentLinter.id')
     )
 
     tester: AssignmentLinter = db.relationship(
@@ -2214,6 +2183,22 @@ class Assignment(Base):
         return _AssignmentStateEnum(self.state).name
 
     @property
+    def whitespace_linter_exists(self) -> bool:
+        if not hasattr(self, '_whitespace_linter_exists'):
+            self._whitespace_linter_exists = db.session.query(
+                AssignmentLinter.query.filter(
+                    AssignmentLinter.assignment_id == self.id,
+                    AssignmentLinter.name == 'MixedWhitespace'
+                ).exists()
+            ).scalar()
+
+        return self._whitespace_linter_exists
+
+    @whitespace_linter_exists.setter
+    def whitespace_linter_exists(self, exists: bool) -> None:
+        self._whitespace_linter_exists = exists
+
+    @property
     def whitespace_linter(self) -> bool:
         """Check if this assignment has an associated MixedWhitespace linter.
 
@@ -2233,12 +2218,7 @@ class Assignment(Base):
         except auth.PermissionException:
             return False
         else:
-            return db.session.query(
-                AssignmentLinter.query.filter(
-                    AssignmentLinter.assignment_id == self.id,
-                    AssignmentLinter.name == 'MixedWhitespace'
-                ).exists()
-            ).scalar()
+            return self.whitespace_linter_exists
 
     def __to_json__(self) -> t.Mapping[str, t.Any]:
         """Creates a JSON serializable representation of this object.
@@ -2500,12 +2480,13 @@ class Assignment(Base):
         :returns: A query with items selected as described above.
         """
         us = db.session.query(
-            User.name.label("name"),  # type: ignore
-            User.id.label("id"),  # type: ignore
-            (
-                ~AssignmentGraderDone.user_id.is_(None)  # type: ignore
+            t.cast(DbColumn[str], User.name).label("name"),
+            t.cast(DbColumn[int], User.id).label("id"),
+            t.cast(
+                DbColumn[bool],
+                ~t.cast(DbColumn[int], AssignmentGraderDone.user_id).is_(None)
             ).label("done"),
-            user_course.c.course_id.label("course_id"),
+            t.cast(DbColumn[int], user_course.c.course_id).label("course_id"),
         ).join(
             AssignmentGraderDone,
             and_(
@@ -2529,9 +2510,11 @@ class Assignment(Base):
             Permission.name == 'can_grade_work',
         ).subquery('per')
 
-        res = db.session.query(us.c.name, us.c.id, us.c.done).join(
-            per, us.c.course_id == per.c.course_role_id
-        )
+        res = db.session.query(
+            t.cast(str, us.c.name),
+            t.cast(int, us.c.id),
+            t.cast(bool, us.c.done),
+        ).join(per, us.c.course_id == per.c.course_role_id)
 
         if sort:
             res = res.order_by(func.lower(us.c.name))
@@ -2591,8 +2574,8 @@ class RubricRow(Base):
     )
     header: str = db.Column('header', db.Unicode)
     description: str = db.Column('description', db.Unicode, default='')
-    created_at: datetime.datetime = db.Column(
-        db.DateTime, default=datetime.datetime.utcnow
+    created_at = db.Column(
+        'created_at', db.DateTime, default=datetime.datetime.utcnow
     )
     items = db.relationship(
         "RubricItem", backref="rubricrow", cascade='delete-orphan, delete'

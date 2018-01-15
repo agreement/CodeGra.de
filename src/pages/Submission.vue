@@ -212,6 +212,11 @@ export default {
         },
 
         submission(submission) {
+            if (submission.id === this.submissionId) {
+                this.initalLoad = false;
+                return;
+            }
+
             this.submissionId = submission.id;
             if (!this.initialLoad) {
                 this.fileTree = null;
@@ -317,6 +322,7 @@ export default {
             ),
             this.getAssignment(),
             this.getAllSubmissions(),
+            this.getSubmissionData(),
         ]).then(([[canGrade, canSeeGrade, canDeleteSubmission, ownTeacher, editOthersWork]]) => {
             this.editable = canGrade;
             this.canSeeFeedback = canSeeGrade;

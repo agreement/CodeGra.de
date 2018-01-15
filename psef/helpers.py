@@ -18,10 +18,13 @@ import psef.json as json
 import psef.errors
 import psef.models
 
+if t.TYPE_CHECKING:  # pragma: no cover
+    from psef import model_types
+
 #: Type vars
 T = t.TypeVar('T')
 Z = t.TypeVar('Z', bound='Comparable')
-Y = t.TypeVar('Y', bound='psef.models.Base')
+Y = t.TypeVar('Y', bound='model_types.Base')
 
 
 class Comparable(Protocol):  # pragma: no cover
@@ -260,7 +263,7 @@ def get_or_404(model: t.Type[Y], object_id: t.Any) -> Y:
     :raises APIException: If no object with the given id could be found.
         (OBJECT_ID_NOT_FOUND)
     """
-    obj: t.Optional[Y] = model.query.get(object_id)
+    obj: t.Optional[Y] = psef.models.db.session.query(model).get(object_id)
     if obj is None:
         raise psef.errors.APIException(
             f'The requested "{model.__name__}" was not found',
@@ -348,6 +351,7 @@ def extended_jsonify(
     obj: T,
     status_code: int = 200,
     warning: t.Optional[psef.errors.HttpWarning] = None,
+    use_extended: t.Callable[[object], bool] = lambda _: True
 ) -> ExtendedJSONResponse[T]:
     """Create a response with the given object ``obj`` as json payload.
 
@@ -358,10 +362,14 @@ def extended_jsonify(
         :py:class:`~.psef.json.CustomExtendedJSONEncoder`
     :param statuscode: The status code of the response
     :param warning: The warning that should be added to the response
+    :param use_extended: The ``__extended_to_json__`` method is only used if
+        this function returns something that equals to ``True``. This method is
+        called with object that is currently being encoded.
     :returns: The response with the jsonified object as payload
     """
+
     try:
-        psef.app.json_encoder = json.CustomExtendedJSONEncoder
+        psef.app.json_encoder = json.get_extended_encoder_class(use_extended)
         response = flask.make_response(flask.jsonify(obj))
     finally:
         psef.app.json_encoder = json.CustomJSONEncoder

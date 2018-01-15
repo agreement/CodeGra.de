@@ -15,6 +15,7 @@
             :submissions="submissions"
             :canDownload="canDownload"
             :rubric="rubric"
+            :graders="graders"
             @assigneeUpdated="updateAssignee"/>
 
         <b-modal id="wrong-files-modal" hide-footer>
@@ -74,6 +75,7 @@ export default {
             canDownload: false,
             canManage: false,
             rubric: null,
+            graders: null,
             inLTI: window.inLTI,
             wrongFiles: [],
         };
@@ -98,19 +100,18 @@ export default {
 
     mounted() {
         this.loading = true;
+
         Promise.all([
-            this.$http.get(`/api/v1/courses/${this.courseId}`),
             this.$http.get(`/api/v1/assignments/${this.assignmentId}`),
             this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`),
             this.$http.get(`/api/v1/assignments/${this.assignmentId}/rubrics/`).catch(() => ({ data: null })),
         ]).then(([
-            { data: course },
             { data: assignment },
             { data: submissions },
             { data: rubric },
         ]) => {
             let done = false;
-            this.course = course;
+            this.course = assignment.course;
             this.assignment = assignment;
             this.submissions = submissions;
             this.rubric = rubric;
@@ -150,6 +151,19 @@ export default {
         }, (err) => {
             // eslint-disable-next-line
             console.dir(err);
+        });
+
+        this.$hasPermission([
+            'can_assign_graders',
+            'can_see_assignee',
+        ], this.courseId).then(([assign, see]) => {
+            if (assign && see) {
+                this.$http.get(`/api/v1/assignments/${this.assignmentId}/graders/`).then(({ data }) => {
+                    this.graders = data;
+                }).catch(() => {
+                    this.graders = null;
+                });
+            }
         });
     },
 

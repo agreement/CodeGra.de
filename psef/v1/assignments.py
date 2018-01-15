@@ -15,8 +15,10 @@ from collections import defaultdict
 
 import flask
 import dateutil
+import sqlalchemy.sql as sql
+import flask_sqlalchemy  # XXX: Remove em
 from flask import request, send_file, after_this_request
-from sqlalchemy.orm import joinedload, undefer_group
+from sqlalchemy.orm import undefer, joinedload
 
 import psef
 import psef.auth as auth
@@ -39,7 +41,7 @@ from . import linters as linters_routes
 from . import api
 
 
-@api.route("/assignments/", methods=['GET'])
+@api.route('/assignments/', methods=['GET'])
 @auth.login_required
 def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
     """Get all the :class:`.models.Assignment` objects that the current user
@@ -63,15 +65,28 @@ def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
     res = []
 
     if courses:
-        assignment: models.Assignment
-        for assignment in models.Assignment.query.filter(
-            models.Assignment.course_id.in_(courses)  # type: ignore
+        for assignment, has_linter in db.session.query(
+            models.Assignment,
+            t.cast(models.DbColumn[str],
+                   models.AssignmentLinter.id).isnot(None)
+        ).filter(
+            t.cast(models.DbColumn[int],
+                   models.Assignment.course_id).in_(courses)
+        ).join(
+            models.AssignmentLinter,
+            sql.expression.and_(
+                models.Assignment.id == models.AssignmentLinter.assignment_id,
+                models.AssignmentLinter.name == 'MixedWhitespace'
+            ),
+            isouter=True
         ).all():
             has_perm = current_user.has_permission(
                 'can_see_hidden_assignments', assignment.course_id
             )
+            assignment.whitespace_linter_exists = has_linter
             if ((not assignment.is_hidden) or has_perm):
                 res.append(assignment)
+
     return jsonify(res)
 
 
@@ -908,8 +923,11 @@ def get_all_works_for_assignment(
     extended = request.args.get('extended', 'false').lower()
 
     if extended in {'true', '1', ''}:
-        obj = obj.options(undefer_group(models.Work.comment))
-        return extended_jsonify(obj.all())
+        obj = obj.options(undefer(models.Work.comment))
+        return extended_jsonify(
+            obj.all(),
+            use_extended=lambda obj: isinstance(obj, models.Work),
+        )
     else:
         return jsonify(obj.all())
 
@@ -976,11 +994,21 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
     student_course_role = models.CourseRole.query.filter_by(
         name='Student', course_id=assignment.course_id
     ).first()
+    global_role = models.Role.query.filter_by(name='Student').first()
+
+    subs = []
+    hists = []
+
+    found_users = {
+        u.username: u
+        for u in models.User.query.filter(
+            t.cast(models.DbColumn[str], models.User.username)
+            .in_([si.student_id for si, _ in submissions])
+        ).options(joinedload(models.User.courses))
+    }
 
     for submission_info, submission_tree in submissions:
-        user = models.User.query.filter_by(
-            username=submission_info.student_id
-        ).first()
+        user = found_users.get(submission_info.student_id, None)
 
         if user is None:
             # TODO: Check if this role still exists
@@ -989,24 +1017,25 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
                 username=submission_info.student_id,
                 courses={assignment.course_id: student_course_role},
                 email='',
-                password=submission_info.student_id,
-                role=models.Role.query.filter_by(name='Student').first()
+                password=None,
+                role=global_role,
             )
-
-            db.session.add(user)
+            found_users[user.username] = user
+            # We don't need to track the users to insert as we are already
+            # tracking the submissions of them and they are coupled.
         else:
             user.courses[assignment.course_id] = student_course_role
 
         work = models.Work(
-            assignment_id=assignment.id,
+            assignment=assignment,
             user=user,
             created_at=submission_info.created_at,
         )
-
-        db.session.add(work)
+        subs.append(work)
 
         if user.id is not None and user.id in sub_lookup:
             work.assigned_to = sub_lookup[user.id].assigned_to
+
         if work.assigned_to is None:
             if missing:
                 work.assigned_to = max(
@@ -1015,10 +1044,21 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
                 missing = recalc_missing(work.assigned_to)
                 sub_lookup[user.id] = work
 
-        db.session.flush()
-        work.set_grade(submission_info.grade, current_user)
+        hists.append(
+            work.set_grade(
+                submission_info.grade, current_user, add_to_session=False
+            )
+        )
         work.add_file_tree(db.session, submission_tree)
 
+    db.session.bulk_save_objects(subs)
+    db.session.flush()
+
+    for h in hists:
+        h.work_id = h.work.id
+        h.user_id = h.user.id
+
+    db.session.bulk_save_objects(hists)
     db.session.commit()
 
     return make_empty_response()

@@ -355,14 +355,19 @@ def get_all_course_users(course_id: int
 
     users: t.Sequence['sqlalchemy.util.KeyedTuple']
     users = db.session.query(models.User, models.CourseRole).join(
-        models.user_course, models.user_course.c.user_id == models.User.id
+        models.user_course,
+        models.user_course.c.user_id == models.User.id,
     ).join(
         models.CourseRole,
         models.CourseRole.id == models.user_course.c.course_id
     ).filter(models.CourseRole.course_id == course_id).all()
 
+    user_course: t.List[_UserCourse]
     user_course = [
-        t.cast(_UserCourse, dict(zip(row.keys(), row))) for row in users
+        {
+            'User': user,
+            'CourseRole': crole
+        } for user, crole in users
     ]
     return jsonify(sorted(user_course, key=lambda item: item['User'].name))
 

@@ -198,12 +198,15 @@ def get_feedback(file: models.File, linter: bool = False) -> _FeedbackMapping:
         in the form ``{line: comment}``.
     """
     res: _FeedbackMapping = {}
+    comments: t.Union[t.List[models.Comment], t.List[models.LinterComment]]
+
     try:
         auth.ensure_can_see_grade(file.work)
 
         if linter:
-            comments = db.session.query(models.LinterComment
-                                        ).filter_by(file_id=file.id).all()
+            comments = db.session.query(
+                models.LinterComment,
+            ).filter_by(file_id=file.id).all()
 
             for linter_comment in comments:  # type: models.LinterComment
                 line = str(linter_comment.line)
@@ -212,8 +215,9 @@ def get_feedback(file: models.File, linter: bool = False) -> _FeedbackMapping:
                 name = linter_comment.linter.tester.name
                 res[line].append((name, linter_comment))  # type: ignore
         else:
-            comments = db.session.query(models.Comment
-                                        ).filter_by(file_id=file.id).all()
+            comments = db.session.query(
+                models.Comment,
+            ).filter_by(file_id=file.id).all()
 
             for human_comment in comments:  # type: models.Comment
                 res[str(human_comment.line)] = human_comment

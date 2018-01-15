@@ -116,6 +116,10 @@ export default {
         rubric: {
             default: null,
         },
+        graders: {
+            default: null,
+            type: Array,
+        },
     },
 
     data() {
@@ -145,7 +149,6 @@ export default {
                 },
             },
             assigneeFilter: false,
-            canChangeAssignee: false,
             assignees: [],
             assigneeUpdating: [],
             error: '',
@@ -157,6 +160,10 @@ export default {
             userId: 'id',
             userName: 'name',
         }),
+
+        canChangeAssignee() {
+            return this.graders != null;
+        },
 
         exportFilename() {
             return this.assignment ? `${this.assignment.course.name}-${this.assignment.name}.csv` : null;
@@ -188,34 +195,34 @@ export default {
         submissions(submissions) {
             this.latest = this.getLatest(submissions);
         },
+
+        graders(graders) {
+            if (graders == null) return;
+
+            this.updateGraders(graders);
+        },
     },
 
     mounted() {
-        this.$hasPermission(
-            'can_assign_graders',
-            this.assignment.course.id,
-        ).then((canChangeAssignee) => {
-            if (canChangeAssignee) {
-                this.$http.get(`/api/v1/assignments/${this.assignment.id}/graders/`).then((res) => {
-                    const assignees = res.data.map(ass =>
-                        ({ value: ass.id, text: ass.name, data: ass }));
-                    assignees.unshift({ value: null, text: '-', data: null });
-                    this.assignees = assignees;
-                    this.canChangeAssignee = canChangeAssignee;
-                }, ({ response }) => {
-                    this.error = `There was an issue loading the graders from the server: ${response.data.message}`;
-                });
-            }
-        });
-
         this.assigneeFilter = this.submissions.some(s => s.assignee &&
                                                     s.assignee.id === this.userId);
         this.$refs.table.sortBy = this.$route.query.sortBy || 'user';
         // Fuck you bootstrapVue (sortDesc should've been sortAsc).
         this.$refs.table.sortDesc = parseBool(this.$route.query.sortAsc, true);
+
+        if (this.graders) {
+            this.updateGraders(this.graders);
+        }
     },
 
     methods: {
+        updateGraders(graders) {
+            const assignees = graders.map(ass =>
+                                          ({ value: ass.id, text: ass.name, data: ass }));
+            assignees.unshift({ value: null, text: '-', data: null });
+            this.assignees = assignees;
+        },
+
         getLatest(submissions) {
             const latest = {};
             submissions.forEach((item) => {
