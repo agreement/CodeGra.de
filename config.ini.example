@@ -85,11 +85,27 @@
 # This email is a reminder that you have work left to grade on the assignment
 # "{assig_name}" on <a href="{site_url}">{site_url}</a>. If you go to <a
 # href="{url}">this page</a> you can directly continue grading, which of
-# course is joyful business on CodeGra.de! Good luck with grading.
+# course is joyful business on CodeGra.de! Good luck with grading.</p>
 #
 # This email was automatically sent because of reminder that was set for this
 # assignment and you have not yet indicated you were done grading. You can
 # indicate this <a href="{site_url}/courses/{course_id}">here</a>.
+
+# This is the template that gets sent to graders when their status is reset to
+# 'not done' by something that is not them selves toggeling it. The rules and
+# variables for this template are the same as for the `reminder_template`
+# variable.
+# grader_status_template = <p>Dear {user_name},
+#
+# This email is a reminder that your grade status has been reset to 'not done'
+# for "{assig_name}" on <a href="{site_url}">{site_url}</a>. If you go to <a
+# href="{site_url}/courses/{course_id}/assignments/{assig_id}/submissions">this
+# page</a> you can directly continue grading, which of course is joyful business
+# on CodeGra.de! Good luck with grading.
+#
+# This email was automatically sent. The reason for this can be that a course
+# admin has reset your status or that you have been assigned new
+# submission(s).</p>
 
 # Time in seconds a user has to reset his or her password after the e-mail is
 # sent in seconds.

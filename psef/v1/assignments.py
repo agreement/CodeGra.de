@@ -19,6 +19,7 @@ import sqlalchemy.sql as sql
 import flask_sqlalchemy  # XXX: Remove em
 from flask import request, send_file, after_this_request
 from sqlalchemy.orm import undefer, joinedload
+from werkzeug.datastructures import FileStorage
 
 import psef
 import psef.auth as auth
@@ -539,6 +540,58 @@ def patch_rubric_row(
     return len(rubric_row.items)
 
 
+def get_submission_files_from_request(
+    check_size: bool,
+) -> t.MutableSequence[FileStorage]:
+    """Get all the submitted files in the current request.
+
+    This function also checks if the files are in the correct format and are
+    lot too large.
+
+    :returns: The files in the current request. The length of this list is
+        always at least one.
+    :raises APIException: When a given files is not correct.
+    """
+    res = []
+
+    if (
+        check_size and
+        request.content_length and
+        request.content_length > app.config['MAX_UPLOAD_SIZE']
+    ):
+        raise APIException(
+            'Uploaded files are too big.', 'Request is bigger than maximum '
+            f'upload size of {app.config["MAX_UPLOAD_SIZE"]}.',
+            APICodes.REQUEST_TOO_LARGE, 400
+        )
+
+    if len(request.files) == 0:
+        raise APIException(
+            "No file in HTTP request.",
+            "There was no file in the HTTP request.",
+            APICodes.MISSING_REQUIRED_PARAM, 400
+        )
+
+    for key, file in request.files.items():
+        if not key.startswith('file'):
+            raise APIException(
+                'The parameter name should start with "file".',
+                'Expected ^file.*$ got {}.'.format(key),
+                APICodes.INVALID_PARAM, 400
+            )
+
+        if not file.filename:
+            raise APIException(
+                'The filename should not be empty.',
+                'Got an empty filename for key {}'.format(key),
+                APICodes.INVALID_PARAM, 400
+            )
+
+        res.append(file)
+
+    return res
+
+
 @api.route("/assignments/<int:assignment_id>/submission", methods=['POST'])
 def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
     """Upload one or more files as :class:`.models.Work` to the given
@@ -569,41 +622,7 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
     :raises PermissionException: If the user is not allowed to upload for this
                                  assignment. (INCORRECT_PERMISSION)
     """
-
-    files = []
-
-    if (request.content_length and
-            request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException(
-            'Uploaded files are too big.', 'Request is bigger than maximum '
-            f'upload size of {app.config["MAX_UPLOAD_SIZE"]}.',
-            APICodes.REQUEST_TOO_LARGE, 400
-        )
-
-    if len(request.files) == 0:
-        raise APIException(
-            "No file in HTTP request.",
-            "There was no file in the HTTP request.",
-            APICodes.MISSING_REQUIRED_PARAM, 400
-        )
-
-    for key, file in request.files.items():
-        if not key.startswith('file'):
-            raise APIException(
-                'The parameter name should start with "file".',
-                'Expected ^file.*$ got {}.'.format(key),
-                APICodes.INVALID_PARAM, 400
-            )
-
-        if not file.filename:
-            raise APIException(
-                'The filename should not be empty.',
-                'Got an empty filename for key {}'.format(key),
-                APICodes.INVALID_PARAM, 400
-            )
-
-        files.append(file)
-
+    files = get_submission_files_from_request(check_size=True)
     assignment = helpers.get_or_404(models.Assignment, assignment_id)
 
     auth.ensure_permission('can_submit_own_work', assignment.course_id)
@@ -613,13 +632,20 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
         )
 
     work = models.Work(assignment=assignment, user_id=current_user.id)
-    work.assigned_to = assignment.get_from_latest_submissions(  # type: ignore
+    work.assigned_to = assignment.get_from_latest_submissions(
         models.Work.assigned_to
     ).filter(models.Work.user_id == current_user.id).limit(1).scalar()
+
     if work.assigned_to is None:
         missing, _ = assignment.get_divided_amount_missing()
         if missing:
             work.assigned_to = max(missing.keys(), key=lambda k: missing[k])
+            assignment.set_graders_to_not_done(
+                [work.assigned_to],
+                send_mail=True,
+                ignore_errors=True,
+            )
+
     db.session.add(work)
 
     raise_or_delete = psef.files.IgnoreHandling.keep
@@ -655,6 +681,18 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
 
     .. :quickref: Assignment; Divide a submission among given TA's.
 
+    The redivide tries to minimize shuffles. This means that calling it twice
+    with the same data is effectively a noop. If the relative weight (so the
+    percentage of work) of a user doesn't change it will not lose or gain any
+    submissions.
+
+    .. warning::
+
+        If a user was marked as done grading and gets assigned new submissions
+        this user is marked as not done and gets a notification email!
+
+    :<json dict graders: A mapping that maps user ids (strings) and the new
+        weight they should get (numbers).
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
 
@@ -807,18 +845,19 @@ def set_grader_to_not_done(
     else:
         auth.ensure_permission('can_update_grader_status', assig.course_id)
 
-    for finished_grader in assig.finished_graders:
-        if finished_grader.user_id == grader_id:
-            db.session.delete(finished_grader)
-            db.session.commit()
-            return make_empty_response()
-
-    raise APIException(
-        'The grader is not finished!',
-        f'The grader {grader_id} is not done.',
-        APICodes.INVALID_STATE,
-        400,
-    )
+    try:
+        send_mail = grader_id != current_user.id
+        assig.set_graders_to_not_done([grader_id], send_mail=send_mail)
+        db.session.commit()
+    except ValueError:
+        raise APIException(
+            'The grader is not finished!',
+            f'The grader {grader_id} is not done.',
+            APICodes.INVALID_STATE,
+            400,
+        )
+    else:
+        return make_empty_response()
 
 
 @api.route(
@@ -940,10 +979,12 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
 
     .. :quickref: Assignment; Create works from a blackboard zip.
 
+    You should upload a file as multiform post request. The key should start
+    with 'file'. Multiple blackboard zips are not supported and result in one
+    zip being chosen at (psuedo) random.
+
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
-
-    .. todo:: Merge this endpoint and ``upload_work`` together.
 
     :raises APIException: If no assignment with given id exists.
         (OBJECT_ID_NOT_FOUND)
@@ -957,27 +998,13 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
     """
     assignment = helpers.get_or_404(models.Assignment, assignment_id)
     auth.ensure_permission('can_upload_bb_zip', assignment.course_id)
+    files = get_submission_files_from_request(check_size=False)
 
-    if len(request.files) == 0:
-        raise APIException(
-            "No file in HTTP request.",
-            "There was no file in the HTTP request.",
-            APICodes.MISSING_REQUIRED_PARAM, 400
-        )
-
-    if 'file' not in request.files:
-        key_string = ", ".join(request.files.keys())
-        raise APIException(
-            'The parameter name should be "file".',
-            'Expected ^file$ got [{}].'.format(key_string),
-            APICodes.INVALID_PARAM, 400
-        )
-
-    file: 'FileStorage' = request.files['file']
     try:
-        submissions = psef.files.process_blackboard_zip(file)
+        submissions = psef.files.process_blackboard_zip(files[0])
     except Exception:
         submissions = []
+
     if not submissions:
         raise APIException(
             "The blackboard zip could not imported or it was empty.",
@@ -1006,6 +1033,8 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
             .in_([si.student_id for si, _ in submissions])
         ).options(joinedload(models.User.courses))
     }
+
+    newly_assigned: t.Set[t.Optional[int]] = set()
 
     for submission_info, submission_tree in submissions:
         user = found_users.get(submission_info.student_id, None)
@@ -1050,6 +1079,14 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
             )
         )
         work.add_file_tree(db.session, submission_tree)
+        if work.assigned_to is not None:
+            newly_assigned.add(work.assigned_to)
+
+    assignment.set_graders_to_not_done(
+        list(newly_assigned),
+        send_mail=True,
+        ignore_errors=True,
+    )
 
     db.session.bulk_save_objects(subs)
     db.session.flush()

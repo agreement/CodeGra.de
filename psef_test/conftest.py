@@ -2,6 +2,7 @@ import os
 import sys
 import copy
 import json
+import random
 import datetime
 import contextlib
 
@@ -17,7 +18,7 @@ import psef.auth as a
 import psef.models as m
 
 TESTDB = 'test_project.db'
-TESTDB_PATH = "/tmp/psef/psef-{}".format(TESTDB)
+TESTDB_PATH = "/tmp/psef/psef-{}-{}".format(TESTDB, random.random())
 TEST_DATABASE_URI = 'sqlite:///' + TESTDB_PATH
 
 
@@ -365,16 +366,20 @@ def filename(request):
 @pytest.fixture
 def stub_function_class():
     class StubFunction:
-        def __init__(self, ret_func=lambda: None):
+        def __init__(self, ret_func=lambda: None, with_args=False):
             self.args = []
             self.kwargs = []
             self.rets = []
             self.ret_func = ret_func
+            self.with_args = with_args
 
         def __call__(self, *args, **kwargs):
             self.args.append(args)
             self.kwargs.append(kwargs)
-            self.rets.append(self.ret_func())
+            if self.with_args:
+                self.rets.append(self.ret_func(*args, **kwargs))
+            else:
+                self.rets.append(self.ret_func())
             return self.rets[-1]
 
         @property
@@ -382,7 +387,7 @@ def stub_function_class():
             return len(self.args) > 0
 
         def reset(self):
-            self.__init__(self.ret_func)
+            self.__init__(self.ret_func, self.with_args)
 
     yield StubFunction
 
@@ -415,3 +420,32 @@ def assignment_real_works(
             )
 
     yield assignment, res[0]
+
+
+@pytest.fixture
+def stubmailer(monkeypatch):
+    class StubMailer():
+        def __init__(self):
+            self.msg = None
+            self.do_raise = False
+            self.called = 0
+            self.args = []
+            self.kwargs = []
+
+        def send(self, msg):
+            self.called += 1
+            self.msg = msg
+            self.args.append((msg, ))
+            if self.do_raise:
+                raise Exception
+
+        def reset(self):
+            self.msg = None
+            self.args = []
+            self.called = 0
+
+    mailer = StubMailer()
+
+    monkeypatch.setattr(psef.mail, 'mail', mailer)
+
+    yield mailer

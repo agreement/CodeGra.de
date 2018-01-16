@@ -175,6 +175,10 @@ class AssignmentGraderDone(Base):
 
     If a user is linked to the assignment this indicates that this user is done
     with grading.
+
+    :ivar user_id: The id of the user that is linked.
+    :ivar ~.AssignmentGraderDone.assignment_id: The id of the assignment that
+        is linked.
     """
     if t.TYPE_CHECKING:  # pragma: no cover
         query: t.ClassVar[_MyQuery['AssignmentGraderDone']]
@@ -2102,8 +2106,41 @@ class Assignment(Base):
         if reminder_type == AssignmentReminderType.none:
             self._mail_task_id = None
         else:
-            res = psef.tasks.send_reminder_mail((self.id, ), eta=date)
+            res = psef.tasks.send_reminder_mails((self.id, ), eta=date)
             self._mail_task_id = res.id
+
+    def set_graders_to_not_done(
+        self,
+        user_ids: t.Sequence[int],
+        send_mail: bool = False,
+        ignore_errors: bool = False,
+    ) -> None:
+        """Set the status of the given graders to 'not done'.
+
+        :param user_ids: The ids of the users that should be set to 'not done'
+        :param send_mail: If ``True`` the users who are reset to 'not done'
+            will get an email notifying them of this.
+        :param ignore_errors: Do not raise an error if a user in ``user_ids``
+            was not yet done.
+        :raise ValueError: If a user in ``user_ids`` was not yet done. This can
+            happen because the user has not indicated this yet, because this
+            user does not exist or because of any reason.
+        """
+        if not user_ids:
+            return
+
+        graders = AssignmentGraderDone.query.filter(
+            AssignmentGraderDone.assignment_id == self.id,
+            t.cast(t.Any, AssignmentGraderDone.user_id).in_(user_ids),
+        ).all()
+
+        if not ignore_errors and len(graders) != len(user_ids):
+            raise ValueError('Not all graders were found')
+
+        for grader in graders:
+            if send_mail:
+                psef.tasks.send_grader_status_mail(self.id, grader.user_id)
+            db.session.delete(grader)
 
     def has_non_graded_submissions(self, user_id: int) -> bool:
         """Check if the user with the given ``user_id`` has submissions
@@ -2364,7 +2401,7 @@ class Assignment(Base):
             func.count(),
         ).scalar()
 
-        divided_amount: t.MutableMapping[int, float] = defaultdict(lambda: 0.0)
+        divided_amount: t.MutableMapping[int, float] = defaultdict(float)
         for u_id, amount in self.get_from_latest_submissions(  # type: ignore
             Work.assigned_to, func.count()
         ).group_by(Work.assigned_to):
@@ -2418,9 +2455,9 @@ class Assignment(Base):
         submissions = self.get_all_latest_submissions().all()
         shuffle(submissions)
 
-        counts: t.MutableMapping[int, int] = defaultdict(lambda: 0)
-        user_submissions: t.MutableMapping[int, t.List[Work]]
-        user_submissions = defaultdict(lambda: [])
+        counts: t.MutableMapping[int, int] = defaultdict(int)
+        user_submissions: t.MutableMapping[t.Optional[int], t.List[Work]]
+        user_submissions = defaultdict(list)
 
         # Remove all users not in user_weights
         new_users = set(u.id for u, _ in user_weights)
@@ -2454,8 +2491,16 @@ class Assignment(Base):
                 to_assign += [user_id] * round(new_amount * ratio)
 
         shuffle(to_assign)
+        newly_assigned: t.Set[int] = set()
         for sub, user_id in zip(user_submissions[None], cycle(to_assign)):
             sub.assigned_to = user_id
+            newly_assigned.add(user_id)
+
+        self.set_graders_to_not_done(
+            list(newly_assigned),
+            send_mail=True,
+            ignore_errors=True,
+        )
 
         self.assigned_graders = {}
         for user, weight in user_weights:

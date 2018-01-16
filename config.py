@@ -175,7 +175,25 @@ on CodeGra.de! Good luck with grading.
 
 This email was automatically sent because of reminder that was set for this
 assignment and you have not yet indicated you were done grading. You can
-indicate this <a href="{site_url}/courses/{course_id}">here</a>.
+indicate this <a href="{site_url}/courses/{course_id}">here</a>.</p>
+    """.strip(),
+)
+set_str(
+    CONFIG,
+    backend_ops,
+    'GRADER_STATUS_TEMPLATE',
+    """
+<p>Dear {user_name},
+
+This email is a reminder that your grade status has been reset to 'not done'
+for "{assig_name}" on <a href="{site_url}">{site_url}</a>. If you go to <a
+href="{site_url}/courses/{course_id}/assignments/{assig_id}/submissions">this
+page</a> you can directly continue grading, which of course is joyful business
+on CodeGra.de! Good luck with grading.
+
+This email was automatically sent. The reason for this can be that a course
+admin has reset your status or that you have been assigned new
+submission(s).</p>
     """.strip(),
 )
 

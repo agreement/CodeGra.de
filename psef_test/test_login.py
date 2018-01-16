@@ -415,21 +415,9 @@ def test_reset_password(
     monkeypatch,
     app,
     to_null,
+    stubmailer,
 ):
-    class StubMailer():
-        def __init__(self):
-            self.msg = None
-            self.called = False
-            self.do_raise = True
-
-        def send(self, msg):
-            self.called = True
-            self.msg = msg
-            if self.do_raise:
-                raise Exception
-
-    mailer = StubMailer()
-    monkeypatch.setattr(psef.mail, 'mail', mailer)
+    stubmailer.do_raise = True
 
     test_client.req(
         'patch',
@@ -443,7 +431,7 @@ def test_reset_password(
         ta_user.password = None
         session.commit()
 
-    mailer.do_raise = False
+    stubmailer.do_raise = False
 
     test_client.req(
         'patch',
@@ -453,8 +441,8 @@ def test_reset_password(
             'username': ta_user.username
         }
     )
-    assert mailer.called
-    msg = str(mailer.msg)
+    assert stubmailer.called
+    msg = str(stubmailer.msg)
     start_id = msg.find('user=') + len('user=')
     end_id = msg[start_id:].find('&token=') + start_id
     print(msg, start_id, end_id)
@@ -463,7 +451,7 @@ def test_reset_password(
     start_token = end_id + len('&token=')
     end_token = msg[start_token:].find('\r\n') + start_token
     token = msg[start_token:end_token]
-    mailer.called = False
+    stubmailer.called = False
 
     test_client.req(
         'patch',
@@ -531,7 +519,7 @@ def test_reset_password(
         result=error_template,
     )
 
-    assert not mailer.called
+    assert not stubmailer.called
 
     test_client.req(
         'post',

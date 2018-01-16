@@ -273,7 +273,7 @@ def test_update_assignment_wrong_permissions(
 ):
     marker = request.node.get_marker('http_err')
     with logged_in(named_user):
-        is_logged_in = isinstance(named_user, m.User)
+        is_logged_in = not isinstance(named_user, str)
         res = test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment.id}',
@@ -1134,6 +1134,127 @@ def test_divide_non_existing_assignment(
         )
 
 
+@pytest.mark.parametrize('with_works', [True], indirect=True)
+def test_reminder_email_divide(
+    ta_user,
+    logged_in,
+    test_client,
+    assignment,
+    stubmailer,
+    monkeypatch_celery,
+):
+    assig_id = assignment.id
+    graders_done_query = m.AssignmentGraderDone.query.filter_by(
+        assignment_id=assig_id
+    )
+
+    def get_graders():
+        with logged_in(ta_user):
+            return test_client.req(
+                'get',
+                f'/api/v1/assignments/{assig_id}/graders/',
+                200,
+                result=list
+            )
+
+    graders = get_graders()
+
+    with logged_in(ta_user):
+        graders = get_graders()
+        random.shuffle(graders)
+        grader_done = graders[0]['id']
+        grader_done2 = graders[1]['id']
+        print('grader_done:', graders[0])
+        print('grader_done2:', graders[1])
+
+        assert len(graders) > 2, (
+            'To run this test we '
+            'should have atleast 3 graders'
+        )
+
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assig_id}/graders/{grader_done}/done',
+            204,
+        )
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assig_id}/graders/{grader_done2}/done',
+            204,
+        )
+
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment.id}/divide',
+            204,
+            data={
+                'graders': {g['id']: 1
+                            for g in graders[:2]}
+            }
+        )
+
+        assert stubmailer.called == 2, (
+            'Only the graders that were done should have been mailed'
+        )
+        assert not graders_done_query.all(), """
+        Nobody should be done after this.
+        """
+        stubmailer.reset()
+
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment.id}/divide',
+            204,
+            data={
+                'graders': {g['id']: 1
+                            for g in graders[:3]}
+            }
+        )
+        assert not stubmailer.called, (
+            'As the grader should have less assignments assigned (1/3 now '
+            'instead of 1/2 before) no mail should have been send'
+        )
+        stubmailer.reset()
+
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assig_id}/graders/{graders[2]["id"]}/done',
+            204,
+        )
+
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assig_id}/graders/{grader_done}/done',
+            204,
+        )
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment.id}/divide',
+            204,
+            data={
+                'graders': {
+                    grader_done: 1
+                }
+            }
+        )
+        assert stubmailer.called == 1, (
+            'Make sure user is mailed even if it had assigned submissions '
+            'and new submissions were from graders that were done'
+        )
+
+        new_graders = get_graders()
+        for g in new_graders:
+            if g['id'] in {grader_done, grader_done2}:
+                assert not g['done'], (
+                    'The done status of grader_done and grader_done2 should '
+                    'be reset by the notification emails'
+                )
+            elif g['id'] == graders[2]['id']:
+                assert g['done'], 'The third grader should still be done'
+            else:
+                assert not g['done'], "All the other graders shouldn't be done"
+
+
 @pytest.mark.parametrize(
     'with_assignees',
     [['Devin Hillenius'], ['Thomas Schaper', 'Devin Hillenius'], []]
@@ -1393,7 +1514,7 @@ def test_get_all_submissions(
 # yapf: enable
 def test_upload_blackboard_zip(
     test_client, logged_in, named_user, assignment, filename, result,
-    error_template, request, ta_user, session
+    error_template, request, ta_user, session, stubmailer
 ):
     course_id = assignment.course_id
 
@@ -1488,6 +1609,13 @@ def test_upload_blackboard_zip(
                     assert student_users == set(result.keys())
         else:
             assert not res
+
+    assert not stubmailer.called, (
+        'As we never divided no users should have been mailed'
+    )
+    assert not m.AssignmentGraderDone.query.filter_by(
+        assignment_id=assignment.id
+    ).all(), 'Nobody should be done'
 
 
 @pytest.mark.parametrize('with_works', [False], indirect=True)
@@ -1584,6 +1712,98 @@ def test_assigning_after_uploading(
                 assert olmo_by == assig['assignee']['id']
 
 
+@pytest.mark.parametrize('with_works', [False], indirect=True)
+def test_reset_grader_status_after_upload(
+    test_client, logged_in, assignment, error_template, ta_user, session,
+    stubmailer, monkeypatch_celery
+):
+    graders_done_q = m.AssignmentGraderDone.query.filter_by(
+        assignment_id=assignment.id
+    )
+    grader_done = session.query(m.User).filter_by(name='Robin').one().id
+
+    with logged_in(ta_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment.id}/divide',
+            204,
+            data={
+                'graders': {
+                    grader_done: 1
+                }
+            }
+        )
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/graders/{grader_done}/done',
+            204,
+        )
+
+    assert not stubmailer.called, 'No graders should have been notified now'
+    assert len(graders_done_q.all()), 'But one should be done'
+    stubmailer.reset()
+
+    for user in session.query(m.User).filter(
+        m.User.name.in_([
+            'Œlµo',
+            'Stupid1',
+        ])
+    ):
+        with logged_in(user):
+            test_client.req(
+                'post',
+                f'/api/v1/assignments/{assignment.id}/submission',
+                201,
+                real_data={
+                    'file':
+                        (
+                            f'{os.path.dirname(__file__)}/../test_data/'
+                            'test_submissions/multiple_dir_archive.zip',
+                            f'single_file_work.zip'
+                        )
+                },
+                result=dict,
+            )
+
+    with logged_in(ta_user):
+        res = test_client.req(
+            'get',
+            f'/api/v1/assignments/{assignment.id}/graders/',
+            200,
+        )
+        for g in res:
+            if g['id'] == grader_done:
+                assert not g['done'], 'Grader should not be done anymore'
+            else:
+                assert not g['done'], 'Other grader should not be done anyway'
+
+    assert stubmailer.called == 1, 'Grader should be notified once'
+    stubmailer.reset()
+
+    olmo = m.User.query.filter_by(name=u'Œlµo').one()
+    with logged_in(olmo):
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submission',
+            201,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        'test_submissions/multiple_dir_archive.zip',
+                        f'single_file_work.zip'
+                    )
+            },
+            result=dict,
+        )
+    assert not stubmailer.called, """
+    Grader was not done so no emails should be send
+    """
+    assert not graders_done_q.filter_by(
+        user_id=olmo.id,
+    ).all(), 'Olmo should not be assigned.'
+
+
 @pytest.mark.parametrize('filename', [
     'large.tar.gz',
 ])
@@ -1595,23 +1815,31 @@ def test_assign_after_blackboard_zip(
     error_template,
     request,
     ta_user,
+    stubmailer,
+    monkeypatch_celery,
 ):
+    graders_done_q = m.AssignmentGraderDone.query.filter_by(
+        assignment_id=assignment.id
+    )
     with logged_in(ta_user):
+        graders = m.User.query.filter(
+            m.User.name.in_(['Thomas Schaper', 'Robin'])
+        ).order_by(m.User.name)
+        grader_done = graders[0].id
+
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment.id}/divide',
             204,
             data={
-                'graders':
-                    {
-                        i.id: j
-                        for i, j in zip(
-                            m.User.query.filter(
-                                m.User.name.in_(['Thomas Schaper', 'Robin'])
-                            ).order_by(m.User.name), [1, 2]
-                        )
-                    }
+                'graders': {i.id: j
+                            for i, j in zip(graders, [1, 2])}
             }
+        )
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/graders/{grader_done}/done',
+            204
         )
 
         filename = (
@@ -1625,6 +1853,13 @@ def test_assign_after_blackboard_zip(
             204,
             real_data={'file': (filename, 'bb.tar.gz')},
         )
+
+        assert stubmailer.called == 1, """
+        Only one grader was set as done, so only one should have been called
+        """
+        assert not graders_done_q.all(), 'Nobody should be done anymore'
+        stubmailer.reset()
+
         res = test_client.req(
             'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
         )
@@ -1643,6 +1878,12 @@ def test_assign_after_blackboard_zip(
             204,
             real_data={'file': (filename, 'bb.tar.gz')},
         )
+
+        assert not stubmailer.called, (
+            'The grader_done should have already been reset to not done so '
+            'no emails should have been send.'
+        )
+
         res = test_client.req(
             'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
         )
@@ -2062,7 +2303,8 @@ def test_ignored_upload_files(
 
 @pytest.mark.parametrize('with_works', [True], indirect=True)
 def test_warning_grader_done(
-    test_client, logged_in, request, assignment, ta_user, session
+    test_client, logged_in, request, assignment, ta_user, session,
+    monkeypatch_celery
 ):
     assig_id = assignment.id
 
@@ -2143,18 +2385,48 @@ def test_warning_grader_done(
 
 
 @pytest.mark.parametrize(
-    'named_user', [
-        http_err(error=403)('admin'),
-        http_err(error=401)('NOT_LOGGED_IN'),
-        'Devin Hillenius',
-        http_err(error=403)('Stupid1'),
+    'named_user,toggle_self', [
+        http_err(error=403)(('admin', None)),
+        http_err(error=401)(('NOT_LOGGED_IN', None)),
+        ('Devin Hillenius', True),
+        ('Devin Hillenius', False),
+        http_err(error=403)(('Stupid1', None)),
     ],
-    indirect=True
+    indirect=['named_user']
 )
 def test_grader_done(
     named_user, error_template, test_client, logged_in, request, assignment,
-    ta_user, session
+    ta_user, session, stubmailer, toggle_self, monkeypatch_celery,
+    stub_function_class, monkeypatch
 ):
+    # Please note that we DO NOT monkey patch celery away here. This is because
+    # some logic might be implemented in the celery task (this has already
+    # happened a few times during development). We simply make sure the mailer
+    # is called.
+    stubtask = stub_function_class(
+        ret_func=psef.tasks.send_grader_status_mail, with_args=True
+    )
+    monkeypatch.setattr(psef.tasks, 'send_grader_status_mail', stubtask)
+
+    def assert_remind_email(called):
+        assert stubmailer.called == called, (
+            'Email should{}have been called'.format(
+                ' not ' if not called else ' ',
+            )
+        )
+        # Make sure the task is only called when the email should be send
+        assert stubtask.called == called, (
+            'Celery task should{}have been called'.format(
+                ' not ' if not called else ' ',
+            )
+        )
+
+        if called:
+            assert len(stubtask.args) == 1, 'Task should be called once only'
+
+        stubmailer.reset()
+        stubtask.reset()
+
     assig_id = assignment.id
     course_id = assignment.course_id
 
@@ -2177,9 +2449,18 @@ def test_grader_done(
     graders = get_graders()
     random.shuffle(graders)
 
+    assert len(graders) > 1, 'We need at least 2 graders for this test'
+
+    if not isinstance(named_user, str):
+        if graders[-1]['id'] == named_user.id:
+            graders[-1], graders[0] = graders[0], graders[-1]
+
     assert all(not g['done'] for g in graders
                ), 'Make sure all graders are not done by default'
-    grader_done = graders[-1]["id"]
+    if toggle_self:
+        grader_done = named_user.id
+    else:
+        grader_done = graders[-1]["id"]
 
     with logged_in(named_user):
         test_client.req(
@@ -2214,6 +2495,10 @@ def test_grader_done(
         )
 
     if not err:
+        # Make sure an email was send if and only if we did not toggle
+        # ourselves
+        assert_remind_email(called=not toggle_self)
+
         with logged_in(named_user):
             # Make sure you cannot reset this grader to not done
             test_client.req(
@@ -2222,6 +2507,11 @@ def test_grader_done(
                 400,
                 result=error_template,
             )
+        # When an error occurs we should not notify anybody
+        assert_remind_email(False)
+    else:
+        # When an error occurred we should not send emails
+        assert_remind_email(False)
 
     graders = get_graders()
     assert all(not g['done']
@@ -2252,6 +2542,10 @@ def test_grader_done(
                     204,
                     result=None,
                 )
+
+            # Errors should not trigger emails and neither should toggling
+            # yourself
+            assert_remind_email(False)
 
 
 @pytest.mark.parametrize(
@@ -2332,7 +2626,7 @@ def test_reminder_email(
     # Monkey patch celery away as an ETA task will block the test for a long
     # time.
     task = stub_function_class(lambda: StubTask(str(uuid.uuid4())))
-    monkeypatch.setattr(psef.tasks, 'send_reminder_mail', task)
+    monkeypatch.setattr(psef.tasks, 'send_reminder_mails', task)
     revoker = stub_function_class()
     monkeypatch.setattr(psef.tasks.celery.control, 'revoke', revoker)
 

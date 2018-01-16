@@ -52,8 +52,11 @@
                 <div class="col-lg-5 comp-wrapper">
                     <div v-if="permissions.can_assign_graders">
                         <h5>Divide submissions</h5>
+                        <loader class="text-center" v-if="gradersLoading && !gradersLoadedOnce"/>
                         <divide-submissions :assignment="assignment"
-                                            :graders="graders"/>
+                                            @divided="loadGraders"
+                                            :graders="graders"
+                                            v-else/>
                     </div>
 
                     <div v-if="permissions.can_edit_cgignore">
@@ -162,6 +165,7 @@ export default {
             UserConfig,
             graders: [],
             gradersLoading: true,
+            gradersLoadedOnce: false,
             assignmentTempName: '',
         };
     },
@@ -174,13 +178,21 @@ export default {
 
     mounted() {
         this.assignmentTempName = this.assignment.name;
-        this.$http.get(`/api/v1/assignments/${this.assignment.id}/graders/`).then(({ data }) => {
-            this.gradersLoading = false;
-            this.graders = data;
-        });
+        this.loadGraders();
     },
 
     methods: {
+        async loadGraders() {
+            if (!this.gradersLoading) {
+                this.gradersLoading = true;
+            }
+
+            const { data } = await this.$http.get(`/api/v1/assignments/${this.assignment.id}/graders/`);
+            this.graders = data;
+            this.gradersLoading = false;
+            this.gradersLoadedOnce = true;
+        },
+
         toggleRow() {
             this.$root.$emit('collapse::toggle', `assignment-${this.assignment.id}`);
         },

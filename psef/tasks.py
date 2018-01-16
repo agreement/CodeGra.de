@@ -9,8 +9,11 @@ the mapping of the variables at the bottom of this file.
 import typing as t
 
 from celery import Celery as _Celery
+from celery.utils.log import get_task_logger
 
 import psef as p
+
+logger = get_task_logger(__name__)
 
 if t.TYPE_CHECKING:  # pragma: no cover
 
@@ -144,6 +147,18 @@ def _send_reminder_mail_1(assignment_id: int) -> None:
 
 
 @celery.task
+def _send_grader_status_mail_1(
+    assignment_id: int,
+    user_id: int,
+) -> None:
+    assig = p.models.Assignment.query.get(assignment_id)
+    user = p.models.User.query.get(user_id)
+
+    if assig and user:
+        p.mail.send_grader_status_changed_mail(assig, user)
+
+
+@celery.task
 def _add_1(a: int, b: int) -> int:  # pragma: no cover
     """This function is used for testing if celery works. What it actually does
     is completely irrelevant.
@@ -154,4 +169,5 @@ def _add_1(a: int, b: int) -> int:  # pragma: no cover
 passback_grades = _passback_grades_1.delay
 lint_instances = _lint_instances_1.delay
 add = _add_1.delay
-send_reminder_mail = _send_reminder_mail_1.apply_async
+send_reminder_mails = _send_reminder_mail_1.apply_async
+send_grader_status_mail = _send_grader_status_mail_1.delay

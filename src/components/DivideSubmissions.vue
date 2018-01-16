@@ -80,7 +80,7 @@ export default {
                 },
             );
             this.$refs.submitButton.submit(req.then(() => {
-                this.$emit('submit');
+                this.$emit('divided');
             }, (err) => {
                 throw err.response.data.message;
             }));

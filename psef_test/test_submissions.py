@@ -1329,6 +1329,87 @@ def test_add_file(
         )
 
 
+@pytest.mark.parametrize('with_works', [True], indirect=True)
+def test_change_grader_notification(
+    logged_in, test_client, stubmailer, monkeypatch_celery, assignment,
+    ta_user, with_works
+):
+    assig_id = assignment.id
+    graders = m.User.query.filter(
+        m.User.name.in_([
+            'Thomas Schaper',
+            'Devin Hillenius',
+            'Robin',
+        ]),
+        ~m.User.name.in_(ta_user.name),
+    ).all()
+    grader_done = graders[0].id
+
+    subs = m.Work.query.filter_by(assignment_id=assig_id).all()
+    sub_id = subs[0].id
+    sub2_id = subs[1].id
+
+    with logged_in(ta_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{sub_id}/grader',
+            204,
+            data={'user_id': grader_done},
+        )
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{sub2_id}/grader',
+            204,
+            data={'user_id': ta_user.id},
+        )
+
+        assert not stubmailer.called, """
+        Setting a non done grader should not do anything
+        """
+        stubmailer.reset()
+
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assig_id}/graders/{grader_done}/done',
+            204,
+        )
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assig_id}/graders/{ta_user.id}/done',
+            204,
+        )
+
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{sub_id}/grader',
+            204,
+            data={'user_id': ta_user.id},
+        )
+
+        assert not stubmailer.called, """
+        Setting yourself as assigned should not trigger emails
+        """
+        assert not m.AssignmentGraderDone.query.filter_by(
+            user_id=ta_user.id,
+        ).all(), 'We should however not be marked as done any more.'
+        stubmailer.reset()
+
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{sub_id}/grader',
+            204,
+            data={'user_id': grader_done},
+        )
+
+        assert stubmailer.called == 1, """
+        Setting somebody else as assigned should trigger a email even if this
+        person was previously assigned.
+        """
+        assert not m.AssignmentGraderDone.query.filter_by(
+            assignment_id=assig_id,
+        ).all(), 'Make sure nobody is done at this point'
+
+
 @pytest.mark.parametrize(
     'filename', ['../test_submissions/single_dir_archive.zip'], indirect=True
 )

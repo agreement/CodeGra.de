@@ -40,6 +40,30 @@ def _send_mail(
     mailer.send(message)
 
 
+def send_grader_status_changed_mail(
+    assig: models.Assignment, user: models.User
+) -> None:
+    html_body = current_app.config['GRADER_STATUS_TEMPLATE'].replace(
+        '\n\n', '<br><br>'
+    ).format(
+        site_url=current_app.config['EXTERNAL_URL'],
+        assig_id=assig.id,
+        user_name=html.escape(user.name),
+        user_email=html.escape(user.email),
+        assig_name=html.escape(assig.name),
+        course_id=assig.course_id,
+    )
+
+    _send_mail(
+        html_body,
+        (
+            f'Grade status toggled for {assig.name} on '
+            f'{current_app.config["EXTERNAL_URL"]}'
+        ),
+        [user.email],
+    )
+
+
 def send_grade_reminder_email(
     assig: models.Assignment,
     user: models.User,

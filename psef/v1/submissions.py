@@ -433,6 +433,11 @@ def update_submission_grader(submission_id: int) -> EmptyResponse:
         )
 
     work.assignee = grader
+    work.assignment.set_graders_to_not_done(
+        [grader.id],
+        send_mail=grader.id != current_user.id,
+        ignore_errors=True,
+    )
     db.session.commit()
 
     return make_empty_response()
