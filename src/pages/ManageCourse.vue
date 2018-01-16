@@ -1,5 +1,5 @@
 <template>
-    <div class="page manage-course col-lg-12 col-xl-10">
+    <div class="page manage-course">
         <div v-if="created">
             <b-alert variant="success" show dismissible>
                 <center><span>Succesfully created course!</span></center>

@@ -247,6 +247,7 @@ export default {
 <style lang="less" scoped>
 .manage-assignment {
     flex-grow: 1;
+    max-width: 100%;
 }
 
 .header-top-margin {

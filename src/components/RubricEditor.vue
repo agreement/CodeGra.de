@@ -5,7 +5,8 @@
             <b-card-group class="tab-container">
                 <b-card v-for="(row, i) in rubrics"
                         :key="`rubric-row-${row.id}`"
-                        :class="{active: i === currentCategory}"
+                        style="flex-basis: 20%;"
+                        :class="{active: i === currentCategory, tab: true}"
                         @click.native="gotoItem(i)">
                     <input type="text"
                            class="row-header form-control"
@@ -388,6 +389,9 @@ export default {
             .default-secondary-text-colors;
         }
         .card {
+            &:nth-child(5n + 5), &:last-child {
+                border-right: 0;
+            }
             input {
                 border-top: 0;
                 border-radius: 0;
@@ -467,7 +471,12 @@ export default {
 
     .card, card-header {
         border-radius: 0;
-        border: 0 !important;
+        &:not(.tab) {
+            border-bottom: 0 !important;
+            border-right: 0 !important;
+        }
+        border-top: 0 !important;
+        border-left: 0 !important;
     }
 
     .rubric {

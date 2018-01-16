@@ -6,6 +6,7 @@
             <div class="form-control outer-container">
                 <b-card-group class="tab-container">
                     <b-card v-for="(row, i) in rubrics"
+                            style="flex-basis: 20%;"
                             :key="`rubric-row-${row.id}`"
                             :class="{active: i === current}"
                             @click.native="gotoItem(i)">
@@ -20,7 +21,8 @@
                     <div class="rubric"
                          v-for="(rubric, i) in rubrics"
                          :key="`rubric-${rubric.id}`">
-                        <b-card no-block>
+                        <b-card no-block
+                                style="border-top: 0;">
                             <div class="card-header rubric-header">
                                 <span class="title">
                                     {{ rubric.description }}
@@ -294,15 +296,15 @@ export default {
 .tab-container {
     .card {
         border-top: 0px;
-        border-bottom: 0px;
         cursor: pointer;
         border-bottom-left-radius: 0;
         border-bottom-right-radius: 0;
+        border-top-right-radius: 0;
     }
-    .card:first-child {
+    .card:nth-child(5n), .card:first-child {
         border-left: 0;
     }
-    .card:last-child {
+    .card:nth-child(5n + 4) {
         border-right: 0;
     }
     .card:hover, .card.active {
@@ -330,6 +332,7 @@ export default {
 
 .rubric-header {
     display: flex;
+    border-top: 0;
     flex-direction: row;
     flex-grow: 1;
 
