@@ -42,8 +42,6 @@ const actions = {
                 }
                 commit(types.SNIPPETS, snips);
                 resolve();
-            }).catch(() => {
-                setTimeout(() => actions.refreshSnippets({ commit }).then(resolve), 1000 * 15);
             });
         });
     },
@@ -61,7 +59,6 @@ const actions = {
                     access_token: state.jwtToken,
                     user: response.data,
                 });
-                actions.refreshSnippets({ commit });
                 resolve();
             }).catch(() => {
                 commit(types.LOGOUT);

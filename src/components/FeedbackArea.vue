@@ -9,21 +9,19 @@
                     v-if="canUseSnippets"
                     ref="snippetDialog"
                     :id="`collapse${line}`">
-            <b-popover class="popover-btn" :placement="'top'" :show="error !== '' && $parent.show" :content="error">
-                <b-input-group>
-                    <input class="input form-control"
-                           v-model="snippetKey"
-                           @keydown.ctrl.enter="addSnippet"/>
-                    <b-input-group-button>
-                        <submit-button ref="addSnippetButton"
-                                       class="add-snippet-btn"
-                                       label=""
-                                       @click="addSnippet">
-                            <icon :scale="1" name="check"/>
-                        </submit-button>
-                    </b-input-group-button>
-                </b-input-group>
-            </b-popover>
+            <b-input-group>
+                <input class="input form-control"
+                       v-model="snippetKey"
+                       @keydown.ctrl.enter="addSnippet"/>
+                <b-input-group-button>
+                    <submit-button ref="addSnippetButton"
+                                   class="add-snippet-btn"
+                                   label=""
+                                   @click="addSnippet">
+                        <icon :scale="1" name="check"/>
+                    </submit-button>
+                </b-input-group-button>
+            </b-input-group>
         </b-collapse>
         <b-input-group class="editable-area">
             <textarea ref="field"
@@ -163,9 +161,7 @@ export default {
                     this.internalFeedback = val.slice(0, start) + res.value +
                         this.internalFeedback.slice(end);
                 }
-                if (Math.random() < 0.25) {
-                    this.refreshSnippets();
-                }
+                this.refreshSnippets();
             }
         },
         addSnippet() {
@@ -174,14 +170,13 @@ export default {
                 value: this.internalFeedback,
             };
             if (val.key.match(/\s/)) {
-                this.error = 'No spaces allowed!';
+                this.$refs.addSnippetButton.fail('No spaces allowed!');
                 return;
             } else if (val.key.length === 0) {
-                this.error = 'Snippet key cannot be empty';
+                this.$refs.addSnippetButton.fail('Snippet key cannot be empty');
                 return;
-            } else if (val.value.length === 0) {
-                this.error = 'Snippet value cannot be empty';
-                this.$refs.addSnippetButton.submit(new Promise(() => {}));
+            } else if (!val.value) {
+                this.$refs.addSnippetButton.fail('Snippet value cannot be empty');
                 return;
             }
 
