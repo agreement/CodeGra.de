@@ -803,7 +803,7 @@ def get_all_graders(
             {
                 'id': res[1],
                 'name': res[0],
-                'weight': divided[res[1]],
+                'weight': float(divided[res[1]]),
                 'done': res[2],
             } for res in result
         ]

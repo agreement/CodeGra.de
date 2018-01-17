@@ -7,6 +7,7 @@ the mapping of the variables at the bottom of this file.
 :license: AGPLv3, see LICENSE for details.
 """
 import typing as t
+from operator import itemgetter
 
 from celery import Celery as _Celery
 from celery.utils.log import get_task_logger
@@ -120,13 +121,14 @@ def _send_reminder_mail_1(assignment_id: int) -> None:
     to_mail: t.Iterable[int]
 
     if assig.reminder_type == p.models.AssignmentReminderType.assigned_only:
-        to_mail = (
-            g.user_id
-            for g in p.models.AssignmentAssignedGrader.query.
-            filter_by(assignment_id=assignment_id)
+        to_mail = map(
+            itemgetter(0),
+            assig.get_from_latest_submissions(
+                p.models.Work.assigned_to,
+            ).distinct()
         )
     elif assig.reminder_type == p.models.AssignmentReminderType.all_graders:
-        to_mail = (item[1] for item in assig.get_all_graders(sort=False))
+        to_mail = map(itemgetter(1), assig.get_all_graders(sort=False))
 
     with p.mail.mail.connect() as conn:
         for user_id in to_mail:

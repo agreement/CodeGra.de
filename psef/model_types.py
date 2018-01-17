@@ -190,6 +190,7 @@ class _MyQuery(t.Generic[T], t.Iterable):  # pragma: no cover
     count: t.Callable[[QuerySelf], int]
     one: t.Callable[[QuerySelf], T]
     one_or_none: t.Callable[[QuerySelf], t.Optional[T]]
+    distinct: t.Callable[[QuerySelf], '_MyQuery[T]']
     all: t.Callable[[QuerySelf], t.List[T]]
     __iter__: t.Callable[[QuerySelf], t.Iterator[T]]
 

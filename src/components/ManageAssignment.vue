@@ -51,7 +51,16 @@
             <div class="row">
                 <div class="col-lg-5 comp-wrapper">
                     <div v-if="permissions.can_assign_graders">
-                        <h5>Divide submissions</h5>
+                        <h5>
+                            Divide submissions
+                            <description-popover
+                                description="Divide this assignment. When dividing
+                                users are assigned to submissions based on weights.
+                                When new submissions are uploaded graders are
+                                also automatically assigned. When graders assign
+                                themselves the weights are not updated to
+                                reflect this."/>
+                        </h5>
                         <loader class="text-center" v-if="gradersLoading && !gradersLoadedOnce"/>
                         <divide-submissions :assignment="assignment"
                                             @divided="loadGraders"

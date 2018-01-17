@@ -2566,6 +2566,7 @@ def test_grader_done(
         ('wrong', True),
     ]
 )
+@pytest.mark.parametrize('with_works', [True], indirect=True)
 def test_reminder_email(
     test_client, session, error_template, ta_user, monkeypatch, app,
     stub_function_class, assignment, named_user, with_type, with_time, request,
@@ -2593,6 +2594,15 @@ def test_reminder_email(
                             for u in graders}
             }
         )
+
+        sub = assignment.get_all_latest_submissions()[0]
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{sub.id}/grader',
+            204,
+            data={'user_id': all_graders[0].id},
+        )
+    graders.append(all_graders[0])
 
     # Monkeypatch the actual mailer away as we don't really want to send emails
     mailer = stub_function_class()
