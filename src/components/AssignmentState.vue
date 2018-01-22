@@ -125,7 +125,7 @@ export default {
 
         openVariant() {
             const st = this.assignment.state;
-            return st === states.SUBMITTING || st === states.GRADING ?
+            return st === states.SUBMITTING || st === states.GRADING || st === states.OPEN ?
                 'warning' : 'outline-warning';
         },
 
@@ -139,7 +139,7 @@ export default {
 
         isLoadingOpen() {
             const st = this.pendingState;
-            return st === states.SUBMITTING || st === states.GRADING;
+            return st === states.SUBMITTING || st === states.GRADING || st === states.OPEN;
         },
 
         isLoadingDone() {
