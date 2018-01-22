@@ -11,6 +11,7 @@ import uuid
 import typing as t
 import datetime
 from random import shuffle
+from operator import itemgetter
 from itertools import cycle
 from collections import defaultdict
 
@@ -456,7 +457,7 @@ class Role(Base):
         else:
             perm_name = permission
 
-        if permission in self._permissions:
+        if perm_name in self._permissions:
             perm = self._permissions[perm_name]
             return (not perm.default_value) and (not perm.course_permission)
         else:
@@ -1968,14 +1969,13 @@ class _AssignmentStateEnum(enum.IntEnum):
 
 
 @enum.unique
-class AssignmentReminderType(enum.IntEnum):
-    """Describes what type of reminder should be send.
+class AssignmentDoneType(enum.IntEnum):
+    """Describes what type of reminder should be sent.
 
     :param none: Nobody should be e-mailed.
     :param assigned_only: Only graders that are assigned will be notified.
     :param all_graders: All users that have the permission to grade.
     """
-    none: int = 0
     assigned_only: int = 1
     all_graders: int = 2
 
@@ -1992,9 +1992,12 @@ class Assignment(Base):
     :ivar deadline: The deadline of this assignment.
     :ivar _mail_task_id: This is the id of the current task that will email all
         the TA's to hurry up with grading.
-    :ivar reminder_email_time: The time the reminder email should be send. To
-        see if we should actually send these reminders look at `reminder_type`
-    :ivar reminder_type: The type of reminder that should be send.
+    :ivar reminder_email_time: The time the reminder email should be sent. To
+        see if we should actually send these reminders look at `done_type`
+    :ivar done_email: The email address we should sent a email if the grading
+        is done. The function :py:func:`email.utils.getaddresses` should be
+        able to parse this string.
+    :ivar done_type: The type of reminder that should be sent.
     :ivar assigned_graders: All graders that are assigned to grade mapped by
         user_id to `AssignmentAssignedGrader` object.
     :ivar rubric_rows: The rubric rows that make up the rubric for this
@@ -2027,17 +2030,23 @@ class Assignment(Base):
         nullable=True,
         default=None,
     )
-    _reminder_email_time: datetime.datetime = db.Column(
+    reminder_email_time: datetime.datetime = db.Column(
         'reminder_email_time',
         db.DateTime,
         default=None,
         nullable=True,
     )
-    reminder_type: AssignmentReminderType = db.Column(
-        'reminder_type',
-        db.Enum(AssignmentReminderType),
-        nullable=False,
-        default=AssignmentReminderType.none,
+    done_email = db.Column(
+        'done_email',
+        db.Unicode,
+        default=None,
+        nullable=True,
+    )
+    done_type: AssignmentDoneType = db.Column(
+        'done_type',
+        db.Enum(AssignmentDoneType),
+        nullable=True,
+        default=None,
     )
 
     # All stuff for LTI
@@ -2092,22 +2101,75 @@ class Assignment(Base):
         for i in range(0, len(subs), 10):
             psef.tasks.passback_grades([s[0] for s in subs[i:i + 10]])
 
-    def change_reminder(
+    def change_notifications(
         self,
-        reminder_type: AssignmentReminderType,
-        date: t.Optional[datetime.datetime],
+        done_type: t.Optional[AssignmentDoneType],
+        grader_date: t.Optional[datetime.datetime],
+        done_email: t.Optional[str],
     ) -> None:
+        """Change the notifications for the current assignment.
+
+        :param done_type: How to determine when the assignment is done. Set
+            this value to ``None`` to disable the reminder for this assignment.
+        :param grader_date: The datetime when to send graders that are causing
+            the assignment to be not done a reminder email.
+        :param done_email: The email to send a notification when grading for
+            this assignment is done.
+        """
         if self._mail_task_id is not None:
             psef.tasks.celery.control.revoke(self._mail_task_id)
 
-        self.reminder_type = reminder_type
-        self._reminder_email_time = date
+        self.done_type = done_type
 
-        if reminder_type == AssignmentReminderType.none:
+        # Make sure _reminder_email_time is ``None`` if ``done_type`` is
+        # ``none``
+        self.reminder_email_time = None if done_type is None else grader_date
+        self.done_email = None if done_type is None else done_email
+
+        if self.reminder_email_time is None:
+            # Make sure id is reset so we don't revoke it multiple times
             self._mail_task_id = None
         else:
-            res = psef.tasks.send_reminder_mails((self.id, ), eta=date)
+            res = psef.tasks.send_reminder_mails((self.id, ), eta=grader_date)
             self._mail_task_id = res.id
+
+    def graders_are_done(self) -> bool:
+        """Check if the graders of this assignment are done.
+
+        :returns: A boolean indicating if the graders of this assignment are
+            done.
+        """
+        if self.done_type is None:
+            # We are never done as we have no condition to be done
+            return False
+        elif self.done_type == AssignmentDoneType.assigned_only:
+            assigned = set(self.get_assigned_grader_ids())
+            finished = set(fg.user_id for fg in self.finished_graders)
+            # Check if every assigned grader is done.
+            return assigned.issubset(finished)
+        elif self.done_type == AssignmentDoneType.all_graders:
+            # All graders should be done. As finished_graders all have unique
+            # user ids we simply need to check if the lengths are the same
+            return len(self.finished_graders) == self.get_all_graders().count()
+
+        # This is needed because of https://github.com/python/mypy/issues/4223
+        assert False  # pragma: no cover
+
+    def get_assigned_grader_ids(self) -> t.Iterable[int]:
+        """Get the ids of all the graders that have submissions assigned.
+
+        .. note:: This only gets graders with latest submissions assigned to
+            them.
+
+        :returns: The ids of the all the graders that have work assigned within
+            this assignnment.
+        """
+        return map(
+            itemgetter(0),
+            self.get_from_latest_submissions(
+                Work.assigned_to,
+            ).distinct(),
+        )
 
     def set_graders_to_not_done(
         self,
@@ -2275,10 +2337,10 @@ class Assignment(Base):
                 'course': models.Course, # Course of this assignment.
                 'whitespace_linter': bool, # Has the whitespace linter
                                            # run on this assignment.
-                'reminder_type': str # The kind of reminder that will be send.
-                                     # If you don't have the permission to see
-                                     # this it will always be the string
-                                     # 'none'.
+                'done_type': str, # The kind of reminder that will be sent.
+                                  # If you don't have the permission to see
+                                  # this it will always be `null`. If this is
+                                  # not set it will also be `null`.
                 'reminder_time': str, # ISO UTC date. This will be `null` if
                                       # you don't have the permission to see
                                       # this or if it is unset.
@@ -2299,7 +2361,8 @@ class Assignment(Base):
             'course': self.course,
             'cgignore': self.cgignore,
             'whitespace_linter': self.whitespace_linter,
-            'reminder_type': AssignmentReminderType.none.name,
+            'done_type': None,
+            'done_email': None,
             'reminder_time': None,
         }
 
@@ -2308,10 +2371,13 @@ class Assignment(Base):
                 'can_grade_work',
                 self.course_id,
             )
-            res['reminder_type'] = self.reminder_type.name
-            if self._reminder_email_time is not None:
-                res['reminder_time'] = self._reminder_email_time.isoformat()
-        except auth.PermissionException:
+            if self.done_email is not None:
+                res['done_email'] = self.done_email
+            if self.done_type is not None:
+                res['done_type'] = self.done_type.name
+            if self.reminder_email_time is not None:
+                res['reminder_time'] = self.reminder_email_time.isoformat()
+        except auth.PermissionException as e:
             pass
 
         return res

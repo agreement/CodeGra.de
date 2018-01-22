@@ -34,6 +34,8 @@ if t.TYPE_CHECKING:  # pragma: no cover
             ...
 
         def task(self, callback: t.Any) -> CeleryTask:
+            # `CeleryTask()` is returned here as this code is also executed
+            # when generating the documentation.
             return CeleryTask()
 else:
     Celery = _Celery
@@ -109,25 +111,18 @@ def _passback_grades_1(submission_ids: t.Sequence[int]) -> None:
 
 
 @celery.task
-def _send_reminder_mail_1(assignment_id: int) -> None:
+def _send_reminder_mails_1(assignment_id: int) -> None:
     assig = p.models.Assignment.query.get(assignment_id)
     finished = set(g.user_id for g in assig.finished_graders)
 
-    if (assig is None or
-        assig.reminder_type == p.models.AssignmentReminderType.none
-    ):
+    if assig is None or None in {assig.done_type, assig.reminder_email_time}:
         return
 
     to_mail: t.Iterable[int]
 
-    if assig.reminder_type == p.models.AssignmentReminderType.assigned_only:
-        to_mail = map(
-            itemgetter(0),
-            assig.get_from_latest_submissions(
-                p.models.Work.assigned_to,
-            ).distinct()
-        )
-    elif assig.reminder_type == p.models.AssignmentReminderType.all_graders:
+    if assig.done_type == p.models.AssignmentDoneType.assigned_only:
+        to_mail = assig.get_assigned_grader_ids()
+    elif assig.done_type == p.models.AssignmentDoneType.all_graders:
         to_mail = map(itemgetter(1), assig.get_all_graders(sort=False))
 
     with p.mail.mail.connect() as conn:
@@ -146,6 +141,14 @@ def _send_reminder_mail_1(assignment_id: int) -> None:
                 # e-mail address.
                 # TODO: add some sort of logging system.
                 pass
+
+
+@celery.task
+def _send_done_mail_1(assignment_id: int) -> None:
+    assig = p.models.Assignment.query.get(assignment_id)
+
+    if assig is not None and assig.done_email is not None:
+        p.mail.send_whopie_done_email(assig)
 
 
 @celery.task
@@ -171,5 +174,6 @@ def _add_1(a: int, b: int) -> int:  # pragma: no cover
 passback_grades = _passback_grades_1.delay
 lint_instances = _lint_instances_1.delay
 add = _add_1.delay
-send_reminder_mails = _send_reminder_mail_1.apply_async
+send_reminder_mails = _send_reminder_mails_1.apply_async
+send_done_mail = _send_done_mail_1.delay
 send_grader_status_mail = _send_grader_status_mail_1.delay

@@ -103,6 +103,8 @@ def create_app(config: t.Mapping = None, skip_celery: bool = False) -> t.Any:
 
     limiter.init_app(app)
 
+    import psef.parsers  # NOQA
+
     import psef.models  # NOQA
     psef.models.init_app(app)
 

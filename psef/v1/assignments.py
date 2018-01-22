@@ -165,6 +165,57 @@ def get_assignments_feedback(
     return jsonify(res)
 
 
+def set_reminder(
+    assig: models.Assignment,
+    content: t.Dict[str, helpers.JSONType],
+) -> t.Optional[psef.errors.HttpWarning]:
+    """Set the reminder of an assignment from a JSON dict.
+
+    :param assig: The assignment to set the reminder for.
+    :param content: The json input.
+    :returns: A warning if it should be returned to the user.
+    """
+    ensure_keys_in_dict(content, [
+        ('done_type', (type(None), str)),
+        ('done_email', (type(None), str)),
+        ('reminder_time', (type(None), str)),
+    ])  # yapf: disable
+
+    done_type = parsers.parse_enum(
+        content.get('done_type', None),
+        models.AssignmentDoneType,
+        allow_none=True,
+        option_name='done type'
+    )
+    reminder_time = parsers.parse_datetime(
+        content.get('reminder_time', None),
+        allow_none=True,
+    )
+    done_email = parsers.try_parse_email_list(
+        content.get('done_email', None),
+        allow_none=True,
+    )
+
+    if reminder_time and (reminder_time -
+                          datetime.datetime.utcnow()).total_seconds() < 60:
+        raise APIException(
+            (
+                'The given date is not far enough from the current time, '
+                'it should be at least 60 seconds in the future.'
+            ), f'{reminder_time} is not atleast 60 seconds in the future',
+            APICodes.INVALID_PARAM, 400
+        )
+
+    assig.change_notifications(done_type, reminder_time, done_email)
+    if done_email is not None and assig.graders_are_done():
+        return make_warning(
+            'Grading is already done, no email will be sent!',
+            APIWarnings.CONDITION_ALREADY_MET
+        )
+
+    return None
+
+
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
 def update_assignment(assignment_id: int) -> EmptyResponse:
     """Update the given :class:`.models.Assignment` with new values.
@@ -179,29 +230,28 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
         empty. (OPTIONAL)
     :<json str deadline: The new deadline of the assignment. This should be a
         ISO 8061 date without timezone information. (OPTIONAL)
-    :<json str reminder_type: The new reminder type, can be `none`,
-        `assigned_only` and `all_graders`. See
-        :class:`.models.AssignmentReminderType` for what each option
-        means. (OPTIONAL if reminder_time is not present)
-    :<json str reminder_time: The time reminders should be sent. This should be
-        an ISO 8061 date without timezone information. (OPTIONAL if
-        reminder_type is not present)
+    :<json str done_type: The type to determine if a assignment is done. This
+        can be any value of :class:`.models.AssignmentDoneType` or
+        ``null``. (OPTIONAL)
+    :<json str done_email: The emails to send an email to if the assignment is
+        done. Can be ``null`` to disable these emails. (OPTIONAL)
+    :<json str reminder_time: The time on which graders which are causing the
+        grading to be not should be reminded they have to grade. Can be
+        ``null`` to disable these emails. (OPTIONAL)
+
+    If any of ``done_type``, ``done_email`` or ``reminder_time`` is given all
+    the other values should be given too.
 
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
-
-    :raises APIException: If no assignment with given id exists.
-                          (OBJECT_ID_NOT_FOUND)
     :raises APIException: If an invalid value is submitted. (INVALID_PARAM)
-    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
-    :raises PermissionException: If the user is not allowed to edit this is
-                                 assignment. (INCORRECT_PERMISSION)
     """
+    warning = None
     assig = helpers.get_or_404(models.Assignment, assignment_id)
-    auth.ensure_permission('can_edit_assignment_info', assig.course_id)
     content = ensure_json_dict(request.get_json())
 
     if 'state' in content:
+        auth.ensure_permission('can_edit_assignment_info', assig.course_id)
         ensure_keys_in_dict(content, [('state', str)])
         state = t.cast(str, content['state'])
 
@@ -215,6 +265,7 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
             )
 
     if 'name' in content:
+        auth.ensure_permission('can_edit_assignment_info', assig.course_id)
         ensure_keys_in_dict(content, [('name', str)])
         name = t.cast(str, content['name'])
 
@@ -229,43 +280,26 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
         assig.name = name
 
     if 'deadline' in content:
+        auth.ensure_permission('can_edit_assignment_info', assig.course_id)
         ensure_keys_in_dict(content, [('deadline', str)])
         deadline = t.cast(str, content['deadline'])
         assig.deadline = parsers.parse_datetime(deadline)
 
     if 'ignore' in content:
+        auth.ensure_permission('can_edit_cgignore', assig.course_id)
         ensure_keys_in_dict(content, [('ignore', str)])
-        ignore = t.cast(str, content['ignore'])
-        assig.cgignore = ignore
+        assig.cgignore = t.cast(str, content['ignore'])
 
-    if 'reminder_type' in content or 'reminder_time' in content:
-        ensure_keys_in_dict(
-            content, [('reminder_type', str),
-                      ('reminder_time', str)]
+    if any(t in content for t in ['done_type', 'reminder_time', 'done_email']):
+        auth.ensure_permission(
+            'can_update_course_notifications',
+            assig.course_id,
         )
-
-        reminder_type = parsers.parse_enum(
-            t.cast(str, content['reminder_type']),
-            models.AssignmentReminderType
-        )
-        reminder_time = parsers.parse_datetime(
-            t.cast(str, content['reminder_time'])
-        )
-
-        if (reminder_time - datetime.datetime.utcnow()).total_seconds() < 60:
-            raise APIException(
-                (
-                    'The given date is not far enough from the current time, '
-                    'it should be at least 60 seconds in the future.'
-                ), f'{reminder_time} is not atleast 60 seconds in the future',
-                APICodes.INVALID_PARAM, 400
-            )
-
-        assig.change_reminder(reminder_type, reminder_time)
+        warning = set_reminder(assig, content) or warning
 
     db.session.commit()
 
-    return make_empty_response()
+    return make_empty_response(warning=warning)
 
 
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['GET'])
@@ -884,12 +918,28 @@ def set_grader_to_done(assignment_id: int, grader_id: int) -> EmptyResponse:
         status but does not have the `can_update_grader_status` or the
         `can_grade_work` permission. (INCORRECT_PERMISSION)
     """
-    assig = helpers.get_or_404(models.Assignment, assignment_id)
+    assig = helpers.get_or_404(
+        models.Assignment,
+        assignment_id,
+        options=[joinedload(models.Assignment.finished_graders)],
+    )
 
     if current_user.id == grader_id:
         auth.ensure_permission('can_grade_work', assig.course_id)
     else:
         auth.ensure_permission('can_update_grader_status', assig.course_id)
+
+    grader = helpers.get_or_404(models.User, grader_id)
+    if not grader.has_permission('can_grade_work', assig.course_id):
+        raise APIException(
+            'The given user is not a grader in this course',
+            (
+                f'The user with id "{grader_id}" is not a grader '
+                f'in the course "{assig.course_id}"'
+            ),
+            APICodes.INVALID_PARAM,
+            400,
+        )
 
     if any(g.user_id == grader_id for g in assig.finished_graders):
         raise APIException(
@@ -898,12 +948,17 @@ def set_grader_to_done(assignment_id: int, grader_id: int) -> EmptyResponse:
             APICodes.INVALID_STATE,
             400,
         )
+    done_before = assig.graders_are_done()
 
     grader_done = models.AssignmentGraderDone(
-        user_id=grader_id, assignment_id=assig.id
+        user_id=grader_id,
+        assignment=assig,
     )
     db.session.add(grader_done)
     db.session.commit()
+
+    if not done_before and assig.graders_are_done():
+        psef.tasks.send_done_mail(assig.id)
 
     if assig.has_non_graded_submissions(grader_id):
         return make_empty_response(

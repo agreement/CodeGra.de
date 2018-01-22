@@ -67,6 +67,7 @@ export default {
                 data[i].created_at = moment.utc(data[i].created_at, moment.ISO_8601)
                     .local()
                     .format('YYYY-MM-DDTHH:mm');
+                data[i].has_reminder_time = reminderTime.isValid();
                 data[i].reminder_time = (reminderTime.isValid() ?
                                          reminderTime :
                                          defaultReminderTime)

@@ -760,7 +760,7 @@ def test_add_assignment(
         if name is not None:
             data['name'] = name
 
-        assig = test_client.req(
+        test_client.req(
             'post',
             f'/api/v1/courses/{course.id}/assignments/',
             error or 200,
@@ -776,7 +776,8 @@ def test_add_assignment(
                 'description': str,
                 'whitespace_linter': False,
                 'cgignore': None,
-                'reminder_type': 'none',
+                'done_type': None,
+                'done_email': None,
                 'reminder_time': None,
             }
         )

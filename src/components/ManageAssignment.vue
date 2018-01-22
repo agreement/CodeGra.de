@@ -96,17 +96,17 @@
                         <linters :assignment="assignment"/>
                     </div>
 
-                    <div v-if="permissions.can_update_grading_reminder">
+                    <div v-if="permissions.can_update_course_notifications">
                         <h5>
-                            Grade reminders
+                            Notifications
                             <description-popover
                                 description="Send a reminder e-mail to the selected
                                 graders on the selected time if they have not yet
                                 finished grading."/>
                         </h5>
-                        <div class="form-control">
-                            <grade-reminder :assignment="assignment"
-                                            class="grade-reminder"/>
+                        <div class="form-control reminders-wrapper">
+                            <notifications :assignment="assignment"
+                                       class="reminders"/>
                         </div>
                     </div>
                 </div>
@@ -150,7 +150,7 @@ import Loader from './Loader';
 import SubmitButton from './SubmitButton';
 import RubricEditor from './RubricEditor';
 import CGIgnoreFile from './CGIgnoreFile';
-import GradeReminder from './GradeReminder';
+import Notifications from './Notifications';
 import DescriptionPopover from './DescriptionPopover';
 import FinishedGraderToggles from './FinishedGraderToggles';
 
@@ -246,7 +246,7 @@ export default {
         SubmitButton,
         RubricEditor,
         CGIgnoreFile,
-        GradeReminder,
+        Notifications,
         DescriptionPopover,
         FinishedGraderToggles,
     },

@@ -107,6 +107,25 @@
 # admin has reset your status or that you have been assigned new
 # submission(s).</p>
 
+# This is the template that gets sent to the configured email addresses when
+# grading is done.  Double newlines are replaced by '<br><br>'. This
+# is the html part of the email, the txt part gets generated automatically. You
+# can use the following variables in this template (all between {}):
+# - site_url: The url of the site
+# - assig_id: The id of the assignemt of which grading is done
+# - assig_name: The name of the assignment
+# - course_id: The id of the course of this assignment
+# done_template = <p>Dear,
+#
+# This email has been sent to let you know that all work has been graded on the
+# assignment "{assig_name}" on <a href="{site_url}">{site_url}</a>. If you go to
+# <a href="{site_url}/courses/{course_id}">this page</a> you can set the state
+# of the assignment to 'done' so that the students can see their grade!
+#
+# This email was automatically sent because of reminder that was set for this
+# assignment. You can change these settings <a
+# href="{site_url}/courses/{course_id}">here</a></p>.
+
 # Time in seconds a user has to reset his or her password after the e-mail is
 # sent in seconds.
 # reset_token_time = 86400

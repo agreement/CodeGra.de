@@ -9,7 +9,7 @@ export const MANAGE_COURSE_PERMISSIONS = [
     'can_edit_course_roles',
     'can_update_grader_status',
     'can_use_linter',
-    'can_update_grading_reminder',
+    'can_update_course_notifications',
     'manage_rubrics',
     'can_upload_bb_zip',
 ];

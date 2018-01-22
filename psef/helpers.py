@@ -249,7 +249,11 @@ def filter_single_or_404(model: t.Type[Y], *criteria: t.Any) -> Y:
     return t.cast(Y, _filter_or_404(model, False, criteria))
 
 
-def get_or_404(model: t.Type[Y], object_id: t.Any) -> Y:
+def get_or_404(
+    model: t.Type[Y],
+    object_id: t.Any,
+    options: t.Optional[t.List[t.Any]] = None,
+) -> Y:
     """Get the specified object by primary key or raise an exception.
 
     .. note::
@@ -258,12 +262,18 @@ def get_or_404(model: t.Type[Y], object_id: t.Any) -> Y:
 
     :param model: The object to get.
     :param object_id: The primary key identifier for the given object.
+    :param options: A list of options to give to the executed query. This can
+        be used to undefer or eagerly load some columns or relations.
     :returns: The requested object.
 
     :raises APIException: If no object with the given id could be found.
         (OBJECT_ID_NOT_FOUND)
     """
-    obj: t.Optional[Y] = psef.models.db.session.query(model).get(object_id)
+    query = psef.models.db.session.query(model)
+    if options is not None:
+        query = query.options(*options)
+    obj: t.Optional[Y] = query.get(object_id)
+
     if obj is None:
         raise psef.errors.APIException(
             f'The requested "{model.__name__}" was not found',

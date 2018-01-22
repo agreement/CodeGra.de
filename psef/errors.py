@@ -14,6 +14,7 @@ class APIWarnings(IntEnum):
     """
     DEPRICATED = 0
     GRADER_NOT_DONE = 1
+    CONDITION_ALREADY_MET = 2
 
 
 @unique

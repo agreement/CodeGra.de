@@ -196,6 +196,21 @@ admin has reset your status or that you have been assigned new
 submission(s).</p>
     """.strip(),
 )
+set_str(CONFIG,
+        backend_ops,
+        'DONE_TEMPLATE',
+        """
+<p>Dear,
+
+This email has been sent to let you know that all work has been graded on the
+assignment "{assig_name}" on <a href="{site_url}">{site_url}</a>. If you go to
+<a href="{site_url}/courses/{course_id}">this page</a> you can set the state of
+the assignment to 'done' so that the students can see their grade!
+
+This email was automatically sent because of reminder that was set for this
+assignment. You can change these settings <a
+href="{site_url}/courses/{course_id}">here</a>.</p>
+        """.strip())
 
 ############
 # FEATURES #

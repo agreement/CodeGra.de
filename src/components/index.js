@@ -32,7 +32,7 @@ import PrivacyNote from './PrivacyNote';
 import PreferenceManager from './PreferenceManager';
 import Toggle from './Toggle';
 import CGIgnoreFile from './CGIgnoreFile';
-import GradeReminder from './GradeReminder';
+import Notifications from './Notifications';
 import DescriptionPopover from './DescriptionPopover';
 import AssignmentState from './AssignmentState';
 import FinishedGraderToggles from './FinishedGraderToggles';
@@ -72,7 +72,7 @@ export {
     PreferenceManager,
     Toggle,
     CGIgnoreFile,
-    GradeReminder,
+    Notifications,
     DescriptionPopover,
     AssignmentState,
     FinishedGraderToggles,

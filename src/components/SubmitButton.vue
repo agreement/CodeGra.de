@@ -1,6 +1,6 @@
 <template>
     <b-popover class="submission-popover"
-               :show="showError && state === 'failure' && (Boolean(err) || showEmpty)"
+               :show="showError && (state === 'failure' || state === 'warning') && (Boolean(err) || showEmpty)"
                :placement="popoverPlacement"
                :content="err">
         <b-button :disabled="pending || disabled"
@@ -26,11 +26,14 @@ export default {
             err: '',
             pending: false,
             state: 'default',
+            canceled: true,
             variants: {
                 default: this.default,
                 success: this.success,
                 failure: this.failure,
+                warning: this.warning,
             },
+            mult: 1,
             timeout: null,
         };
     },
@@ -71,6 +74,10 @@ export default {
             type: String,
             default: 'danger',
         },
+        warning: {
+            type: String,
+            default: 'warning',
+        },
         showEmpty: {
             type: Boolean,
             default: true,
@@ -84,10 +91,11 @@ export default {
     methods: {
         submit(promise) {
             this.pending = true;
+            this.canceled = false;
             return Promise.resolve(promise).then(res =>
-                this.succeed(res),
+                !this.canceled && this.succeed(res),
             err =>
-                this.fail(err),
+                !this.canceled && this.fail(err),
             );
         },
 
@@ -107,6 +115,16 @@ export default {
                 .then(() => res);
         },
 
+        cancel() {
+            this.canceled = true;
+        },
+
+        warn(err) {
+            this.pending = false;
+            this.err = err;
+            return this.update('warning', 3);
+        },
+
         fail(err) {
             this.pending = false;
             this.err = err;
@@ -120,10 +138,14 @@ export default {
                 if (this.timeout != null) {
                     clearTimeout(this.timeout);
                 }
+                if (this.mult * mult === 0) {
+                    resolve();
+                    return;
+                }
                 this.timeout = setTimeout(() => {
                     this.reset();
                     resolve();
-                }, this.delay * mult);
+                }, this.delay * mult * this.mult);
             });
         },
     },

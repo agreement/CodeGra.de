@@ -21,7 +21,7 @@ mail = Mail()
 def _send_mail(
     html_body: str,
     subject: str,
-    recipients: t.Sequence[str],
+    recipients: t.Sequence[t.Union[str, t.Tuple[str, str]]],
     mailer: t.Optional[Mail] = None,
 ) -> None:
     if mailer is None:
@@ -38,6 +38,26 @@ def _send_mail(
         recipients=recipients,
     )
     mailer.send(message)
+
+
+def send_whopie_done_email(assig: models.Assignment) -> None:
+    html_body = current_app.config['DONE_TEMPLATE'].replace(
+        '\n\n',
+        '<br><br>',
+    ).format(
+        site_url=current_app.config['EXTERNAL_URL'],
+        assig_id=assig.id,
+        assig_name=html.escape(assig.name),
+        course_id=assig.course_id,
+    )
+    _send_mail(
+        html_body,
+        (
+            f'Grading has finished for {assig.name} on '
+            f'{current_app.config["EXTERNAL_URL"]}'
+        ),
+        psef.parsers.parse_email_list(assig.done_email),
+    )
 
 
 def send_grader_status_changed_mail(

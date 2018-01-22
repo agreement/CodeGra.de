@@ -46,7 +46,7 @@
       "can_use_linter",
       "can_see_assignee",
       "can_update_grader_status",
-      "can_update_grading_reminder",
+      "can_update_course_notifications",
       "manage_rubrics",
       "can_see_hidden_assignments",
       "can_upload_after_deadline",

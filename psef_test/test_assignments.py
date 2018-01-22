@@ -138,8 +138,9 @@ def test_get_assignment(
                 'cgignore': None,
                 'course': dict,
                 'whitespace_linter': False,
-                'reminder_type': 'none',
+                'done_type': None,
                 'reminder_time': None,
+                'done_email': None,
             }
         else:
             res = error_template
@@ -2301,6 +2302,24 @@ def test_ignored_upload_files(
         )
 
 
+def test_cgignore_permission(
+    ta_user, session, test_client, error_template, assignment, logged_in
+):
+    ta_user.courses[assignment.course_id].set_permission(
+        m.Permission.query.filter_by(name='can_edit_cgignore').one(),
+        False,
+    )
+
+    with logged_in(ta_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment.id}',
+            403,
+            data={'ignore': '*\n!dir/'},
+            result=error_template,
+        )
+
+
 @pytest.mark.parametrize('with_works', [True], indirect=True)
 def test_warning_grader_done(
     test_client, logged_in, request, assignment, ta_user, session,
@@ -2517,6 +2536,17 @@ def test_grader_done(
     assert all(not g['done']
                for g in graders), 'Make sure all graders are again not done'
 
+    with logged_in(ta_user):
+        test_client.req(
+            'post', (
+                f'/api/v1/assignments/{assig_id}/graders/' +
+                str(m.User.query.filter_by(name='Stupid1').first().id) +
+                '/done'
+            ),
+            400,
+            result=error_template
+        )
+
     if not err:
         new_user = m.User.query.filter_by(name='Stupid1').first()
         perm = m.Permission.query.filter_by(name='can_grade_work').first()
@@ -2558,19 +2588,21 @@ def test_grader_done(
     indirect=True
 )
 @pytest.mark.parametrize(
-    'with_type,with_time', [
-        (True, True),
-        (False, True),
-        (True, False),
-        (True, 'wrong'),
-        ('wrong', True),
+    'with_type,with_time,with_email', [
+        (True, True, True),
+        (True, True, False),
+        (False, True, True),
+        (True, False, False),
+        (True, 'wrong', True),
+        ('wrong', True, True),
+        (True, True, 'wrong'),
     ]
 )
 @pytest.mark.parametrize('with_works', [True], indirect=True)
 def test_reminder_email(
     test_client, session, error_template, ta_user, monkeypatch, app,
     stub_function_class, assignment, named_user, with_type, with_time, request,
-    logged_in
+    logged_in, with_email, monkeypatch_celery
 ):
     assig_id = assignment.id
 
@@ -2582,7 +2614,7 @@ def test_reminder_email(
             'b',
         ])
     ).all()
-    graders = all_graders[2:4]
+    assigned_graders = all_graders[2:3]
     with logged_in(ta_user):
         test_client.req(
             'patch',
@@ -2591,7 +2623,7 @@ def test_reminder_email(
             result=None,
             data={
                 'graders': {u.id: 1
-                            for u in graders}
+                            for u in assigned_graders}
             }
         )
 
@@ -2602,13 +2634,13 @@ def test_reminder_email(
             204,
             data={'user_id': all_graders[0].id},
         )
-    graders.append(all_graders[0])
+    assigned_graders.append(all_graders[0])
 
     # Monkeypatch the actual mailer away as we don't really want to send emails
     mailer = stub_function_class()
 
     def test_mail(users):
-        psef.tasks._send_reminder_mail_1(assig_id)
+        psef.tasks._send_reminder_mails_1(assig_id)
 
         user_mails = [u.email for u in users]
         user_mails.sort()
@@ -2626,8 +2658,16 @@ def test_reminder_email(
             [arg[2][0] for arg in mailer.args]
         ) == user_mails, ('Make sure only the correct'
                           ' users were emailed')
+        mailer.reset()
 
     monkeypatch.setattr(psef.mail, '_send_mail', mailer)
+    # Make sure no grader status emails are sent as these also use the
+    # `_send_mail` function
+    monkeypatch.setattr(
+        psef.mail,
+        'send_grader_status_changed_mail',
+        stub_function_class(),
+    )
 
     class StubTask:
         def __init__(self, id):
@@ -2642,22 +2682,30 @@ def test_reminder_email(
 
     time = datetime.datetime.utcnow() + datetime.timedelta(days=1)
     data = {
-        'reminder_type': 'assigned_only',
+        'done_type': 'assigned_only',
         'reminder_time': time.isoformat(),
+        'done_email': '"thomas schaper" <thomas@example>, aa@example.com'
     }
     code = 204
 
     if not with_type:
-        del data['reminder_type']
+        del data['done_type']
         code = 400
     if not with_time:
         del data['reminder_time']
         code = 400
+    if not with_email:
+        del data['done_email']
+        code = 400
+
     if with_type == 'wrong':
-        data['reminder_type'] = 'WRONG_TYPE'
+        data['done_type'] = 'WRONG_TYPE'
         code = 400
     if with_time == 'wrong':
         data['reminder_time'] = 'WRONG_TIME'
+        code = 400
+    if with_email == 'wrong':
+        data['done_email'] = 'not_a_email'
         code = 400
 
     marker = request.node.get_marker('http_err')
@@ -2666,17 +2714,69 @@ def test_reminder_email(
 
     err = code >= 400
 
+    def set_to_done(grader, method='post'):
+        with logged_in(ta_user):
+            test_client.req(
+                method,
+                (
+                    f'/api/v1/assignments/{assig_id}/'
+                    f'graders/{grader.id}/done'
+                ),
+                204,
+                result=None,
+            )
+
+    def test_done_email():
+        set_to_done(all_graders[3])
+
+        for assigned_grader in assigned_graders:
+            set_to_done(assigned_grader)
+
+        if data['done_type'
+                ] == 'assigned_only' and data['done_email'] is not None:
+            assert mailer.called
+            mailer.reset()
+        else:
+            assert not mailer.called
+
+        for grader in all_graders[:-1]:
+            if grader not in assigned_graders:
+                set_to_done(grader)
+
+        if data['done_type'] is 'all_graders' and data['done_email'
+                                                       ] is not None:
+            assert mailer.called
+        else:
+            assert not mailer.called
+
+        mailer.reset()
+
+        for grader in all_graders:
+            set_to_done(grader, 'delete')
+
     def check_assig_state():
         with logged_in(ta_user):
             assig = test_client.req(
                 'get', f'/api/v1/assignments/{assig_id}', 200, result=dict
             )
-            assert assig['reminder_type'] == data[
-                'reminder_type'
-            ], 'Make sure state is the same as in the data send'
-            assert assig['reminder_time'] == data[
-                'reminder_time'
-            ], 'Make sure time is the same as in the data send'
+            assert assig['done_type'] == data[
+                'done_type'
+            ], 'Make sure state is the same as in the data sent'
+
+            if assig['done_type'] is None:
+                assert assig['reminder_time'] is None, """
+                Reminder time should have been reset
+                """
+                assert assig['done_email'] is None, """
+                Done email should be reset to None
+                """
+            else:
+                assert assig['reminder_time'] == data[
+                    'reminder_time'
+                ], 'Make sure time is the same as in the data sent'
+                assert assig['done_email'] == data[
+                    'done_email'
+                ], 'Make sure email is correct'
 
     with logged_in(named_user):
         test_client.req(
@@ -2694,7 +2794,8 @@ def test_reminder_email(
         if err:
             return
         check_assig_state()
-        test_mail(graders)
+        test_mail(assigned_graders)
+        test_done_email()
 
         assert task.args == [((assig_id, ), )
                              ], 'The correct task should be scheduled.'
@@ -2705,9 +2806,8 @@ def test_reminder_email(
 
         revoker.reset()
         task.reset()
-        mailer.reset()
 
-        data['reminder_type'] = 'none'
+        data['done_type'] = None
 
         test_client.req(
             'patch',
@@ -2724,17 +2824,14 @@ def test_reminder_email(
             'Nothing should be scheduled as the type '
             'was none'
         )
-
         assert revoker.args == [(task_id, )
                                 ], 'Assert the correct task was revoked'
-
         test_mail([])
-
+        test_done_email()
         revoker.reset()
         task.reset()
-        mailer.reset()
 
-        data['reminder_type'] = 'all_graders'
+        data['done_type'] = 'all_graders'
 
         test_client.req(
             'patch',
@@ -2751,20 +2848,47 @@ def test_reminder_email(
         assert not mailer.called, 'The mailer should not be called'
         assert task.called, 'A new task should be scheduled '
         test_mail(all_graders)
+        test_done_email()
+        revoker.reset()
+        task.reset()
 
-        mailer.reset()
-
+        old_email = data['done_email']
+        data['done_email'] = None
         test_client.req(
-            'post',
-            (
-                f'/api/v1/assignments/{assig_id}/'
-                f'graders/{all_graders[-1].id}/done'
-            ),
-            204,
-            result=None,
+            'patch',
+            f'/api/v1/assignments/{assig_id}',
+            code,
+            data=data,
+            result=None
         )
+        check_assig_state()
+        assert task.called, 'A new task should be scheduled '
+        assert revoker.called, 'The previous task should be revoked'
+        test_mail(all_graders)
+        test_done_email()
+        revoker.reset()
+        task.reset()
+        data['done_email'] = old_email
+
+        set_to_done(all_graders[-1])
         # Make sure done grader will not get an email.
         test_mail(all_graders[:-1])
+        set_to_done(all_graders[-1], 'delete')
+
+        data['reminder_time'] = None
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assig_id}',
+            code,
+            data=data,
+            result=None
+        )
+        check_assig_state()
+        assert revoker.called, 'Task should revoked as no time was none'
+        assert not mailer.called, 'The mailer should not be called'
+        assert not task.called, 'A new task should not be scheduled '
+        test_mail([])
+        test_done_email()
 
         # This date is not far enough in the future so it should error
         data['reminder_time'] = datetime.datetime.utcnow().isoformat()
@@ -2774,4 +2898,75 @@ def test_reminder_email(
             400,
             data=data,
             result=error_template
+        )
+
+
+@pytest.mark.parametrize('with_works', [True], indirect=True)
+def test_warning_grading_done_email(
+    test_client, session, error_template, ta_user, monkeypatch, app, logged_in,
+    monkeypatch_celery, stub_function_class, assignment
+):
+    assig_id = assignment.id
+    task = stub_function_class()
+    monkeypatch.setattr(psef.tasks, 'send_done_mail', task)
+    all_graders = m.User.query.filter(
+        m.User.name.in_([
+            'Thomas Schaper',
+            'Devin Hillenius',
+            'Robin',
+            'b',
+        ])
+    ).all()
+
+    def set_to_done(grader, method='post'):
+        with logged_in(ta_user):
+            test_client.req(
+                method,
+                (
+                    f'/api/v1/assignments/{assig_id}/'
+                    f'graders/{grader.id}/done'
+                ),
+                204,
+                result=None,
+            )
+
+    for grader in all_graders:
+        set_to_done(grader)
+
+    with logged_in(ta_user):
+        _, rv = test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assig_id}',
+            204,
+            data={
+                'done_type': 'all_graders',
+                'reminder_time': None,
+                'done_email': 'thomas@example.com'
+            },
+            include_response=True
+        )
+    assert rv.headers
+    assert 'warning' in rv.headers
+
+
+def test_notification_permission(
+    test_client, session, ta_user, logged_in, assignment, error_template
+):
+    assig_id = assignment.id
+    ta_user.courses[assignment.course_id].set_permission(
+        m.Permission.query.filter_by(name='can_update_course_notifications',
+                                     ).one(),
+        False,
+    )
+    with logged_in(ta_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assig_id}',
+            403,
+            data={
+                'done_type': 'all_graders',
+                'reminder_time': None,
+                'done_email': 'thomas@example.com'
+            },
+            result=error_template,
         )
