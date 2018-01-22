@@ -11,6 +11,7 @@
 </template>
 
 <script>
+import 'vue-awesome/icons/times';
 import { Loader } from '@/components';
 import { mapActions } from 'vuex';
 
@@ -58,7 +59,20 @@ export default {
                 });
                 if (data.new_role_created) {
                     this.$toasted.info(
-                        `You do not have any permissions yet, please ask your teacher to enabled them for your role "${data.new_role_created}"`,
+                        `You do not have any permissions yet, please ask your teacher to enable them for your role "${data.new_role_created}".`,
+                        {
+                            position: 'bottom-center',
+                            action: {
+                                text: '✖',
+                                onClick: (e, toastObject) => {
+                                    toastObject.goAway(0);
+                                },
+                            },
+                        });
+                }
+                if (data.updated_email) {
+                    this.$toasted.info(
+                        `Your email was updated to "${data.updated_email}" which is the email registered with your LMS.`,
                         {
                             position: 'bottom-center',
                             action: {
@@ -71,8 +85,10 @@ export default {
                 }
             }).catch((err) => {
                 if (first && err.response && err.response.status === 401) {
-                    this.logout.then(() => {
+                    this.logout().then(() => {
                         this.secondStep(false);
+                    }).catch(() => {
+                        this.error = true;
                     });
                 }
                 try {

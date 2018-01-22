@@ -338,32 +338,10 @@ export default {
             this.setPageCSS();
             this.loading = false;
         });
-
-        this.clickHideSettings = (event) => {
-            let target = event.target;
-            while (target !== document.body) {
-                if (target.id === 'codeviewer-settings-content' ||
-                    target.id === 'codeviewer-settings-toggle') {
-                    return;
-                }
-                target = target.parentNode;
-            }
-            this.$root.$emit('hide::popover');
-        };
-        document.body.addEventListener('click', this.clickHideSettings, true);
-
-        this.keyupHideSettings = (event) => {
-            if (event.key === 'Escape') {
-                this.$root.$emit('hide::popover');
-            }
-        };
-        document.body.addEventListener('keyup', this.keyupHideSettings);
     },
 
     destroyed() {
         this.restorePageCSS();
-        document.body.removeEventListener('click', this.clickHideSettings);
-        document.body.removeEventListener('keyup', this.keyupHideSettings);
     },
 
     methods: {

@@ -1,5 +1,6 @@
 <template>
     <b-popover class="submission-popover"
+               :id="id"
                :show="showError && (state === 'failure' || state === 'warning') && (Boolean(err) || showEmpty)"
                :placement="popoverPlacement"
                :content="err">
@@ -39,6 +40,9 @@ export default {
     },
 
     props: {
+        id: {
+            default: undefined,
+        },
         tabindex: {
             default: '0',
         },

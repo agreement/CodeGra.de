@@ -1,42 +1,76 @@
 <template>
-    <div class="userinfo">
-        <loader class="col-md-12 text-center" v-if="loading"></loader>
-        <div @keyup.enter="submit" @keydown.capture="error = ''" v-else>
-            <b-form-fieldset>
-                <b-input-group left="Username">
-                    <b-popover placement="top" triggers="hover" content="You cannot change your username" style="width: 100%;">
-                      <input type="text"
-                             v-model="username"
-                             :disabled="true"
-                             style="border-top-left-radius: 0; border-bottom-left-radius: 0; width: 100%"
-                             class="form-control"/>
-                    </b-popover>
-                </b-input-group>
-            </b-form-fieldset>
-            <b-form-fieldset>
-                <b-input-group left="Full name">
-                    <input :disabled="!canEditInfo"
-                           class="form-control"
-                           type="text"
-                           v-model="name"/>
-                </b-input-group>
-            </b-form-fieldset>
-
-            <b-form-fieldset>
-                <b-input-group left="Email">
-                    <input :disabled="!canEditInfo"
-                           type="text"
-                           class="form-control"
-                           v-model="email"/>
-                </b-input-group>
-            </b-form-fieldset>
-
-            <b-form-fieldset v-if="canEditPw || canEditInfo">
-                <b-input-group left="Old Password">
-                    <input v-if="oldPwVisible"
-                           type="text"
-                           v-model="oldPw"
+<div class="userinfo">
+    <loader class="col-md-12 text-center" v-if="loading"></loader>
+    <div @keyup.enter="submit" @keydown.capture="error = ''" v-else>
+        <b-form-fieldset>
+            <b-input-group left="Username">
+                <b-popover placement="top" triggers="hover" content="You cannot change your username" style="width: 100%;">
+                    <input type="text"
+                           v-model="username"
+                           :disabled="true"
+                           style="border-top-left-radius: 0; border-bottom-left-radius: 0; width: 100%"
                            class="form-control"/>
+                </b-popover>
+            </b-input-group>
+        </b-form-fieldset>
+        <b-form-fieldset>
+            <b-input-group left="Full name">
+                <input :disabled="!canEditInfo"
+                       class="form-control"
+                       type="text"
+                       v-model="name"/>
+            </b-input-group>
+        </b-form-fieldset>
+
+        <b-form-fieldset>
+            <b-input-group left="Email">
+                <input :disabled="!canEditInfo"
+                       type="text"
+                       class="form-control"
+                       v-model="email"/>
+            </b-input-group>
+        </b-form-fieldset>
+
+        <b-form-fieldset v-if="canEditPw || canEditInfo">
+            <b-input-group>
+                <span class="input-group-addon" style="display: inline-block;" slot="left">
+                    Old Password
+                    <description-popover hug-text
+                                         placement="right"
+                                         triggers="click">
+                        <p slot="description"
+                           style="text-align: left; margin-bottom: 0;">
+                            If your account was created by using your LMS
+                            (Canvas, blackboard or another) it can happen
+                            that you don't know this password. In this case
+                            you should use the
+                            <router-link :to="{name: 'login',
+                                              hash: '#forgot'}">
+                                reset password
+                            </router-link> page.<br><br>
+
+                            However this does require
+                            that your email is correct. If this is not the
+                            case you can force CodeGra.de to copy the email
+                            that your LMS gives us the next time you use
+                            CodeGra.de within your LMS. To do this please
+                            press <submit-button
+                                      label="here"
+                                      id="resetOnLtiButton-fixPopover"
+                                      size="sm"
+                                      ref="resetOnLtiButton"
+                                      @click="resetEmailOnLti"
+                                      style="display: inline;"/>
+                            <!-- The id for the submit button is needed as vue
+                                 reuses elements and if that is done here the
+                                 popover will not show correctly. -->
+                        </p>
+                    </description-popover>
+                </span>
+                <input v-if="oldPwVisible"
+                       type="text"
+                       v-model="oldPw"
+                       class="form-control"/>
                     <input v-else
                            type="password"
                            v-model="oldPw"
@@ -106,10 +140,12 @@ import validator from 'email-validator';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/check';
 import 'vue-awesome/icons/eye';
+import 'vue-awesome/icons/info';
 import 'vue-awesome/icons/eye-slash';
 import 'vue-awesome/icons/times';
 
 import Loader from './Loader';
+import DescriptionPopover from './DescriptionPopover';
 import SubmitButton from './SubmitButton';
 
 export default {
@@ -137,6 +173,7 @@ export default {
     components: {
         Icon,
         Loader,
+        DescriptionPopover,
         SubmitButton,
     },
 
@@ -157,6 +194,13 @@ export default {
     },
 
     methods: {
+        resetEmailOnLti() {
+            const btn = this.$refs.resetOnLtiButton;
+            const req = this.$http.patch('/api/v1/login', {}, { params: { type: 'reset_on_lti' } });
+            btn.submit(req.catch((err) => {
+                throw err.response.data.message;
+            }));
+        },
         reset() {
             this.name = this.$store.state.user.name;
             this.email = this.$store.state.user.email;

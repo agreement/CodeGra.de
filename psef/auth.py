@@ -1,13 +1,15 @@
 """This module implements all authorization functions used by :py:mod:`psef`.
+
+:license: AGPLv3, see LICENSE for details.
 """
 import typing as t
 from functools import wraps
 
 import oauth2
+import flask_jwt_extended as flask_jwt
 from mypy_extensions import NoReturn
 
 import psef
-import flask_jwt_extended as flask_jwt
 from psef.errors import APICodes, APIException
 
 jwt = flask_jwt.JWTManager()
@@ -83,6 +85,17 @@ def login_required(fn: t.Callable) -> t.Callable:
             _raise_login_exception()
 
     return wrapper
+
+
+def ensure_logged_in() -> None:
+    """Make sure a user is currently logged in.
+
+    :returns: Nothing.
+
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    """
+    if not _user_active():
+        _raise_login_exception()
 
 
 @login_required

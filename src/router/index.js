@@ -111,7 +111,7 @@ router.beforeEach((to, from, next) => {
             restorePath = to.path;
             next('/login');
         });
-    } else if (loggedIn && to.name === 'login') {
+    } else if (loggedIn && to.name === 'login' && !to.hash === '#forgot') {
         next('/');
     } else {
         next();

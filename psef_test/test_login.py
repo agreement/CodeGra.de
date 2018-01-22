@@ -530,3 +530,46 @@ def test_reset_password(
             'password': '2o2',
         }
     )
+
+
+@pytest.mark.parametrize(
+    'named_user',
+    [
+        ('Thomas Schaper'),
+        ('Stupid1'),
+        ('admin'),
+        perm_error(error=401)('NOT_LOGGED_IN'),
+    ],
+    indirect=['named_user'],
+)
+def test_reset_email_on_lti(
+    session, named_user, error_template, logged_in, test_client, request
+):
+    perm_err = request.node.get_marker('perm_error')
+    if perm_err:
+        code = perm_err.kwargs['error']
+    else:
+        code = 204
+
+    with logged_in(named_user):
+        test_client.req(
+            'patch',
+            '/api/v1/login?type=reset_on_lti',
+            code,
+            result=error_template if code >= 400 else None
+        )
+        if code <= 400:
+            assert m.User.query.get(
+                named_user.id
+            ).reset_email_on_lti, """
+            Property should be set.
+            """
+
+            # Multiple times should be possible without error
+            test_client.req('patch', '/api/v1/login?type=reset_on_lti', 204)
+
+            assert m.User.query.get(
+                named_user.id
+            ).reset_email_on_lti, """
+            Property should still be set
+            """

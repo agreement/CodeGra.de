@@ -154,7 +154,9 @@ class LTI:
         """
         raise NotImplementedError
 
-    def ensure_lti_user(self) -> t.Tuple[models.User, t.Optional[str]]:
+    def ensure_lti_user(
+        self
+    ) -> t.Tuple[models.User, t.Optional[str], t.Optional[str]]:
         """Make sure the current LTI user is logged in as a psef user.
 
         This is done by first checking if we know a user with the current LTI
@@ -166,6 +168,11 @@ class LTI:
 
         Otherwise we create a new user and link this user to current LTI
         user_id.
+
+        :returns: A tuple containing the items in order: the user found as
+            described above, optionally a new token for the user to login with,
+            optionally the updated email of the user as a string, this is
+            ``None`` if the email was not updated.
         """
         is_logged_in = _user_active()
         token = None
@@ -220,7 +227,13 @@ class LTI:
                 fresh=True,
             )
 
-        return user, token
+        updated_email = None
+        if user.reset_email_on_lti:
+            user.email = self.user_email
+            updated_email = self.user_email
+            user.reset_email_on_lti = False
+
+        return user, token, updated_email
 
     def get_course(self) -> models.Course:
         """Get the current LTI course as a psef course.

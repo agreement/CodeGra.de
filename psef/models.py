@@ -532,6 +532,8 @@ class User(Base):
     :ivar assignment_results: The way this user can do LTI grade passback.
     :ivar assignments_assigned: A mapping between assignment_ids and
         :py:class:`AssignmentAssignedGrader` objects.
+    :ivar reset_email_on_lti: Determines if the email should be reset on the
+        next LTI launch.
     """
     # Python 3 implicitly set __hash__ to None if we override __eq__
     # We set it back to its default implementation
@@ -562,6 +564,13 @@ class User(Base):
 
     reset_token: str = db.Column(
         'reset_token', db.String(UUID_LENGTH), nullable=True
+    )
+    reset_email_on_lti = db.Column(
+        'reset_email_on_lti',
+        db.Boolean,
+        server_default=false(),
+        default=False,
+        nullable=False,
     )
 
     email: str = db.Column('email', db.Unicode, unique=False, nullable=False)
@@ -669,8 +678,8 @@ class User(Base):
             Permission,
             course_permissions.c.permission_id == Permission.id,
         ).filter(
-            t.cast(DbColumn[int],
-                   Permission.id).in_(p.id for p in permissions)
+            t.cast(DbColumn[int], Permission.id)
+            .in_(p.id for p in permissions)
         ).subquery('crp')
 
         res: t.Sequence[t.Tuple[int, int]]

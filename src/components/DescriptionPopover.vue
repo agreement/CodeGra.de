@@ -1,16 +1,15 @@
 <template>
     <b-popover :placement="placement"
-               :content="description"
                :triggers="triggers"
                class="description-popover"
                :show="show"
                :style="{ float: hugText ? 'none' : 'right' }">
-        <sup v-if="hugText" class="desc-pop-span">
-            <icon name="info" scale="0.75"/>
-        </sup>
-        <span v-else class="desc-pop-span">
-            <icon name="info" scale="0.75"/>
+        <span slot="content">
+            <slot name="description"><span v-html="description"/></slot>
         </span>
+        <component :is="hugText ? 'sup' : 'span'" class="desc-pop-span">
+            <icon name="info" scale="0.75"/>
+        </component>
     </b-popover>
 </template>
 

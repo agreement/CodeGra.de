@@ -59,8 +59,11 @@ def login() -> ExtendedJSONResponse[t.Mapping[str, t.Union[models.User, str]]]:
     # we have to return the same error for a wrong email as for a wrong
     # password!
     user: t.Optional[models.User]
-    user = db.session.query(models.User
-                            ).filter(models.User.username == username).first()
+    user = db.session.query(
+        models.User,
+    ).filter(
+        models.User.username == username,
+    ).first()
 
     if user is None or user.password != password:
         raise APIException(
@@ -133,6 +136,8 @@ def get_user_update(
       given user_id with the given token to the given ``new_password``.
     - If ``type`` is ``reset_email`` send a email to the user with the given
       username that enables this user to reset its password.
+    - if ``type`` is ``reset_on_lti`` the ``reset_email_on_lti`` attribute for
+      the current is set to ``True``.
     - Otherwise change user info of the currently logged in user.
 
     :returns: An empty response with return code 204 unless ``type`` is
@@ -160,46 +165,89 @@ def get_user_update(
     :raises PermissionException: If the user can not edit his own info.
                                  (INCORRECT_PERMISSION)
     """
-    data = ensure_json_dict(request.get_json())
-
     if request.args.get('type', None) == 'reset_email':
-        ensure_keys_in_dict(data, [('username', str)])
-        mail.send_reset_password_email(
-            helpers.filter_single_or_404(
-                models.User, models.User.username == data['username']
-            )
-        )
-        db.session.commit()
-        return make_empty_response()
+        return user_patch_handle_send_reset_email()
     elif request.args.get('type', None) == 'reset_password':
-        ensure_keys_in_dict(
-            data, [('new_password', str),
-                   ('token', str),
-                   ('user_id', int)]
-        )
+        return user_patch_handle_reset_password()
+    elif request.args.get('type', None) == 'reset_on_lti':
+        return user_patch_handle_reset_on_lti()
+    else:
+        return user_patch_handle_change_user_data()
 
-        password = t.cast(str, data['new_password'])
-        user_id = t.cast(int, data['user_id'])
-        token = t.cast(str, data['token'])
 
-        if password == '':
-            raise APIException(
-                'Password should at least be 1 char',
-                f'The password is {len(password)} chars long',
-                APICodes.INVALID_PARAM, 400
-            )
-        user = helpers.get_or_404(models.User, user_id)
-        user.reset_password(token, password)
-        db.session.commit()
-        return jsonify(
-            {
-                'access_token':
-                    flask_jwt.create_access_token(
-                        identity=user.id,
-                        fresh=True,
-                    )
-            }
+def user_patch_handle_send_reset_email() -> EmptyResponse:
+    """Handle the ``reset_email`` type for the PATCH login route.
+
+    :returns: An empty response.
+    """
+    data = ensure_json_dict(request.get_json())
+    ensure_keys_in_dict(data, [('username', str)])
+
+    mail.send_reset_password_email(
+        helpers.filter_single_or_404(
+            models.User, models.User.username == data['username']
         )
+    )
+    db.session.commit()
+
+    return make_empty_response()
+
+
+def user_patch_handle_reset_password() -> JSONResponse[t.Mapping[str, str]]:
+    """Handle the ``reset_password`` type for the PATCH login route.
+
+    :returns: A response with a jsonified mapping between ``access_token`` and
+        a token which can be used to login. This is only key available.
+    """
+    data = ensure_json_dict(request.get_json())
+    ensure_keys_in_dict(
+        data, [('new_password', str),
+               ('token', str),
+               ('user_id', int)]
+    )
+
+    password = t.cast(str, data['new_password'])
+    user_id = t.cast(int, data['user_id'])
+    token = t.cast(str, data['token'])
+
+    if password == '':
+        raise APIException(
+            'Password should at least be 1 char',
+            f'The password is {len(password)} chars long',
+            APICodes.INVALID_PARAM, 400
+        )
+    user = helpers.get_or_404(models.User, user_id)
+    user.reset_password(token, password)
+    db.session.commit()
+    return jsonify(
+        {
+            'access_token':
+                flask_jwt.create_access_token(
+                    identity=user.id,
+                    fresh=True,
+                )
+        }
+    )
+
+
+def user_patch_handle_reset_on_lti() -> EmptyResponse:
+    """Handle the ``reset_on_lti`` type for the PATCH login route.
+
+    :returns: An empty response.
+    """
+    auth.ensure_logged_in()
+    current_user.reset_email_on_lti = True
+    db.session.commit()
+
+    return make_empty_response()
+
+
+def user_patch_handle_change_user_data() -> EmptyResponse:
+    """Handle the PATCH login route when no ``type`` is given.
+
+    :returns: An empty response.
+    """
+    data = ensure_json_dict(request.get_json())
 
     ensure_keys_in_dict(
         data, [

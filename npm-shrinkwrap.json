@@ -8898,6 +8898,11 @@
       "integrity": "sha1-J5siXfHVgrH1TmWt3UNS4Y+qBxM=",
       "dev": true
     },
+    "string_decoder": {
+      "version": "0.10.31",
+      "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-0.10.31.tgz",
+      "integrity": "sha1-YuIDvEF2bGwoyfyEMB2rHFMQ+pQ="
+    },
     "string-length": {
       "version": "1.0.1",
       "resolved": "https://registry.npmjs.org/string-length/-/string-length-1.0.1.tgz",
@@ -8917,11 +8922,6 @@
         "is-fullwidth-code-point": "1.0.0",
         "strip-ansi": "3.0.1"
       }
-    },
-    "string_decoder": {
-      "version": "0.10.31",
-      "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-0.10.31.tgz",
-      "integrity": "sha1-YuIDvEF2bGwoyfyEMB2rHFMQ+pQ="
     },
     "stringmap": {
       "version": "0.2.2",
@@ -9577,9 +9577,9 @@
       "dev": true
     },
     "vue-toasted": {
-      "version": "1.0.28",
-      "resolved": "https://registry.npmjs.org/vue-toasted/-/vue-toasted-1.0.28.tgz",
-      "integrity": "sha1-N83XZ7aRGdemP6iHAKvCklt83vI="
+      "version": "1.1.24",
+      "resolved": "https://registry.npmjs.org/vue-toasted/-/vue-toasted-1.1.24.tgz",
+      "integrity": "sha1-cVo3HfpJDMcQ/+2q6uYf2KjE960="
     },
     "vuex": {
       "version": "2.3.1",

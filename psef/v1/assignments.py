@@ -16,7 +16,6 @@ from collections import defaultdict
 import flask
 import dateutil
 import sqlalchemy.sql as sql
-import flask_sqlalchemy  # XXX: Remove em
 from flask import request, send_file, after_this_request
 from sqlalchemy.orm import undefer, joinedload
 from werkzeug.datastructures import FileStorage
@@ -71,8 +70,10 @@ def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
             t.cast(models.DbColumn[str],
                    models.AssignmentLinter.id).isnot(None)
         ).filter(
-            t.cast(models.DbColumn[int],
-                   models.Assignment.course_id).in_(courses)
+            t.cast(
+                models.DbColumn[int],
+                models.Assignment.course_id,
+            ).in_(courses)
         ).join(
             models.AssignmentLinter,
             sql.expression.and_(
@@ -1084,8 +1085,10 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
     found_users = {
         u.username: u
         for u in models.User.query.filter(
-            t.cast(models.DbColumn[str], models.User.username)
-            .in_([si.student_id for si, _ in submissions])
+            t.cast(
+                models.DbColumn[str],
+                models.User.username,
+            ).in_([si.student_id for si, _ in submissions])
         ).options(joinedload(models.User.courses))
     }
 

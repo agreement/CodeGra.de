@@ -106,6 +106,21 @@ const app = new Vue({
     store,
     created() {
         this.verifyLogin();
+
+        this.clickHideSettings = (event) => {
+            if (event.target.closest('.popover-content-wrapper')) {
+                return;
+            }
+            this.$root.$emit('hide::popover');
+        };
+        document.body.addEventListener('click', this.clickHideSettings, true);
+
+        this.keyupHideSettings = (event) => {
+            if (event.key === 'Escape') {
+                this.$root.$emit('hide::popover');
+            }
+        };
+        document.body.addEventListener('keyup', this.keyupHideSettings);
     },
     methods: {
         ...mapActions('user', [
