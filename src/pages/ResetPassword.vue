@@ -10,7 +10,7 @@
                        tabindex="1"
                        v-model="newPw"/>
                 <input v-else
-                       type"password"
+                       type="password"
                        class="form-control"
                        tabindex="1"
                        v-model="newPw"/>
