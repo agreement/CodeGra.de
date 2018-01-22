@@ -116,7 +116,7 @@ const mutations = {
         state.jwtToken = data.access_token;
     },
     [types.CLEAR_CACHE](state) {
-        state.snippets = null;
+        state.snippets = {};
     },
 };
 
@@ -127,7 +127,7 @@ export default {
         id: 0,
         email: '',
         name: '',
-        snippets: null,
+        snippets: {},
         canSeeHidden: false,
         username: '',
     },
