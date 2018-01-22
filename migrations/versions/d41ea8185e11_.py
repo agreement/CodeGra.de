@@ -28,7 +28,7 @@ new_perms = [
     'can_edit_course_users',
     'can_create_assignment',
     'can_update_grader_status',
-    'can_update_grading_reminder',
+    'can_update_course_notifications',
 ]
 
 
