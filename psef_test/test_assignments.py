@@ -2904,7 +2904,7 @@ def test_reminder_email(
 @pytest.mark.parametrize('with_works', [True], indirect=True)
 def test_warning_grading_done_email(
     test_client, session, error_template, ta_user, monkeypatch, app, logged_in,
-    monkeypatch_celery, stub_function_class, assignment
+    monkeypatch_celery, stub_function_class, assignment, teacher_user
 ):
     assig_id = assignment.id
     task = stub_function_class()
@@ -2933,7 +2933,7 @@ def test_warning_grading_done_email(
     for grader in all_graders:
         set_to_done(grader)
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         _, rv = test_client.req(
             'patch',
             f'/api/v1/assignments/{assig_id}',
