@@ -22,7 +22,8 @@
                     <input type="text"
                            class="form-control"
                            placeholder="Key"
-                           v-model="item.item.key"/>
+                           v-model="item.item.key"
+                           @keyup.ctrl.enter="saveSnippet(item.item)"/>
                 </b-form-fieldset>
                 <span v-else>{{ item.item.key ? item.item.key : '-' }}</span>
             </template>
@@ -35,7 +36,8 @@
                     <input type="text"
                            class="form-control"
                            placeholder="Value"
-                           v-model="item.item.value"/>
+                           v-model="item.item.value"
+                           @keyup.ctrl.enter="saveSnippet(item.item)"/>
                 </b-form-fieldset>
                 <span v-else>{{ item.item.value ? item.item.value : '-' }}</span>
             </template>
