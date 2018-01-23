@@ -15,14 +15,15 @@
                                                  time."
                                     placement="right"/></span>
         </label>
-        <b-input-group left="Time to send"
-                       :class="{ show: graders }"
-                       class="animate email-time extra-box">
-            <input type="datetime-local"
-                   @keyup.ctrl.enter="updateReminder"
-                   class="form-control"
-                   v-model="assignment.reminder_time"/>
+        <b-collapse :visible="graders">
+            <b-input-group left="Time to send"
+                           class="extra-box">
+                <input type="datetime-local"
+                       @keyup.ctrl.enter="updateReminder"
+                       class="form-control"
+                       v-model="assignment.reminder_time"/>
         </b-input-group>
+        </b-collapse>
     </div>
     <hr/>
     <div>
@@ -41,18 +42,19 @@
                                                   email client."
                                      placement="right"/></span>
         </label>
-        <b-input-group class="animate extra-box"
-                       left="Send to"
-                       :class="{ show: finished }">
-            <input type="text"
-                   @keyup.ctrl.enter="updateReminder"
-                   class="form-control animate"
-                   v-model="assignment.done_email"/>
-        </b-input-group>
+        <b-collapse :visible="finished">
+            <b-input-group left="Send to"
+                           class="extra-box">
+                <input type="text"
+                       @keyup.ctrl.enter="updateReminder"
+                       class="form-control"
+                       v-model="assignment.done_email"/>
+            </b-input-group>
+        </b-collapse>
     </div>
     <hr/>
-    <div class="grade-options custom-controls-stacked animate"
-         :style="{maxHeight: ((graders || finished) ? '8em' : 0)}">
+    <b-collapse :visible="graders || finished"
+                class="custom-controls-stacked grade-options">
         <label class="custom-control custom-radio"
                v-for="item in options">
             <input type="radio"
@@ -68,7 +70,7 @@
                 placement="right"/>
         </label>
         <hr style="width: 100%"/>
-    </div>
+    </b-collapse>
 
     <submit-button ref="updateReminder" @click="updateReminder"/>
 </div>
@@ -122,13 +124,13 @@ divided or because they were assigned work manually.`,
     watch: {
         finished(val) {
             if (!val && !this.graders) {
-                this.assignment.reminder_type = null;
+                this.assignment.done_type = null;
             }
         },
 
         graders(val) {
             if (!val && !this.finished) {
-                this.assignment.reminder_type = null;
+                this.assignment.done_type = null;
             }
         },
     },
@@ -196,22 +198,11 @@ hr {
     }
 }
 
-.animate {
-    transition: max-height .25s ease-in-out, margin .25s ease-in-out;
-    overflow: hidden;
-}
-
 label {
     margin-bottom: 0;
 }
 
 .extra-box {
-    max-height: 0;
-    margin: 0;
-
-    &.show {
-        margin: 0.75em 0;
-        max-height: 6em;
-    }
+    padding: 0.75em 0;
 }
 </style>
