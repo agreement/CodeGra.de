@@ -1,3 +1,5 @@
+import moment from 'moment';
+
 export function formatGrade(grade) {
     const g = parseFloat(grade);
     return Number.isNaN(g) ? null : g.toFixed(2);
@@ -79,10 +81,16 @@ export function sortSubmissions(a, b, sortBy) {
         const first = a[sortBy];
         const second = b[sortBy];
 
-        const ret = cmpOneNull(first, second);
+        let ret = cmpOneNull(first, second);
         if (ret !== null) return ret;
 
-        return cmpNoCase(formatGrade(first), formatGrade(second));
+        const firstF = parseFloat(first);
+        const secondF = parseFloat(second);
+
+        ret = cmpOneNull(firstF, secondF);
+        if (ret !== null) return ret;
+
+        return firstF - secondF;
     }
 
     return 0;
@@ -99,4 +107,18 @@ export function parseBool(value, dflt = true) {
     else if (value === 'true') return true;
 
     return dflt;
+}
+
+export function convertToUTC(timeStr) {
+    return moment(timeStr, moment.ISO_8601).utc().format('YYYY-MM-DDTHH:mm');
+}
+
+export function parseWarningHeader(warningStr) {
+    const arr = warningStr.split(' ');
+
+    const code = parseFloat(arr[0]);
+    const agent = arr[1];
+    const text = arr.slice(2).join(' ').replace(/\\"/g, '"').slice(1, -1);
+
+    return { code, agent, text };
 }

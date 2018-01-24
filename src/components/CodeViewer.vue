@@ -38,7 +38,6 @@
 <script>
 import { getLanguage, highlight, listLanguages } from 'highlightjs';
 import Vue from 'vue';
-import { mapActions } from 'vuex';
 
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
@@ -134,7 +133,7 @@ export default {
     mounted() {
         Promise.all([
             this.loadCodeWithSettings(false),
-            this.hasPermission({ name: 'can_use_snippets' }),
+            this.$hasPermission('can_use_snippets'),
         ]).then(([, snips]) => {
             this.canUseSnippets = snips;
             this.loading = false;
@@ -332,10 +331,6 @@ export default {
                 this.feedback[line] = feedback;
             }
         },
-
-        ...mapActions({
-            hasPermission: 'user/hasPermission',
-        }),
     },
 
     components: {

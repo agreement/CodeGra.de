@@ -5,6 +5,7 @@ User object of the logged in user.
 """
 import typing as t
 
+import flask_jwt_extended as flask_jwt
 from flask import request
 from validate_email import validate_email
 
@@ -35,7 +36,7 @@ def login() -> ExtendedJSONResponse[t.Mapping[str, t.Union[models.User, str]]]:
     :returns: A response containing the JSON serialized user
 
     :<json str email: The email of the user to log in.
-    :<json str password: The password of the user to log in.
+    :<json str username: The password of the user to log in.
 
     :>json user: The user that was logged in.
     :>jsonobj user: :py:class:`~.models.User`
@@ -58,8 +59,10 @@ def login() -> ExtendedJSONResponse[t.Mapping[str, t.Union[models.User, str]]]:
     # we have to return the same error for a wrong email as for a wrong
     # password!
     user: t.Optional[models.User]
-    user = db.session.query(models.User).filter(
-        models.User.username == username
+    user = db.session.query(
+        models.User,
+    ).filter(
+        models.User.username == username,
     ).first()
 
     if user is None or user.password != password:
@@ -82,7 +85,7 @@ def login() -> ExtendedJSONResponse[t.Mapping[str, t.Union[models.User, str]]]:
             'user':
                 user,
             'access_token':
-                jwt.create_access_token(
+                flask_jwt.create_access_token(
                     identity=user.id,
                     fresh=True,
                 )
@@ -101,9 +104,9 @@ def me() -> t.Union[JSONResponse[t.Union[models.User, t.Mapping[int, str]]],
 
     :query type: If this is ``roles`` a mapping between course_id and role name
         will be returned, if this is ``extended`` the result of
-        :py:meth:`models.User.__extended_to_json__()` will be returned. If this
-        is something else or not present the result of
-        :py:meth:`models.User.__to_json__()` will be returned.
+        :py:meth:`.models.User.__extended_to_json__()` will be returned. If
+        this is something else or not present the result of
+        :py:meth:`.models.User.__to_json__()` will be returned.
     :returns: A response containing the JSON serialized user
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
@@ -130,9 +133,11 @@ def get_user_update(
         a password.
 
     - If ``type`` is ``reset_password`` reset the password of the user with the
-        given user_id with the given token to the given ``new_password``.
+      given user_id with the given token to the given ``new_password``.
     - If ``type`` is ``reset_email`` send a email to the user with the given
       username that enables this user to reset its password.
+    - if ``type`` is ``reset_on_lti`` the ``reset_email_on_lti`` attribute for
+      the current is set to ``True``.
     - Otherwise change user info of the currently logged in user.
 
     :returns: An empty response with return code 204 unless ``type`` is
@@ -142,7 +147,7 @@ def get_user_update(
     :<json int user_id: The id of the user, only when type is reset_password.
     :<json str username: The username of the user, only when type is
         reset_email.
-    :<json str token : The reset password token. Only if type is
+    :<json str token: The reset password token. Only if type is
         reset_password.
     :<json str email: The new email of the user.
     :<json str name: The new full name of the user.
@@ -160,46 +165,89 @@ def get_user_update(
     :raises PermissionException: If the user can not edit his own info.
                                  (INCORRECT_PERMISSION)
     """
-    data = ensure_json_dict(request.get_json())
-
     if request.args.get('type', None) == 'reset_email':
-        ensure_keys_in_dict(data, [('username', str)])
-        mail.send_reset_password_email(
-            helpers.filter_single_or_404(
-                models.User, models.User.username == data['username']
-            )
-        )
-        db.session.commit()
-        return make_empty_response()
+        return user_patch_handle_send_reset_email()
     elif request.args.get('type', None) == 'reset_password':
-        ensure_keys_in_dict(
-            data, [('new_password', str),
-                   ('token', str),
-                   ('user_id', int)]
-        )
+        return user_patch_handle_reset_password()
+    elif request.args.get('type', None) == 'reset_on_lti':
+        return user_patch_handle_reset_on_lti()
+    else:
+        return user_patch_handle_change_user_data()
 
-        password = t.cast(str, data['new_password'])
-        user_id = t.cast(int, data['user_id'])
-        token = t.cast(str, data['token'])
 
-        if password == '':
-            raise APIException(
-                'Password should at least be 1 char',
-                f'The password is {len(password)} chars long',
-                APICodes.INVALID_PARAM, 400
-            )
-        user = helpers.get_or_404(models.User, user_id)
-        user.reset_password(token, password)
-        db.session.commit()
-        return jsonify(
-            {
-                'access_token':
-                    jwt.create_access_token(
-                        identity=user.id,
-                        fresh=True,
-                    )
-            }
+def user_patch_handle_send_reset_email() -> EmptyResponse:
+    """Handle the ``reset_email`` type for the PATCH login route.
+
+    :returns: An empty response.
+    """
+    data = ensure_json_dict(request.get_json())
+    ensure_keys_in_dict(data, [('username', str)])
+
+    mail.send_reset_password_email(
+        helpers.filter_single_or_404(
+            models.User, models.User.username == data['username']
         )
+    )
+    db.session.commit()
+
+    return make_empty_response()
+
+
+def user_patch_handle_reset_password() -> JSONResponse[t.Mapping[str, str]]:
+    """Handle the ``reset_password`` type for the PATCH login route.
+
+    :returns: A response with a jsonified mapping between ``access_token`` and
+        a token which can be used to login. This is only key available.
+    """
+    data = ensure_json_dict(request.get_json())
+    ensure_keys_in_dict(
+        data, [('new_password', str),
+               ('token', str),
+               ('user_id', int)]
+    )
+
+    password = t.cast(str, data['new_password'])
+    user_id = t.cast(int, data['user_id'])
+    token = t.cast(str, data['token'])
+
+    if password == '':
+        raise APIException(
+            'Password should at least be 1 char',
+            f'The password is {len(password)} chars long',
+            APICodes.INVALID_PARAM, 400
+        )
+    user = helpers.get_or_404(models.User, user_id)
+    user.reset_password(token, password)
+    db.session.commit()
+    return jsonify(
+        {
+            'access_token':
+                flask_jwt.create_access_token(
+                    identity=user.id,
+                    fresh=True,
+                )
+        }
+    )
+
+
+def user_patch_handle_reset_on_lti() -> EmptyResponse:
+    """Handle the ``reset_on_lti`` type for the PATCH login route.
+
+    :returns: An empty response.
+    """
+    auth.ensure_logged_in()
+    current_user.reset_email_on_lti = True
+    db.session.commit()
+
+    return make_empty_response()
+
+
+def user_patch_handle_change_user_data() -> EmptyResponse:
+    """Handle the PATCH login route when no ``type`` is given.
+
+    :returns: An empty response.
+    """
+    data = ensure_json_dict(request.get_json())
 
     ensure_keys_in_dict(
         data, [
@@ -216,7 +264,7 @@ def get_user_update(
 
     def _ensure_password(
         changed: str,
-        msg: str='To change your {} you need a correct old password.'
+        msg: str = 'To change your {} you need a correct old password.'
     ) -> None:
         if current_user.password != old_password:
             raise APIException(

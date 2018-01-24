@@ -10,8 +10,10 @@
         </b-button-group>
         <b-collapse id="settings">
             <b-form-fieldset label="Filename:">
-                <b-form-input v-model="userFilename" type="text"
-                  :placeholder="filename"></b-form-input>
+                <input v-model="userFilename"
+                       class="form-control"
+                       type="text"
+                       :placeholder="filename"/>
             </b-form-fieldset>
             <b-form-fieldset
                 label="Columns:"

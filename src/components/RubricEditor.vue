@@ -5,7 +5,8 @@
             <b-card-group class="tab-container">
                 <b-card v-for="(row, i) in rubrics"
                         :key="`rubric-row-${row.id}`"
-                        :class="{active: i === currentCategory}"
+                        style="flex-basis: 20%;"
+                        :class="{active: i === currentCategory, tab: true}"
                         @click.native="gotoItem(i)">
                     <input type="text"
                            class="row-header form-control"
@@ -51,19 +52,32 @@
                                     v-for="(item, j) in rubric.items"
                                     :key="`rubric-item-${item.id}`">
                                 <b-input-group>
-                                    <b-form-input :disabled="!editable"
-                                                  :type="editable ? 'number' : 'text'"
-                                                  class="item-points"
-                                                  step="any"
-                                                  :tabindex="currentCategory === i ? null: -1"
-                                                  placeholder="Points"
-                                                  @focus="focusOnRow(i)"
-                                                  @change="item.points = parseFloat(item.points)"
-                                                  @keydown.native="editable && addItem(i, j)"
-                                                  @keydown.native.ctrl.enter="editable && submit()"
-                                                  v-model="item.points"/>
+                                    <input v-if="editable"
+                                           :disabled="!editable"
+                                           type="number"
+                                           class="form-control item-points"
+                                           step="any"
+                                           :tabindex="currentCategory === i ? null: -1"
+                                           placeholder="Points"
+                                           @focus="focusOnRow(i)"
+                                           @change="item.points = parseFloat(item.points)"
+                                           @keydown.native="editable && addItem(i, j)"
+                                           @keydown.native.ctrl.enter="editable && submit()"
+                                           v-model="item.points"/>
+                                    <input v-else
+                                           :disabled="!editable"
+                                           type="text"
+                                           class="form-control item-points"
+                                           step="any"
+                                           :tabindex="currentCategory === i ? null: -1"
+                                           placeholder="Points"
+                                           @focus="focusOnRow(i)"
+                                           @change="item.points = parseFloat(item.points)"
+                                           @keydown.native="editable && addItem(i, j)"
+                                           @keydown.native.ctrl.enter="editable && submit()"
+                                           v-model="item.points"/>
                                     <input type="text"
-                                           class="item-header form-control"
+                                           class="form-control item-header"
                                            placeholder="Header"
                                            :disabled="!editable"
                                            :tabindex="currentCategory === i ? null: -1"
@@ -375,6 +389,9 @@ export default {
             .default-secondary-text-colors;
         }
         .card {
+            &:nth-child(5n + 5), &:last-child {
+                border-right: 0;
+            }
             input {
                 border-top: 0;
                 border-radius: 0;
@@ -454,7 +471,12 @@ export default {
 
     .card, card-header {
         border-radius: 0;
-        border: 0 !important;
+        &:not(.tab) {
+            border-bottom: 0 !important;
+            border-right: 0 !important;
+        }
+        border-top: 0 !important;
+        border-left: 0 !important;
     }
 
     .rubric {

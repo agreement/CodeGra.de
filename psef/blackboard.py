@@ -12,14 +12,16 @@ import datetime
 from dateutil import parser as dateparser
 
 _txt_fmt = re.compile(
-    r"Name: (?P<name>.+) \((?P<id>[0-9]+)\)\n"
+    r"Name: (?P<name>.+) \((?P<id>[^\n]*)\)\n"
     r"Assignment: (?P<assignment>.+)\n"
     r"Date Submitted: (?P<datetime>.+)\n"
-    r"Current Grade: *(?P<grade>([0-9.]*|[^\n]*))\n\n"
+    r"Current Grade: *(?P<grade>([0-9.]*|[^\n]*))\n+"
+    r"(Override Grade:.*?\n\n)?"
     r"Submission Field:\n(?P<text>(.*\n)+)\n"
     r"Comments:\n(?P<comment>(.*\n)+)\n"
     r"Files:\n"
-    r"(?P<files>(.+\n.+\n+)+)".encode('utf-8')
+    r"((?P<files>(.+\n.+\n+)+)|No files were attached to this submission.\n*)"
+    r"".encode('utf-8')
 )
 
 _txt_files_fmt = re.compile(
@@ -51,7 +53,10 @@ class SubmissionInfo(
             ('grade', t.Optional[float]),
             ('text', str),
             ('comment', str),
-            ('files', t.MutableSequence[FileInfo]),
+            (
+                'files',
+                t.MutableSequence[t.Union[FileInfo, t.Tuple[str, bytes]]]
+            ),
         ]
     )
 ):
@@ -88,6 +93,23 @@ def parse_info_file(file: str) -> SubmissionInfo:
             except ValueError:
                 grade = None
 
+            bb_files = match.group('files')
+            files: t.List[t.Union[t.Tuple[str, bytes], FileInfo]] = []
+
+            if bb_files:
+                files = [
+                    FileInfo(org, cur)
+                    for org, cur in
+                    _txt_files_fmt.findall(bb_files.decode('utf-8'))
+                ]
+            else:
+                content = (
+                    b'No files were uploaded! The'
+                    b'comments for this submission were:\n"""\n' +
+                    match.group('comment').strip() + b'\n"""'
+                )
+                files = [('Comment', content)]
+
             info = SubmissionInfo(
                 student_name=match.group('name').decode('utf-8'),
                 student_id=match.group('id').decode('utf-8'),
@@ -99,10 +121,6 @@ def parse_info_file(file: str) -> SubmissionInfo:
                 grade=grade,
                 text=match.group('text').decode('utf-8').rstrip(),
                 comment=match.group('comment').decode('utf-8').rstrip(),
-                files=[
-                    FileInfo(org, cur)
-                    for org, cur in _txt_files_fmt.
-                    findall(match.group('files').decode('utf-8'))
-                ]
+                files=files
             )
             return info

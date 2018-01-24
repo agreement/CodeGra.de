@@ -4,7 +4,7 @@
         <main class="container-fluid justify-content-center"
               :class="lti ? 'lti' : ''">
             <div class="row justify-content-center">
-                <router-view class="page router col-lg-10"/>
+                <router-view class="page router col-12"/>
             </div>
         </main>
         <footer-bar/>
@@ -55,6 +55,12 @@ main {
     &.lti {
         padding-top: 1rem;
         border-top: 1px solid @color-primary-darkest;
+    }
+
+    .router {
+        @media (min-width: 1440px) {
+            max-width: 82.5vw;
+        }
     }
 }
 </style>

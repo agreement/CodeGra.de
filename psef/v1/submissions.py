@@ -17,12 +17,12 @@ import psef.files
 import psef.models as models
 import psef.helpers as helpers
 from psef import app, current_user
-from psef.models import db
 from psef.errors import APICodes, APIException
-from psef.models import FileOwner
+from psef.models import FileOwner, db
 from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
-    ensure_keys_in_dict, make_empty_response, filter_single_or_404
+    JSONType, JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
+    ensure_json_dict, extended_jsonify, ensure_keys_in_dict,
+    make_empty_response, filter_single_or_404
 )
 
 from . import api
@@ -35,15 +35,15 @@ if t.TYPE_CHECKING:  # pragma: no cover
 @auth.login_required
 def get_submission(
     submission_id: int
-) -> JSONResponse[t.Union[models.Work, t.Mapping[str, str]]]:
+) -> ExtendedJSONResponse[t.Union[models.Work, t.Mapping[str, str]]]:
     """Get the given submission (:class:`.models.Work`).
 
     .. :quickref: Submission; Get a single submission.
 
     This API has some options based on the 'type' argument in the request
 
-    - If ``type == 'zip'`` see :py:func:`get_zip`
-    - If ``type == 'feedback'`` see :py:func:`get_feedback`
+    - If ``type == 'zip'`` see :py:func:`.get_zip`
+    - If ``type == 'feedback'`` see :py:func:`.submissions.get_feedback`
 
     :param int submission_id: The id of the submission
     :returns: A response with the JSON serialized submission as content unless
@@ -74,11 +74,11 @@ def get_submission(
             request.args.get('owner'),
             work.assignment.course_id,
         )
-        return jsonify(get_zip(work, exclude_owner))
+        return extended_jsonify(get_zip(work, exclude_owner))
     elif request.args.get('type') == 'feedback':
         auth.ensure_can_see_grade(work)
-        return jsonify(get_feedback(work))
-    return jsonify(work)
+        return extended_jsonify(get_feedback(work))
+    return extended_jsonify(work)
 
 
 def get_feedback(work: models.Work) -> t.Mapping[str, str]:
@@ -141,18 +141,25 @@ def get_zip(work: models.Work,
 
     path, name = psef.files.random_file_path('MIRROR_UPLOAD_DIR')
 
-    with open(path, 'w+b') as fp:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Restore the files to tmpdir
-            psef.files.restore_directory_structure(code, tmpdir, exclude_owner)
+    with open(
+        path,
+        'w+b',
+    ) as fp, tempfile.TemporaryDirectory(
+        suffix='dir',
+    ) as tmpdir, zipfile.ZipFile(
+        fp,
+        'w',
+        compression=zipfile.ZIP_DEFLATED,
+    ) as zipf:
+        # Restore the files to tmpdir
+        psef.files.restore_directory_structure(code, tmpdir, exclude_owner)
 
-            zipf = zipfile.ZipFile(fp, 'w', compression=zipfile.ZIP_DEFLATED)
-            for root, dirs, files in os.walk(tmpdir):
-                for file in files:
-                    path = os.path.join(root, file)
-                    zipf.write(path, path[len(tmpdir):])
-            zipf.close()
-        fp.flush()
+        zipf.write(tmpdir, code.name)
+
+        for root, dirs, files in os.walk(tmpdir):
+            for file in files:
+                path = os.path.join(root, file)
+                zipf.write(path, path[len(tmpdir):])
 
     return {
         'name': name,
@@ -218,9 +225,7 @@ def get_rubric(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
 
 @api.route('/submissions/<int:submission_id>/rubricitems/', methods=['PATCH'])
 @helpers.feature_required('RUBRICS')
-def select_rubric_items(
-    submission_id: int,
-) -> EmptyResponse:
+def select_rubric_items(submission_id: int, ) -> EmptyResponse:
     """Select the given rubric items for the given submission.
 
     .. :quickref: Submission; Select multiple rubric items.
@@ -417,7 +422,7 @@ def update_submission_grader(submission_id: int) -> EmptyResponse:
     ensure_keys_in_dict(content, [('user_id', int)])
     user_id = t.cast(int, content['user_id'])
 
-    auth.ensure_permission('can_manage_course', work.assignment.course_id)
+    auth.ensure_permission('can_assign_graders', work.assignment.course_id)
 
     grader = helpers.get_or_404(models.User, user_id)
     if not grader.has_permission('can_grade_work', work.assignment.course_id):
@@ -428,6 +433,11 @@ def update_submission_grader(submission_id: int) -> EmptyResponse:
         )
 
     work.assignee = grader
+    work.assignment.set_graders_to_not_done(
+        [grader.id],
+        send_mail=grader.id != current_user.id,
+        ignore_errors=True,
+    )
     db.session.commit()
 
     return make_empty_response()
@@ -446,7 +456,7 @@ def delete_submission_grader(submission_id: int) -> EmptyResponse:
     """
     work = helpers.get_or_404(models.Work, submission_id)
 
-    auth.ensure_permission('can_manage_course', work.assignment.course_id)
+    auth.ensure_permission('can_assign_graders', work.assignment.course_id)
 
     work.assignee = None
     db.session.commit()
@@ -471,9 +481,9 @@ def get_grade_history(submission_id: int
     auth.ensure_permission('can_see_grade_history', work.assignment.course_id)
 
     hist: t.MutableSequence[models.GradeHistory]
-    hist = db.session.query(models.GradeHistory).filter_by(
-        work_id=work.id
-    ).order_by(
+    hist = db.session.query(
+        models.GradeHistory
+    ).filter_by(work_id=work.id).order_by(
         models.GradeHistory.changed_at.desc(),  # type: ignore
     ).all()
 
@@ -491,7 +501,7 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
         is ignored, otherwise a regular file is created.
 
     :returns: Stat information about the new file, see
-        :py:func:`psef.files.get_stat_information`
+        :py:func:`.files.get_stat_information`
 
     :raises APIException: If the request is bigger than the maximum upload
         size. (REQUEST_TOO_LARGE)
@@ -604,7 +614,7 @@ def get_dir_contents(submission_id: int
     :returns: A response with the JSON serialized directory structure as
         content and return code 200. For the exact structure see
         :py:meth:`.File.list_contents`. If path is given the return value will
-        be stat datastructure, see :py:func:`files.get_stat_information`.
+        be stat datastructure, see :py:func:`.files.get_stat_information`.
 
     :query int file_id: The file id of the directory to get. If this is not
         given the parent directory for the specified submission is used.

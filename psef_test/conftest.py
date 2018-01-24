@@ -2,11 +2,13 @@ import os
 import sys
 import copy
 import json
+import random
 import datetime
 import contextlib
 
 import pytest
 import flask_migrate
+import flask_jwt_extended as flask_jwt
 from flask import _app_ctx_stack as ctx_stack
 from werkzeug.local import LocalProxy
 
@@ -16,7 +18,7 @@ import psef.auth as a
 import psef.models as m
 
 TESTDB = 'test_project.db'
-TESTDB_PATH = "/tmp/psef/psef-{}".format(TESTDB)
+TESTDB_PATH = "/tmp/psef/psef-{}-{}".format(TESTDB, random.random())
 TEST_DATABASE_URI = 'sqlite:///' + TESTDB_PATH
 
 
@@ -36,6 +38,8 @@ def app(request):
         'TESTING': True,
         'DEBUG': True,
         'UPLOAD_DIR': f'/tmp/psef/uploads',
+        'RATELIMIT_STRATEGY': 'moving-window',
+        'RATELIMIT_HEADERS_ENABLED': True,
         'CELERY_CONFIG':
             {
                 'BROKER_URL': 'redis:///',
@@ -60,6 +64,7 @@ def app(request):
         'CELERY_TASK_ALWAYS_EAGER': True,
         'CELERY_TASK_EAGER_PROPAGATES': True,
     }
+
     app = psef.create_app(settings_override, skip_celery=True)
 
     psef.tasks.celery.conf.update(
@@ -100,6 +105,7 @@ def test_client(app):
         query=None,
         data=None,
         real_data=None,
+        include_response=False,
         **kwargs
     ):
         if real_data is None:
@@ -143,9 +149,13 @@ def test_client(app):
 
         if result is not None:
             checker({'top': val}, {'top': result})
+
+        if include_response:
+            return res, rv
         return res
 
     client.req = req
+    psef.limiter.reset()
     yield client
 
 
@@ -176,8 +186,7 @@ def logged_in():
             res = None
         else:
             _TOKENS.append(
-                psef.auth.jwt.
-                create_access_token(identity=user.id, fresh=True)
+                flask_jwt.create_access_token(identity=user.id, fresh=True)
             )
             res = user
 
@@ -223,9 +232,8 @@ def admin_user(session):
 
 @pytest.fixture
 def pse_course(session):
-    return session.query(m.Course).filter_by(
-        name="Project Software Engineering"
-    ).one()
+    return session.query(m.Course
+                         ).filter_by(name="Project Software Engineering").one()
 
 
 @pytest.fixture
@@ -245,9 +253,9 @@ def bs_course(session):
 
 @pytest.fixture
 def prolog_course(session):
-    return session.query(m.Course).filter_by(
-        name="Introductie Logisch programmeren"
-    ).one()
+    return session.query(
+        m.Course
+    ).filter_by(name="Introductie Logisch programmeren").one()
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -356,6 +364,35 @@ def filename(request):
 
 
 @pytest.fixture
+def stub_function_class():
+    class StubFunction:
+        def __init__(self, ret_func=lambda: None, with_args=False):
+            self.args = []
+            self.kwargs = []
+            self.rets = []
+            self.ret_func = ret_func
+            self.with_args = with_args
+
+        def __call__(self, *args, **kwargs):
+            self.args.append(args)
+            self.kwargs.append(kwargs)
+            if self.with_args:
+                self.rets.append(self.ret_func(*args, **kwargs))
+            else:
+                self.rets.append(self.ret_func())
+            return self.rets[-1]
+
+        @property
+        def called(self):
+            return len(self.args) > 0
+
+        def reset(self):
+            self.__init__(self.ret_func, self.with_args)
+
+    yield StubFunction
+
+
+@pytest.fixture
 def assignment_real_works(
     filename,
     test_client,
@@ -383,3 +420,32 @@ def assignment_real_works(
             )
 
     yield assignment, res[0]
+
+
+@pytest.fixture
+def stubmailer(monkeypatch):
+    class StubMailer():
+        def __init__(self):
+            self.msg = None
+            self.do_raise = False
+            self.called = 0
+            self.args = []
+            self.kwargs = []
+
+        def send(self, msg):
+            self.called += 1
+            self.msg = msg
+            self.args.append((msg, ))
+            if self.do_raise:
+                raise Exception
+
+        def reset(self):
+            self.msg = None
+            self.args = []
+            self.called = 0
+
+    mailer = StubMailer()
+
+    monkeypatch.setattr(psef.mail, 'mail', mailer)
+
+    yield mailer

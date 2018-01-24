@@ -4,6 +4,7 @@ import zipfile
 import datetime
 
 import pytest
+from pytest import approx
 
 import psef.models as m
 
@@ -250,6 +251,100 @@ def test_patch_non_existing_submission(
 
 
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
+def test_negative_points(
+    request, test_client, logged_in, error_template, ta_user,
+    assignment_real_works, session
+):
+    assignment, work = assignment_real_works
+    work_id = work['id']
+
+    rubric = {
+        'rows': [{
+            'header': 'My header',
+            'description': 'My description',
+            'items': [{
+                'description': '5points',
+                'header': 'bladie',
+                'points': 5
+            }, {
+                'description': '10points',
+                'header': 'bladie',
+                'points': 10,
+            }]
+        }, {
+            'header': 'Compensation',
+            'description': 'WOW',
+            'items': [{
+                'description': 'BLA',
+                'header': 'Negative',
+                'points': -1,
+            }],
+        }]
+    }  # yapf: disable
+    max_points = 9
+
+    with logged_in(ta_user):
+        rubric = test_client.req(
+            'put',
+            f'/api/v1/assignments/{assignment.id}/rubrics/',
+            200,
+            data=rubric
+        )
+        rubric = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work_id}/rubrics/',
+            200,
+            result={
+                'rubrics': list,
+                'selected': [],
+                'points': {
+                    'max': max_points,
+                    'selected': 0
+                }
+            }
+        )['rubrics']
+
+    def get_rubric_item(head, desc):
+        for row in rubric:
+            if row['header'] == head:
+                for item in row['items']:
+                    if item['description'] == desc:
+                        return item
+
+    with logged_in(ta_user):
+        to_select = [
+            get_rubric_item('Compensation', 'BLA'),
+        ]
+        points = [-1]
+        for item, point in zip(to_select, points):
+            test_client.req(
+                'patch',
+                f'/api/v1/submissions/{work_id}/rubricitems/{item["id"]}',
+                204,
+                result=None
+            )
+            with logged_in(ta_user):
+                work = test_client.req(
+                    'get', f'/api/v1/submissions/{work_id}', 200
+                )
+                assert work['grade'] == 0
+
+                test_client.req(
+                    'get',
+                    f'/api/v1/submissions/{work_id}/rubrics/',
+                    200,
+                    result={
+                        'rubrics': rubric,
+                        'selected': list,
+                        'points': {
+                            'max': max_points,
+                            'selected': point
+                        }
+                    }
+                )
+
+
+@pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
@@ -299,9 +394,17 @@ def test_selecting_rubric(
                 'header': 'bladie',
                 'points': 2,
             }]
+        }, {
+            'header': 'Compensation',
+            'description': 'WOW',
+            'items': [{
+                'description': 'BLA',
+                'header': 'Never selected',
+                'points': -1,
+            }],
         }]
     }  # yapf: disable
-    max_points = 12
+    max_points = 11
 
     with logged_in(ta_user):
         rubric = test_client.req(
@@ -334,10 +437,10 @@ def test_selecting_rubric(
     with logged_in(named_user):
         to_select = [
             get_rubric_item('My header', '10points'),
+            get_rubric_item('My header2', '2points'),
             get_rubric_item('My header', '5points'),
-            get_rubric_item('My header2', '2points')
         ]
-        points = [10, 5, 5 + 2]
+        points = [10, 10 + 2, 5 + 2]
         result_point = points[-1]
         for item, point in zip(to_select, points):
             test_client.req(
@@ -347,6 +450,16 @@ def test_selecting_rubric(
                 result=error_template if error else None
             )
             with logged_in(ta_user):
+                work = test_client.req(
+                    'get', f'/api/v1/submissions/{work_id}', 200
+                )
+                if error:
+                    assert work['grade'] is None
+                else:
+                    assert approx(work['grade']) == approx(
+                        min(10 * point / max_points, 10)
+                    )
+
                 test_client.req(
                     'get',
                     f'/api/v1/submissions/{work_id}/rubrics/',
@@ -363,7 +476,17 @@ def test_selecting_rubric(
                 )
 
         res = {'rubrics': rubric}
-        if not error:
+        if error:
+            res.update(
+                {
+                    'selected': [],
+                    'points': {
+                        'max': None,
+                        'selected': None,
+                    },
+                },
+            )
+        else:
             res.update(
                 {
                     'selected': list,
@@ -718,9 +841,9 @@ def test_get_zip_file(
 ):
     assignment, work = assignment_real_works
     if get_own:
-        work_id = m.Work.query.filter_by(
-            user=named_user
-        ).order_by(m.Work.created_at.desc()).first().id
+        work_id = m.Work.query.filter_by(user=named_user).order_by(
+            m.Work.created_at.desc()
+        ).first().id
     else:
         work_id = work['id']
 
@@ -756,6 +879,7 @@ def test_get_zip_file(
                 files = set(f.filename for f in files)
                 assert files == set(
                     [
+                        'multiple_dir_archive/',
                         'multiple_dir_archive/dir/single_file_work',
                         'multiple_dir_archive/dir/single_file_work_copy',
                         'multiple_dir_archive/dir2/single_file_work',
@@ -803,6 +927,7 @@ def test_get_teacher_zip_file(
 
     assert get_files(ta_user, False) == set(
         [
+            'multiple_dir_archive/',
             'multiple_dir_archive/dir/single_file_work',
             'multiple_dir_archive/dir/single_file_work_copy',
             'multiple_dir_archive/dir2/single_file_work',
@@ -821,6 +946,7 @@ def test_get_teacher_zip_file(
     })
     assert get_files(ta_user, False) == set(
         [
+            'multiple_dir_archive/',
             'multiple_dir_archive/dir/single_file_work_copy',
             'multiple_dir_archive/dir2/single_file_work_copy'
         ]
@@ -837,14 +963,13 @@ def test_get_teacher_zip_file(
 
     m.Assignment.query.filter_by(
         id=m.Work.query.get(work_id).assignment_id,
-    ).update(
-        {
-            'state': m._AssignmentStateEnum.done,
-        },
-    )
+    ).update({
+        'state': m._AssignmentStateEnum.done,
+    }, )
 
     assert get_files(student_user, False) == set(
         [
+            'multiple_dir_archive/',
             'multiple_dir_archive/dir/single_file_work_copy',
             'multiple_dir_archive/dir2/single_file_work_copy'
         ]
@@ -931,14 +1056,18 @@ def test_add_file(
             f'/api/v1/submissions/{work_id}/files/',
             404,
             result=error_template,
-            query={'path': '/non/existing/'}
+            query={
+                'path': '/non/existing/'
+            }
         )
         test_client.req(
             'post',
             f'/api/v1/submissions/{work_id}/files/',
             400,
             result=error_template,
-            query={'path': '/too_short/'}
+            query={
+                'path': '/too_short/'
+            }
         )
 
         res = test_client.req(
@@ -1011,9 +1140,9 @@ def test_add_file(
             real_data='TEAER_FILE',
         )
 
-        session.query(m.Assignment).filter_by(
-            id=m.Work.query.get(work_id).assignment_id
-        ).update(
+        session.query(
+            m.Assignment
+        ).filter_by(id=m.Work.query.get(work_id).assignment_id).update(
             {
                 'deadline':
                     datetime.datetime.utcnow() - datetime.timedelta(days=1)
@@ -1051,9 +1180,9 @@ def test_add_file(
         )
 
     with logged_in(ta_user):
-        session.query(m.Assignment).filter_by(
-            id=m.Work.query.get(work_id).assignment_id
-        ).update(
+        session.query(
+            m.Assignment
+        ).filter_by(id=m.Work.query.get(work_id).assignment_id).update(
             {
                 'deadline':
                     datetime.datetime.utcnow() + datetime.timedelta(days=1)
@@ -1190,9 +1319,9 @@ def test_add_file(
             }
         )
 
-        session.query(m.Assignment).filter_by(
-            id=m.Work.query.get(work_id).assignment_id
-        ).update(
+        session.query(
+            m.Assignment
+        ).filter_by(id=m.Work.query.get(work_id).assignment_id).update(
             {
                 'deadline':
                     datetime.datetime.utcnow() + datetime.timedelta(days=1)
@@ -1200,12 +1329,93 @@ def test_add_file(
         )
 
 
+@pytest.mark.parametrize('with_works', [True], indirect=True)
+def test_change_grader_notification(
+    logged_in, test_client, stubmailer, monkeypatch_celery, assignment,
+    ta_user, with_works
+):
+    assig_id = assignment.id
+    graders = m.User.query.filter(
+        m.User.name.in_([
+            'Thomas Schaper',
+            'Devin Hillenius',
+            'Robin',
+        ]),
+        ~m.User.name.in_(ta_user.name),
+    ).all()
+    grader_done = graders[0].id
+
+    subs = m.Work.query.filter_by(assignment_id=assig_id).all()
+    sub_id = subs[0].id
+    sub2_id = subs[1].id
+
+    with logged_in(ta_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{sub_id}/grader',
+            204,
+            data={'user_id': grader_done},
+        )
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{sub2_id}/grader',
+            204,
+            data={'user_id': ta_user.id},
+        )
+
+        assert not stubmailer.called, """
+        Setting a non done grader should not do anything
+        """
+        stubmailer.reset()
+
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assig_id}/graders/{grader_done}/done',
+            204,
+        )
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assig_id}/graders/{ta_user.id}/done',
+            204,
+        )
+
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{sub_id}/grader',
+            204,
+            data={'user_id': ta_user.id},
+        )
+
+        assert not stubmailer.called, """
+        Setting yourself as assigned should not trigger emails
+        """
+        assert not m.AssignmentGraderDone.query.filter_by(
+            user_id=ta_user.id,
+        ).all(), 'We should however not be marked as done any more.'
+        stubmailer.reset()
+
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{sub_id}/grader',
+            204,
+            data={'user_id': grader_done},
+        )
+
+        assert stubmailer.called == 1, """
+        Setting somebody else as assigned should trigger a email even if this
+        person was previously assigned.
+        """
+        assert not m.AssignmentGraderDone.query.filter_by(
+            assignment_id=assig_id,
+        ).all(), 'Make sure nobody is done at this point'
+
+
 @pytest.mark.parametrize(
     'filename', ['../test_submissions/single_dir_archive.zip'], indirect=True
 )
 @pytest.mark.parametrize(
-    'named_user', ['Thomas Schaper',
-                   http_error(error=403)('Stupid1')],
+    'named_user',
+    ['Thomas Schaper', http_error(error=403)('Stupid1')],
     indirect=True
 )
 @pytest.mark.parametrize('graders', [(['Thomas Schaper', 'Devin Hillenius'])])
@@ -1232,8 +1442,10 @@ def test_change_grader(
                 'patch',
                 f'/api/v1/assignments/{assignment.id}/divide',
                 204,
-                data={'graders': {g: 1
-                                  for g in grader_ids}}
+                data={
+                    'graders': {g: 1
+                                for g in grader_ids}
+                }
             )
             submission = test_client.req(
                 'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
@@ -1247,7 +1459,9 @@ def test_change_grader(
                 f'/api/v1/submissions/{submission["id"]}/grader',
                 404,
                 result=error_template,
-                data={'user_id': 100000}
+                data={
+                    'user_id': 100000
+                }
             )
             with logged_in(ta_user):
                 submission = test_client.req(
@@ -1262,7 +1476,9 @@ def test_change_grader(
                 f'/api/v1/submissions/{submission["id"]}/grader',
                 400,
                 result=error_template,
-                data={'user_id': stupid1_id}
+                data={
+                    'user_id': stupid1_id
+                }
             )
             with logged_in(ta_user):
                 submission = test_client.req(
@@ -1279,7 +1495,9 @@ def test_change_grader(
             f'/api/v1/submissions/{submission["id"]}/grader',
             code,
             result=res,
-            data={'user_id': new_grader_id}
+            data={
+                'user_id': new_grader_id
+            }
         )
         with logged_in(ta_user):
             submission = test_client.req(

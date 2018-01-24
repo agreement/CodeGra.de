@@ -129,7 +129,6 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/download';
 import 'vue-awesome/icons/times';
@@ -213,6 +212,11 @@ export default {
         },
 
         submission(submission) {
+            if (submission.id === this.submissionId) {
+                this.initalLoad = false;
+                return;
+            }
+
             this.submissionId = submission.id;
             if (!this.initialLoad) {
                 this.fileTree = null;
@@ -306,18 +310,19 @@ export default {
     mounted() {
         this.loading = true;
         Promise.all([
-            this.hasPermission({
-                name: [
+            this.$hasPermission(
+                [
                     'can_grade_work',
                     'can_see_grade_before_open',
                     'can_delete_submission',
                     'can_view_own_teacher_files',
                     'can_edit_others_work',
                 ],
-                course_id: this.courseId,
-            }),
+                this.courseId,
+            ),
             this.getAssignment(),
             this.getAllSubmissions(),
+            this.getSubmissionData(),
         ]).then(([[canGrade, canSeeGrade, canDeleteSubmission, ownTeacher, editOthersWork]]) => {
             this.editable = canGrade;
             this.canSeeFeedback = canSeeGrade;
@@ -333,32 +338,10 @@ export default {
             this.setPageCSS();
             this.loading = false;
         });
-
-        this.clickHideSettings = (event) => {
-            let target = event.target;
-            while (target !== document.body) {
-                if (target.id === 'codeviewer-settings-content' ||
-                    target.id === 'codeviewer-settings-toggle') {
-                    return;
-                }
-                target = target.parentNode;
-            }
-            this.$root.$emit('hide::popover');
-        };
-        document.body.addEventListener('click', this.clickHideSettings, true);
-
-        this.keyupHideSettings = (event) => {
-            if (event.key === 'Escape') {
-                this.$root.$emit('hide::popover');
-            }
-        };
-        document.body.addEventListener('keyup', this.keyupHideSettings);
     },
 
     destroyed() {
         this.restorePageCSS();
-        document.body.removeEventListener('click', this.clickHideSettings);
-        document.body.removeEventListener('keyup', this.keyupHideSettings);
     },
 
     methods: {
@@ -374,7 +357,7 @@ export default {
 
         getAllSubmissions() {
             return this.$http.get(
-                `/api/v1/assignments/${this.assignmentId}/submissions/`,
+                `/api/v1/assignments/${this.assignmentId}/submissions/?extended`,
             ).then(({ data: submissions }) => {
                 this.submissions = submissions;
                 this.submission = submissions.find(sub =>
@@ -561,10 +544,6 @@ export default {
                     this.submission);
             }
         },
-
-        ...mapActions({
-            hasPermission: 'user/hasPermission',
-        }),
 
         whitespaceChanged(val) {
             this.showWhitespace = val;

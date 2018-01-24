@@ -1,7 +1,10 @@
 <template>
     <div class="snippet-manager">
         <b-form-fieldset>
-            <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"></b-form-input>
+            <input v-model="filter"
+                   class="form-control"
+                   placeholder="Type to Search"
+                   v-on:keyup.enter="submit"/>
         </b-form-fieldset>
         <b-table striped hover
                  class="snippets-table"
@@ -16,7 +19,11 @@
                     :state="!item.item.submitted ? '' : validSnippetKey(item.item) ? 'success' : 'danger'"
                     :feedback="item.item.keyError"
                     v-if="item.item.editing">
-                    <b-form-input type="text" placeholder="Key" v-model="item.item.key"></b-form-input>
+                    <input type="text"
+                           class="form-control"
+                           placeholder="Key"
+                           v-model="item.item.key"
+                           @keyup.ctrl.enter="saveSnippet(item.item)"/>
                 </b-form-fieldset>
                 <span v-else>{{ item.item.key ? item.item.key : '-' }}</span>
             </template>
@@ -26,7 +33,11 @@
                     :state="!item.item.submitted ? '' : validSnippetValue(item.item) ? 'success' : 'danger'"
                     :feedback="item.item.valueError"
                     v-if="item.item.editing">
-                    <b-form-input type="text" placeholder="Value" v-model="item.item.value"></b-form-input>
+                    <input type="text"
+                           class="form-control"
+                           placeholder="Value"
+                           v-model="item.item.value"
+                           @keyup.ctrl.enter="saveSnippet(item.item)"/>
                 </b-form-fieldset>
                 <span v-else>{{ item.item.value ? item.item.value : '-' }}</span>
             </template>

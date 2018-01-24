@@ -36,6 +36,7 @@ module.exports = {
         // allow debugger during development
         'no-debugger': process.env.NODE_ENV === 'production' ? 2 : 0,
         'indent': ["error", 4],
+        'no-else-return': 'off',
 
         // allow vuex
         'no-param-reassign': ["error", { 'props': false }],

@@ -8,6 +8,7 @@ import Submission from './Submission';
 import Submissions from './Submissions';
 import LTILaunch from './LTILaunch';
 import ResetPassword from './ResetPassword';
+import Registration from './Registration';
 
 export {
     Assignments,
@@ -20,4 +21,5 @@ export {
     Submissions,
     LTILaunch,
     ResetPassword,
+    Registration,
 };

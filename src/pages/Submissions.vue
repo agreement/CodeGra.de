@@ -15,6 +15,7 @@
             :submissions="submissions"
             :canDownload="canDownload"
             :rubric="rubric"
+            :graders="graders"
             @assigneeUpdated="updateAssignee"/>
 
         <b-modal id="wrong-files-modal" hide-footer>
@@ -52,8 +53,8 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex';
 import { SubmissionList, Loader, SubmitButton } from '@/components';
+import { MANAGE_COURSE_PERMISSIONS } from '@/constants';
 import moment from 'moment';
 
 import FileUploader from '@/components/FileUploader';
@@ -72,8 +73,9 @@ export default {
             assignment: null,
             course: null,
             canDownload: false,
-            canManage: true,
+            canManage: false,
             rubric: null,
+            graders: null,
             inLTI: window.inLTI,
             wrongFiles: [],
         };
@@ -83,9 +85,11 @@ export default {
         assignmentId() {
             return this.$route.params.assignmentId;
         },
+
         courseId() {
             return this.$route.params.courseId;
         },
+
         courseRoute() {
             if (this.canManage) {
                 return { name: 'assignment_manage', params: { courseId: this.course.id } };
@@ -96,33 +100,35 @@ export default {
 
     mounted() {
         this.loading = true;
+
         Promise.all([
-            this.$http.get(`/api/v1/courses/${this.courseId}`),
             this.$http.get(`/api/v1/assignments/${this.assignmentId}`),
             this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`),
             this.$http.get(`/api/v1/assignments/${this.assignmentId}/rubrics/`).catch(() => ({ data: null })),
         ]).then(([
-            { data: course },
             { data: assignment },
             { data: submissions },
             { data: rubric },
         ]) => {
             let done = false;
-            this.course = course;
+            this.course = assignment.course;
             this.assignment = assignment;
             this.submissions = submissions;
             this.rubric = rubric;
 
             setPageTitle(`${assignment.name} ${pageTitleSep} Submissions`);
 
-            this.hasPermission([
-                'can_submit_own_work',
-                'can_see_others_work',
-                'can_see_grade_before_open',
-                'can_manage_course',
-            ]).then(([submit, others, before, manage]) => {
+            this.$hasPermission(
+                [
+                    'can_submit_own_work',
+                    'can_see_others_work',
+                    'can_see_grade_before_open',
+                    ...MANAGE_COURSE_PERMISSIONS,
+                ],
+                this.courseId,
+            ).then(([submit, others, before, ...manage]) => {
                 this.canUpload = submit && this.assignment.state === assignmentState.SUBMITTING;
-                this.canManage = manage;
+                this.canManage = manage.some(x => x);
 
                 if (others) {
                     if (this.assignment.state === assignmentState.DONE) {
@@ -146,6 +152,19 @@ export default {
             // eslint-disable-next-line
             console.dir(err);
         });
+
+        this.$hasPermission([
+            'can_assign_graders',
+            'can_see_assignee',
+        ], this.courseId).then(([assign, see]) => {
+            if (assign && see) {
+                this.$http.get(`/api/v1/assignments/${this.assignmentId}/graders/`).then(({ data }) => {
+                    this.graders = data;
+                }).catch(() => {
+                    this.graders = null;
+                });
+            }
+        });
     },
 
     methods: {
@@ -162,9 +181,6 @@ export default {
 
             this.wrongFiles = err.data.invalid_files;
             this.$root.$emit('show::modal', 'wrong-files-modal');
-        },
-        hasPermission(perm) {
-            return this.u_hasPermission({ name: perm, course_id: this.courseId });
         },
 
         overrideSubmit(type, btn) {
@@ -193,10 +209,6 @@ export default {
                 return sub;
             });
         },
-
-        ...mapActions({
-            u_hasPermission: 'user/hasPermission',
-        }),
     },
 
     components: {

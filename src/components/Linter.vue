@@ -13,13 +13,16 @@
                             <b-dropdown-item v-for="(_, optionName) in options" v-on:click="clicked(false, optionName)" :key="optionName">
                                 {{ optionName }}
                             </b-dropdown-item>
-                            <b-dropdown-divider></b-dropdown-divider>
+                            <b-dropdown-divider/>
                             <b-dropdown-item v-on:click="clicked(true, 'Custom config')">Custom config</b-dropdown-item>
                         </b-dropdown>
                         <b-collapse :id="`sub_collapse_${name}_${assignment.id}`">
                             <form>
-                                <b-form-input class="margin" :textarea="true" :rows="10" placeholder="Enter your custom config" v-model="config">
-                                </b-form-input>
+                                <input class="form-control margin"
+                                       :textarea="true"
+                                       :rows="10"
+                                       placeholder="Enter your custom config"
+                                       v-model="config"/>
                             </form>
                         </b-collapse>
                     </div>

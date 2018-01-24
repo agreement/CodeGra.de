@@ -34,7 +34,7 @@
 </template>
 
 <script>
-import { mapGetters, mapActions } from 'vuex';
+import { mapGetters } from 'vuex';
 import { UserInfo, SnippetManager, PermissionsManager, Loader, PreferenceManager } from '@/components';
 
 import { setPageTitle } from './title';
@@ -60,20 +60,14 @@ export default {
 
     mounted() {
         setPageTitle('User info');
-        Promise.all([
-            this.hasPermission({ name: 'can_manage_site_users' }),
-            this.hasPermission({ name: 'can_use_snippets' }),
+        this.$hasPermission([
+            'can_manage_site_users',
+            'can_use_snippets',
         ]).then(([manage, snippets]) => {
             this.manage = manage;
             this.snippets = snippets;
             this.loading = false;
         });
-    },
-
-    methods: {
-        ...mapActions({
-            hasPermission: 'user/hasPermission',
-        }),
     },
 
     computed: {

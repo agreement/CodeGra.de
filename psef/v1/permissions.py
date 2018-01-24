@@ -11,86 +11,54 @@ import psef.auth as auth
 from psef import current_user
 from psef.errors import APICodes, APIException
 from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
-    ensure_keys_in_dict, make_empty_response
+    JSONResponse, jsonify, ensure_json_dict, ensure_keys_in_dict
 )
 
 from . import api
 
-if t.TYPE_CHECKING:  # pragma: no cover
-    import psef.models as models  # NOQA
+_PermMap = t.Mapping[str, bool]
 
 
 @api.route('/permissions/', methods=['GET'])
 @auth.login_required
 def get_course_permissions(
-) -> JSONResponse[t.Union[t.Mapping[int, bool], t.Mapping[str, bool], bool]]:
-    """Get the permissions (:class:`.models.Permission`) of the currently
-    logged in :class:`.models.User`.
+) -> JSONResponse[t.Union[_PermMap, t.Mapping[int, _PermMap]]]:
+    """Get all the global :class:`.psef.models.Permission` or the value of a
+    permission in all courses of the currently logged in
+    :class:`.psef.models.User`
 
-    .. :quickref: Permission; Get permissions for the currently logged in user.
+    .. :quickref: Permission; Get global permissions or all the course
+        permissions for the current user.
 
-    :returns: A response containing the JSON serialized permissions. For the
-        exact format see (in this order):
+    :qparam str type: The type of permissions to get. This can be ``global`` or
+        ``course``.
+    :qparam str permission: The permissions to get when getting course
+        permissions. You can pass this parameter multiple times to get multiple
+        permissions.
 
-        - If ``course_id`` is ``all``:
-          :py:meth:`.User.get_permission_in_courses()`
-        - If ``permission`` is not passed:
-          :py:meth:`.User.get_all_permissions()`
-        - Otherwise: :py:meth:`.User.has_permission()`
+    :returns: The returning object depends on the given ``type``. If it was
+        ``global`` a mapping between permissions name and a boolean indicating
+        if the currently logged in user has this permissions is returned.
 
-    :param int course_id: The id of the course to get the permissions for. If
-        it is ``all`` the permissions for all courses will be requested. If it
-        is not given global permissions will be given.
-    :param str permission: The permission to request, if this is not passed all
-        permissions for the given ``course_id`` will be given. If ``course_id``
-        was not passed all global permissions will be returned. It is invalid
-        to not pass ``permission`` if ``course_id`` is ``all``.
-
-    .. todo:: Split this API call into multiple smaller calls.
-
-    :raises APIException: If the supplied course id was not a number.
-                          (INVALID_PARAM)
-    :raises APIException: If specified permission does not exist.
-                          (OBJECT_NOT_FOUND)
-    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+        If it was ``course`` such a mapping is returned for every course the
+        user is enrolled in. So it is a mapping between course ids and
+        permission mapping. The permissions given as ``permission`` query
+        parameter are the only ones that are present in the permission map.
     """
-    # fun: t.Union[t.Callable[[t.Union[str, 'models.Permission']], t.Mapping[
-    #     int, bool]], t.Callable[[str], bool]]
-    fun: t.Callable[[str], t.Union[t.Mapping[int, bool], bool]]
+    ensure_keys_in_dict(request.args, [('type', str)])
+    permission_type = t.cast(str, request.args['type']).lower()
 
-    course_id = request.args.get('course_id', default=None)
-    if course_id == 'all':
-        fun = current_user.get_permission_in_courses
-    elif course_id:
-        try:
-            course_id = int(course_id)
-        except ValueError:
-            raise APIException(
-                'The specified course id was invalid',
-                'The course id should be a number or but '
-                f'{course_id} is not a number', APICodes.INVALID_PARAM, 400
-            )
-        else:
-            fun = lambda perm: current_user.has_permission(perm, course_id)  # NOQA
+    if permission_type == 'global':
+        return jsonify(current_user.get_all_permissions())
+    elif permission_type == 'course':
+        # Make sure at least one permission is present
+        ensure_keys_in_dict(request.args, [('permission', str)])
+        perms = t.cast(t.List[str], request.args.getlist('permission'))
+        return jsonify(current_user.get_permissions_in_courses(perms))
     else:
-        fun = current_user.has_permission
-
-    if 'permission' in request.args:
-        perm = request.args['permission']
-        try:
-            return jsonify(fun(perm))
-        except KeyError:
-            raise APIException(
-                'The specified permission does not exist',
-                f'The permission "{perm}" is not real permission',
-                APICodes.OBJECT_NOT_FOUND, 404
-            )
-    elif course_id == 'all':
         raise APIException(
-            'You cannot query all permissions for all coursed',
-            'Invalid combination of `course_id` and `permission` found',
-            APICodes.INVALID_PARAM, 400
+            'Invalid permission type given',
+            f'The given type "{permission_type}" is not "global" or "course"',
+            APICodes.INVALID_PARAM,
+            400,
         )
-    else:
-        return jsonify(current_user.get_all_permissions(course_id=course_id))

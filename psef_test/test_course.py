@@ -505,7 +505,9 @@ def test_add_courseroles(
                 'get',
                 f'/api/v1/courses/{course.id}/roles/',
                 200,
-                query={'with_roles': 'true'}
+                query={
+                    'with_roles': 'true'
+                }
             )
 
             found_amount = 0
@@ -520,7 +522,7 @@ def test_add_courseroles(
                     )
                     for perm_n, value in role['perms'].items():
                         perm = session.query(m.Permission).filter_by(
-                            name=perm_n
+                            name=perm_n,
                         ).one()
                         assert perm.default_value == value
                         assert perm.course_permission
@@ -551,7 +553,7 @@ def test_add_courseroles(
 @pytest.mark.parametrize(
     'perm_name', [
         missing_error(error=400)(5),
-        'can_manage_course',
+        'can_edit_course_roles',
         missing_error(error=400)(None),
         'can_grade_work',
         data_error(error=404)('non_existing'),
@@ -571,7 +573,7 @@ def test_update_courseroles(
         error = missing_err.kwargs['error']
     elif data_err:
         error = data_err.kwargs['error']
-    elif user_role == role_name and perm_name == 'can_manage_course':
+    elif user_role == role_name and perm_name == 'can_edit_course_roles':
         error = 403
     else:
         error = False
@@ -758,7 +760,7 @@ def test_add_assignment(
         if name is not None:
             data['name'] = name
 
-        assig = test_client.req(
+        test_client.req(
             'post',
             f'/api/v1/courses/{course.id}/assignments/',
             error or 200,
@@ -774,6 +776,9 @@ def test_add_assignment(
                 'description': str,
                 'whitespace_linter': False,
                 'cgignore': None,
+                'done_type': None,
+                'done_email': None,
+                'reminder_time': None,
             }
         )
 

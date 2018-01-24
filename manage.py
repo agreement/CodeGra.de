@@ -20,6 +20,7 @@ def render_item(type_, col, autogen_context):
     else:
         return False
 
+
 app = psef.create_app(skip_celery=True)
 
 migrate = Migrate(app, psef.models.db, render_item=render_item)
@@ -55,7 +56,13 @@ def seed_force(db=None):
                 old_perm.default_value = perm['default_value']
                 old_perm.course_permission = perm['course_permission']
             else:
-                db.session.add(m.Permission(name=name, **perm))
+                db.session.add(
+                    m.Permission(
+                        name=name,
+                        default_value=perm['default_value'],
+                        course_permission=perm['course_permission']
+                    )
+                )
 
     with open(
         f'{os.path.dirname(os.path.abspath(__file__))}/seed_data/roles.json',

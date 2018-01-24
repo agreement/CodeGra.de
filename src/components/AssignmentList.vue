@@ -2,7 +2,10 @@
     <div>
         <b-form-fieldset class="table-control">
             <b-input-group>
-                <b-form-input v-model="filter" placeholder="Type to Search" v-on:keyup.enter="submit"/>
+                <input v-model="filter"
+                       class="form-control"
+                       placeholder="Type to Search"
+                       v-on:keyup.enter="submit"/>
                 <b-form-checkbox class="input-group-addon"
                                  :checked="checkboxRoles[role] === true"
                                  @change="setRoleFilter(role)"
@@ -55,7 +58,11 @@
                  :filter="filterItems"
                  :show-empty="true">
             <template slot="name" scope="item">
-                {{item.value ? item.value : '-'}}
+                <a class="invisible-link"
+                   href="#"
+                   @click.prevent>
+                    {{item.value ? item.value : '-'}}
+                </a>
             </template>
             <template slot="course_name" scope="item">
                 {{item.item.course.name ? item.item.course.name : '-'}}
@@ -67,22 +74,7 @@
                 {{item.item.course.role ? item.item.course.role : '-'}}
             </template>
             <template slot="state" scope="item">
-                <b-popover placement="top" triggers="hover" content="Hidden"
-                    v-if="item.item.state == assignmentState.HIDDEN">
-                    <icon name="eye-slash"></icon>
-                </b-popover>
-                <b-popover placement="top" triggers="hover" content="Submitting"
-                    v-if="item.item.state == assignmentState.SUBMITTING">
-                    <icon name="clock-o"></icon>
-                </b-popover>
-                <b-popover placement="top" triggers="hover" content="Grading"
-                    v-else-if="item.item.state == assignmentState.GRADING">
-                    <icon name="pencil"></icon>
-                </b-popover>
-                <b-popover placement="top" triggers="hover" content="Done"
-                    v-else-if="item.item.state == assignmentState.DONE">
-                    <icon name="check"></icon>
-                </b-popover>
+                <assignment-state :assignment="item.item"/>
             </template>
             <template slot="empty">
                 No results found.
@@ -100,6 +92,8 @@ import 'vue-awesome/icons/check';
 
 import { cmpOneNull, cmpNoCase } from '@/utils';
 import * as assignmentState from '../store/assignment-states';
+
+import AssignmentState from './AssignmentState';
 
 export default {
     name: 'assignment-list',
@@ -325,6 +319,7 @@ export default {
     },
 
     components: {
+        AssignmentState,
         Icon,
     },
 };

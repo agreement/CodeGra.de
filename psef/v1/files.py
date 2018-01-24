@@ -45,9 +45,9 @@ def post_file() -> JSONResponse[str]:
         request.content_length > app.config['MAX_UPLOAD_SIZE']):
         raise APIException(
             'Uploaded file is too big.',
-            'Request is bigger than maximum upload size of {}.'.
-            format(app.config['MAX_UPLOAD_SIZE']), APICodes.REQUEST_TOO_LARGE,
-            400
+            'Request is bigger than maximum upload size of {}.'.format(
+                app.config['MAX_UPLOAD_SIZE']
+            ), APICodes.REQUEST_TOO_LARGE, 400
         )
 
     path, name = psef.files.random_file_path('MIRROR_UPLOAD_DIR')
@@ -59,13 +59,15 @@ def post_file() -> JSONResponse[str]:
 
 @api.route('/files/<file_name>', methods=['GET'])
 @api.route('/files/<file_name>/<name>')
-def get_file(file_name: str, name: str='export') -> werkzeug.wrappers.Response:
+def get_file(
+    file_name: str, name: str = 'export'
+) -> werkzeug.wrappers.Response:
     """Serve some specific file in the uploads folder.
 
     .. :quickref: File; Get an uploaded file directory.
 
     .. note::
-        Only files uploaded using :py:func:`post_file` may be retrieved.
+        Only files uploaded using :http:post:`/api/v1/files/` may be retrieved.
 
     :param str file_name: The filename of the file to get.
     :returns: The requested file.

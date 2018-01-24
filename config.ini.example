@@ -53,9 +53,9 @@
 # mail_default_sender =
 # mail_max_emails =
 
-# This is the template that gets send to the users if they request a new
+# This is the template that gets sent to the users if they request a new
 # password. Double newlines are replaces by '<br><br>', this is the html part of
-# the email, the txt part gets send automatically. You can use the following
+# the email, the txt part gets sent automatically. You can use the following
 # data in this template (all between {}):
 # - user_name: The name of the user
 # - user_email: The email of the user
@@ -66,13 +66,68 @@
 # email_template = <p>Dear {user_name},
 #
 #   This email lets you reset your password on <a
-#   href="{site_url}">{site_url}</a>. If you goto <a href="{url}">this page</a>
+#   href="{site_url}">{site_url}</a>. If you go to <a href="{url}">this page</a>
 #   you can reset your password there. Please do not reply to this email.
 #
 #   If you have not triggered this action please ignore this email.</p>
 
+# This is the template that gets sent to the graders when they are reminded they
+# should start/resume grading. Double newlines are replaced by '<br><br>'. This
+# is the html part of the email, the txt part gets generated automatically. You
+# can use the following variables in this template (all between {}):
+# - user_name: The name of the user
+# - user_email: The email of the user
+# - site_url: The url of the site
+# - assig_id: The id of the assignemt to grade
+# - course_id: The id of the course of this assignment
+# reminder_template = <p>Dear {user_name},
+#
+# This email is a reminder that you have work left to grade on the assignment
+# "{assig_name}" on <a href="{site_url}">{site_url}</a>. If you go to <a
+# href="{url}">this page</a> you can directly continue grading, which of
+# course is joyful business on CodeGra.de! Good luck with grading.</p>
+#
+# This email was automatically sent because of reminder that was set for this
+# assignment and you have not yet indicated you were done grading. You can
+# indicate this <a href="{site_url}/courses/{course_id}">here</a>.
+
+# This is the template that gets sent to graders when their status is reset to
+# 'not done' by something that is not them selves toggeling it. The rules and
+# variables for this template are the same as for the `reminder_template`
+# variable.
+# grader_status_template = <p>Dear {user_name},
+#
+# This email is a reminder that your grade status has been reset to 'not done'
+# for "{assig_name}" on <a href="{site_url}">{site_url}</a>. If you go to <a
+# href="{site_url}/courses/{course_id}/assignments/{assig_id}/submissions">this
+# page</a> you can directly continue grading, which of course is joyful business
+# on CodeGra.de! Good luck with grading.
+#
+# This email was automatically sent. The reason for this can be that a course
+# admin has reset your status or that you have been assigned new
+# submission(s).</p>
+
+# This is the template that gets sent to the configured email addresses when
+# grading is done.  Double newlines are replaced by '<br><br>'. This
+# is the html part of the email, the txt part gets generated automatically. You
+# can use the following variables in this template (all between {}):
+# - site_url: The url of the site
+# - assig_id: The id of the assignemt of which grading is done
+# - assig_name: The name of the assignment
+# - course_id: The id of the course of this assignment
+# done_template = <p>Dear,
+#
+# This email has been sent to let you know that all work has been graded on the
+# assignment "{assig_name}" on <a href="{site_url}">{site_url}</a>. If you go to
+# <a href="{site_url}/courses/{course_id}">this page</a> you can set the state
+# of the assignment to 'done' so that the students can see their grade!
+#
+# This email was automatically sent because of reminder that was set for this
+# assignment. You can change these settings <a
+# href="{site_url}/courses/{course_id}">here</a></p>.
+
 # Time in seconds a user has to reset his or her password after the e-mail is
-# send in seconds.
+# sent in seconds.
 # reset_token_time = 86400
 
 # Define the database. If `CODEGRADE_DATABASE_URL` is found in the enviroment
@@ -141,6 +196,11 @@
 # possible to submit a complete rubric at once. This feature is useless if
 # `rubrics` is not set to `true`.
 # incremental_rubric_submission = true
+
+# Should it be possible to register on the website. This makes it possible for
+# any body to register an account on the website. The role they are given is
+# determined by `default_role` (see above).
+# register = true
 
 # All LTI consumer keys mapped to secret keys. Please add your own, these ARE
 # case sensitive.

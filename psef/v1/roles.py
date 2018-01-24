@@ -14,8 +14,8 @@ import psef.auth as auth
 import psef.models as models
 import psef.helpers as helpers
 from psef import current_user
-from psef.models import db
 from psef.errors import APICodes, APIException
+from psef.models import db
 from psef.helpers import (
     JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
     ensure_keys_in_dict, make_empty_response
@@ -31,11 +31,11 @@ def get_all_roles() -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
 
     .. :quickref: Role; Get all global roles with their permissions.
 
-    :returns: A object as described in :py:meth:`models.Role.__to_json__` with
+    :returns: A object as described in :py:meth:`.models.Role.__to_json__` with
         the following keys added:
 
     - ``perms``: All permissions of this role, as described in
-      :py:meth:`models.Role.get_all_permissions`.
+      :py:meth:`.models.Role.get_all_permissions`.
     - ``own``: Is the given role the role of the current user.
 
     :raises PermissionException: If the current user does not have the

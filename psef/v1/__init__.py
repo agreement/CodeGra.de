@@ -5,5 +5,5 @@ api = Blueprint('api', __name__)
 
 from . import (
     code, login, courses, linters, snippets, assignments, permissions,
-    submissions, files, about, roles, lti
+    submissions, files, about, roles, lti, users
 )  # NOQA

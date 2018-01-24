@@ -1,5 +1,7 @@
 """
 This module defines all the objects in the database in their relation.
+
+:license: AGPLv3, see LICENSE for details.
 """
 
 import os
@@ -9,25 +11,37 @@ import uuid
 import typing as t
 import datetime
 from random import shuffle
+from operator import itemgetter
 from itertools import cycle
 from collections import defaultdict
 
 from sqlalchemy import event
-from itsdangerous import URLSafeTimedSerializer
+from itsdangerous import BadSignature, URLSafeTimedSerializer
+from sqlalchemy.orm import deferred
+from werkzeug.utils import cached_property
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy_utils import PasswordType
+from sqlalchemy_utils import PasswordType, force_auto_coercion
 from sqlalchemy.sql.expression import or_, and_, func, null, false
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
+import psef
 import psef.auth as auth
 from psef import app
-from psef.helpers import get_request_start_time
+from psef.helpers import between, get_request_start_time
+from psef.model_types import T, MyDb, DbColumn, MySession
 
-db = SQLAlchemy(session_options={'autocommit': False, 'autoflush': False})
+db = t.cast(
+    'MyDb',
+    SQLAlchemy(session_options={
+        'autocommit': False,
+        'autoflush': False
+    })
+)
 
 
 def init_app(app: t.Any) -> None:
     db.init_app(app)
+    force_auto_coercion()
 
     if app.config['_USING_SQLITE']:  # pragma: no cover
         with app.app_context():
@@ -48,58 +62,10 @@ def init_app(app: t.Any) -> None:
 
 
 UUID_LENGTH = 36
-T = t.TypeVar('T')
 
-if t.TYPE_CHECKING:  # pragma: no cover
-
-    class Base:
-        query = None  # type: t.ClassVar[t.Any]
-
-        def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
-            pass
-
-    class _MyQuery(t.Generic[T], t.Iterable):
-        def get(self, *args: t.Any, **kwargs: t.Any) -> t.Union[T, None]:
-            ...
-
-        def all(self) -> t.List[T]:
-            ...
-
-        def first(self) -> t.Optional[T]:
-            ...
-
-        def exists(self) -> bool:
-            ...
-
-        def count(self) -> int:
-            ...
-
-        def one(self) -> T:
-            ...
-
-        def update(self, vals: t.Mapping[str, t.Any]) -> None:
-            ...
-
-        def join(self, *args: t.Any, **kwargs: t.Any) -> '_MyQuery[T]':
-            ...
-
-        def order_by(self, *args: t.Any, **kwargs: t.Any) -> '_MyQuery[T]':
-            ...
-
-        def filter(self, *args: t.Any, **kwargs: t.Any) -> '_MyQuery[T]':
-            ...
-
-        def filter_by(self, *args: t.Any, **kwargs: t.Any) -> '_MyQuery[T]':
-            ...
-
-        def __iter__(self) -> t.Iterator[T]:
-            ...
-
-        def delete(self) -> None:
-            ...
-
+if t.TYPE_CHECKING:  # pragma: no cover:
+    from psef.model_types import _MyQuery, Base
 else:
-    import psef
     Base = db.Model
 
 permissions = db.Table(
@@ -204,13 +170,40 @@ class AssignmentAssignedGrader(Base):
     __table_args__ = (db.PrimaryKeyConstraint(assignment_id, user_id), )
 
 
+class AssignmentGraderDone(Base):
+    """This class creates the link between an :class:`User` and an
+    :class:`Assignment` that exists only when the grader is done.
+
+    If a user is linked to the assignment this indicates that this user is done
+    with grading.
+
+    :ivar user_id: The id of the user that is linked.
+    :ivar ~.AssignmentGraderDone.assignment_id: The id of the assignment that
+        is linked.
+    """
+    if t.TYPE_CHECKING:  # pragma: no cover
+        query: t.ClassVar[_MyQuery['AssignmentGraderDone']]
+        query = Base.query
+    __tablename__ = 'AssignmentGraderDone'
+    user_id: int = db.Column(
+        'User_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
+    )
+    assignment_id: int = db.Column(
+        'Assignment_id', db.Integer,
+        db.ForeignKey('Assignment.id', ondelete='CASCADE')
+    )
+
+    __table_args__ = (db.PrimaryKeyConstraint(assignment_id, user_id), )
+
+
 class AssignmentResult(Base):
     """The class creates the link between an :class:`User` and an
     :class:`Assignment` in the database and the external users LIS sourcedid.
 
     :ivar sourcedid: The ``sourcedid`` for this user for this assignment.
-    :ivar user_id: The id of the user this belongs to.
-    :ivar assignment_id: The id of the assignment this belongs to.
+    :ivar ~.AssignmentResult.user_id: The id of the user this belongs to.
+    :ivar ~.AssignmentResult.assignment_id: The id of the assignment this
+        belongs to.
     """
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['AssignmentResult']]
@@ -267,7 +260,7 @@ class CourseRole(Base):
     :class:`Course`.
 
     :ivar name: The name of this role in the course.
-    :ivar course_id: The :py:class:`Course` this role belongs to.
+    :ivar ~.CourseRole.course_id: The :py:class:`Course` this role belongs to.
     """
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['CourseRole']]
@@ -390,7 +383,7 @@ class CourseRole(Base):
 
             {
                 'student': {
-                    'can_manage_course': <Permission-object>,
+                    'can_edit_assignment_info': <Permission-object>,
                     'can_submit_own_work': <Permission-object>
                 }
             }
@@ -464,7 +457,7 @@ class Role(Base):
         else:
             perm_name = permission
 
-        if permission in self._permissions:
+        if perm_name in self._permissions:
             perm = self._permissions[perm_name]
             return (not perm.default_value) and (not perm.course_permission)
         else:
@@ -489,8 +482,8 @@ class Role(Base):
         """Get all course permissions (:class:`Permission`) for this role.
 
         :returns: A name boolean mapping where the name is the name of the
-            permission and the value indicates if this user has this
-            permission.
+                  permission and the value indicates if this user has this
+                  permission.
         """
         perms: t.Sequence[Permission] = (
             Permission.query.
@@ -498,7 +491,7 @@ class Role(Base):
                 course_permission=False
             ).all()
         )
-        result = {}
+        result: t.MutableMapping[str, bool] = {}
         for perm in perms:
             if perm.name in self._permissions:
                 result[perm.name] = not perm.default_value
@@ -539,6 +532,8 @@ class User(Base):
     :ivar assignment_results: The way this user can do LTI grade passback.
     :ivar assignments_assigned: A mapping between assignment_ids and
         :py:class:`AssignmentAssignedGrader` objects.
+    :ivar reset_email_on_lti: Determines if the email should be reset on the
+        next LTI launch.
     """
     # Python 3 implicitly set __hash__ to None if we override __eq__
     # We set it back to its default implementation
@@ -569,6 +564,13 @@ class User(Base):
 
     reset_token: str = db.Column(
         'reset_token', db.String(UUID_LENGTH), nullable=True
+    )
+    reset_email_on_lti = db.Column(
+        'reset_email_on_lti',
+        db.Boolean,
+        server_default=false(),
+        default=False,
+        nullable=False,
     )
 
     email: str = db.Column('email', db.Unicode, unique=False, nullable=False)
@@ -607,7 +609,7 @@ class User(Base):
     def has_permission(
         self,
         permission: t.Union[str, Permission],
-        course_id: t.Union['Course', int]=None
+        course_id: t.Union['Course', int, None] = None
     ) -> bool:
         """Check whether this user has the specified global or course
         :class:`Permission`.
@@ -638,45 +640,67 @@ class User(Base):
                     )
             return False
 
-    def get_permission_in_courses(self, perm: t.Union[str, Permission]
-                                  ) -> t.Mapping[int, bool]:
-        """Check for a specific course :class:`Permission` in all courses
+    def get_permissions_in_courses(
+        self,
+        perms: t.Sequence[str],
+    ) -> t.Mapping[int, t.Mapping[str, bool]]:
+        """Check for specific :class:`Permission`s in all courses
         (:class:`Course`) the user is enrolled in.
 
-        :param perm: The permission or its name to check for.
-        :returns: An int bool mapping where the int is the course id and the
-            the bool whether the user has the permission in the course with
-            thid id
+        Please note that passing an empty ``perms`` object is
+        supported. However the resulting mapping will be empty.
+
+        >>> User().get_permissions_in_courses([])
+        {}
+
+        :param perms: The permissions names to check for.
+        :returns: A mapping where the first keys indicate the course id,
+            the values at this are a mapping between the given permission names
+            and a boolean indicating if the current user has this permission
+            for the course with this course id.
         """
-        permission: Permission
-        if isinstance(perm, str):
-            permission = Permission.query.filter_by(  # type: ignore
-                name=perm).first()
-        else:
-            permission = perm
-        assert permission.course_permission
+        if not perms:
+            return {}
+
+        permissions = psef.helpers.filter_all_or_404(
+            Permission,
+            t.cast('DbColumn[str]', Permission.name).in_(perms)
+        )
 
         course_roles = db.session.query(user_course.c.course_id).join(
             User, User.id == user_course.c.user_id
         ).filter(User.id == self.id).subquery('course_roles')
 
-        crp = db.session.query(course_permissions.c.course_role_id).join(
-            Permission, course_permissions.c.permission_id == Permission.id
-        ).filter(Permission.id == permission.id).subquery('crp')
+        crp = db.session.query(
+            course_permissions.c.course_role_id,
+            t.cast(DbColumn[int], Permission.id),
+        ).join(
+            Permission,
+            course_permissions.c.permission_id == Permission.id,
+        ).filter(
+            t.cast(DbColumn[int], Permission.id)
+            .in_(p.id for p in permissions)
+        ).subquery('crp')
 
-        res: t.Sequence[t.Tuple[int]]
-        res = db.session.query(course_roles.c.course_id).join(
-            crp, course_roles.c.course_id == crp.c.course_role_id
+        res: t.Sequence[t.Tuple[int, int]]
+        res = db.session.query(course_roles.c.course_id, crp.c.id).join(
+            crp,
+            course_roles.c.course_id == crp.c.course_role_id,
+            isouter=False,
         ).all()
 
-        course_ids: t.Set[int]
-        course_ids = set(course_id[0] for course_id in res)
+        lookup: t.Mapping[int, t.Set[int]] = defaultdict(set)
+        for course_role_id, permission_id in res:
+            lookup[permission_id].add(course_role_id)
 
-        return {
-            course_role.course_id:
-            (course_role.id in course_ids) != permission.default_value
-            for course_role in self.courses.values()
-        }
+        out: t.MutableMapping[int, t.Mapping[str, bool]] = {}
+        for course_id, cr in self.courses.items():
+            out[course_id] = {
+                p.name: (cr.id in lookup[p.id]) != p.default_value
+                for p in permissions
+            }
+
+        return out
 
     @property
     def can_see_hidden(self) -> bool:
@@ -755,16 +779,17 @@ class User(Base):
 
         return (not link) if permission.default_value else link
 
-    def get_all_permissions(self, course_id: t.Union['Course', int]=None
-                            ) -> t.Mapping[str, bool]:
+    def get_all_permissions(
+        self, course_id: t.Union['Course', int, None] = None
+    ) -> t.Mapping[str, bool]:
         """Get all global permissions (:class:`Permission`) of this user or all
         course permissions of the user in a specific :class:`Course`.
 
         :param course_id: The course or course id
 
         :returns: A name boolean mapping where the name is the name of the
-            permission and the value indicates if this user has this
-            permission.
+                  permission and the value indicates if this user has this
+                  permission.
         """
         if isinstance(course_id, Course):
             course_id = course_id.id
@@ -810,7 +835,7 @@ class User(Base):
                 max_age=psef.app.config['RESET_TOKEN_TIME'],
                 salt=self.reset_token
             )
-        except:
+        except BadSignature:
             import traceback
             traceback.print_exc()
             raise psef.auth.PermissionException(
@@ -874,9 +899,9 @@ class Course(Base):
 
     def __init__(
         self,
-        name: str=None,
-        lti_course_id: str=None,
-        lti_provider: LTIProvider=None
+        name: str = None,
+        lti_course_id: str = None,
+        lti_provider: LTIProvider = None
     ) -> None:
         self.name = name
         self.lti_course_id = lti_course_id
@@ -944,10 +969,14 @@ class GradeHistory(Base):
     passed_back: bool = db.Column('passed_back', db.Boolean, default=False)
 
     work_id: int = db.Column(
-        'Work_id', db.Integer, db.ForeignKey('Work.id', ondelete='CASCADE')
+        'Work_id',
+        db.Integer,
+        db.ForeignKey('Work.id', ondelete='CASCADE'),
     )
     user_id: int = db.Column(
-        'User_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
+        'User_id',
+        db.Integer,
+        db.ForeignKey('User.id', ondelete='CASCADE'),
     )
 
     work = db.relationship('Work', foreign_keys=work_id)  # type: 'Work'
@@ -995,7 +1024,7 @@ class Work(Base):
         'User_id', db.Integer, db.ForeignKey('User.id', ondelete='CASCADE')
     )
     _grade: float = db.Column('grade', db.Float, default=None)
-    comment: str = db.Column('comment', db.Unicode, default=None)
+    comment: str = deferred(db.Column('comment', db.Unicode, default=None))
     created_at: datetime.datetime = db.Column(
         db.DateTime, default=datetime.datetime.utcnow
     )
@@ -1057,10 +1086,16 @@ class Work(Base):
                 return None
             max_points = self.assignment.max_rubric_points
             selected = sum(item.points for item in self.selected_items)
-            return max((selected / max_points) * 10, 0)
+            return between(0, selected / max_points * 10, 10)
         return self._grade
 
-    def set_grade(self, new_grade: float, user: User) -> None:
+    def set_grade(
+        self,
+        new_grade: float,
+        user: User,
+        add_to_session: bool = True,
+        never_passback: bool = False,
+    ) -> GradeHistory:
         """Set the grade to the new grade.
 
         .. note:: This also passes back the grade to LTI if this is necessary
@@ -1068,6 +1103,9 @@ class Work(Base):
 
         :param new_grade: The new grade to set
         :param user: The user setting the new grade.
+        :param add_to_session: Add the newly created history file to the
+            current session.
+        :param never_passback: Never passback the new grade.
         :returns: Nothing
         """
         self._grade = new_grade
@@ -1080,16 +1118,18 @@ class Work(Base):
             work=self,
             user=user
         )
-        db.session.add(history)
-        db.session.flush()
-        if passback:
+        if add_to_session:
+            db.session.add(history)
+        if not never_passback and passback:
             psef.tasks.passback_grades([self.id])
+
+        return history
 
     @property
     def selected_rubric_points(self) -> float:
         return sum(item.points for item in self.selected_items)
 
-    def passback_grade(self, initial: bool=False) -> None:
+    def passback_grade(self, initial: bool = False) -> None:
         """Initiates a passback of the grade to the LTI consumer via the
         :class:`LTIProvider`.
 
@@ -1119,13 +1159,13 @@ class Work(Base):
                 self.assignment.assignment_results[self.user_id].sourcedid,
                 url=url,
             )
-            sq = db.session.query(GradeHistory.id).filter_by(
-                work_id=self.id
-            ).order_by(
+            sq = db.session.query(
+                t.cast(DbColumn[int], GradeHistory.id)
+            ).filter_by(work_id=self.id).order_by(
                 GradeHistory.changed_at.desc(),  # type: ignore
             ).limit(1).with_for_update()
-            db.session.query(GradeHistory).filter_by(
-                id=sq.as_scalar(),
+            db.session.query(GradeHistory).filter(
+                GradeHistory.id == sq.as_scalar(),
             ).update(
                 {
                     'passed_back': True
@@ -1133,7 +1173,7 @@ class Work(Base):
             )
 
     def select_rubric_items(
-        self, items: t.List['RubricItem'], user: User, override: bool=False
+        self, items: t.List['RubricItem'], user: User, override: bool = False
     ) -> None:
         """ Selects the given :class:`RubricItem`.
 
@@ -1153,12 +1193,34 @@ class Work(Base):
 
         self.set_grade(None, user)
 
-    def __to_json__(self) -> t.Mapping[str, t.Any]:
+    def __to_json__(self) -> t.MutableMapping[str, t.Any]:
         """Returns the JSON serializable representation of this work.
 
         The representation is based on the permissions (:class:`Permission`) of
-        the logged in :class:`User`. Namely the assignee and feedback
-        attributes are only included if the current user can see them.
+        the logged in :class:`User`. Namely the assignee, feedback, and grade
+        attributes are only included if the current user can see them,
+        otherwise they are set to `None`.
+
+        The resulting object will look like this:
+
+        .. code:: python
+
+            {
+                'id': int # Submission id.
+                'user': User # User that submitted this work.
+                'created_at': str # Submission date in ISO-8601 datetime
+                                  # format.
+                'grade': t.Optional[float] # Grade for this submission, or
+                                              # None if the submission hasn't
+                                              # been graded yet or if the
+                                              # logged in user doesn't have
+                                              # permission to see the grade.
+                'assignee': t.Optional[User] # User assigned to grade this
+                                                # submission, or None if the
+                                                # logged in user doesn't have
+                                                # permission to see the
+                                                # assignee.
+            }
 
         :returns: A dict containing JSON serializable representations of the
                   attributes of this work.
@@ -1175,17 +1237,42 @@ class Work(Base):
             )
             item['assignee'] = self.assignee
         except auth.PermissionException:
-            item['assignee'] = False
+            item['assignee'] = None
 
         try:
             auth.ensure_can_see_grade(self)
         except auth.PermissionException:
-            item['grade'] = False
-            item['comment'] = False
+            item['grade'] = None
         else:
             item['grade'] = self.grade
-            item['comment'] = self.comment
         return item
+
+    def __extended_to_json__(self) -> t.Mapping[str, t.Any]:
+        """Create a extended JSON serializable representation of this object.
+
+        This object will look like this:
+
+        .. code:: python
+
+            {
+                'comment': t.Optional[str] # General feedback comment for
+                                           # this submission, or None in
+                                           # the same cases as the grade.
+                **self.__to_json__()
+            }
+
+        :returns: A object as described above.
+        """
+        res = self.__to_json__()
+
+        try:
+            auth.ensure_can_see_grade(self)
+        except auth.PermissionException:
+            res['comment'] = None
+        else:
+            res['comment'] = self.comment
+
+        return res
 
     def __rubric_to_json__(self) -> t.Mapping[str, t.Any]:
         """Converts a rubric of a work to a object that is JSON serializable.
@@ -1195,16 +1282,24 @@ class Work(Base):
         .. code:: python
 
             {
-                'rubrics': t.List[RubricRow] # A list of all the
-                                             # rubrics for this work.
-                'selected': t.List[RubricItem] # A list of all the
-                                               # selected rubric items
-                                               # for this work.
+                'rubrics': t.List[RubricRow] # A list of all the rubrics for
+                                             # this work.
+                'selected': t.List[RubricItem] # A list of all the selected
+                                               # rubric items for this work,
+                                               # or an empty list if the logged
+                                               # in user doesn't have
+                                               # permission to see the rubric.
                 'points': {
-                    'max': float # The maximal amount of points
-                                 # for this rubric.
-                    'selected': float # The amount of point that is
-                                      # selected for this work.
+                    'max': t.Optional[float] # The maximal amount of points
+                                                # for this rubric, or `None` if
+                                                # logged in user doesn't have
+                                                # permission to see the rubric.
+                    'selected': t.Optional[float] # The amount of point that
+                                                     # is selected for this
+                                                     # work, or `None` if the
+                                                     # logged in user doesn't
+                                                     # have permission to see
+                                                     # the rubric.
                 }
             }
 
@@ -1227,12 +1322,15 @@ class Work(Base):
         except auth.PermissionException:
             return {
                 'rubrics': self.assignment.rubric_rows,
+                'selected': [],
+                'points': {
+                    'max': None,
+                    'selected': None,
+                },
             }
 
     def add_file_tree(
-        self,
-        session: 'orm.scoped_session',
-        tree: 'psef.files.ExtractFileTree'
+        self, session: 'orm.scoped_session', tree: 'psef.files.ExtractFileTree'
     ) -> None:
         """Add the given tree to given session.
 
@@ -1252,7 +1350,7 @@ class Work(Base):
         self,
         session: 'orm.scoped_session',
         tree: 'psef.files.ExtractFileTree',
-        top: 'File'
+        top: 'File',
     ) -> None:
         """Add the given tree to the session with top as parent.
 
@@ -1262,9 +1360,9 @@ class Work(Base):
         :param top: The parent file
         :returns: Nothing
         """
-        for new_top, children in tree.items():
+        for old_top, children in tree.items():
             new_top = File(
-                work=self, is_directory=True, name=new_top, parent=top
+                work=self, is_directory=True, name=old_top, parent=top
             )
             session.add(new_top)
             for child in children:
@@ -1355,7 +1453,7 @@ class Work(Base):
             if parent is not None:
                 parent = parent.c.id
 
-            parent = db.session.query(File.id).filter(
+            parent = db.session.query(t.cast(DbColumn[int], File.id)).filter(
                 File.name == pathpart,
                 File.parent_id == parent,
                 File.work_id == self.id,
@@ -1430,7 +1528,7 @@ class File(Base):
     )
 
     is_directory: bool = db.Column('is_directory', db.Boolean)
-    parent_id: int = db.Column(db.Integer, db.ForeignKey('File.id'))
+    parent_id = db.Column('parent_id', db.Integer, db.ForeignKey('File.id'))
 
     # This variable is generated from the backref from the parent
     children: '_MyQuery["File"]'
@@ -1528,19 +1626,21 @@ class File(Base):
         if not self.is_directory:
             return {"name": self.name, "id": self.id}
         else:
-            children = sorted(
-                (
-                    child.list_contents(exclude)
-                    for child in
-                    self.children.filter(File.fileowner != exclude)
-                ),
-                key=lambda el: el['name'].lower()
-            )
+            children = [
+                child.list_contents(exclude)
+                for child in self.get_sorted_children(exclude)
+            ]
             return {
                 "name": self.name,
                 "id": self.id,
                 "entries": children,
             }
+
+    def get_sorted_children(self, exclude: FileOwner) -> t.List['File']:
+        return sorted(
+            self.children.filter(File.fileowner != exclude),
+            key=lambda el: el.name.lower(),
+        )
 
     def rename_code(
         self,
@@ -1610,7 +1710,9 @@ class LinterComment(Base):
         db.ForeignKey('File.id', ondelete='CASCADE'),
         index=True
     )
-    linter_id: str = db.Column(db.Unicode, db.ForeignKey('LinterInstance.id'))
+    linter_id = db.Column(
+        'linter_id', db.Unicode, db.ForeignKey('LinterInstance.id')
+    )
 
     line: int = db.Column('line', db.Integer)
     linter_code: str = db.Column('linter_code', db.Unicode)
@@ -1809,8 +1911,8 @@ class LinterInstance(Base):
     work_id: int = db.Column(
         'Work_id', db.Integer, db.ForeignKey('Work.id', ondelete='CASCADE')
     )
-    tester_id: int = db.Column(
-        db.Unicode, db.ForeignKey('AssignmentLinter.id')
+    tester_id: str = db.Column(
+        'tester_id', db.Unicode, db.ForeignKey('AssignmentLinter.id')
     )
 
     tester: AssignmentLinter = db.relationship(
@@ -1875,8 +1977,40 @@ class _AssignmentStateEnum(enum.IntEnum):
     done = 2
 
 
+@enum.unique
+class AssignmentDoneType(enum.IntEnum):
+    """Describes what type of reminder should be sent.
+
+    :param none: Nobody should be e-mailed.
+    :param assigned_only: Only graders that are assigned will be notified.
+    :param all_graders: All users that have the permission to grade.
+    """
+    assigned_only: int = 1
+    all_graders: int = 2
+
+
 class Assignment(Base):
     """This class describes a :class:`Course` specific assignment.
+
+    :ivar name: The name of the assignment.
+    :ivar cgignore: The .cgignore file of this assignment.
+    :ivar state: The current state the assignment is in.
+    :ivar description: UNUSED
+    :ivar course: The course this assignment belongs to.
+    :ivar created_at: The date this assignment was added.
+    :ivar deadline: The deadline of this assignment.
+    :ivar _mail_task_id: This is the id of the current task that will email all
+        the TA's to hurry up with grading.
+    :ivar reminder_email_time: The time the reminder email should be sent. To
+        see if we should actually send these reminders look at `done_type`
+    :ivar done_email: The email address we should sent a email if the grading
+        is done. The function :py:func:`email.utils.getaddresses` should be
+        able to parse this string.
+    :ivar done_type: The type of reminder that should be sent.
+    :ivar assigned_graders: All graders that are assigned to grade mapped by
+        user_id to `AssignmentAssignedGrader` object.
+    :ivar rubric_rows: The rubric rows that make up the rubric for this
+        assignment.
     """
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type:  t.ClassVar[_MyQuery['Assignment']]
@@ -1899,6 +2033,31 @@ class Assignment(Base):
     )
     deadline: datetime.datetime = db.Column('deadline', db.DateTime)
 
+    _mail_task_id: t.Optional[str] = db.Column(
+        'mail_task_id',
+        db.Unicode,
+        nullable=True,
+        default=None,
+    )
+    reminder_email_time: datetime.datetime = db.Column(
+        'reminder_email_time',
+        db.DateTime,
+        default=None,
+        nullable=True,
+    )
+    done_email = db.Column(
+        'done_email',
+        db.Unicode,
+        default=None,
+        nullable=True,
+    )
+    done_type: AssignmentDoneType = db.Column(
+        'done_type',
+        db.Enum(AssignmentDoneType),
+        nullable=True,
+        default=None,
+    )
+
     # All stuff for LTI
     lti_assignment_id: str = db.Column(db.Unicode, unique=True)
     lti_outcome_service_url: str = db.Column(db.Unicode)
@@ -1911,6 +2070,12 @@ class Assignment(Base):
         collection_class=attribute_mapped_collection('user_id'),
         backref=db.backref('assignment', lazy='select')
     )
+
+    finished_graders = db.relationship(
+        'AssignmentGraderDone',
+        backref=db.backref('assignment'),
+        cascade='delete-orphan, delete',
+    )  # type: t.MutableSequence['AssignmentGraderDone']
 
     assignment_results: t.MutableMapping[
         int, AssignmentResult
@@ -1945,6 +2110,133 @@ class Assignment(Base):
         for i in range(0, len(subs), 10):
             psef.tasks.passback_grades([s[0] for s in subs[i:i + 10]])
 
+    def change_notifications(
+        self,
+        done_type: t.Optional[AssignmentDoneType],
+        grader_date: t.Optional[datetime.datetime],
+        done_email: t.Optional[str],
+    ) -> None:
+        """Change the notifications for the current assignment.
+
+        :param done_type: How to determine when the assignment is done. Set
+            this value to ``None`` to disable the reminder for this assignment.
+        :param grader_date: The datetime when to send graders that are causing
+            the assignment to be not done a reminder email.
+        :param done_email: The email to send a notification when grading for
+            this assignment is done.
+        """
+        if self._mail_task_id is not None:
+            psef.tasks.celery.control.revoke(self._mail_task_id)
+
+        self.done_type = done_type
+
+        # Make sure _reminder_email_time is ``None`` if ``done_type`` is
+        # ``none``
+        self.reminder_email_time = None if done_type is None else grader_date
+        self.done_email = None if done_type is None else done_email
+
+        if self.reminder_email_time is None:
+            # Make sure id is reset so we don't revoke it multiple times
+            self._mail_task_id = None
+        else:
+            res = psef.tasks.send_reminder_mails((self.id, ), eta=grader_date)
+            self._mail_task_id = res.id
+
+    def graders_are_done(self) -> bool:
+        """Check if the graders of this assignment are done.
+
+        :returns: A boolean indicating if the graders of this assignment are
+            done.
+        """
+        if self.done_type is None:
+            # We are never done as we have no condition to be done
+            return False
+        elif self.done_type == AssignmentDoneType.assigned_only:
+            assigned = set(self.get_assigned_grader_ids())
+            finished = set(fg.user_id for fg in self.finished_graders)
+            # Check if every assigned grader is done.
+            return assigned.issubset(finished)
+        elif self.done_type == AssignmentDoneType.all_graders:
+            # All graders should be done. As finished_graders all have unique
+            # user ids we simply need to check if the lengths are the same
+            return len(self.finished_graders) == self.get_all_graders().count()
+
+        # This is needed because of https://github.com/python/mypy/issues/4223
+        assert False  # pragma: no cover
+
+    def get_assigned_grader_ids(self) -> t.Iterable[int]:
+        """Get the ids of all the graders that have submissions assigned.
+
+        .. note:: This only gets graders with latest submissions assigned to
+            them.
+
+        :returns: The ids of the all the graders that have work assigned within
+            this assignnment.
+        """
+        return map(
+            itemgetter(0),
+            self.get_from_latest_submissions(
+                Work.assigned_to,
+            ).distinct(),
+        )
+
+    def set_graders_to_not_done(
+        self,
+        user_ids: t.Sequence[int],
+        send_mail: bool = False,
+        ignore_errors: bool = False,
+    ) -> None:
+        """Set the status of the given graders to 'not done'.
+
+        :param user_ids: The ids of the users that should be set to 'not done'
+        :param send_mail: If ``True`` the users who are reset to 'not done'
+            will get an email notifying them of this.
+        :param ignore_errors: Do not raise an error if a user in ``user_ids``
+            was not yet done.
+        :raise ValueError: If a user in ``user_ids`` was not yet done. This can
+            happen because the user has not indicated this yet, because this
+            user does not exist or because of any reason.
+        """
+        if not user_ids:
+            return
+
+        graders = AssignmentGraderDone.query.filter(
+            AssignmentGraderDone.assignment_id == self.id,
+            t.cast(t.Any, AssignmentGraderDone.user_id).in_(user_ids),
+        ).all()
+
+        if not ignore_errors and len(graders) != len(user_ids):
+            raise ValueError('Not all graders were found')
+
+        for grader in graders:
+            if send_mail:
+                psef.tasks.send_grader_status_mail(self.id, grader.user_id)
+            db.session.delete(grader)
+
+    def has_non_graded_submissions(self, user_id: int) -> bool:
+        """Check if the user with the given ``user_id`` has submissions
+        assigned without a grade.
+
+        :param user_id: The id of the user to check for
+        :returns: A boolean indicating if user has work assigned that does not
+            have grade or a selected rubric item
+        """
+        latest = self.get_from_latest_submissions(Work.id)
+        sql = latest.filter(
+            Work.assigned_to == user_id,
+        ).join(
+            work_rubric_item,
+            work_rubric_item.c.work_id == Work.id,
+            isouter=True
+        ).having(
+            and_(
+                func.count(work_rubric_item.c.rubricitem_id) == 0,
+                Work._grade.is_(None)  # type: ignore
+            )
+        ).group_by(Work.id)
+
+        return db.session.query(sql.exists()).scalar()
+
     @property
     def is_lti(self) -> bool:
         """Is this assignment a LTI assignment.
@@ -1953,7 +2245,7 @@ class Assignment(Base):
         """
         return self.lti_outcome_service_url is not None
 
-    @property
+    @cached_property
     def max_rubric_points(self) -> t.Optional[float]:
         """Get the maximum amount of points possible for the rubric
 
@@ -1964,13 +2256,12 @@ class Assignment(Base):
 
         :returns: The maximum amount of points.
         """
-        sub = db.session.query(func.max(RubricItem.points).label('max_val')
-                               ).join(
-                                   RubricRow,
-                                   RubricRow.id == RubricItem.rubricrow_id
-                               ).filter(
-                                   RubricRow.assignment_id == self.id
-                               ).group_by(RubricRow.id).subquery('sub')
+        sub = db.session.query(
+            func.max(RubricItem.points).label('max_val')
+        ).join(RubricRow, RubricRow.id == RubricItem.rubricrow_id
+               ).filter(RubricRow.assignment_id == self.id).group_by(
+                   RubricRow.id
+               ).subquery('sub')
         return db.session.query(func.sum(sub.c.max_val)).scalar()
 
     @property
@@ -2000,6 +2291,22 @@ class Assignment(Base):
         return _AssignmentStateEnum(self.state).name
 
     @property
+    def whitespace_linter_exists(self) -> bool:
+        if not hasattr(self, '_whitespace_linter_exists'):
+            self._whitespace_linter_exists = db.session.query(
+                AssignmentLinter.query.filter(
+                    AssignmentLinter.assignment_id == self.id,
+                    AssignmentLinter.name == 'MixedWhitespace'
+                ).exists()
+            ).scalar()
+
+        return self._whitespace_linter_exists
+
+    @whitespace_linter_exists.setter
+    def whitespace_linter_exists(self, exists: bool) -> None:
+        self._whitespace_linter_exists = exists
+
+    @property
     def whitespace_linter(self) -> bool:
         """Check if this assignment has an associated MixedWhitespace linter.
 
@@ -2009,7 +2316,7 @@ class Assignment(Base):
             has the permission ``can_see_grade_before_open``
 
         :returns: True if there is an :py:class:`.AssignmentLinter` with name
-        ``MixedWhitespace`` and ``assignment_id``.
+            ``MixedWhitespace`` and ``assignment_id``.
         """
         try:
             if not self.is_done:
@@ -2019,12 +2326,7 @@ class Assignment(Base):
         except auth.PermissionException:
             return False
         else:
-            return db.session.query(
-                AssignmentLinter.query.filter(
-                    AssignmentLinter.assignment_id == self.id,
-                    AssignmentLinter.name == 'MixedWhitespace'
-                ).exists()
-            ).scalar()
+            return self.whitespace_linter_exists
 
     def __to_json__(self) -> t.Mapping[str, t.Any]:
         """Creates a JSON serializable representation of this object.
@@ -2044,13 +2346,20 @@ class Assignment(Base):
                 'course': models.Course, # Course of this assignment.
                 'whitespace_linter': bool, # Has the whitespace linter
                                            # run on this assignment.
+                'done_type': str, # The kind of reminder that will be sent.
+                                  # If you don't have the permission to see
+                                  # this it will always be `null`. If this is
+                                  # not set it will also be `null`.
+                'reminder_time': str, # ISO UTC date. This will be `null` if
+                                      # you don't have the permission to see
+                                      # this or if it is unset.
             }
 
         :returns: An object as described above.
 
         .. todo:: Remove description from Assignment model.
         """
-        return {
+        res = {
             'id': self.id,
             'state': self.state_name,
             'description': self.description,
@@ -2061,7 +2370,26 @@ class Assignment(Base):
             'course': self.course,
             'cgignore': self.cgignore,
             'whitespace_linter': self.whitespace_linter,
+            'done_type': None,
+            'done_email': None,
+            'reminder_time': None,
         }
+
+        try:
+            auth.ensure_permission(
+                'can_grade_work',
+                self.course_id,
+            )
+            if self.done_email is not None:
+                res['done_email'] = self.done_email
+            if self.done_type is not None:
+                res['done_type'] = self.done_type.name
+            if self.reminder_email_time is not None:
+                res['reminder_time'] = self.reminder_email_time.isoformat()
+        except auth.PermissionException as e:
+            pass
+
+        return res
 
     def set_state(self, state: str) -> None:
         """Update the current state (class:`_AssignmentStateEnum`).
@@ -2082,7 +2410,7 @@ class Assignment(Base):
             self.state = _AssignmentStateEnum.done
             if self.lti_outcome_service_url is not None:
                 self._submit_grades()
-        else:  # pragma: no cover
+        else:
             raise TypeError
 
     def get_from_latest_submissions(self, *to_query: T) -> '_MyQuery[T]':
@@ -2095,8 +2423,8 @@ class Assignment(Base):
         sub = db.session.query(
             Work.user_id.label('user_id'),  # type: ignore
             func.max(Work.created_at).label('max_date')
-        ).filter_by(assignment_id=self.id
-                    ).group_by(Work.user_id).subquery('sub')
+        ).filter_by(assignment_id=self.id).group_by(Work.user_id
+                                                    ).subquery('sub')
         return db.session.query(*to_query).select_from(Work).join(
             sub,
             and_(
@@ -2148,7 +2476,7 @@ class Assignment(Base):
             func.count(),
         ).scalar()
 
-        divided_amount: t.MutableMapping[int, float] = defaultdict(lambda: 0.0)
+        divided_amount: t.MutableMapping[int, float] = defaultdict(float)
         for u_id, amount in self.get_from_latest_submissions(  # type: ignore
             Work.assigned_to, func.count()
         ).group_by(Work.assigned_to):
@@ -2202,9 +2530,9 @@ class Assignment(Base):
         submissions = self.get_all_latest_submissions().all()
         shuffle(submissions)
 
-        counts: t.MutableMapping[int, int] = defaultdict(lambda: 0)
-        user_submissions: t.MutableMapping[int, t.List[Work]]
-        user_submissions = defaultdict(lambda: [])
+        counts: t.MutableMapping[int, int] = defaultdict(int)
+        user_submissions: t.MutableMapping[t.Optional[int], t.List[Work]]
+        user_submissions = defaultdict(list)
 
         # Remove all users not in user_weights
         new_users = set(u.id for u, _ in user_weights)
@@ -2238,8 +2566,16 @@ class Assignment(Base):
                 to_assign += [user_id] * round(new_amount * ratio)
 
         shuffle(to_assign)
+        newly_assigned: t.Set[int] = set()
         for sub, user_id in zip(user_submissions[None], cycle(to_assign)):
             sub.assigned_to = user_id
+            newly_assigned.add(user_id)
+
+        self.set_graders_to_not_done(
+            list(newly_assigned),
+            send_mail=True,
+            ignore_errors=True,
+        )
 
         self.assigned_graders = {}
         for user, weight in user_weights:
@@ -2248,6 +2584,62 @@ class Assignment(Base):
                     weight=weight, user_id=user.id, assignment=self
                 )
             )
+
+    def get_all_graders(
+        self, sort: bool = True
+    ) -> '_MyQuery[t.Tuple[str, int, bool]]':
+        """Get all graders for this assignment.
+
+        The graders are retrieved from the database using a single query. The
+        return value is a query with three items selected: the first is the
+        name of the grader, the second is the database id of the user object
+        of grader and the third and last is a boolean indicating if this grader
+        is done grading. You can use this query as an iterator.
+
+        :param sort: Should the graders be sorted by name.
+        :returns: A query with items selected as described above.
+        """
+        us = db.session.query(
+            t.cast(DbColumn[str], User.name).label("name"),
+            t.cast(DbColumn[int], User.id).label("id"),
+            t.cast(
+                DbColumn[bool],
+                ~t.cast(DbColumn[int], AssignmentGraderDone.user_id).is_(None)
+            ).label("done"),
+            t.cast(DbColumn[int], user_course.c.course_id).label("course_id"),
+        ).join(
+            AssignmentGraderDone,
+            and_(
+                User.id == AssignmentGraderDone.user_id,
+                AssignmentGraderDone.assignment_id == self.id,
+            ),
+            isouter=True
+        ).join(
+            user_course,
+            User.id == user_course.c.user_id,
+        ).subquery('us')
+
+        per = db.session.query(course_permissions.c.course_role_id).join(
+            CourseRole,
+            CourseRole.id == course_permissions.c.course_role_id,
+        ).join(
+            Permission,
+            course_permissions.c.permission_id == Permission.id,
+        ).filter(
+            CourseRole.course_id == self.course_id,
+            Permission.name == 'can_grade_work',
+        ).subquery('per')
+
+        res = db.session.query(
+            t.cast(str, us.c.name),
+            t.cast(int, us.c.id),
+            t.cast(bool, us.c.done),
+        ).join(per, us.c.course_id == per.c.course_role_id)
+
+        if sort:
+            res = res.order_by(func.lower(us.c.name))
+
+        return res
 
 
 class Snippet(Base):
@@ -2290,8 +2682,8 @@ class RubricRow(Base):
     This class forms the link between :class:`Assignment` and
     :class:`RubricItem` and holds information about the row.
 
-    :ivar assignment_id: The assignment id of the assignment that belows to
-        this rubric row.
+    :ivar ~.RubricRow.assignment_id: The assignment id of the assignment that
+        belows to this rubric row.
     """
     if t.TYPE_CHECKING:  # pragma: no cover
         query = Base.query  # type: t.ClassVar[_MyQuery['RubricRow']]
@@ -2302,8 +2694,8 @@ class RubricRow(Base):
     )
     header: str = db.Column('header', db.Unicode)
     description: str = db.Column('description', db.Unicode, default='')
-    created_at: datetime.datetime = db.Column(
-        db.DateTime, default=datetime.datetime.utcnow
+    created_at = db.Column(
+        'created_at', db.DateTime, default=datetime.datetime.utcnow
     )
     items = db.relationship(
         "RubricItem", backref="rubricrow", cascade='delete-orphan, delete'

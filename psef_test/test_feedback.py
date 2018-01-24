@@ -315,8 +315,10 @@ def test_get_all_feedback(
             'post',
             f'/api/v1/assignments/{assignment.id}/linter',
             200,
-            data={'name': 'Flake8',
-                  'cfg': ''}
+            data={
+                'name': 'Flake8',
+                'cfg': ''
+            }
         )
 
     expected = re.compile(
@@ -374,7 +376,9 @@ def test_get_all_feedback(
             result=error_template
             if perm_err else {'name': str,
                               'output_name': str},
-            query={'type': 'feedback'}
+            query={
+                'type': 'feedback'
+            }
         )
 
         if not perm_err:
@@ -437,8 +441,10 @@ def test_get_assignment_all_feedback(
             'post',
             f'/api/v1/assignments/{assignment.id}/linter',
             200,
-            data={'name': 'Flake8',
-                  'cfg': ''}
+            data={
+                'name': 'Flake8',
+                'cfg': ''
+            }
         )
 
     def match_res(res):

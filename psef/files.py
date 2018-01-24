@@ -16,7 +16,7 @@ from functools import reduce
 
 import archive
 from werkzeug.utils import secure_filename
-from mypy_extensions import NoReturn
+from mypy_extensions import NoReturn, TypedDict
 from werkzeug.datastructures import FileStorage
 
 import psef.models as models
@@ -29,11 +29,18 @@ _known_archive_extensions = tuple(archive.extension_map.keys())
 
 # Gestolen van Erik Kooistra
 _bb_txt_format = re.compile(
-    r"(?P<assignment_name>.+)_(?P<student_id>\d+)_attempt_"
+    r"(?P<assignment_name>.+)_(?P<student_id>.+?)_attempt_"
     r"(?P<datetime>\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}).txt"
 )
+FileTreeBase = TypedDict('FileTreeBase', {
+    'name': str,
+    'id': int,
+})
 
-FileTree = t.MutableMapping[str, t.Union[int, str, t.MutableSequence[t.Any]]]
+
+class FileTree(FileTreeBase, total=False):
+    entries: t.MutableSequence[t.Any]
+
 
 # PEP 484 does not support recursive types (because why design a new type
 # system that has remotely advanced features, see Go why you should never do
@@ -154,7 +161,7 @@ def get_file_contents(code: models.File) -> bytes:
 def restore_directory_structure(
     code: models.File,
     parent: str,
-    exclude: models.FileOwner=models.FileOwner.teacher
+    exclude: models.FileOwner = models.FileOwner.teacher
 ) -> FileTree:
     """Restores the directory structure recursively for a code submission (a
     :class:`.models.Work`).
@@ -296,7 +303,7 @@ def is_archive(file: FileStorage) -> bool:
 def extract_to_temp(
     file: FileStorage,
     ignore_filter: IgnoreFilterManager,
-    handle_ignore: IgnoreHandling=IgnoreHandling.keep
+    handle_ignore: IgnoreHandling = IgnoreHandling.keep
 ) -> str:
     """Extracts the contents of file into a temporary directory.
 
@@ -334,8 +341,8 @@ def extract_to_temp(
 
 def extract(
     file: FileStorage,
-    ignore_filter: IgnoreFilterManager=None,
-    handle_ignore: IgnoreHandling=IgnoreHandling.keep
+    ignore_filter: IgnoreFilterManager = None,
+    handle_ignore: IgnoreHandling = IgnoreHandling.keep
 ) -> t.Optional[ExtractFileTree]:
     """Extracts all files in archive with random name to uploads folder.
 
@@ -374,7 +381,7 @@ def extract(
         shutil.rmtree(tmpdir)
 
 
-def random_file_path(config_key: str='UPLOAD_DIR') -> t.Tuple[str, str]:
+def random_file_path(config_key: str = 'UPLOAD_DIR') -> t.Tuple[str, str]:
     """Generates a new random file path in the upload directory.
 
     :param config_key: The key to use to find the basedir of the random file
@@ -419,9 +426,9 @@ def dehead_filetree(tree: ExtractFileTree) -> ExtractFileTree:
 
 def process_files(
     files: t.MutableSequence[FileStorage],
-    force_txt: bool=False,
-    ignore_filter: IgnoreFilterManager=None,
-    handle_ignore: IgnoreHandling=IgnoreHandling.keep,
+    force_txt: bool = False,
+    ignore_filter: IgnoreFilterManager = None,
+    handle_ignore: IgnoreHandling = IgnoreHandling.keep,
 ) -> ExtractFileTree:
     """Process the given files by extracting, moving and saving their tree
     structure.
@@ -496,18 +503,19 @@ def process_blackboard_zip(
     def get_files(info: blackboard.SubmissionInfo) -> t.List[FileStorage]:
         files = []
         for blackboard_file in info.files:
-            name = blackboard_file.original_name
+            if isinstance(blackboard_file, blackboard.FileInfo):
+                name = blackboard_file.original_name
+                stream = open(
+                    os.path.join(tmpdir, blackboard_file.name), mode='rb'
+                )
+            else:
+                name = blackboard_file[0]
+                stream = io.BytesIO(blackboard_file[1])
+
             if name == '__WARNING__':
                 name = '__WARNING__ (User)'
 
-            files.append(
-                FileStorage(
-                    stream=open(
-                        os.path.join(tmpdir, blackboard_file.name), mode='rb'
-                    ),
-                    filename=name,
-                )
-            )
+            files.append(FileStorage(stream=stream, filename=name))
         return files
 
     tmpdir = extract_to_temp(
@@ -526,10 +534,8 @@ def process_blackboard_zip(
             )
 
             try:
-                files = get_files(info)
-                tree = process_files(files)
-                map(lambda f: f.close(), files)
-            except:
+                tree = process_files(get_files(info))
+            except Exception:
                 files = get_files(info)
                 files.append(
                     FileStorage(
@@ -540,7 +546,6 @@ def process_blackboard_zip(
                     )
                 )
                 tree = process_files(files, force_txt=True)
-                map(lambda f: f.close(), files)
 
             submissions.append((info, tree))
         if not submissions:

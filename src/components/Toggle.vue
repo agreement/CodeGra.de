@@ -1,5 +1,7 @@
 <template>
-    <div class="toggle-container">
+<div class="toggle-container" :class="{ disabled }" :checked="current">
+    <b-popover :triggers="disabled ? ['hover'] : []"
+               content="You cannot change the grader status of other graders">
         <div class="toggle" @click="toggle">
             <b-button class="off" variant="default">
                 {{ labelOff }}
@@ -8,7 +10,8 @@
                 {{ labelOn }}
             </b-button>
         </div>
-    </div>
+    </b-popover>
+</div>
 </template>
 
 <script>
@@ -33,6 +36,9 @@ export default {
         valueOff: {
             default: false,
         },
+        disabled: {
+            default: false,
+        },
     },
 
     data() {
@@ -41,23 +47,12 @@ export default {
         };
     },
 
-    mounted() {
-        this.update();
-    },
-
     methods: {
         toggle() {
+            if (this.disabled) return;
+
             this.current = !this.current;
             this.$emit('input', this.current ? this.valueOn : this.valueOff);
-            this.update();
-        },
-
-        update() {
-            if (this.current) {
-                this.$el.setAttribute('checked', 'checked');
-            } else {
-                this.$el.removeAttribute('checked');
-            }
         },
     },
 };
@@ -122,5 +117,10 @@ export default {
             transform: translateX(0);
         }
     }
+}
+
+.disabled .toggle {
+    cursor: not-allowed;
+    opacity: 0.4;
 }
 </style>

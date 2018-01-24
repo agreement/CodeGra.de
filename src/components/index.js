@@ -32,6 +32,10 @@ import PrivacyNote from './PrivacyNote';
 import PreferenceManager from './PreferenceManager';
 import Toggle from './Toggle';
 import CGIgnoreFile from './CGIgnoreFile';
+import Notifications from './Notifications';
+import DescriptionPopover from './DescriptionPopover';
+import AssignmentState from './AssignmentState';
+import FinishedGraderToggles from './FinishedGraderToggles';
 
 export {
     Linters,
@@ -68,4 +72,8 @@ export {
     PreferenceManager,
     Toggle,
     CGIgnoreFile,
+    Notifications,
+    DescriptionPopover,
+    AssignmentState,
+    FinishedGraderToggles,
 };

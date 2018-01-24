@@ -7,6 +7,7 @@ import datetime
 import flask
 import oauth2
 import dateutil
+import flask_jwt_extended as flask_jwt
 from lxml import etree, objectify
 
 import psef
@@ -26,7 +27,7 @@ class LTI:
     def __init__(
         self,
         params: t.Mapping[str, str],
-        lti_provider: models.LTIProvider=None
+        lti_provider: models.LTIProvider = None
     ) -> None:
         self.launch_params = params
 
@@ -142,7 +143,7 @@ class LTI:
         raise NotImplementedError
 
     def get_assignment_deadline(
-        self, default: datetime.datetime=None
+        self, default: datetime.datetime = None
     ) -> datetime.datetime:  # pragma: no cover
         """Get the deadline of the current LTI assignment.
 
@@ -153,7 +154,9 @@ class LTI:
         """
         raise NotImplementedError
 
-    def ensure_lti_user(self) -> t.Tuple[models.User, t.Optional[str]]:
+    def ensure_lti_user(
+        self
+    ) -> t.Tuple[models.User, t.Optional[str], t.Optional[str]]:
         """Make sure the current LTI user is logged in as a psef user.
 
         This is done by first checking if we know a user with the current LTI
@@ -165,6 +168,11 @@ class LTI:
 
         Otherwise we create a new user and link this user to current LTI
         user_id.
+
+        :returns: A tuple containing the items in order: the user found as
+            described above, optionally a new token for the user to login with,
+            optionally the updated email of the user as a string, this is
+            ``None`` if the email was not updated.
         """
         is_logged_in = _user_active()
         token = None
@@ -179,7 +187,7 @@ class LTI:
 
         elif lti_user is not None:
             # LTI users are used before the current logged user.
-            token = auth.jwt.create_access_token(
+            token = flask_jwt.create_access_token(
                 identity=lti_user.id,
                 fresh=True,
             )
@@ -214,12 +222,18 @@ class LTI:
             db.session.add(user)
             db.session.flush()
 
-            token = auth.jwt.create_access_token(
+            token = flask_jwt.create_access_token(
                 identity=user.id,
                 fresh=True,
             )
 
-        return user, token
+        updated_email = None
+        if user.reset_email_on_lti:
+            user.email = self.user_email
+            updated_email = self.user_email
+            user.reset_email_on_lti = False
+
+        return user, token, updated_email
 
     def get_course(self) -> models.Course:
         """Get the current LTI course as a psef course.
@@ -379,7 +393,7 @@ class LTI:
         grade: t.Union[float, None, bool, str, int],
         service_url: str,
         sourcedid: str,
-        url: str=None,
+        url: str = None,
     ) -> 'OutcomeResponse':
         """Do a LTI grade passback.
 
@@ -462,7 +476,7 @@ class CanvasLTI(LTI):
             yield role.split('/')[-1].lower()
 
     def get_assignment_deadline(
-        self, default: datetime.datetime=None
+        self, default: datetime.datetime = None
     ) -> datetime.datetime:
         try:
             deadline = dateutil.parser.parse(
@@ -470,7 +484,7 @@ class CanvasLTI(LTI):
             )
             deadline = deadline.astimezone(datetime.timezone.utc)
             return deadline.replace(tzinfo=None)
-        except:
+        except Exception:
             return (datetime.datetime.utcnow() + datetime.timedelta(days=365)
                     ) if default is None else default
 
@@ -497,15 +511,15 @@ class OutcomeRequest:  # pragma: no cover
 
     def __init__(
         self,
-        operation: str=None,
-        score: str=None,
-        result_data: t.Mapping[str, str]=None,
-        message_identifier: str=None,
-        lis_outcome_service_url: str=None,
-        lis_result_sourcedid: str=None,
-        consumer_key: str=None,
-        consumer_secret: str=None,
-        post_request: t.Any=None
+        operation: str = None,
+        score: str = None,
+        result_data: t.Mapping[str, str] = None,
+        message_identifier: str = None,
+        lis_outcome_service_url: str = None,
+        lis_result_sourcedid: str = None,
+        consumer_key: str = None,
+        consumer_secret: str = None,
+        post_request: t.Any = None
     ) -> None:
         self.operation = operation
         self.score = score
@@ -532,7 +546,7 @@ class OutcomeRequest:  # pragma: no cover
         return request
 
     def post_replace_result(
-        self, score: str, result_data: t.Mapping[str, str]=None
+        self, score: str, result_data: t.Mapping[str, str] = None
     ) -> 'OutcomeResponse':
         '''
         POSTs the given score to the Tool Consumer with a replaceResult.
@@ -642,7 +656,9 @@ class OutcomeRequest:  # pragma: no cover
             self.lis_outcome_service_url,
             'POST',
             body=self.generate_request_xml(),
-            headers={'Content-Type': 'application/xml'}
+            headers={
+                'Content-Type': 'application/xml'
+            }
         )
 
         if monkey_patch_headers and monkey_patch_function:
@@ -670,7 +686,7 @@ class OutcomeRequest:  # pragma: no cover
             self.lis_result_sourcedid = result.resultRecord.\
                 sourcedGUID.sourcedId
             self.score = str(result.resultRecord.result.resultScore.textString)
-        except:
+        except (KeyError, TypeError, AttributeError):
             pass
 
         try:
@@ -679,7 +695,7 @@ class OutcomeRequest:  # pragma: no cover
             # Get result sourced id from resultRecord
             self.lis_result_sourcedid = result['resultRecord']['sourcedGUID'
                                                                ]['sourcedId']
-        except:
+        except (KeyError, TypeError):
             pass
 
         try:
@@ -688,7 +704,7 @@ class OutcomeRequest:  # pragma: no cover
             # Get result sourced id from resultRecord
             self.lis_result_sourcedid = result['resultRecord']['sourcedGUID'
                                                                ]['sourcedId']
-        except:
+        except (KeyError, TypeError):
             pass
 
     def has_required_attributes(self) -> bool:
@@ -772,16 +788,16 @@ class OutcomeResponse:  # pragma: no cover
 
     def __init__(
         self,
-        request_type: str=None,
-        score: str=None,
-        message_identifier: str=None,
-        response_code: str=None,
-        post_response: str=None,
-        code_major: str=None,
-        severity: str=None,
-        description: str=None,
-        operation: str=None,
-        message_ref_identifier: str=None
+        request_type: str = None,
+        score: str = None,
+        message_identifier: str = None,
+        response_code: str = None,
+        post_response: str = None,
+        code_major: str = None,
+        severity: str = None,
+        description: str = None,
+        operation: str = None,
+        message_ref_identifier: str = None
     ) -> None:
         self.request_type = request_type
         self.score = score
@@ -860,7 +876,7 @@ class OutcomeResponse:  # pragma: no cover
             except AttributeError:
                 # Not a readResult, just ignore!
                 pass
-        except:
+        except Exception:
             pass
 
     def generate_response_xml(self) -> str:

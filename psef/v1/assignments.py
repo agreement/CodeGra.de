@@ -8,14 +8,17 @@ the APIs in this module are mostly used to manipulate
 import os
 import typing as t
 import numbers
+import datetime
 import threading
 from random import shuffle
 from collections import defaultdict
 
 import flask
 import dateutil
-import sqlalchemy.sql.expression as expression
+import sqlalchemy.sql as sql
 from flask import request, send_file, after_this_request
+from sqlalchemy.orm import undefer, joinedload
+from werkzeug.datastructures import FileStorage
 
 import psef
 import psef.auth as auth
@@ -23,20 +26,22 @@ import psef.files
 import psef.models as models
 import psef.helpers as helpers
 import psef.linters as linters
+import psef.parsers as parsers
 from psef import app, current_user
-from psef.errors import APICodes, APIException
+from psef.errors import APICodes, APIWarnings, APIException, make_warning
 from psef.ignore import IgnoreFilterManager
 from psef.models import db
 from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
-    ensure_keys_in_dict, make_empty_response
+    JSONType, JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
+    ensure_json_dict, extended_jsonify, ensure_keys_in_dict,
+    make_empty_response
 )
 
 from . import linters as linters_routes
 from . import api
 
 
-@api.route("/assignments/", methods=['GET'])
+@api.route('/assignments/', methods=['GET'])
 @auth.login_required
 def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
     """Get all the :class:`.models.Assignment` objects that the current user
@@ -44,7 +49,7 @@ def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
 
     .. :quickref: Assignment; Get all assignments.
 
-    :returns: An array of :py:class:`Assignment` items encoded in JSON.
+    :returns: An array of :py:class:`.models.Assignment` items encoded in JSON.
 
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
@@ -60,15 +65,30 @@ def get_all_assignments() -> JSONResponse[t.Sequence[models.Assignment]]:
     res = []
 
     if courses:
-        assignment: models.Assignment
-        for assignment in models.Assignment.query.filter(
-            models.Assignment.course_id.in_(courses)  # type: ignore
+        for assignment, has_linter in db.session.query(
+            models.Assignment,
+            t.cast(models.DbColumn[str],
+                   models.AssignmentLinter.id).isnot(None)
+        ).filter(
+            t.cast(
+                models.DbColumn[int],
+                models.Assignment.course_id,
+            ).in_(courses)
+        ).join(
+            models.AssignmentLinter,
+            sql.expression.and_(
+                models.Assignment.id == models.AssignmentLinter.assignment_id,
+                models.AssignmentLinter.name == 'MixedWhitespace'
+            ),
+            isouter=True
         ).all():
             has_perm = current_user.has_permission(
                 'can_see_hidden_assignments', assignment.course_id
             )
+            assignment.whitespace_linter_exists = has_linter
             if ((not assignment.is_hidden) or has_perm):
                 res.append(assignment)
+
     return jsonify(res)
 
 
@@ -146,6 +166,57 @@ def get_assignments_feedback(
     return jsonify(res)
 
 
+def set_reminder(
+    assig: models.Assignment,
+    content: t.Dict[str, helpers.JSONType],
+) -> t.Optional[psef.errors.HttpWarning]:
+    """Set the reminder of an assignment from a JSON dict.
+
+    :param assig: The assignment to set the reminder for.
+    :param content: The json input.
+    :returns: A warning if it should be returned to the user.
+    """
+    ensure_keys_in_dict(content, [
+        ('done_type', (type(None), str)),
+        ('done_email', (type(None), str)),
+        ('reminder_time', (type(None), str)),
+    ])  # yapf: disable
+
+    done_type = parsers.parse_enum(
+        content.get('done_type', None),
+        models.AssignmentDoneType,
+        allow_none=True,
+        option_name='done type'
+    )
+    reminder_time = parsers.parse_datetime(
+        content.get('reminder_time', None),
+        allow_none=True,
+    )
+    done_email = parsers.try_parse_email_list(
+        content.get('done_email', None),
+        allow_none=True,
+    )
+
+    if reminder_time and (reminder_time -
+                          datetime.datetime.utcnow()).total_seconds() < 60:
+        raise APIException(
+            (
+                'The given date is not far enough from the current time, '
+                'it should be at least 60 seconds in the future.'
+            ), f'{reminder_time} is not atleast 60 seconds in the future',
+            APICodes.INVALID_PARAM, 400
+        )
+
+    assig.change_notifications(done_type, reminder_time, done_email)
+    if done_email is not None and assig.graders_are_done():
+        return make_warning(
+            'Grading is already done, no email will be sent!',
+            APIWarnings.CONDITION_ALREADY_MET
+        )
+
+    return None
+
+
 @api.route('/assignments/<int:assignment_id>', methods=['PATCH'])
 def update_assignment(assignment_id: int) -> EmptyResponse:
     """Update the given :class:`.models.Assignment` with new values.
@@ -160,37 +231,42 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
         empty. (OPTIONAL)
     :<json str deadline: The new deadline of the assignment. This should be a
         ISO 8061 date without timezone information. (OPTIONAL)
+    :<json str done_type: The type to determine if a assignment is done. This
+        can be any value of :class:`.models.AssignmentDoneType` or
+        ``null``. (OPTIONAL)
+    :<json str done_email: The emails to send an email to if the assignment is
+        done. Can be ``null`` to disable these emails. (OPTIONAL)
+    :<json str reminder_time: The time on which graders which are causing the
+        grading to be not should be reminded they have to grade. Can be
+        ``null`` to disable these emails. (OPTIONAL)
+
+    If any of ``done_type``, ``done_email`` or ``reminder_time`` is given all
+    the other values should be given too.
 
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
-
-    :raises APIException: If no assignment with given id exists.
-                          (OBJECT_ID_NOT_FOUND)
     :raises APIException: If an invalid value is submitted. (INVALID_PARAM)
-    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
-    :raises PermissionException: If the user is not allowed to edit this is
-                                 assignment. (INCORRECT_PERMISSION)
     """
+    warning = None
     assig = helpers.get_or_404(models.Assignment, assignment_id)
-
-    auth.ensure_permission('can_manage_course', assig.course_id)
-
     content = ensure_json_dict(request.get_json())
 
     if 'state' in content:
+        auth.ensure_permission('can_edit_assignment_info', assig.course_id)
         ensure_keys_in_dict(content, [('state', str)])
         state = t.cast(str, content['state'])
 
-        if state in ['hidden', 'open', 'done']:
+        try:
             assig.set_state(state)
-        else:
+        except TypeError:
             raise APIException(
                 'The selected state is not valid',
-                'The state {} is not a valid state'.format(content['state']),
+                'The state {} is not a valid state'.format(state),
                 APICodes.INVALID_PARAM, 400
             )
 
     if 'name' in content:
+        auth.ensure_permission('can_edit_assignment_info', assig.course_id)
         ensure_keys_in_dict(content, [('name', str)])
         name = t.cast(str, content['name'])
 
@@ -205,27 +281,26 @@ def update_assignment(assignment_id: int) -> EmptyResponse:
         assig.name = name
 
     if 'deadline' in content:
+        auth.ensure_permission('can_edit_assignment_info', assig.course_id)
         ensure_keys_in_dict(content, [('deadline', str)])
         deadline = t.cast(str, content['deadline'])
-
-        try:
-            assig.deadline = dateutil.parser.parse(deadline)
-        except ValueError:
-            raise APIException(
-                'The given deadline is not valid!',
-                '{} cannot be parsed by dateutil'.format(deadline),
-                APICodes.INVALID_PARAM, 400
-            )
+        assig.deadline = parsers.parse_datetime(deadline)
 
     if 'ignore' in content:
+        auth.ensure_permission('can_edit_cgignore', assig.course_id)
         ensure_keys_in_dict(content, [('ignore', str)])
-        ignore = t.cast(str, content['ignore'])
+        assig.cgignore = t.cast(str, content['ignore'])
 
-        assig.cgignore = ignore
+    if any(t in content for t in ['done_type', 'reminder_time', 'done_email']):
+        auth.ensure_permission(
+            'can_update_course_notifications',
+            assig.course_id,
+        )
+        warning = set_reminder(assig, content) or warning
 
     db.session.commit()
 
-    return make_empty_response()
+    return make_empty_response(warning=warning)
 
 
 @api.route('/assignments/<int:assignment_id>/rubrics/', methods=['GET'])
@@ -237,7 +312,7 @@ def get_assignment_rubric(assignment_id: int
     .. :quickref: Assignment; Get the rubric of an assignment.
 
     :param int assignment_id: The id of the assignment
-    :returns: A list of JSON of :class:`models.RubricRows` items
+    :returns: A list of JSON of :class:`.models.RubricRows` items
 
     :raises APIException: If no assignment with given id exists.
         (OBJECT_ID_NOT_FOUND)
@@ -267,8 +342,8 @@ def delete_rubric(assignment_id: int) -> EmptyResponse:
 
     .. :quickref: Assignment; Delete the rubric of an assignment.
 
-    :param assignment_id: The id of the :class:`models.Assignment` whose rubric
-        should be deleted.
+    :param assignment_id: The id of the :class:`.models.Assignment` whose
+        rubric should be deleted.
     :returns: Nothing.
 
     :raises PermissionException: If the user does not have the
@@ -389,9 +464,7 @@ def add_assignment_rubric(assignment_id: int
 
 
 def add_new_rubric_row(
-    assig: models.Assignment,
-    header: str,
-    description: str,
+    assig: models.Assignment, header: str, description: str,
     items: t.Sequence[JSONType]
 ) -> int:
     """Add new rubric row to the assignment.
@@ -399,7 +472,7 @@ def add_new_rubric_row(
     :param assig: The assignment to add the rubric row to
     :param header: The name of the new rubric row.
     :param description: The description of the new rubric row.
-    :param items: The items (:py:class:`models.RubricItem`) that should be
+    :param items: The items (:py:class:`.models.RubricItem`) that should be
         added to the new rubric row, the JSONType should be a dictionary with
         the keys ``description`` (:py:class:`str`), ``header``
         (:py:class:`str`) and ``points`` (:py:class:`float`).
@@ -436,11 +509,8 @@ def add_new_rubric_row(
 
 
 def patch_rubric_row(
-    assig: models.Assignment,
-    header: str,
-    description: str,
-    rubric_row_id: t.Any,
-    items: t.Sequence[JSONType]
+    assig: models.Assignment, header: str, description: str,
+    rubric_row_id: t.Any, items: t.Sequence[JSONType]
 ) -> int:
     """Update a rubric row of the assignment.
 
@@ -505,40 +575,25 @@ def patch_rubric_row(
     return len(rubric_row.items)
 
 
-@api.route("/assignments/<int:assignment_id>/submission", methods=['POST'])
-def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
-    """Upload one or more files as :class:`.models.Work` to the given
-    :class:`.models.Assignment`.
+def get_submission_files_from_request(
+    check_size: bool,
+) -> t.MutableSequence[FileStorage]:
+    """Get all the submitted files in the current request.
 
-    .. :quickref: Assignment; Create work by uploading a file.
+    This function also checks if the files are in the correct format and are
+    lot too large.
 
-    An extra get parameter ``ignored_files`` can be given to determine how to
-    handle ignored files. The options are:
-    - ``ignore``, this the default, sipmly do nothing about ignored files.
-    - ``delete``, delete the ignored files.
-    - ``error``, raise an :py:class:`APIException` when there are ignored files
-      in the archive.
-
-    :param int assignment_id: The id of the assignment
-    :returns: A JSON serialized work and with the status code 201.
-
-    :raises APIException: If the request is bigger than the maximum upload
-                          size. (REQUEST_TOO_LARGE)
-    :raises APIException: If there was no file in the request.
-                          (MISSING_REQUIRED_PARAM)
-    :raises APIException: If some file was under the wrong key or some filename
-                          is empty. (INVALID_PARAM)
-    :raises APIException: If no assignment with given id exists.
-                          (OBJECT_ID_NOT_FOUND)
-    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
-    :raises PermissionException: If the user is not allowed to upload for this
-                                 assignment. (INCORRECT_PERMISSION)
+    :returns: The files in the current request. The length of this list is
+        always at least one.
+    :raises APIException: When a given files is not correct.
     """
+    res = []
 
-    files = []
-
-    if (request.content_length and
-            request.content_length > app.config['MAX_UPLOAD_SIZE']):
+    if (
+        check_size and
+        request.content_length and
+        request.content_length > app.config['MAX_UPLOAD_SIZE']
+    ):
         raise APIException(
             'Uploaded files are too big.', 'Request is bigger than maximum '
             f'upload size of {app.config["MAX_UPLOAD_SIZE"]}.',
@@ -567,8 +622,42 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
                 APICodes.INVALID_PARAM, 400
             )
 
-        files.append(file)
+        res.append(file)
 
+    return res
+
+
+@api.route("/assignments/<int:assignment_id>/submission", methods=['POST'])
+def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
+    """Upload one or more files as :class:`.models.Work` to the given
+    :class:`.models.Assignment`.
+
+    .. :quickref: Assignment; Create work by uploading a file.
+
+    An extra get parameter ``ignored_files`` can be given to determine how to
+    handle ignored files. The options are:
+
+    - ``ignore``, this the default, sipmly do nothing about ignored files.
+    - ``delete``, delete the ignored files.
+    - ``error``, raise an :py:class:`.APIException` when there are ignored
+      files in the archive.
+
+    :param int assignment_id: The id of the assignment
+    :returns: A JSON serialized work and with the status code 201.
+
+    :raises APIException: If the request is bigger than the maximum upload
+                          size. (REQUEST_TOO_LARGE)
+    :raises APIException: If there was no file in the request.
+                          (MISSING_REQUIRED_PARAM)
+    :raises APIException: If some file was under the wrong key or some filename
+                          is empty. (INVALID_PARAM)
+    :raises APIException: If no assignment with given id exists.
+                          (OBJECT_ID_NOT_FOUND)
+    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
+    :raises PermissionException: If the user is not allowed to upload for this
+                                 assignment. (INCORRECT_PERMISSION)
+    """
+    files = get_submission_files_from_request(check_size=True)
     assignment = helpers.get_or_404(models.Assignment, assignment_id)
 
     auth.ensure_permission('can_submit_own_work', assignment.course_id)
@@ -578,13 +667,20 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
         )
 
     work = models.Work(assignment=assignment, user_id=current_user.id)
-    work.assigned_to = assignment.get_from_latest_submissions(  # type: ignore
+    work.assigned_to = assignment.get_from_latest_submissions(
         models.Work.assigned_to
     ).filter(models.Work.user_id == current_user.id).limit(1).scalar()
+
     if work.assigned_to is None:
         missing, _ = assignment.get_divided_amount_missing()
         if missing:
             work.assigned_to = max(missing.keys(), key=lambda k: missing[k])
+            assignment.set_graders_to_not_done(
+                [work.assigned_to],
+                send_mail=True,
+                ignore_errors=True,
+            )
+
     db.session.add(work)
 
     raise_or_delete = psef.files.IgnoreHandling.keep
@@ -620,6 +716,18 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
 
     .. :quickref: Assignment; Divide a submission among given TA's.
 
+    The redivide tries to minimize shuffles. This means that calling it twice
+    with the same data is effectively a noop. If the relative weight (so the
+    percentage of work) of a user doesn't change it will not lose or gain any
+    submissions.
+
+    .. warning::
+
+        If a user was marked as done grading and gets assigned new submissions
+        this user is marked as not done and gets a notification email!
+
+    :<json dict graders: A mapping that maps user ids (strings) and the new
+        weight they should get (numbers).
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
 
@@ -637,7 +745,7 @@ def divide_assignments(assignment_id: int) -> EmptyResponse:
     """
     assignment = helpers.get_or_404(models.Assignment, assignment_id)
 
-    auth.ensure_permission('can_manage_course', assignment.course_id)
+    auth.ensure_permission('can_assign_graders', assignment.course_id)
 
     content = ensure_json_dict(request.get_json())
     ensure_keys_in_dict(content, [('graders', dict)])
@@ -706,6 +814,7 @@ def get_all_graders(
     :>jsonarr int id: The user id of this grader.
     :>jsonarr bool divided: Is this user assigned to any submission for this
         assignment.
+    :>jsonarr bool done: Is this user done grading?
 
     :raises APIException: If no assignment with given id exists.
                           (OBJECT_ID_NOT_FOUND)
@@ -714,28 +823,9 @@ def get_all_graders(
                                  this assignment. (INCORRECT_PERMISSION)
     """
     assignment = helpers.get_or_404(models.Assignment, assignment_id)
-    auth.ensure_permission('can_manage_course', assignment.course_id)
+    auth.ensure_permission('can_see_assignee', assignment.course_id)
 
-    permission = db.session.query(models.Permission.id).filter(
-        models.Permission.name == 'can_grade_work'
-    ).as_scalar()
-
-    us = db.session.query(
-        models.User.id, models.User.name, models.user_course.c.course_id
-    ).join(models.user_course,
-           models.User.id == models.user_course.c.user_id).subquery('us')
-    per = db.session.query(models.course_permissions.c.course_role_id).join(
-        models.CourseRole,
-        models.CourseRole.id == models.course_permissions.c.course_role_id
-    ).filter(
-        models.course_permissions.c.permission_id == permission,
-        models.CourseRole.course_id == assignment.course_id
-    ).subquery('per')
-
-    result: t.Sequence[t.Tuple[str, int]] = db.session.query(
-        us.c.name, us.c.id
-    ).join(per, us.c.course_id == per.c.course_role_id
-           ).order_by(expression.func.lower(us.c.name)).all()
+    result = assignment.get_all_graders(sort=True)
 
     divided: t.MutableMapping[int, float] = defaultdict(lambda: 0)
     for u in models.AssignmentAssignedGrader.query.filter_by(
@@ -748,19 +838,155 @@ def get_all_graders(
             {
                 'id': res[1],
                 'name': res[0],
-                'weight': divided[res[1]],
+                'weight': float(divided[res[1]]),
+                'done': res[2],
             } for res in result
         ]
     )
 
 
+@api.route(
+    '/assignments/<int:assignment_id>/graders/<int:grader_id>/done',
+    methods=['DELETE']
+)
+@auth.login_required
+def set_grader_to_not_done(
+    assignment_id: int, grader_id: int
+) -> EmptyResponse:
+    """Indicate that the given grader is not yet done grading the given
+    `:class:.models.Assignment`.
+
+    .. :quickref: Assignment; Set the grader status to 'not done'.
+
+    :param assignment_id: The id of the assignment the grader is not yet done
+        grading.
+    :param grader_id: The id of the `:class:.models.User` that is not yet done
+        grading.
+    :returns: An empty response with return code 204
+
+    :raises APIException: If the given grader was not indicated as done before
+        calling this endpoint. (INVALID_STATE)
+    :raises PermissionException: If the current user wants to change a status
+        of somebody else but the user does not have the
+        `can_update_grader_status` permission. (INCORRECT_PERMISSION)
+    :raises PermissionException: If the current user wants to change its own
+        status but does not have the `can_update_grader_status` or the
+        `can_grade_work` permission. (INCORRECT_PERMISSION)
+    """
+    assig = helpers.get_or_404(models.Assignment, assignment_id)
+
+    if current_user.id == grader_id:
+        auth.ensure_permission('can_grade_work', assig.course_id)
+    else:
+        auth.ensure_permission('can_update_grader_status', assig.course_id)
+
+    try:
+        send_mail = grader_id != current_user.id
+        assig.set_graders_to_not_done([grader_id], send_mail=send_mail)
+        db.session.commit()
+    except ValueError:
+        raise APIException(
+            'The grader is not finished!',
+            f'The grader {grader_id} is not done.',
+            APICodes.INVALID_STATE,
+            400,
+        )
+    else:
+        return make_empty_response()
+
+
+@api.route(
+    '/assignments/<int:assignment_id>/graders/<int:grader_id>/done',
+    methods=['POST']
+)
+@auth.login_required
+def set_grader_to_done(assignment_id: int, grader_id: int) -> EmptyResponse:
+    """Indicate that the given grader is done grading the given
+    `:class:.models.Assignment`.
+
+    .. :quickref: Assignment; Set the grader status to 'done'.
+
+    :param assignment_id: The id of the assignment the grader is done grading.
+    :param grader_id: The id of the `:class:.models.User` that is done grading.
+    :returns: An empty response with return code 204
+
+    :raises APIException: If the given grader was indicated as done before
+        calling this endpoint. (INVALID_STATE)
+    :raises PermissionException: If the current user wants to change a status
+        of somebody else but the user does not have the
+        `can_update_grader_status` permission. (INCORRECT_PERMISSION)
+    :raises PermissionException: If the current user wants to change its own
+        status but does not have the `can_update_grader_status` or the
+        `can_grade_work` permission. (INCORRECT_PERMISSION)
+    """
+    assig = helpers.get_or_404(
+        models.Assignment,
+        assignment_id,
+        options=[joinedload(models.Assignment.finished_graders)],
+    )
+
+    if current_user.id == grader_id:
+        auth.ensure_permission('can_grade_work', assig.course_id)
+    else:
+        auth.ensure_permission('can_update_grader_status', assig.course_id)
+
+    grader = helpers.get_or_404(models.User, grader_id)
+    if not grader.has_permission('can_grade_work', assig.course_id):
+        raise APIException(
+            'The given user is not a grader in this course',
+            (
+                f'The user with id "{grader_id}" is not a grader '
+                f'in the course "{assig.course_id}"'
+            ),
+            APICodes.INVALID_PARAM,
+            400,
+        )
+
+    if any(g.user_id == grader_id for g in assig.finished_graders):
+        raise APIException(
+            'The grader is already finished!',
+            f'The grader {grader_id} is already done.',
+            APICodes.INVALID_STATE,
+            400,
+        )
+    done_before = assig.graders_are_done()
+
+    grader_done = models.AssignmentGraderDone(
+        user_id=grader_id,
+        assignment=assig,
+    )
+    db.session.add(grader_done)
+    db.session.commit()
+
+    if not done_before and assig.graders_are_done():
+        psef.tasks.send_done_mail(assig.id)
+
+    if assig.has_non_graded_submissions(grader_id):
+        return make_empty_response(
+            make_warning(
+                'You have non graded work!',
+                APIWarnings.GRADER_NOT_DONE,
+            )
+        )
+
+    return make_empty_response()
+
+
+WorkList = t.Sequence[models.Work]
+
+
 @api.route('/assignments/<int:assignment_id>/submissions/', methods=['GET'])
-def get_all_works_for_assignment(assignment_id: int
-                                 ) -> JSONResponse[t.Sequence[models.Work]]:
+def get_all_works_for_assignment(
+    assignment_id: int
+) -> t.Union[JSONResponse[WorkList], ExtendedJSONResponse[WorkList]]:
     """Return all :class:`.models.Work` objects for the given
     :class:`.models.Assignment`.
 
     .. :quickref: Assignment; Get all works for an assignment.
+
+    :qparam boolean extended: Whether to get extended or normal
+        :class:`.models.Work` objects. The default value is ``false``, you can
+        enable extended by passing ``true``, ``1`` or an empty string.
 
     :param int assignment_id: The id of the assignment
     :returns: A response containing the JSON serialized submissions.
@@ -778,17 +1004,27 @@ def get_all_works_for_assignment(assignment_id: int
             'can_see_hidden_assignments', assignment.course_id
         )
 
-    obj = models.Work.query.filter_by(assignment_id=assignment_id)
+    obj = models.Work.query.filter_by(
+        assignment_id=assignment_id,
+    ).options(joinedload(
+        models.Work.selected_items,
+    )).order_by(t.cast(t.Any, models.Work.created_at).desc())
+
     if not current_user.has_permission(
         'can_see_others_work', course_id=assignment.course_id
     ):
         obj = obj.filter_by(user_id=current_user.id)
 
-    res: t.Sequence[models.Work] = (
-        obj.order_by(models.Work.created_at.desc()).all()  # type: ignore
-    )
+    extended = request.args.get('extended', 'false').lower()
 
-    return jsonify(res)
+    if extended in {'true', '1', ''}:
+        obj = obj.options(undefer(models.Work.comment))
+        return extended_jsonify(
+            obj.all(),
+            use_extended=lambda obj: isinstance(obj, models.Work),
+        )
+    else:
+        return jsonify(obj.all())
 
 
 @api.route("/assignments/<int:assignment_id>/submissions/", methods=['POST'])
@@ -799,10 +1035,12 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
 
     .. :quickref: Assignment; Create works from a blackboard zip.
 
+    You should upload a file as multiform post request. The key should start
+    with 'file'. Multiple blackboard zips are not supported and result in one
+    zip being chosen at (psuedo) random.
+
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
-
-    .. todo:: Merge this endpoint and ``upload_work`` together.
 
     :raises APIException: If no assignment with given id exists.
         (OBJECT_ID_NOT_FOUND)
@@ -815,28 +1053,14 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
         course attached to the assignment. (INCORRECT_PERMISSION)
     """
     assignment = helpers.get_or_404(models.Assignment, assignment_id)
-    auth.ensure_permission('can_manage_course', assignment.course_id)
+    auth.ensure_permission('can_upload_bb_zip', assignment.course_id)
+    files = get_submission_files_from_request(check_size=False)
 
-    if len(request.files) == 0:
-        raise APIException(
-            "No file in HTTP request.",
-            "There was no file in the HTTP request.",
-            APICodes.MISSING_REQUIRED_PARAM, 400
-        )
-
-    if 'file' not in request.files:
-        key_string = ", ".join(request.files.keys())
-        raise APIException(
-            'The parameter name should be "file".',
-            'Expected ^file$ got [{}].'.format(key_string),
-            APICodes.INVALID_PARAM, 400
-        )
-
-    file: 'FileStorage' = request.files['file']
     try:
-        submissions = psef.files.process_blackboard_zip(file)
-    except:
+        submissions = psef.files.process_blackboard_zip(files[0])
+    except Exception:
         submissions = []
+
     if not submissions:
         raise APIException(
             "The blackboard zip could not imported or it was empty.",
@@ -850,39 +1074,55 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
     for sub in assignment.get_all_latest_submissions():
         sub_lookup[sub.user_id] = sub
 
+    student_course_role = models.CourseRole.query.filter_by(
+        name='Student', course_id=assignment.course_id
+    ).first()
+    global_role = models.Role.query.filter_by(name='Student').first()
+
+    subs = []
+    hists = []
+
+    found_users = {
+        u.username: u
+        for u in models.User.query.filter(
+            t.cast(
+                models.DbColumn[str],
+                models.User.username,
+            ).in_([si.student_id for si, _ in submissions])
+        ).options(joinedload(models.User.courses))
+    }
+
+    newly_assigned: t.Set[t.Optional[int]] = set()
+
     for submission_info, submission_tree in submissions:
-        user = models.User.query.filter_by(
-            username=submission_info.student_id
-        ).first()
+        user = found_users.get(submission_info.student_id, None)
 
         if user is None:
             # TODO: Check if this role still exists
-            perms = {
-                assignment.course_id:
-                    models.CourseRole.query.filter_by(
-                        name='Student', course_id=assignment.course_id
-                    ).first()
-            }
             user = models.User(
                 name=submission_info.student_name,
                 username=submission_info.student_id,
-                courses=perms,
+                courses={assignment.course_id: student_course_role},
                 email='',
-                password=submission_info.student_id,
-                role=models.Role.query.filter_by(name='Student').first()
+                password=None,
+                role=global_role,
             )
+            found_users[user.username] = user
+            # We don't need to track the users to insert as we are already
+            # tracking the submissions of them and they are coupled.
+        else:
+            user.courses[assignment.course_id] = student_course_role
 
-            db.session.add(user)
         work = models.Work(
-            assignment_id=assignment.id,
+            assignment=assignment,
             user=user,
             created_at=submission_info.created_at,
         )
-
-        db.session.add(work)
+        subs.append(work)
 
         if user.id is not None and user.id in sub_lookup:
             work.assigned_to = sub_lookup[user.id].assigned_to
+
         if work.assigned_to is None:
             if missing:
                 work.assigned_to = max(
@@ -891,10 +1131,29 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
                 missing = recalc_missing(work.assigned_to)
                 sub_lookup[user.id] = work
 
-        db.session.flush()
-        work.set_grade(submission_info.grade, current_user)
+        hists.append(
+            work.set_grade(
+                submission_info.grade, current_user, add_to_session=False
+            )
+        )
         work.add_file_tree(db.session, submission_tree)
+        if work.assigned_to is not None:
+            newly_assigned.add(work.assigned_to)
 
+    assignment.set_graders_to_not_done(
+        list(newly_assigned),
+        send_mail=True,
+        ignore_errors=True,
+    )
+
+    db.session.bulk_save_objects(subs)
+    db.session.flush()
+
+    for h in hists:
+        h.work_id = h.work.id
+        h.user_id = h.user.id
+
+    db.session.bulk_save_objects(hists)
     db.session.commit()
 
     return make_empty_response()
@@ -913,12 +1172,12 @@ def get_linters(assignment_id: int
     :rtype: flask.Response
 
     :>jsonarr str state: The state of the linter, which can be ``new``, or any
-        state from :py:class:`models.LinterState`.
+        state from :py:class:`.models.LinterState`.
     :>jsonarr str name: The name of this linter.
     :>jsonarr str id: The id of the linter, this will only be present when
         ``state`` is not ``new``.
     :>jsonarr ``*rest``: All items as described in
-        :py:func:`linters.get_all_linters`
+        :py:func:`.linters.get_all_linters`
 
     :raises APIException: If no assignment with given id exists.
                           (OBJECT_ID_NOT_FOUND)
@@ -1015,7 +1274,7 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
 
     try:
         linter_cls = linters.get_linter_by_name(name)
-    except:
+    except ValueError:
         raise APIException(
             f'No linter named "{name}" was found',
             (

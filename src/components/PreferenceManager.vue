@@ -29,11 +29,11 @@
                     <td>Code font size</td>
                     <td>
                         <b-input-group right="px">
-                            <b-form-input v-model="fontSize"
-                                          class="fontsize-select"
-                                          style="z-index: 0;"
-                                          type="number"
-                                          min="1"/>
+                            <input v-model="fontSize"
+                                   class="form-control fontsize-select"
+                                   style="z-index: 0;"
+                                   type="number"
+                                   min="1"/>
                         </b-input-group>
                     </td>
                 </tr>
@@ -220,35 +220,6 @@ export default {
 
 <style lang="less">
 @import '~mixins.less';
-
-.dark-selects-colors {
-    .multiselect__tags {
-        input {
-            background-color: @color-primary !important;
-            color: @text-color-dark;
-        }
-        background-color: @color-primary !important;
-        border-color: @color-primary-darker;
-    }
-    .multiselect__content-wrapper {
-        background: @color-primary;
-        border: @color-primary-darker;
-        color: @text-color-dark;
-    }
-    .multiselect__option--highlight {
-        background: @color-primary-darker;
-        &::after {
-            background: @color-primary-darker;
-        }
-    }
-    .multiselect__option--selected {
-        color: white;
-        background: @color-primary-darkest;
-        &::after {
-            background: @color-primary-darkest;
-        }
-    }
-}
 
 .pref-manager {
     #app.dark ~ .popover & .table {

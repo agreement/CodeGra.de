@@ -15,15 +15,37 @@ case "$TO_RUN" in
     "coverage")
         pytest --cov psef --cov-report term-missing "$(pwd)/psef_test/" -vvvv
         res="$?"
+        if [[ "$res" -eq 0 ]]; then
+            pytest --cov psef \
+                   --cov-append \
+                   --cov-report term-missing \
+                   --doctest-modules psef \
+                   -vvvv
+            res="$?"
+        fi
         set +o xtrace
         ;;
     "tests"|"postgres-test")
         pytest -vvvv $TEST_FLAGS "$(pwd)/psef_test/"
         res="$?"
+        if [[ "$res" -eq 0 ]]; then
+            cd docs || exit 1
+            make html
+            res="$?"
+            cd .. || exit 1
+        fi
+        if [[ "$res" -eq 0 ]]; then
+            pytest --doctest-modules psef -vvvv
+            res="$?"
+        fi
         set +o xtrace
         ;;
     "mypy")
-        mypy --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs --disallow-subclassing-any "$(pwd)/psef/"
+        mypy --ignore-missing-imports \
+             --disallow-untyped-defs \
+             --check-untyped-defs \
+             --disallow-subclassing-any \
+             "$(pwd)/psef/"
         res="$?"
         set +o xtrace
         ;;

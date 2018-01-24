@@ -210,13 +210,11 @@ export default {
         },
     },
 
-    mounted() {
+    async mounted() {
         if (this.showRubric) {
             this.rubric.points.grade = this.grade;
         }
-        this.hasPermission({ name: 'can_see_grade_history', course_id: this.assignment.course.id }).then((val) => {
-            this.gradeHistory = val;
-        });
+        this.gradeHistory = await this.$hasPermission('can_see_grade_history', this.assignment.course.id);
     },
 
     methods: {
@@ -292,7 +290,6 @@ export default {
 
         ...mapActions({
             refreshSnippets: 'user/refreshSnippets',
-            hasPermission: 'user/hasPermission',
         }),
 
         ...mapGetters({

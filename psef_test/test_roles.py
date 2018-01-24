@@ -104,9 +104,7 @@ def test_update_global_roles(
         error = False
 
     if isinstance(role_name, str):
-        role_id = session.query(m.Role).filter_by(
-            name=role_name,
-        ).one().id
+        role_id = session.query(m.Role).filter_by(name=role_name, ).one().id
     else:
         role_id = role_name
 

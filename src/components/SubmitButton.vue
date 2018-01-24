@@ -1,11 +1,13 @@
 <template>
     <b-popover class="submission-popover"
-               :show="showError && state === 'failure' && (Boolean(err) || showEmpty)"
+               :id="id"
+               :show="showError && (state === 'failure' || state === 'warning') && (Boolean(err) || showEmpty)"
                :placement="popoverPlacement"
                :content="err">
         <b-button :disabled="pending || disabled"
                   :variant="variants[state]"
                   :size="size"
+                  :tabindex="tabindex"
                   @click="$emit('click', $event)">
             <loader :scale="1" :center="false" v-if="pending"/>
             <span v-else-if="label">{{ label }}</span>
@@ -25,16 +27,25 @@ export default {
             err: '',
             pending: false,
             state: 'default',
+            canceled: true,
             variants: {
                 default: this.default,
                 success: this.success,
                 failure: this.failure,
+                warning: this.warning,
             },
+            mult: 1,
             timeout: null,
         };
     },
 
     props: {
+        id: {
+            default: undefined,
+        },
+        tabindex: {
+            default: '0',
+        },
         popoverPlacement: {
             type: String,
             default: 'top',
@@ -67,6 +78,10 @@ export default {
             type: String,
             default: 'danger',
         },
+        warning: {
+            type: String,
+            default: 'warning',
+        },
         showEmpty: {
             type: Boolean,
             default: true,
@@ -80,10 +95,11 @@ export default {
     methods: {
         submit(promise) {
             this.pending = true;
+            this.canceled = false;
             return Promise.resolve(promise).then(res =>
-                this.succeed(res),
+                !this.canceled && this.succeed(res),
             err =>
-                this.fail(err),
+                !this.canceled && this.fail(err),
             );
         },
 
@@ -103,6 +119,16 @@ export default {
                 .then(() => res);
         },
 
+        cancel() {
+            this.canceled = true;
+        },
+
+        warn(err) {
+            this.pending = false;
+            this.err = err;
+            return this.update('warning', 3);
+        },
+
         fail(err) {
             this.pending = false;
             this.err = err;
@@ -116,10 +142,14 @@ export default {
                 if (this.timeout != null) {
                     clearTimeout(this.timeout);
                 }
+                if (this.mult * mult === 0) {
+                    resolve();
+                    return;
+                }
                 this.timeout = setTimeout(() => {
                     this.reset();
                     resolve();
-                }, this.delay * mult);
+                }, this.delay * mult * this.mult);
             });
         },
     },

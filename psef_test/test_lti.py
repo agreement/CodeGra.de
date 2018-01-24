@@ -2,6 +2,7 @@ import os
 import urllib
 import datetime
 
+import jwt
 import pytz
 import pytest
 import dateutil.parser
@@ -468,4 +469,148 @@ def test_lti_assignment_create(
             },
             headers={'Authorization': f'Bearer {token}'},
             result=error_template,
+        )
+
+
+def test_reset_lti_email(test_client, app, logged_in, ta_user, session):
+    due_at = datetime.datetime.utcnow() + datetime.timedelta(
+        days=1, hours=1, minutes=2
+    )
+    due_at = due_at.replace(second=0, microsecond=0)
+
+    def do_lti_launch(
+        email,
+        name='A the A-er',
+        lti_id='USER_ID',
+        source_id='',
+        published='false',
+        username='a-the-a-er',
+        due=None
+    ):
+        with app.app_context():
+            due_date = due or due_at.isoformat() + 'Z'
+            data = {
+                'custom_canvas_course_name': 'NEW_COURSE',
+                'custom_canvas_course_id': 'MY_COURSE_ID',
+                'custom_canvas_assignment_id': 'MY_ASSIG_ID',
+                'custom_canvas_assignment_title': 'MY_ASSIG_TITLE',
+                'roles': 'instructor',
+                'custom_canvas_user_login_id': username,
+                'custom_canvas_course_title': 'Common Lisp',
+                'custom_canvas_assignment_due_at': due_date,
+                'custom_canvas_assignment_published': published,
+                'user_id': lti_id,
+                'lis_person_contact_email_primary': email,
+                'lis_person_name_full': name,
+                'context_id': 'NO_CONTEXT',
+                'context_title': 'WRONG_TITLE',
+                'oauth_consumer_key': 'my_lti',
+                'lis_outcome_service_url': source_id,
+            }
+            if source_id:
+                data['lis_result_sourcedid'] = source_id
+            res = test_client.post('/api/v1/lti/launch/1', data=data)
+
+            url = urllib.parse.urlparse(res.headers['Location'])
+            jwt = urllib.parse.parse_qs(url.query)['jwt'][0]
+            lti_res = test_client.req(
+                'get',
+                '/api/v1/lti/launch/2',
+                200,
+                headers={'Jwt': jwt},
+            )
+            if published == 'false':
+                assert lti_res['assignment']['state'] == 'hidden'
+            else:
+                assert m.Assignment.query.get(
+                    lti_res['assignment']['id']
+                ).state == m._AssignmentStateEnum.open
+            assert lti_res['assignment']['course']['name'] == 'NEW_COURSE'
+            if due is None:
+                assert lti_res['assignment']['deadline'] == due_at.isoformat()
+            return lti_res['assignment'], lti_res.get('access_token', None)
+
+    def get_user_info(token):
+        with app.app_context():
+            return test_client.req(
+                'get',
+                '/api/v1/login',
+                200,
+                headers={'Authorization': f'Bearer {token}'} if token else {}
+            )
+
+    assig, token = do_lti_launch('orig@example.com')
+    out = get_user_info(token)
+    assert out['name'] == 'A the A-er'
+    assert out['username'] == 'a-the-a-er'
+    old_id = out['id']
+
+    _, token = do_lti_launch('new@example.com')
+    out = get_user_info(token)
+    assert out['name'] == 'A the A-er'
+    assert out['username'] == 'a-the-a-er'
+    assert out['email'] == 'orig@example.com'
+    assert out['id'] == old_id
+
+    m.User.query.filter_by(id=out['id']).update({'reset_email_on_lti': True})
+    session.commit()
+    _, token = do_lti_launch('new@example.com')
+    out = get_user_info(token)
+    assert out['name'] == 'A the A-er'
+    assert out['username'] == 'a-the-a-er'
+    assert out['email'] == 'new@example.com'
+    assert out['id'] == old_id
+
+    assert not m.User.query.get(out['id']).reset_email_on_lti, """
+    This field should be reset
+    """
+
+
+def test_invalid_jwt(
+    test_client, app, logged_in, ta_user, session, error_template
+):
+    due_at = datetime.datetime.utcnow() + datetime.timedelta(
+        days=1, hours=1, minutes=2
+    )
+    due_at = due_at.replace(second=0, microsecond=0)
+
+    email = 'thomas@example.com'
+    name = 'A the A-er'
+    lti_id = 'USER_ID'
+    source_id = ''
+    published = 'false'
+    username = 'a-the-a-er'
+    due = None
+    with app.app_context():
+        due_date = due or due_at.isoformat() + 'Z'
+        data = {
+            'custom_canvas_course_name': 'NEW_COURSE',
+            'custom_canvas_course_id': 'MY_COURSE_ID',
+            'custom_canvas_assignment_id': 'MY_ASSIG_ID',
+            'custom_canvas_assignment_title': 'MY_ASSIG_TITLE',
+            'roles': 'instructor',
+            'custom_canvas_user_login_id': username,
+            'custom_canvas_course_title': 'Common Lisp',
+            'custom_canvas_assignment_due_at': due_date,
+            'custom_canvas_assignment_published': published,
+            'user_id': lti_id,
+            'lis_person_contact_email_primary': email,
+            'lis_person_name_full': name,
+            'context_id': 'NO_CONTEXT',
+            'context_title': 'WRONG_TITLE',
+            'oauth_consumer_key': 'my_lti',
+            'lis_outcome_service_url': source_id,
+        }
+        if source_id:
+            data['lis_result_sourcedid'] = source_id
+        res = test_client.post('/api/v1/lti/launch/1', data=data)
+
+        url = urllib.parse.urlparse(res.headers['Location'])
+        jwt = urllib.parse.parse_qs(url.query)['jwt'][0]
+        lti_res = test_client.req(
+            'get',
+            '/api/v1/lti/launch/2',
+            400,
+            headers={'Jwt': 'INVALID_JWT'},
+            result=error_template
         )

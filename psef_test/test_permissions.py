@@ -18,9 +18,8 @@ should_raise = pytest.mark.should_raise
         ('can_submit_own_work', (False, True, False)),
         ('can_see_others_work', (True, False, False)),
         ('can_see_assignments', (True, True, False)),
-        should_raise(
-            ('add_user', (False, False, False)),
-        )  # This is not a real permission
+        should_raise(('add_user', (False, False, False)),
+                     )  # This is not a real permission
     ]
 )
 def test_course_permissions(
@@ -28,10 +27,7 @@ def test_course_permissions(
     test_client, request, error_template
 ):
     should_r = request.node.get_marker('should_raise')
-    if should_r:
-        error = 404
-    else:
-        error = False
+    error = bool(should_r)
 
     with logged_in(ta_user):
         for course, val in zip([bs_course, pse_course, prolog_course], vals):
@@ -41,14 +37,16 @@ def test_course_permissions(
                     print('er', res)
             else:
                 assert ta_user.has_permission(perm, course_id=course.id) == val
-            test_client.req(
+            res = test_client.req(
                 'get',
-                '/api/v1/permissions/',
-                error or 200,
-                query={'course_id': course.id,
-                       'permission': perm},
-                result=error_template if error else val,
+                f'/api/v1/courses/{course.id}/permissions/',
+                200,
+                result=dict
             )
+            if error:
+                assert perm not in res, 'Make sure the object keys are valid'
+            else:
+                assert res[perm] == val, 'The permission should be correct'
 
             if not error:
                 if val:
@@ -67,7 +65,7 @@ def test_course_permissions(
 
 @pytest.mark.parametrize('perm', ['wow_nope'])
 def test_non_existing_permission(
-    ta_user, bs_course, perm, logged_in, test_client
+    ta_user, bs_course, perm, logged_in, test_client, error_template
 ):
     with pytest.raises(KeyError):
         ta_user.has_permission(perm)
@@ -75,15 +73,28 @@ def test_non_existing_permission(
         ta_user.has_permission(perm, course_id=bs_course.id)
 
     with logged_in(ta_user):
+        assert perm not in test_client.req(
+            'get',
+            f'/api/v1/courses/{bs_course.id}/permissions/',
+            200,
+        ), 'The requested object should not have this value'
+
+        assert perm not in test_client.req(
+            'get',
+            f'/api/v1/permissions/',
+            200,
+            query={'type': 'global'},
+        ), 'The requested object should not have this value'
+
+        # This api point should raise an error as you actually query
+        # permissions and not just all permissions.
         test_client.req(
             'get',
-            '/api/v1/permissions/',
+            f'/api/v1/permissions/',
             404,
-            query={'course_id': bs_course.id,
-                   'permission': perm}
-        )
-        test_client.req(
-            'get', f'/api/v1/permissions/', 404, query={'permission': perm}
+            query={'permission': perm,
+                   'type': 'course'},
+            result=error_template
         )
 
 
@@ -100,12 +111,16 @@ def test_role_permissions(
     ta_user, admin_user, perm, vals, logged_in, test_client
 ):
     for user, val in zip([ta_user, admin_user], vals):
+
         print(user.has_permission(perm))
+
         with logged_in(user):
-            query = {'permission': perm}
-            test_client.req(
-                'get', '/api/v1/permissions/', 200, query=query, result=val
+            query = {'type': 'global'}
+            res = test_client.req(
+                'get', '/api/v1/permissions/', 200, query=query
             )
+            assert res[perm] == val, 'Make sure correct permission is returned'
+
             if val:
                 a.ensure_permission(perm, course_id=None)
             else:
@@ -125,53 +140,70 @@ def test_all_permissions(
     for user in [ta_user, admin_user, student_user]:
         with logged_in(user):
             for course in [bs_course, pse_course, prolog_course, None]:
-                query = {} if course is None else {'course_id': course.id}
-                res = test_client.req(
-                    'get', '/api/v1/permissions/', 200, query=query
-                )
+                if course:
+                    res = test_client.req(
+                        'get', f'/api/v1/courses/{course.id}/permissions/', 200
+                    )
+                else:
+                    res = test_client.req(
+                        'get',
+                        '/api/v1/permissions/',
+                        200,
+                        query={'type': 'global'},
+                    )
                 for perm, val in res.items():
                     assert val == user.has_permission(perm, course)
 
-    rv = test_client.get('/api/v1/permissions/')
-    assert rv.status_code == 401
+    test_client.req('get', '/api/v1/permissions/', 401)
 
     with logged_in(ta_user):
         test_client.req(
             'get',
             '/api/v1/permissions/',
             400,
-            query={'course_id': 'a'},
+            query={'type': 'INVALID_TYPE'},
         )
 
 
 @pytest.mark.parametrize(
-    'permission',
-    ['can_manage_course', 'can_see_assignments', 'can_grade_work']
+    'permissions', [
+        ['can_edit_assignment_info', 'can_see_assignments', 'can_grade_work'],
+        should_raise(['hello', 5, 'bye'])
+    ]
 )
 @pytest.mark.parametrize(
     'named_user', ['Thomas Schaper', 'Stupid1', 'admin'],
     indirect=['named_user']
 )
 def test_get_all_permissions(
-    named_user, logged_in, test_client, permission, error_template
+    named_user, logged_in, test_client, permissions, error_template, request
 ):
+    err = bool(request.node.get_marker('should_raise'))
+
     with logged_in(named_user):
         course_perms = test_client.req(
             'get',
             f'/api/v1/permissions/',
-            200,
-            query={'course_id': 'all',
-                   'permission': permission}
+            404 if err else 200,
+            query={
+                'type': 'course',
+                'permission': permissions
+            }
         )
+        if err:
+            return
+
         assert len(course_perms) == len(named_user.courses)
-        print([(c, cr.name, cr.id) for c, cr in named_user.courses.items()])
-        for course_id, has in course_perms.items():
-            assert has == named_user.has_permission(permission, int(course_id))
+        for course_id, p_val in course_perms.items():
+            for permission, has in p_val.items():
+                assert has == named_user.has_permission(
+                    permission, int(course_id)
+                )
 
         course_perms = test_client.req(
             'get',
             f'/api/v1/permissions/',
             400,
-            query={'course_id': 'all'},
+            query={'type': 'course'},
             result=error_template
         )

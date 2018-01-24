@@ -11,7 +11,7 @@
 
 <script>
 import { CourseList, Loader, NewCourse } from '@/components';
-import { mapActions } from 'vuex';
+import { MANAGE_COURSE_PERMISSIONS } from '@/constants';
 
 import { setPageTitle } from './title';
 
@@ -26,32 +26,30 @@ export default {
         };
     },
 
-    methods: {
-        ...mapActions({
-            hasPermission: 'user/hasPermission',
-        }),
-    },
-
-    mounted() {
+    async mounted() {
         setPageTitle('Courses');
+        const params = new URLSearchParams();
+        params.append('type', 'course');
+        MANAGE_COURSE_PERMISSIONS.forEach((perm) => {
+            params.append('permission', perm);
+        });
 
-        Promise.all([
+        const [courses, { data: canManage }, canCreate] = await Promise.all([
             this.$http.get('/api/v1/courses/'),
             this.$http.get('/api/v1/permissions/', {
-                params: { permission: 'can_manage_course', course_id: 'all' },
+                params,
             }),
-            this.hasPermission({ name: 'can_create_courses', courseId: null }),
-        ]).then(([coursesResponse, permsResponse, canCreate]) => {
-            this.canCreate = canCreate;
+            this.$hasPermission('can_create_courses'),
+        ]);
 
-            this.courses = coursesResponse.data;
-            this.loading = false;
-            for (let i = 0; i < this.courses.length; i += 1) {
-                const course = this.courses[i];
-                course.manageable = permsResponse.data[course.id];
-            }
-        },
-               );
+        this.canCreate = canCreate;
+
+        this.courses = courses.data;
+        this.loading = false;
+        for (let i = 0; i < this.courses.length; i += 1) {
+            const course = this.courses[i];
+            course.manageable = Object.values(canManage[course.id]).some(x => x);
+        }
     },
 
     components: {

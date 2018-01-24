@@ -107,7 +107,7 @@ class Pylint(Linter):
             args = line.split(str(sep))
             try:
                 emit(args[0], int(args[1]), *args[2:])
-            except:
+            except (IndexError, ValueError):
                 pass
 
 
@@ -141,11 +141,12 @@ class Flake8(Linter):
 
         if out.returncode != 0:
             raise ValueError(res)
+
         for line in res.split('\n'):
             args = line.split(str(sep))
             try:
                 emit(args[0], int(args[1]), *args[2:])
-            except:
+            except (IndexError, ValueError):
                 pass
 
 
@@ -243,7 +244,7 @@ class LinterRunner():
 
         tmpdir = None
 
-        def do(tree: t.MutableMapping[str, t.Any], parent: str) -> None:
+        def do(tree: psef.files.FileTree, parent: str) -> None:
             parent = os.path.join(parent, tree['name'])
             if 'entries' in tree:  # this is dir:
                 for entry in tree['entries']:
@@ -285,7 +286,7 @@ def get_all_linters(
         >>> MyLinter.DEFAULT_OPTIONS = {'wow': 'sers'}
         >>> all_linters = get_all_linters()
         >>> sorted(all_linters.keys())
-        ['Flake8', 'MyLinter', 'Pylint']
+        ['Flake8', 'MixedWhitespace', 'MyLinter', 'Pylint']
         >>> linter = all_linters['MyLinter']
         >>> linter == {'desc': 'Description', 'opts': {'wow': 'sers'} }
         True

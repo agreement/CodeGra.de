@@ -87,7 +87,9 @@ def test_login(
             'get',
             '/api/v1/login',
             401 if error else 200,
-            headers={'Authorization': f'Bearer {access_token}'}
+            headers={
+                'Authorization': f'Bearer {access_token}'
+            }
         )
 
     test_client.req('get', '/api/v1/login', 401)
@@ -213,8 +215,8 @@ def test_login_duplicate_email(
 
 
 @pytest.mark.parametrize(
-    'new_password', [needs_password('wow'), '',
-                     missing_error(None)]
+    'new_password',
+    [needs_password('wow'), '', missing_error(None)]
 )
 @pytest.mark.parametrize(
     'email', [
@@ -404,23 +406,18 @@ def test_update_user_info_permissions(
         )
 
 
+@pytest.mark.parametrize('to_null', [True, False])
 def test_reset_password(
-    test_client, session, error_template, ta_user, monkeypatch, app
+    test_client,
+    session,
+    error_template,
+    ta_user,
+    monkeypatch,
+    app,
+    to_null,
+    stubmailer,
 ):
-    class StubMailer():
-        def __init__(self):
-            self.msg = None
-            self.called = False
-            self.do_raise = True
-
-        def send(self, msg):
-            self.called = True
-            self.msg = msg
-            if self.do_raise:
-                raise Exception
-
-    mailer = StubMailer()
-    monkeypatch.setattr(psef.mail, 'mail', mailer)
+    stubmailer.do_raise = True
 
     test_client.req(
         'patch',
@@ -430,16 +427,22 @@ def test_reset_password(
         result=error_template,
     )
 
-    mailer.do_raise = False
+    if to_null:
+        ta_user.password = None
+        session.commit()
+
+    stubmailer.do_raise = False
 
     test_client.req(
         'patch',
         f'/api/v1/login?type=reset_email',
         204,
-        data={'username': ta_user.username}
+        data={
+            'username': ta_user.username
+        }
     )
-    assert mailer.called
-    msg = str(mailer.msg)
+    assert stubmailer.called
+    msg = str(stubmailer.msg)
     start_id = msg.find('user=') + len('user=')
     end_id = msg[start_id:].find('&token=') + start_id
     print(msg, start_id, end_id)
@@ -448,7 +451,7 @@ def test_reset_password(
     start_token = end_id + len('&token=')
     end_token = msg[start_token:].find('\r\n') + start_token
     token = msg[start_token:end_token]
-    mailer.called = False
+    stubmailer.called = False
 
     test_client.req(
         'patch',
@@ -501,7 +504,9 @@ def test_reset_password(
             'get',
             '/api/v1/login',
             200,
-            headers={'Authorization': f'Bearer {atoken}'}
+            headers={
+                'Authorization': f'Bearer {atoken}'
+            }
         )
 
     test_client.req(
@@ -514,4 +519,57 @@ def test_reset_password(
         result=error_template,
     )
 
-    assert not mailer.called
+    assert not stubmailer.called
+
+    test_client.req(
+        'post',
+        f'/api/v1/login',
+        200,
+        data={
+            'username': ta_user.username,
+            'password': '2o2',
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    'named_user',
+    [
+        ('Thomas Schaper'),
+        ('Stupid1'),
+        ('admin'),
+        perm_error(error=401)('NOT_LOGGED_IN'),
+    ],
+    indirect=['named_user'],
+)
+def test_reset_email_on_lti(
+    session, named_user, error_template, logged_in, test_client, request
+):
+    perm_err = request.node.get_marker('perm_error')
+    if perm_err:
+        code = perm_err.kwargs['error']
+    else:
+        code = 204
+
+    with logged_in(named_user):
+        test_client.req(
+            'patch',
+            '/api/v1/login?type=reset_on_lti',
+            code,
+            result=error_template if code >= 400 else None
+        )
+        if code <= 400:
+            assert m.User.query.get(
+                named_user.id
+            ).reset_email_on_lti, """
+            Property should be set.
+            """
+
+            # Multiple times should be possible without error
+            test_client.req('patch', '/api/v1/login?type=reset_on_lti', 204)
+
+            assert m.User.query.get(
+                named_user.id
+            ).reset_email_on_lti, """
+            Property should still be set
+            """

@@ -5,6 +5,17 @@ from flask import Response, jsonify
 
 import psef
 
+HttpWarning = t.NewType('HttpWarning', str)
+
+
+@unique
+class APIWarnings(IntEnum):
+    """API codes used to signal warnings to the client.
+    """
+    DEPRICATED = 0
+    GRADER_NOT_DONE = 1
+    CONDITION_ALREADY_MET = 2
+
 
 @unique
 class APICodes(IntEnum):
@@ -29,6 +40,8 @@ class APICodes(IntEnum):
     UNKOWN_ERROR = 16
     INVALID_FILE_IN_ARCHIVE = 17
     NO_FILES_SUBMITTED = 18
+    RATE_LIMIT_EXCEEDED = 19
+    OBJECT_ALREADY_EXISTS = 20
 
 
 class APIException(Exception):
@@ -43,12 +56,8 @@ class APIException(Exception):
     """
 
     def __init__(
-        self,
-        message: str,
-        description: str,
-        api_code: APICodes,
-        status_code: int,
-        **rest: t.Any,
+        self, message: str, description: str, api_code: APICodes,
+        status_code: int, **rest: t.Any
     ) -> None:
         super(APIException, self).__init__()
         self.status_code = status_code
@@ -67,6 +76,15 @@ class APIException(Exception):
         ret['description'] = self.description
         ret['code'] = self.api_code.name
         return ret
+
+
+def make_warning(warning_text: str, code: APIWarnings) -> HttpWarning:
+    return HttpWarning(
+        '{:03d} CodeGrad.de "{}"'.format(
+            code.value,
+            warning_text.replace('"', '\\"'),
+        )
+    )
 
 
 def init_app(app: t.Any) -> None:

@@ -32,11 +32,17 @@
                            @click.native="submit"
                            :label="showForgot ? 'Request email' : 'Login'"
                            :show-empty="false"/>
-            <router-link class="login"
-                         :to="{ hash: showForgot ? 'login' : 'forgot', }"
-                         @click="reset">
-                {{ showForgot ? 'Login' : 'Forgot password' }}
-            </router-link>
+            <div class="login-links">
+                <div class="left-box">
+                    <router-link class="login"
+                                :to="{ hash: showForgot ? 'login' : 'forgot', }"
+                                @click="reset">
+                        {{ showForgot ? 'Login' : 'Forgot password' }}</router-link>
+                </div>
+                <div class="right-box">
+                    <router-link class="login" to="register">Register</router-link>
+                </div>
+            </div>
         </b-form-fieldset>
     </div>
 </template>
@@ -137,7 +143,9 @@ export default {
 };
 </script>
 
-<style scoped>
+<style lang="less" scoped>
+@link-margin: 2em;
+
 h4 {
     margin-bottom: 15px;
 }
@@ -152,9 +160,31 @@ small {
     color: #868686;
 }
 
-a.login {
-    text-decoration: underline !important;
+.login-links {
+    display: flex;
     margin-top: 15px;
-    display: inline-block;
+
+    .left-box, .right-box {
+        width: 100%;
+    }
+
+
+    .left-box {
+        text-align: right;
+        a.login {
+            margin-right: @link-margin;
+        }
+    }
+
+    .right-box {
+        text-align: left;
+        a.login {
+            margin-left: @link-margin;
+        }
+    }
+
+    a.login {
+        text-decoration: underline !important;
+    }
 }
 </style>

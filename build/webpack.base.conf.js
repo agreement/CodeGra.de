@@ -4,6 +4,7 @@ var webpack = require('webpack')
 var config = require('../config')
 var vueLoaderConfig = require('./vue-loader.conf')
 var userConfig = require('./userConfig')
+var permissions = require('../seed_data/permissions.json')
 
 function resolve (dir) {
   return path.join(__dirname, '..', dir)
@@ -78,6 +79,7 @@ module.exports = {
   plugins: [
     new webpack.DefinePlugin({
         'UserConfig': JSON.stringify(userConfig),
+        'Permissions': JSON.stringify(permissions),
     }),
   ],
 }

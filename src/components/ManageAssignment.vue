@@ -2,43 +2,16 @@
     <div class="manage-assignment">
         <div class="header">
             <h5 class="assignment-title" @click="toggleRow">
-                {{ assignment.name }}
+                <a class="invisible-link" href="#" @click.native.prevent>
+                    {{ assignment.name }} - <small>{{ assignment.deadline }}</small>
+                </a>
             </h5>
 
-            <b-button-group @click.native="updateState">
-                <b-popover placement="top" triggers="hover" content="Hidden or open, managed by LTI" v-if="assignment.is_lti">
-                    <b-button class="state-button larger" size="sm" value="hidden"
-                              :variant="assignment.state !== assignmentState.DONE ? 'primary': 'outline-primary'">
-                        <loader :scale="1" v-if="pendingState === assignmentState.HIDDEN"></loader>
-                        <b-button-group v-else>
-                            <icon name="eye-slash"></icon><icon name="clock-o"></icon>
-                        </b-button-group>
-                    </b-button>
-                </b-popover>
-                <b-button-group v-else>
-                    <b-popover placement="top" triggers="hover" content="Hidden">
-                        <b-button class="state-button" size="sm" value="hidden"
-                                  :variant="assignment.state === assignmentState.HIDDEN ? 'danger' : 'outline-danger'">
-                            <loader :scale="1" v-if="pendingState === assignmentState.HIDDEN"></loader>
-                            <icon name="eye-slash" v-else></icon>
-                        </b-button>
-                    </b-popover>
-                    <b-popover placement="top" triggers="hover" content="Open">
-                        <b-button class="state-button" size="sm" value="open"
-                                  :variant="[assignmentState.SUBMITTING, assignmentState.GRADING, 'open'].indexOf(assignment.state) > -1 ? 'warning' : 'outline-warning'">
-                            <loader :scale="1" v-if="[assignmentState.SUBMITTING, assignmentState.GRADING, 'open'].indexOf(pendingState) > -1"></loader>
-                            <icon name="clock-o" v-else></icon>
-                        </b-button>
-                    </b-popover>
-                </b-button-group>
-                <b-popover placement="top" triggers="hover" content="Done">
-                    <b-button class="state-button" size="sm" value="done"
-                              :variant="assignment.state === assignmentState.DONE ? 'success' : 'outline-success'">
-                        <loader :scale="1" v-if="pendingState === assignmentState.DONE"></loader>
-                        <icon name="check" v-else></icon>
-                    </b-button>
-                </b-popover>
-            </b-button-group>
+            <assignment-state :assignment="assignment"
+                              :editable="!assignment.is_lti"
+                              :permissions="permissions"
+                              size="sm"/>
+
             <b-button-group>
                 <b-button class="submissions-button" @click="goToSubmissions">
                     Submissions
@@ -47,72 +20,129 @@
         </div>
 
         <b-collapse :id="`assignment-${assignment.id}`">
-            <b-popover placement="top" :triggers="assignment.is_lti ? ['hover'] : []" content="Not available for LTI assignments">
+            <div v-if="!assignment.is_lti && permissions.can_edit_assignment_info">
                 <b-form-fieldset>
                     <b-input-group left="Name">
-                        <b-form-input type="text" v-model="assignment.name" @keyup.native.enter="updateName" :disabled="assignment.is_lti"/>
+                        <input type="text"
+                               class="form-control"
+                               v-model="assignmentTempName"
+                               @keyup.native.enter="updateName"/>
                         <b-input-group-button>
-                            <submit-button @click="updateName" ref="updateName" :disabled="assignment.is_lti"/>
+                            <submit-button @click="updateName"
+                                           ref="updateName"/>
                         </b-input-group-button>
                     </b-input-group>
                 </b-form-fieldset>
-            </b-popover>
 
-            <b-popover placement="top" :triggers="assignment.is_lti ? ['hover'] : []" content="Not available for LTI assignments">
                 <b-form-fieldset>
                     <b-input-group left="Deadline">
-                        <b-form-input type="datetime-local" v-model="assignment.deadline" @keyup.native.enter="updateDeadline" :disabled="assignment.is_lti"/>
+                        <input type="datetime-local"
+                               class="form-control"
+                               v-model="assignment.deadline"
+                               @keyup.native.enter="updateDeadline"/>
                         <b-input-group-button>
-                            <submit-button @click="updateDeadline" ref="updateDeadline" :disabled="assignment.is_lti"/>
+                            <submit-button @click="updateDeadline"
+                                           ref="updateDeadline"/>
                         </b-input-group-button>
                     </b-input-group>
                 </b-form-fieldset>
-            </b-popover>
+            </div>
 
             <div class="row">
-                <div class="col-lg-5 divide-comp-wrapper">
-                    <h5>Divide submissions</h5>
-                    <divide-submissions :assignment="assignment"/>
+                <div class="col-lg-5 comp-wrapper">
+                    <div v-if="permissions.can_assign_graders">
+                        <h5>
+                            Divide submissions
+                            <description-popover
+                                description="Divide this assignment. When dividing
+                                users are assigned to submissions based on weights.
+                                When new submissions are uploaded graders are
+                                also automatically assigned. When graders assign
+                                themselves the weights are not updated to
+                                reflect this."/>
+                        </h5>
+                        <loader class="text-center" v-if="gradersLoading && !gradersLoadedOnce"/>
+                        <divide-submissions :assignment="assignment"
+                                            @divided="loadGraders"
+                                            :graders="graders"
+                                            v-else/>
+                    </div>
 
-                    <h5 style="margin-top: 1em">CGIgnore file</h5>
-                    <CGIgnoreFile :assignment="assignment"/>
+                    <div v-if="permissions.can_edit_cgignore">
+                        <h5 style="margin-top: 1em">CGIgnore file</h5>
+                        <CGIgnoreFile :assignment="assignment"/>
+                    </div>
+
+                    <div v-if="permissions.can_update_grader_status || permissions.can_grade_work">
+                        <h5 class="header-top-margin">
+                            Finished grading
+                            <description-popover
+                                description="Indicate that a grader is done with
+                                grading. All graders that have indicated that they
+                                are done will not receive notification e-mails."/>
+                        </h5>
+                        <loader class="text-center" v-if="gradersLoading"/>
+                        <finished-grader-toggles :assignment="assignment"
+                                                 :graders="graders"
+                                                 :others="permissions.can_update_grader_status || false"
+                                                 v-else/>
+                    </div>
                 </div>
-                <div class="col-lg-7 linter-comp-wrapper">
-                    <h5>Linters</h5>
-                    <linters :assignment="assignment"></linters>
+
+                <div class="col-lg-7 comp-wrapper">
+                    <div v-if="permissions.can_use_linter"
+                         :course-id="assignment.course.id">
+                        <h5>Linters</h5>
+                        <linters :assignment="assignment"/>
+                    </div>
+
+                    <div v-if="permissions.can_update_course_notifications">
+                        <h5>
+                            Notifications
+                            <description-popover
+                                description="Send a reminder e-mail to the selected
+                                graders on the selected time if they have not yet
+                                finished grading."/>
+                        </h5>
+                        <div class="form-control reminders-wrapper">
+                            <notifications :assignment="assignment"
+                                       class="reminders"/>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="col-md-12 rubric-editor-comp-wrapper" v-if="UserConfig.features.rubrics">
-                <h5>Rubric</h5>
+            <div class="row"
+                 v-if="permissions.manage_rubrics && UserConfig.features.rubrics">
+                <div class="col-md-12 comp-wrapper">
+                    <h5>Rubric</h5>
                     <rubric-editor :assignmentId="assignment.id"
                                    ref="rubricEditor"
                                    :editable="true"/>
-                </b-form-fieldset>
+                </div>
             </div>
 
-            <div class="col-md-12" v-if="UserConfig.features.blackboard_zip_upload">
-                <h5>Upload blackboard zip</h5>
-                    <b-popover
-                        placement="top"
-                        :triggers="assignment.is_lti ? ['hover'] : []"
-                        content="Not available for LTI assignments">
-                        <file-uploader
-                            :url="`/api/v1/assignments/${assignment.id}/submissions/`"
-                            :disabled="assignment.is_lti"/>
+            <div class="row"
+                 v-if="permissions.can_upload_bb_zip &&
+                       UserConfig.features.blackboard_zip_upload">
+                <div class="col-md-12">
+                    <h5>Upload blackboard zip</h5>
+                    <b-popover placement="top"
+                               :triggers="assignment.is_lti ? ['hover'] : []"
+                               content="Not available for LTI assignments">
+                        <file-uploader :url="`/api/v1/assignments/${assignment.id}/submissions/`"
+                                       :disabled="assignment.is_lti"/>
                     </b-popover>
-                </b-form-fieldset>
+                </div>
             </div>
         </b-collapse>
     </div>
 </template>
 
 <script>
-import Icon from 'vue-awesome/components/Icon';
-import 'vue-awesome/icons/eye-slash';
-import 'vue-awesome/icons/clock-o';
-import 'vue-awesome/icons/check';
+import { convertToUTC } from '@/utils';
 
+import AssignmentState from './AssignmentState';
 import DivideSubmissions from './DivideSubmissions';
 import FileUploader from './FileUploader';
 import Linters from './Linters';
@@ -120,8 +150,9 @@ import Loader from './Loader';
 import SubmitButton from './SubmitButton';
 import RubricEditor from './RubricEditor';
 import CGIgnoreFile from './CGIgnoreFile';
-
-import * as assignmentState from '../store/assignment-states';
+import Notifications from './Notifications';
+import DescriptionPopover from './DescriptionPopover';
+import FinishedGraderToggles from './FinishedGraderToggles';
 
 export default {
     name: 'manage-assignment',
@@ -131,13 +162,20 @@ export default {
             type: Object,
             default: null,
         },
+
+        permissions: {
+            type: Object,
+            default: null,
+        },
     },
 
     data() {
         return {
-            assignmentState,
-            pendingState: '',
             UserConfig,
+            graders: [],
+            gradersLoading: true,
+            gradersLoadedOnce: false,
+            assignmentTempName: '',
         };
     },
 
@@ -147,41 +185,41 @@ export default {
         },
     },
 
+    mounted() {
+        this.assignmentTempName = this.assignment.name;
+        this.loadGraders();
+    },
+
     methods: {
+        async loadGraders() {
+            if (!this.gradersLoading) {
+                this.gradersLoading = true;
+            }
+
+            const { data } = await this.$http.get(`/api/v1/assignments/${this.assignment.id}/graders/`);
+            this.graders = data;
+            this.gradersLoading = false;
+            this.gradersLoadedOnce = true;
+        },
+
         toggleRow() {
             this.$root.$emit('collapse::toggle', `assignment-${this.assignment.id}`);
         },
 
-        updateState({ target }) {
-            const button = target.closest('button');
-            if (!button) return;
-
-            this.pendingState = button.getAttribute('value');
-
-            this.$http.patch(this.assignmentUrl, {
-                state: this.pendingState,
-            }).then(() => {
-                this.assignment.state = this.pendingState;
-                this.pendingState = '';
-            }, (err) => {
-                // TODO: visual feedback
-                // eslint-disable-next-line
-                console.dir(err);
-            });
-        },
-
         updateName() {
             const req = this.$http.patch(this.assignmentUrl, {
-                name: this.assignment.name,
+                name: this.assignmentTempName,
             });
-            this.$refs.updateName.submit(req.catch((err) => {
+            this.$refs.updateName.submit(req.then(() => {
+                this.assignment.name = this.assignmentTempName;
+            }, (err) => {
                 throw err.response.data.message;
             }));
         },
 
         updateDeadline() {
             const req = this.$http.patch(this.assignmentUrl, {
-                deadline: this.assignment.deadline,
+                deadline: convertToUTC(this.assignment.deadline),
             });
             this.$refs.updateDeadline.submit(req.catch((err) => {
                 throw err.response.data.message;
@@ -200,14 +238,17 @@ export default {
     },
 
     components: {
+        AssignmentState,
         DivideSubmissions,
         FileUploader,
         Linters,
         Loader,
         SubmitButton,
-        Icon,
         RubricEditor,
         CGIgnoreFile,
+        Notifications,
+        DescriptionPopover,
+        FinishedGraderToggles,
     },
 };
 </script>
@@ -215,6 +256,11 @@ export default {
 <style lang="less" scoped>
 .manage-assignment {
     flex-grow: 1;
+    max-width: 100%;
+}
+
+.header-top-margin {
+    margin-top: 1em;
 }
 
 .header {
@@ -232,40 +278,12 @@ export default {
         margin: -@vpad 0 -@vpad -@hpad;;
     }
 
-    .state-button.larger {
-        width: 3.5em;
-        .btn-group {
-            display: block;
-        }
-        .fa-icon {
-            margin-left: 0;
-        }
-        margin-left: 0;
-    }
-
-    .state-button {
-        width: 1.75em;
-        height: 1.75em;
-        margin-top: .5em;
-        margin-left: .375em;
-        border-radius: 50%;
-        border: 0;
-        padding-left: .375rem;
-
-        svg {
-            width: 1em;
-            height: 1em;
-        }
-    }
-
     .submissions-button {
         margin-left: .75em;
     }
 }
 
-.rubric-editor-comp-wrapper,
-.linter-comp-wrapper,
-.divide-comp-wrapper {
+.comp-wrapper {
     margin-bottom: 1em;
 }
 
