@@ -1,15 +1,18 @@
 <template>
-    <div v-if="editable && permissions.can_edit_assignment_info">
+    <div v-if="editable">
         <b-button-group @click.native="updateState">
             <b-popover placement="top" triggers="hover"
                     content="Hidden or open, managed by LTI"
                     v-if="assignment.is_lti">
                 <b-button class="state-button larger"
-                        :size="size"
-                        :variant="ltiHiddenOpenVariant"
-                        :disabled="true">
-                    <icon :name="icons[states.HIDDEN]"/>
-                    <icon :name="icons[states.OPEN]"/>
+                          :size="size"
+                          value="open"
+                          :variant="ltiHiddenOpenVariant">
+                    <loader :scale="1" v-if="isLoadingLTIHiddenOpen"/>
+                    <span v-else>
+                        <icon :name="icons[states.HIDDEN]"/>
+                        <icon :name="icons[states.OPEN]"/>
+                    </span>
                 </b-button>
             </b-popover>
 
@@ -86,11 +89,6 @@ export default {
             type: String,
             default: 'md',
         },
-
-        permissions: {
-            type: Object,
-            default: null,
-        },
     },
 
     data() {
@@ -131,6 +129,10 @@ export default {
 
         doneVariant() {
             return this.assignment.state === states.DONE ? 'success' : 'outline-success';
+        },
+
+        isLoadingLTIHiddenOpen() {
+            return this.assignment.is_lti && this.pendingState === states.OPEN;
         },
 
         isLoadingHidden() {
