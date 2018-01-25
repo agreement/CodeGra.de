@@ -8,8 +8,7 @@
             </h5>
 
             <assignment-state :assignment="assignment"
-                              :editable="!assignment.is_lti"
-                              :permissions="permissions"
+                              :editable="permissions.can_edit_assignment_info"
                               size="sm"/>
 
             <b-button-group>
