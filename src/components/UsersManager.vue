@@ -1,97 +1,100 @@
 <template>
-    <loader v-if="loading"/>
-    <div class="users-manager" v-else>
-        <b-form-fieldset>
-            <input v-model="filter"
+<loader v-if="loading"/>
+<div class="users-manager" v-else>
+    <b-form-fieldset>
+        <input v-model="filter"
+               class="form-control"
+               placeholder="Type to Search"
+               v-on:keyup.enter="submit"/>
+    </b-form-fieldset>
+    <b-table striped
+             ref="table"
+             class="users-table"
+             :items="users"
+             :fields="fields"
+             :filter="filter"
+             :sort-compare="sortTable"
+             sort-by="User"
+             :response="true">
+
+        <template slot="User" slot-scope="item">
+            <span>{{item.value.name}} ({{item.value.username}})</span>
+        </template>
+
+        <template slot="CourseRole" slot-scope="item">
+            <loader :scale="1" v-if="updating[item.item.User.id]"/>
+            <b-dropdown :text="item.value.name"
+                        disabled
+                        v-b-popover.top.hover="'You cannot change your own role'"
+                        v-else-if="item.item.User.name == userName"/>
+            <b-dropdown :text="item.value.name"
+                        :disabled="item.item.User.name == userName"
+                        v-else>
+                <b-dropdown-header>Select the new role</b-dropdown-header>
+                <b-dropdown-item v-for="role in roles"
+                                 v-on:click="changed(item.item, role)"
+                                 :key="role.id">
+                    {{ role.name }}
+                </b-dropdown-item>
+            </b-dropdown>
+        </template>
+    </b-table>
+
+    <b-popover class="new-user-popover"
+               :triggers="course.is_lti ? 'hover' : ''"
+               target="new-users-input-field">
+        You cannot add users to a lti course.
+    </b-popover>
+    <b-form-fieldset class="add-student"
+                     id="new-users-input-field">
+        <b-input-group>
+            <multiselect v-model="newStudentUsername"
+                         :hide-selected="false"
+                         :options="students"
+                         :multiple="false"
+                         :searchable="true"
+                         @search-change="asyncFind"
+                         :internal-search="true"
+                         :custom-label="o => `${o.name} (${o.username})`"
+                         :loading="loadingStudents"
+                         style="flex: 1;"
+                         placeholder="New student"
+                         label="name"
+                         track-by="username"
+                         v-if="canSearchUsers">
+                <span slot="noResult" v-if="searchQuery && searchQuery.length < 3">
+                    Please give a larger search string.
+                </span>
+                <span slot="noResult" v-else>
+                    No results were found. You can search on name and username.
+                </span>
+            </multiselect>
+            <input v-model="newStudentUsername"
                    class="form-control"
-                   placeholder="Type to Search"
-                   v-on:keyup.enter="submit"/>
-        </b-form-fieldset>
-        <b-table striped
-                 ref="table"
-                 class="users-table"
-                 :items="users"
-                 :fields="fields"
-                 :filter="filter"
-                 :sort-compare="sortTable"
-                 sort-by="User"
-                 :response="true">
+                   placeholder="New students username"
+                   :disabled="course.is_lti"
+                   @keyup.native.ctrl.enter="addUser"
+                   v-else/>
 
-            <template slot="User" scope="item">
-                <span>{{item.value.name}} ({{item.value.username}})</span>
-            </template>
-
-            <template slot="CourseRole" scope="item">
-                <loader :scale="1" v-if="updating[item.item.User.id]"/>
-                <b-popover content="You cannot change your own role"
-                           triggers="hover"
-                           v-else-if="item.item.User.name == userName">
-                    <b-dropdown :text="item.value.name"
-                                disabled/>
-                </b-popover>
-                <b-dropdown :text="item.value.name"
-                            :disabled="item.item.User.name == userName"
-                            v-else>
-                    <b-dropdown-header>Select the new role</b-dropdown-header>
+            <template slot="append">
+                <b-dropdown class="drop"
+                            :text="newRole ? newRole.name : 'Role'"
+                            :disabled="course.is_lti">
                     <b-dropdown-item v-for="role in roles"
-                                     v-on:click="changed(item.item, role)"
+                                     v-on:click="() => {newRole = role; error = '';}"
                                      :key="role.id">
                         {{ role.name }}
                     </b-dropdown-item>
                 </b-dropdown>
+                <submit-button label="Add"
+                               ref="addUserButton"
+                               @click="addUser"
+                               class="add-user-button"
+                               :disabled="course.is_lti"/>
             </template>
-        </b-table>
-
-        <b-popover class="new-user-popover"
-                :triggers="course.is_lti ? 'hover' : ''"
-                content="You cannot add users to a lti course.">
-            <b-form-fieldset class="add-student">
-                <b-input-group>
-                    <multiselect v-model="newStudentUsername"
-                                 :hide-selected="false"
-                                 :options="students"
-                                 :multiple="false"
-                                 :searchable="true"
-                                 @search-change="asyncFind"
-                                 :internal-search="true"
-                                 :custom-label="o => `${o.name} (${o.username})`"
-                                 :loading="loadingStudents"
-                                 placeholder="New student"
-                                 label="name"
-                                 track-by="username"
-                                 v-if="canSearchUsers">
-                        <span slot="noResult" v-if="searchQuery && searchQuery.length < 3">
-                            Please give a larger search string.
-                        </span>
-                        <span slot="noResult" v-else>
-                            No results were found. You can search on name and username.
-                        </span>
-                    </multiselect>
-                    <input v-model="newStudentUsername"
-                           class="form-control"
-                           placeholder="New students username"
-                           :disabled="course.is_lti"
-                           @keyup.native.ctrl.enter="addUser"
-                           v-else/>
-
-                    <b-dropdown class="drop"
-                                :text="newRole ? newRole.name : 'Role'"
-                                :disabled="course.is_lti">
-                        <b-dropdown-item v-for="role in roles"
-                                        v-on:click="() => {newRole = role; error = '';}"
-                                        :key="role.id">
-                            {{ role.name }}
-                        </b-dropdown-item>
-                    </b-dropdown>
-
-                    <b-input-group-button>
-                            <submit-button label="Add" ref="addUserButton" @click="addUser" :disabled="course.is_lti"/>
-                    </b-input-group-button>
-                </b-input-group>
-            </b-form-fieldset>
-        </b-popover>
-
-    </div>
+        </b-input-group>
+    </b-form-fieldset>
+</div>
 </template>
 
 <script>
@@ -253,8 +256,8 @@ export default {
                     this.newStudentUsername = '';
                     this.users.push(data);
                 }, (({ response }) => {
-                    throw response.data.message;
-                })));
+                        throw response.data.message;
+                    })));
             }
         },
     },
@@ -323,17 +326,16 @@ table.users-table .dropdown {
 }
 </style>
 
-<style lang="less" scoped>
-.add-student {
+<style lang="less">
+@import '~mixins.less';
+
+.add-user-button {
     .btn {
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
+        height: 100%;
     }
 }
-</style>
-
-<style lang="less">
-@import '~mixins.less';
 
 #app.dark .add-student {
     .dark-selects-colors;

@@ -106,18 +106,31 @@ const app = new Vue({
     store,
     created() {
         this.verifyLogin();
+        let shown = false;
 
         this.clickHideSettings = (event) => {
-            if (event.target.closest('.popover-content-wrapper')) {
+            shown = false;
+            if (event.target.closest('.popover-body')) {
                 return;
             }
-            this.$root.$emit('hide::popover');
+
+            setTimeout(() => {
+                this.$nextTick(() => {
+                    if (!shown) {
+                        this.$root.$emit('bv::hide::popover');
+                    }
+                });
+            }, 10);
         };
         document.body.addEventListener('click', this.clickHideSettings, true);
 
+        this.$root.$on('bv::popover::show', () => {
+            shown = true;
+        });
+
         this.keyupHideSettings = (event) => {
             if (event.key === 'Escape') {
-                this.$root.$emit('hide::popover');
+                this.$root.$emit('bv::hide::popover');
             }
         };
         document.body.addEventListener('keyup', this.keyupHideSettings);

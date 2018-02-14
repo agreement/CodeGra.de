@@ -1,42 +1,44 @@
 <template>
-    <div class="divide-submissions">
-        <div class="form-control">
-            <div class="grader-list">
-                <b-input-group class="grader">
-                    <b class="input-group-addon">Grader</b>
-                    <input class="form-control"
-                           style="text-align: right;"
-                           disabled
-                           value="Weight"/>
-                    <p class="input-group-addon"
-                       style="width: 5em;">
-                        Percent
-                    </p>
-                </b-input-group>
-                <b-input-group v-for="grader, i in graders"
-                               :key="grader.id"
-                               class="grader">
-                    <b-form-checkbox class="input-group-addon"
-                                     @change="grader.weight = grader.weight ? 0 : 1"
+<div class="divide-submissions">
+    <div class="form-control">
+        <div class="grader-list">
+            <b-input-group class="grader">
+                <b-input-group-text slot="prepend"><b>Grader</b></b-input-group-text>
+                <input class="form-control"
+                       style="text-align: right;"
+                       disabled
+                       value="Weight"/>
+                <b-input-group-text slot="append"
+                                    style="width: 5em;">
+                    Percent
+                </b-input-group-text>
+            </b-input-group>
+            <b-input-group v-for="grader, i in graders"
+                           :key="grader.id"
+                           class="grader">
+                <b-input-group-text slot="prepend"
+                                    >
+                    <b-form-checkbox @change="grader.weight = grader.weight ? 0 : 1"
                                      :checked="grader.weight != 0">
                         {{ grader.name }}
                     </b-form-checkbox>
-                    <input class="form-control"
-                           type="number"
-                           min="0"
-                           step="0.01"
-                           style="min-width: 3em;"
-                           v-model.number="grader.weight"/>
-                    <p class="input-group-addon grader-percentage"
-                       style="width: 5em;">
-                        {{ (100 * grader.weight / totalWeight).toFixed(1) }}%
-                    </p>
-                </b-input-group>
-            </div>
-            <submit-button label="Divide" @click="divideAssignments" ref="submitButton" v-if="graders.length"/>
-            <span v-else>No graders found for this assignment</span>
+                </b-input-group-text>
+                <input class="form-control"
+                       type="number"
+                       min="0"
+                       step="0.5"
+                       style="min-width: 3em;"
+                       v-model.number="grader.weight"/>
+                <b-input-group-text slot="append" class="grader-percentage"
+                                    style="width: 5em;">
+                    {{ (100 * grader.weight / totalWeight).toFixed(1) }}%
+                </b-input-group-text>
+            </b-input-group>
         </div>
+        <submit-button label="Divide" @click="divideAssignments" ref="submitButton" v-if="graders.length"/>
+        <span v-else>No graders found for this assignment</span>
     </div>
+</div>
 </template>
 
 <script>
@@ -60,25 +62,24 @@ export default {
 
     computed: {
         totalWeight() {
-            return Math.max(
-                this.graders.reduce((tot, grader) =>
-                                    tot + (grader.weight || 0), 0),
-                1);
+            const graderWeight = this.graders.reduce(
+                (tot, grader) => tot + (grader.weight || 0),
+                0,
+            );
+            return Math.max(graderWeight, 1);
         },
     },
 
     methods: {
         divideAssignments() {
-            const req = this.$http.patch(
-                `/api/v1/assignments/${this.assignment.id}/divide`, {
-                    graders: Object.values(this.graders)
-                        .filter(x => x.weight !== 0)
-                        .reduce((res, g) => {
-                            res[`${g.id}`] = g.weight;
-                            return res;
-                        }, {}),
-                },
-            );
+            const req = this.$http.patch(`/api/v1/assignments/${this.assignment.id}/divide`, {
+                graders: Object.values(this.graders)
+                    .filter(x => x.weight !== 0)
+                    .reduce((res, g) => {
+                        res[`${g.id}`] = g.weight;
+                        return res;
+                    }, {}),
+            });
             this.$refs.submitButton.submit(req.then(() => {
                 this.$emit('divided');
             }, (err) => {
@@ -97,6 +98,12 @@ export default {
 <style lang="less" scoped>
 .grader-list {
     margin-bottom: .5rem;
+    .grader:not(:first-child) .input-group-append .input-group-text {
+        border-top-right-radius: 0;
+    }
+    .grader:not(:last-child) .input-group-append .input-group-text {
+        border-bottom-right-radius: 0;
+    }
 }
 
 .grader {

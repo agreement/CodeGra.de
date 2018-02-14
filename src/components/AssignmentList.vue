@@ -1,51 +1,51 @@
 <template>
-    <div>
-        <b-form-fieldset class="table-control">
-            <b-input-group>
-                <input v-model="filter"
-                       class="form-control"
-                       placeholder="Type to Search"
-                       v-on:keyup.enter="submit"/>
+<div>
+    <b-form-fieldset class="table-control">
+        <b-input-group>
+            <input v-model="filter"
+                   class="form-control"
+                   placeholder="Type to Search"
+                   v-on:keyup.enter="submit"/>
+            <b-input-group-append is-text
+                                  v-for="role in getUniqueRoles()"
+                                  :key="role">
                 <b-form-checkbox class="input-group-addon"
                                  :checked="checkboxRoles[role] === true"
                                  @change="setRoleFilter(role)"
-                                 v-for="role in getUniqueRoles()"
-                                 :key="`role-${role.id}`">
+                                 :key="`role-${role}`">
                     {{ role }}
                 </b-form-checkbox>
-                <b-input-group-button class="buttons">
-                    <b-popover placement="top" triggers="hover" content="Hidden" v-if="canSeeHidden">
-                        <b-button class="btn-info" :class="{ 'btn-outline-info': !toggles.hidden}"
-                                    @click="toggleFilter('hidden')">
-                            <icon name="eye-slash"></icon>
-                        </b-button>
-                    </b-popover>
-                </b-input-group-button>
-                <b-input-group-button class="buttons">
-                    <b-popover placement="top" triggers="hover" content="Submitting">
-                        <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
-                                    @click="toggleFilter('submitting')">
-                            <icon name="clock-o"></icon>
-                        </b-button>
-                    </b-popover>
-                </b-input-group-button>
-                <b-input-group-button class="buttons">
-                    <b-popover placement="top" triggers="hover" content="Grading">
-                        <b-button class="btn-warning" :class="{ 'btn-outline-warning': !toggles.grading }"
-                                    @click="toggleFilter('grading')">
-                            <icon name="pencil"></icon>
-                        </b-button>
-                    </b-popover>
-                </b-input-group-button>
-                <b-input-group-button class="buttons">
-                    <b-popover placement="top" triggers="hover" content="Done">
-                        <b-button class="btn-success" :class="{ 'btn-outline-success': !toggles.done }"
-                                    @click="toggleFilter('done')">
-                            <icon name="check"></icon>
-                        </b-button>
-                    </b-popover>
-                </b-input-group-button>
-            </b-input-group>
+            </b-input-group-append>
+            <b-input-group-append>
+                    <b-button class="btn-info" :class="{ 'btn-outline-info': !toggles.hidden}"
+                              @click="toggleFilter('hidden')"
+                              v-if="canSeeHidden"
+                              v-b-popover.top.hover="'Hidden'">
+                        <icon name="eye-slash"></icon>
+                    </b-button>
+            </b-input-group-append>
+            <b-input-group-append>
+                    <b-button class="btn-danger" :class="{ 'btn-outline-danger': !toggles.submitting }"
+                              @click="toggleFilter('submitting')"
+                              v-b-popover.top.hover="'Submitting'">
+                        <icon name="clock-o"></icon>
+                    </b-button>
+            </b-input-group-append>
+            <b-input-group-append>
+                    <b-button class="btn-warning" :class="{ 'btn-outline-warning': !toggles.grading }"
+                              @click="toggleFilter('grading')"
+                              v-b-popover.top.hover="'Grading'">
+                        <icon name="pencil"></icon>
+                    </b-button>
+            </b-input-group-append>
+            <b-input-group-append>
+                    <b-button class="btn-success" :class="{ 'btn-outline-success': !toggles.done }"
+                              @click="toggleFilter('done')"
+                              v-b-popover.top.hover="'Done'">
+                        <icon name="check"></icon>
+                    </b-button>
+            </b-input-group-append>
+        </b-input-group>
         </b-form-fieldset>
 
         <b-table striped hover
@@ -56,24 +56,25 @@
                  :current-page="currentPage"
                  :sort-compare="sortTable"
                  :filter="filterItems"
+                 sort-by="deadline"
                  :show-empty="true">
-            <template slot="name" scope="item">
+            <template slot="name" slot-scope="item">
                 <a class="invisible-link"
                    href="#"
                    @click.prevent>
                     {{item.value ? item.value : '-'}}
                 </a>
             </template>
-            <template slot="course_name" scope="item">
+            <template slot="course_name" slot-scope="item">
                 {{item.item.course.name ? item.item.course.name : '-'}}
             </template>
-            <template slot="deadline" scope="item">
+            <template slot="deadline" slot-scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
-            <template slot="course_role" scope="item">
+            <template slot="course_role" slot-scope="item">
                 {{item.item.course.role ? item.item.course.role : '-'}}
             </template>
-            <template slot="state" scope="item">
+            <template slot="state" slot-scope="item">
                 <assignment-state :assignment="item.item"/>
             </template>
             <template slot="empty">
@@ -121,36 +122,35 @@ export default {
                 done: true,
             },
             currentPage: 1,
-            // Order is encoded but not used by bootstrap vue, see
-            // https://github.com/bootstrap-vue/bootstrap-vue/issues/1074
-            fields: {
-                name: {
+            fields: [
+                {
+                    key: 'name',
                     label: 'Assignment',
                     sortable: true,
                     index: 0,
-                },
-                course_name: {
+                }, {
+                    key: 'course_name',
                     label: 'Course',
                     sortable: true,
                     index: 1,
-                },
-                deadline: {
+                }, {
+                    key: 'deadline',
                     label: 'Deadline',
                     sortable: true,
                     index: 2,
-                },
-                course_role: {
+                }, {
+                    key: 'course_role',
                     label: 'Role',
                     sortable: true,
                     index: 3,
-                },
-                state: {
+                }, {
+                    key: 'state',
                     label: 'State',
                     sortable: true,
                     class: 'text-center',
                     index: 4,
                 },
-            },
+            ],
             checkboxRoles: {},
         };
     },
@@ -184,7 +184,6 @@ export default {
         });
 
         this.filter = q.q;
-        this.$refs.table.sortBy = 'deadline';
     },
 
     methods: {

@@ -7,13 +7,11 @@
                 <icon name="folder" class="dir-icon" v-if="isCollapsed"/>
                 <icon name="folder-open" class="dir-icon" v-else/>
                 {{ tree.name }}
-                <b-popover v-if="depth > 0 && dirHasRevision(tree)"
-                           triggers="hover"
-                           content="This directory has a file with a teacher's revision"
-                           class="rev-popover"
-                           @click.native.stop>
+                <span v-if="depth > 0 && dirHasRevision(tree)"
+                      v-b-popover.hover.top="'This directory has a file with a teacher\'s revision'"
+                      class="rev-popover">
                     *
-                </b-popover>
+                </span>
             </span>
         </div>
         <ol v-show="!isCollapsed">
@@ -29,12 +27,11 @@
                              v-else>
                     <icon name="file" class="file-icon"/>{{ f.name }}
                 </router-link>
-                <b-popover v-if="fileHasRevision(f)"
-                           triggers="hover"
-                           content="This file has a teacher's revision"
-                           class="rev-popover">
+                <span v-if="fileHasRevision(f)"
+                      v-b-popover.hover.top="'This file has a teacher\'s revision'"
+                      class="rev-popover">
                     *
-                </b-popover>
+                </span>
             </li>
         </ol>
     </div>

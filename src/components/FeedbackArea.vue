@@ -4,23 +4,24 @@
             <div v-html="newlines($htmlEscape(serverFeedback))"></div>
         </div>
     </b-card>
-    <div class="feedback-area" v-else>
+    <div class="feedback-area edit" v-else>
         <b-collapse class="collapsep"
                     v-if="canUseSnippets"
                     ref="snippetDialog"
-                    :id="`collapse${line}`">
+                    :id="`collapse${line}`"
+                    style="margin: 0">
             <b-input-group>
                 <input class="input form-control"
                        v-model="snippetKey"
                        @keydown.ctrl.enter="addSnippet"/>
-                <b-input-group-button>
+                <b-input-group-append>
                     <submit-button ref="addSnippetButton"
                                    class="add-snippet-btn"
                                    label=""
                                    @click="addSnippet">
                         <icon :scale="1" name="check"/>
                     </submit-button>
-                </b-input-group-button>
+                </b-input-group-append>
             </b-input-group>
         </b-collapse>
         <b-input-group class="editable-area">
@@ -31,24 +32,25 @@
                       @keydown.tab="expandSnippet"
                       @keydown.ctrl.enter="submitFeedback"
                       @keydown.esc="revertFeedback"/>
-            <b-input-group-button class="minor-buttons">
+            <div class="minor-buttons btn-group-vertical">
                 <b-btn v-b-toggle="`collapse${line}`"
+                       class="snippet-btn"
                        variant="secondary"
                        v-if="canUseSnippets"
-                       v-on:click="findSnippet">
+                       @click="findSnippet">
                     <icon name="plus" aria-hidden="true"></icon>
                 </b-btn>
                 <b-button variant="danger" @click="cancelFeedback">
                     <icon name="refresh" spin v-if="deletingFeedback"></icon>
                     <icon name="times" aria-hidden="true" v-else></icon>
                 </b-button>
-            </b-input-group-button>
-            <b-input-group-button class="submit-feedback">
+            </div>
+            <b-input-group-append class="submit-feedback">
                 <b-button variant="primary" @click="submitFeedback">
                     <icon name="refresh" spin v-if="submittingFeedback"></icon>
                     <icon name="check" aria-hidden="true" v-else></icon>
                 </b-button>
-            </b-input-group-button>
+            </b-input-group-append>
         </b-input-group>
     </div>
 </template>
@@ -104,7 +106,8 @@ export default {
             }
             const submitted = this.internalFeedback;
             this.submittingFeedback = true;
-            this.$http.put(`/api/v1/code/${this.fileId}/comments/${this.line}`,
+            this.$http.put(
+                `/api/v1/code/${this.fileId}/comments/${this.line}`,
                 {
                     comment: submitted,
                 },
@@ -150,16 +153,16 @@ export default {
                 return;
             }
 
-            const field = this.$refs.field;
-            const end = field.selectionEnd;
-            if (field.selectionStart === end) {
-                const val = this.internalFeedback.slice(0, end);
+            const { selectionStart, selectionEnd } = this.$refs.field;
+
+            if (selectionStart === selectionEnd) {
+                const val = this.internalFeedback.slice(0, selectionEnd);
                 const start = Math.max(val.lastIndexOf(' '), val.lastIndexOf('\n')) + 1;
-                const res = this.snippets()[val.slice(start, end)];
+                const res = this.snippets()[val.slice(start, selectionEnd)];
                 if (res !== undefined) {
-                    this.snippetKey = val.slice(start, end);
+                    this.snippetKey = val.slice(start, selectionEnd);
                     this.internalFeedback = val.slice(0, start) + res.value +
-                        this.internalFeedback.slice(end);
+                        this.internalFeedback.slice(selectionEnd);
                 }
                 this.refreshSnippets();
             }
@@ -225,6 +228,17 @@ export default {
 <style lang="less" scoped>
 @import '~mixins.less';
 
+.feedback-area {
+    .default-text-colors;
+    &.edit {
+        margin: 0.5em 0;
+    }
+}
+
+.card-body {
+    padding: 0.5rem;
+}
+
 .non-editable {
     white-space: pre-wrap;
     word-break: break-word;
@@ -240,6 +254,17 @@ button {
     &:hover {
         box-shadow: none;
     }
+    & button {
+        flex: 1;
+        &:first-child {
+            border-top-right-radius: 0px;
+            border-top-left-radius: 0px;
+        }
+        &:last-child {
+            border-bottom-right-radius: 0px;
+            border-bottom-left-radius: 0px;
+        }
+    }
     min-height: 7em;
 }
 
@@ -249,29 +274,26 @@ button {
 }
 
 textarea {
-    border: 0;
+    #app.dark & {
+        border: 0;
+    }
     min-height: 7em;
 }
 
-input {
-    margin: 0;
-    border: 0;
+#app:not(.dark) .snippet-btn {
+    border-top-width: 1px;
+    border-top-style: solid;
 }
 
 .editable-area {
-    border: 1px solid @color-primary;
     #app.dark & {
-        border: 1px solid @color-secondary;
+        border: .5px solid @color-secondary;
     }
     padding: 0;
-    margin: 0.5em 0;
     border-radius: 0.25rem;
 }
-</style>
 
-<style lang="less">
-.add-snippet-btn button {
+.input.snippet {
     margin: 0;
-    border: 0;
 }
 </style>

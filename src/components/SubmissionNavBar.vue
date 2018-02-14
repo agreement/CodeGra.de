@@ -1,29 +1,29 @@
 <template>
     <b-form-fieldset class="submission-nav-bar">
         <b-input-group>
-            <b-input-group-button>
+            <b-input-group-prepend>
                 <b-button class="angle-btn"
                           @click="backToSubmissions">
                     <icon name="angle-double-left"/>
                 </b-button>
-            </b-input-group-button>
-            <b-input-group-button>
+            </b-input-group-prepend>
+            <b-input-group-prepend>
                 <b-button :disabled="!hasPrev"
                           @click="selectPrev">
                     <icon name="angle-left"/>
                 </b-button>
-            </b-input-group-button>
-            <b-input-group-button style="flex-grow: 1;">
+            </b-input-group-prepend>
+            <b-input-group-prepend style="flex-grow: 1;">
                 <b-form-select :options="options"
                                v-model="selected"
                                id="student-selector"/>
-            </b-input-group-button>
-            <b-input-group-button>
+            </b-input-group-prepend>
+            <b-input-group-append>
                 <b-button :disabled="!hasNext"
                           @click="selectNext">
                     <icon name="angle-right"/>
                 </b-button>
-            </b-input-group-button>
+            </b-input-group-append>
         </b-input-group>
     </b-form-fieldset>
 </template>

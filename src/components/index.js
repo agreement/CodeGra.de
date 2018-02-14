@@ -36,6 +36,7 @@ import Notifications from './Notifications';
 import DescriptionPopover from './DescriptionPopover';
 import AssignmentState from './AssignmentState';
 import FinishedGraderToggles from './FinishedGraderToggles';
+import PasswordInput from './PasswordInput';
 
 export {
     Linters,
@@ -76,4 +77,5 @@ export {
     DescriptionPopover,
     AssignmentState,
     FinishedGraderToggles,
+    PasswordInput,
 };

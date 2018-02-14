@@ -4,10 +4,10 @@
         <div class="outer-container">
             <b-card-group class="tab-container">
                 <b-card v-for="(row, i) in rubrics"
-                        :key="`rubric-row-${row.id}`"
+                        :key="`rubric-row-${row.id}-${i}`"
                         style="flex-basis: 20%;"
                         :class="{active: i === currentCategory, tab: true}"
-                        @click.native="gotoItem(i)">
+                        @click="gotoItem(i)">
                     <input type="text"
                            class="row-header form-control"
                            placeholder="Category name"
@@ -16,14 +16,11 @@
                            v-model="row.header"
                            v-if="editable"/>
                     <b class="row-header" v-else>{{ row.header }}</b>
-                    <b-popover placement="top"
-                               triggers="hover"
-                               content="Select this category to create a new category."
-                               v-if="editable && rubrics.length - 1 === i">
-                        <div class="row-info-button">
-                            <icon name="info"/>
-                        </div>
-                    </b-popover>
+                    <div class="row-info-button"
+                            v-b-popover.top.hover="'Select this category to create a new category.'"
+                            v-if="editable && rubrics.length - 1 === i">
+                        <icon name="info"/>
+                    </div>
                     <div class="row-delete-button"
                          v-else-if="editable"
                          @click="(event) => { editable && deleteRow(i, event) }">
@@ -35,7 +32,7 @@
                  ref="rubricContainer">
                 <div class="rubric"
                      v-for="(rubric, i) in rubrics"
-                     :key="`rubric-${rubric.id}`">
+                     :key="`rubric-${rubric.id}-${i}`">
                     <b-card no-block>
                         <div class="card-header rubric-header">
                             <textarea class="form-control"
@@ -50,7 +47,7 @@
                         <b-card-group class="rubric-items-container">
                             <b-card class="rubric-item"
                                     v-for="(item, j) in rubric.items"
-                                    :key="`rubric-item-${item.id}`">
+                                    :key="`rubric-item-${item.id}-${j}-${i}`">
                                 <b-input-group>
                                     <input v-if="editable"
                                            :disabled="!editable"
@@ -86,14 +83,11 @@
                                            @keydown.ctrl.enter="editable && submit()"
                                            v-model="item.header"/>
                                 </b-input-group>
-                                <b-popover triggers="hover"
-                                           placement="top"
-                                           content="Simply start typing to add a new item."
-                                           v-if="rubric.items.length - 1 === j && editable">
-                                    <div class="item-info-button">
-                                        <icon name="info"/>
-                                    </div>
-                                </b-popover>
+                                <div class="item-info-button"
+                                        v-if="rubric.items.length - 1 === j && editable"
+                                        v-b-popover.top.hover="'Simply start typing to add a new item.'">
+                                    <icon name="info"/>
+                                </div>
                                 <div class="item-delete-button"
                                      v-else-if="editable"
                                      @click="editable && deleteItem(i, j)">
@@ -242,9 +236,7 @@ export default {
                 this.rubrics = [this.getEmptyRow()];
             };
 
-            const req = this.$http.delete(
-                    `/api/v1/assignments/${this.assignmentId}/rubrics/`,
-            ).then(() => {
+            const req = this.$http.delete(`/api/v1/assignments/${this.assignmentId}/rubrics/`).then(() => {
                 success();
             });
 
@@ -272,7 +264,7 @@ export default {
                 };
 
                 for (let j = 0, len2 = row.items.length - 1; j < len2; j += 1) {
-                    if (isNaN(parseFloat(row.items[j].points))) {
+                    if (Number.isNaN(parseFloat(row.items[j].points))) {
                         wrongItems.push(`'${row.header || '[No name]'} - ${row.items[j].header || '[No name]'}'`);
                     }
                     row.items[j].points = parseFloat(row.items[j].points);
@@ -290,29 +282,23 @@ export default {
 
             if (wrongItems.length > 0) {
                 const multiple = wrongItems.length > 2;
-                this.$refs.submitButton.submit(
-                    Promise.reject(`For the following item${multiple ? 's have' : ' has'} please make sure points is a number: ` +
-                                   `${arrayToSentence(wrongItems)}.`,
-                    ),
-                );
+                this.$refs.submitButton.fail(`
+For the following item${multiple ? 's have' : ' has'} please make sure
+points is a number: ${arrayToSentence(wrongItems)}.`);
                 return;
             }
+
             if (wrongCategories.length > 0) {
                 const multiple = wrongCategories.length > 2;
-                this.$refs.submitButton.submit(
-                    Promise.reject(`The following categor${multiple ? 'ies have' : 'y has'} a no items: ` +
-                                   `${arrayToSentence(wrongCategories)}.`,
-                                  ),
-                );
+                this.$refs.submitButton.fail(`
+The following categor${multiple ? 'ies have' : 'y has'} a no items:
+                        ${arrayToSentence(wrongCategories)}.`);
                 return;
             }
 
-
-            const req = this.$http.put(
-                `/api/v1/assignments/${this.assignmentId}/rubrics/`, {
-                    rows,
-                },
-            ).then(({ data }) => {
+            const req = this.$http.put(`/api/v1/assignments/${this.assignmentId}/rubrics/`, {
+                rows,
+            }).then(({ data }) => {
                 this.setRubricData(data);
             });
             this.$refs.submitButton.submit(req.catch(({ response }) => {
@@ -408,6 +394,7 @@ export default {
     .card.rubric-item {
         border-bottom: 0;
         border-top: 0;
+        padding: .5rem;
         &:last-child {
             border-right: 0;
         }
@@ -417,6 +404,13 @@ export default {
 
     .card:hover, .card.active {
         background: #e6e6e6;
+        #app.dark & {
+            background: darken(@color-primary, 2%);
+            border-color: @color-primary-darkest !important;
+            .rubric-item input, .rubric-item textarea {
+                background: transparent;
+            }
+        }
     }
 
     .card.active, .card:hover .row-header {
@@ -450,18 +444,24 @@ export default {
     }
 
     .rubric-header {
+        #app.dark & {
+            background-color: darken(@color-primary, 1%);
+            textarea {
+                background-color: transparent;
+            }
+        }
         padding: 0 !important;
         p {
             font-size: 1.1rem;
             line-height: 1.25;
             .default-secondary-text-colors;
-            margin: 0;
             min-height: 2em;
         }
         textarea, p {
-            padding: 1rem 1.5rem;
+            padding: 1rem .75rem;
             border-radius: 0;
             border: 0;
+            margin: 0;
         }
         border-bottom: 0;
         input:focus {
@@ -507,7 +507,7 @@ export default {
         border: 1px solid transparent !important;
 
         &:hover:not(:disabled) {
-            border: 1px solid @color-primary-darker !important;
+            border: 1px solid @color-primary-darkest !important;
         }
         &:focus:not(:disabled) {
             border-color: #5cb3fd !important;
@@ -525,10 +525,16 @@ export default {
 
         &.item-points {
             font-weight: bold;
-            max-width: 20%;
-            padding-right: 0;
+            max-width: 25%;
             text-align: left;
             float: left;
+            margin-right: .2rem;
+        }
+
+        &.item-points,
+        &.item-header,
+        &.item-description {
+            padding: .375rem .1rem;
         }
 
         &.item-header {
@@ -536,14 +542,6 @@ export default {
             text-align: left;
             margin-left: 0.1rem;
             float: left;
-        }
-        &.item-group {
-            margin: 0.1rem;
-        }
-
-        &.item-description {
-            width: 100%;
-            margin: 0.1rem;
         }
     }
 
@@ -553,8 +551,8 @@ export default {
     .item-info-button {
         color: #989898;
         position: absolute;
-        top: 1.4rem;
-        right: 1.4rem;
+        top: .7rem;
+        right: .7rem;
         z-index: 100;
         padding: 0 0.5rem;
     }
@@ -581,6 +579,11 @@ export default {
         background: #f7f7f9;
     }
 }
+
+
+.card-body {
+    padding: 0;
+}
 </style>
 
 <style lang="less">
@@ -602,6 +605,19 @@ export default {
 
     .rubric-items-container .card.rubric-item > .card-block {
         border: 0;
+    }
+
+    .card.button-bar .submit-button {
+        .btn {
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
+        }
+        &:not(:first-child) .btn {
+            border-bottom-left-radius: 0;
+        }
+        &:not(:last-child) .btn {
+            border-bottom-right-radius: 0;
+        }
     }
 }
 </style>

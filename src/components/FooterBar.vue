@@ -1,7 +1,7 @@
 <template>
     <footer class="footer">
         <small>
-            &copy; {{ new Date().getFullYear() }} - CodeGra.de ({{ version }}) - Made with ❤️ &amp 🍺 -
+            &copy; {{ new Date().getFullYear() }} - CodeGra.de ({{ version }}) - Made with ❤️ &amp; 🍺 -
             <a class="codegra-email" :href="`mailto:${email}`">{{ email }}</a> -
             <a class="privacy-statement" @click="showModal = !showModal">Privacy statement</a>
         </small>

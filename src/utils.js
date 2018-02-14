@@ -37,7 +37,7 @@ export function filterSubmissions(
             .toLowerCase()
             .split(' ')
             .every(word => Object.keys(terms)
-                   .some(key => terms[key].indexOf(word) >= 0));
+                .some(key => terms[key].indexOf(word) >= 0));
         if (out) {
             l.add(item.user.id);
         }

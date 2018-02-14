@@ -1,63 +1,50 @@
 <template>
-    <div v-if="editable">
-        <b-button-group @click.native="updateState">
-            <b-popover placement="top" triggers="hover"
-                    content="Hidden or open, managed by LTI"
-                    v-if="assignment.is_lti">
-                <b-button class="state-button larger"
-                          :size="size"
-                          value="open"
-                          :variant="ltiHiddenOpenVariant">
-                    <loader :scale="1" v-if="isLoadingLTIHiddenOpen"/>
-                    <span v-else>
-                        <icon :name="icons[states.HIDDEN]"/>
-                        <icon :name="icons[states.OPEN]"/>
-                    </span>
-                </b-button>
-            </b-popover>
+<div v-if="editable && permissions.can_edit_assignment_info">
+    <b-button-group @click.native="updateState">
+        <b-button class="state-button larger"
+                  :size="size"
+                  :variant="ltiHiddenOpenVariant"
+                  :disabled="true"
+                  v-if="assignment.is_lti"
+                  v-b-popover.top.hover="'Hidden or open, managed by LTI'">
+            <icon :name="icons[states.HIDDEN]" scale="0.75"/>
+            <icon :name="icons[states.OPEN]" scale="0.75"/>
+        </b-button>
 
-            <b-button-group v-else>
-                <b-popover placement="top" triggers="hover"
-                        :content="labels[states.HIDDEN]">
-                    <b-button class="state-button"
-                            :size="size"
-                            value="hidden"
-                            :variant="hiddenVariant">
-                        <loader :scale="1" v-if="isLoadingHidden"/>
-                        <icon :name="icons[states.HIDDEN]" v-else/>
-                    </b-button>
-                </b-popover>
+        <b-button-group v-else>
+            <b-button class="state-button"
+                      :size="size"
+                      value="hidden"
+                      :variant="hiddenVariant"
+                      v-b-popover.top.hover="labels[states.HIDDEN]">
+                <loader :scale="1" v-if="isLoadingHidden" scale="0.75"/>
+                <icon :name="icons[states.HIDDEN]" scale="0.75" v-else/>
+            </b-button>
 
-                <b-popover placement="top" triggers="hover"
-                        :content="labels[states.OPEN]">
-                    <b-button class="state-button"
-                            :size="size"
-                            value="open"
-                            :variant="openVariant">
-                        <loader :scale="1" v-if="isLoadingOpen"/>
-                        <icon :name="icons[states.OPEN]" v-else/>
-                    </b-button>
-                </b-popover>
-            </b-button-group>
-
-            <b-popover placement="top" triggers="hover"
-                    :content="labels[states.DONE]">
-                <b-button class="state-button"
-                        :size="size"
-                        value="done"
-                        :variant="doneVariant">
-                    <loader :scale="1" v-if="isLoadingDone"/>
-                    <icon :name="icons[states.DONE]" v-else/>
-                </b-button>
-            </b-popover>
+            <b-button class="state-button"
+                      :size="size"
+                      value="open"
+                      :variant="openVariant"
+                      v-b-popover.top.hover="labels[states.OPEN]">
+                <loader :scale="1" v-if="isLoadingOpen" scale="0.75"/>
+                <icon :name="icons[states.OPEN]" scale="0.75" v-else/>
+            </b-button>
         </b-button-group>
-    </div>
-    <b-popover placement="top"
-               triggers="hover"
-               :content="labels[assignment.state]"
-               v-else>
-        <icon :name="icons[assignment.state]" class="state-icon"/>
-    </b-popover>
+
+        <b-button class="state-button"
+                  :size="size"
+                  value="done"
+                  :variant="doneVariant"
+                  v-b-popover.top.hover="labels[states.DONE]">
+            <loader :scale="1" v-if="isLoadingDone" scale="0.75"/>
+            <icon :name="icons[states.DONE]" scale="0.75" v-else/>
+        </b-button>
+    </b-button-group>
+</div>
+<icon :name="icons[assignment.state]"
+      class="state-icon"
+      v-b-popover.top.hover="labels[assignment.state]"
+      v-else/>
 </template>
 
 <script>
@@ -182,21 +169,16 @@ export default {
     margin-top: .5em;
     margin-left: .375em;
 }
+.state-button {
+    margin-top: 0;
+}
 
 .state-icon {
     margin-top: .6em;
 }
 
 .state-button {
-    height: 1.75em;
-    border-radius: 50%;
-    border: 0;
     padding-left: .375rem;
-
-    svg {
-        width: 1em;
-        height: 1em;
-    }
 
     &.larger {
         width: 3.5em;

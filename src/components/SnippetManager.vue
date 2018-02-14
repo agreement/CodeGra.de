@@ -1,20 +1,22 @@
 <template>
-    <div class="snippet-manager">
-        <b-form-fieldset>
-            <input v-model="filter"
-                   class="form-control"
-                   placeholder="Type to Search"
-                   v-on:keyup.enter="submit"/>
-        </b-form-fieldset>
-        <b-table striped hover
-                 class="snippets-table"
-            :items="snippets"
-            :fields="fields"
-            :current-page="currentPage"
-            :filter="filter"
-            :response="true">
+<loader :scale="2" class="" v-if="loading"/>
+<div class="snippet-manager" v-else>
+    <b-form-fieldset>
+        <input v-model="filter"
+               class="form-control"
+               placeholder="Type to Search"
+               v-on:keyup.enter="submit"/>
+    </b-form-fieldset>
+    <b-table striped
+             hover
+             class="snippets-table"
+             :items="snippets"
+             :fields="fields"
+             :current-page="currentPage"
+             :filter="filter"
+             response>
 
-            <template slot="key" scope="item">
+        <template slot="key" slot-scope="item">
                 <b-form-fieldset
                     :state="!item.item.submitted ? '' : validSnippetKey(item.item) ? 'success' : 'danger'"
                     :feedback="item.item.keyError"
@@ -28,7 +30,7 @@
                 <span v-else>{{ item.item.key ? item.item.key : '-' }}</span>
             </template>
 
-            <template slot="text" scope="item">
+            <template slot="text" slot-scope="item">
                 <b-form-fieldset
                     :state="!item.item.submitted ? '' : validSnippetValue(item.item) ? 'success' : 'danger'"
                     :feedback="item.item.valueError"
@@ -42,32 +44,31 @@
                 <span v-else>{{ item.item.value ? item.item.value : '-' }}</span>
             </template>
 
-            <template slot="actions" scope="item">
-                <div v-if="item.item.editing" class="button-wrapper">
+            <template slot="actions" slot-scope="item">
+                <b-button-group v-if="item.item.editing" class="button-wrapper">
                     <b-btn size="sm" variant="danger" :disabled="item.item.pending" @click="cancelSnippetEdit(item.item)">
                         <icon name="ban" scale="1"></icon>
                     </b-btn>
                     <b-btn size="sm" variant="success" :disabled="item.item.pending" @click="saveSnippet(item.item)">
-                        <loader v-if="item.item.pending" :scale="1" ></loader>
+                        <loader v-if="item.item.pending" :scale="1" center></loader>
                         <icon name="floppy-o" scale="1" v-else></icon>
                     </b-btn>
-                </div>
-                <div class="button-wrapper" v-else>
+                </b-button-group>
+                <b-button-group class="button-wrapper" v-else>
                     <b-btn size="sm" variant="danger" :disabled="item.item.pending" @click="deleteSnippet(item.item)">
                         <icon name="times" scale="1"></icon>
                     </b-btn>
                     <b-btn size="sm" variant="primary" @click="editSnippet(item.item)">
                         <icon name="pencil" scale="1"></icon>
                     </b-btn>
-                </div>
+                </b-button-group>
             </template>
         </b-table>
-        <b-button-group class="global">
-            <loader :scale="2" class="" v-if="loading"></loader>
-            <b-button variant="primary" @click="newSnippet" v-else>
+        <div class="global">
+            <b-button variant="primary" @click="newSnippet">
                 <span>Add</span>
             </b-button>
-        </b-button-group>
+        </div>
     </div>
 </template>
 
@@ -91,21 +92,19 @@ export default {
             snippets: [],
             filter: null,
             currentPage: 1,
-            fields: {
-                key: {
+            fields: [
+                {
+                    key: 'key',
                     label: 'Key',
-                    sortable: true,
-                },
-                text: {
+                }, {
+                    key: 'text',
                     label: 'Text',
-                    sortable: true,
-                },
-                actions: {
+                }, {
+                    key: 'actions',
                     label: 'Actions',
-                    sortable: false,
-                    class: 'text-center',
+                    class: 'text-right',
                 },
-            },
+            ],
         };
     },
 
@@ -178,15 +177,15 @@ export default {
                     snippet.id = response.data.id;
                     this.addSnippetToStore({
                         key: snippet.key,
-                        value: { value: snippet.value, id: snippet.id } },
-                    );
+                        value: { value: snippet.value, id: snippet.id },
+                    });
                 });
             } else {
                 this.deleteSnippetFromStore(snippet.origKey);
                 this.addSnippetToStore({
                     key: snippet.key,
-                    value: { value: snippet.value, id: snippet.id } },
-                );
+                    value: { value: snippet.value, id: snippet.id },
+                });
                 this.$http.patch(`/api/v1/snippets/${snippet.id}`, {
                     key: snippet.key,
                     value: snippet.value,
@@ -246,12 +245,9 @@ export default {
     margin-bottom: 0;
 }
 
-.global.btn-group {
-    float: right;
-}
-
-.button-wrapper {
-    width: 5em;
+.global {
+    text-align: right;
+    padding-right: .9rem;
 }
 </style>
 

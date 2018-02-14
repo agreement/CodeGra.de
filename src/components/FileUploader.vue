@@ -1,16 +1,17 @@
 <template>
-    <b-form-fieldset>
+    <b-form-fieldset class="file-uploader">
         <b-input-group>
-            <b-input-group-button>
+            <b-input-group-prepend>
                 <submit-button :disabled="this.file === null"
+                               class="file-uploader-button"
                                @click.prevent="submit"
                                :show-error="showError"
                                ref="submitButton"/>
-            </b-input-group-button>
-            <b-form-file id="fileUploader"
-                         class="fileUploader"
+            </b-input-group-prepend>
+            <b-form-file class="file-uploader-form"
                          ref="formFile"
                          name="file"
+                         placeholder="Click here to choose a file..."
                          v-model="file"
                          :disabled="disabled"/>
         </b-input-group>
@@ -54,14 +55,13 @@ export default {
 
     methods: {
         submit() {
-            return this.$refs.submitButton.submit(
-                this.$http.post(this.url, this.requestData).then((res) => {
-                    this.$emit('response', res);
-                }, ({ response }) => {
-                    this.$emit('error', response);
-                    throw response.data.message;
-                }),
-            );
+            const req = this.$http.post(this.url, this.requestData).then((res) => {
+                this.$emit('response', res);
+            }, ({ response }) => {
+                this.$emit('error', response);
+                throw response.data.message;
+            });
+            return this.$refs.submitButton.submit(req);
         },
     },
 
@@ -82,13 +82,18 @@ input:disabled {
 <style lang="less">
 @import '~mixins.less';
 
-.custom-file-control{
-    &::before {
-        border: 0 !important;
+.custom-file-label {
+    border-left: 0;
+}
+
+.file-uploader-button {
+    height: 100%;
+    button {
+        height: 100%;
     }
 }
 
-#app.dark .fileUploader .custom-file-control {
+#app.dark .file-uploader-form .custom-file-control {
     background: @color-primary;
     color: @text-color-dark;
     &::before {

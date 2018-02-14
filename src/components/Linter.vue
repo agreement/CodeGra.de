@@ -37,14 +37,29 @@
                 </div>
                 <div v-else>
                     <div class="row justify-content-md-center">
-                        <b-btn class="text-center margin btn delete" variant="danger" @click="$root.$emit('show::modal',`modal_${name}_${assignment.id}`)">Remove output</b-btn>
-                        <b-modal :id="`modal_${name}_${assignment.id}`" title="Are you sure?" :hide-footer="true">
-                            <div class="row justify-content-md-center" v-if="deleting">
+                        <b-btn class="text-center margin btn delete"
+                               variant="danger"
+                               @click="$root.$emit('bv::show::modal',`modal_${name}_${assignment.id}`)">
+                            Remove output
+                        </b-btn>
+                        <b-modal :id="`modal_${name}_${assignment.id}`"
+                                 title="Are you sure?"
+                                 :hide-footer="true">
+                            <div class="row justify-content-md-center"
+                                 v-if="deleting">
                                 <b-btn class="text-center" variant="outline-danger"><loader :scale="1"/></b-btn>
                             </div>
                             <div v-else>
-                                <b-btn class="text-center" variant="outline-danger" v-on:click="deleteFeedback">Yes, delete this data.</b-btn>
-                                <b-btn class="text-center right-float" variant="success" v-on:click="$root.$emit('hide::modal', `modal_${name}_${assignment.id}`)">No!</b-btn>
+                                <b-btn class="text-center"
+                                       variant="outline-danger"
+                                       v-on:click="deleteFeedback">
+                                    Yes, delete this data.
+                                </b-btn>
+                                <b-btn class="text-center right-float"
+                                       variant="success"
+                                       v-on:click="$root.$emit('bv::hide::modal', `modal_${name}_${assignment.id}`)">
+                                    No!
+                                </b-btn>
                             </div>
                         </b-modal>
                     </div>
@@ -118,7 +133,7 @@ export default {
         deleteFeedback() {
             this.deleting = true;
             this.$http.delete(`/api/v1/linters/${this.id}`).then(() => {
-                this.$root.$emit('hide::modal', `modal_${this.name}_${this.assignment.id}`);
+                this.$root.$emit('bv::hide::modal', `modal_${this.name}_${this.assignment.id}`);
 
                 this.selected = false;
                 this.opened = false;

@@ -26,7 +26,10 @@
                     </td>
                 </tr>
                 <tr v-if="showFontSize">
-                    <td>Code font size</td>
+                    <td style="text-align: left;">
+                        Code font size
+                        <loader v-show="fontSizeLoading" :scale="1" center/>
+                    </td>
                     <td>
                         <b-input-group right="px">
                             <input v-model="fontSize"
@@ -46,10 +49,8 @@
                 <tr v-if="showRevision">
                     <td>Revision</td>
                     <td>
-                        <b-input-group>
-                            <b-form-radio v-model="selectedRevision"
-                                          :options="revisionOptions"/>
-                        </b-input-group>
+                        <b-form-radio-group v-model="selectedRevision"
+                                            :options="revisionOptions"/>
                     </td>
                 </tr>
             </tbody>
@@ -111,16 +112,19 @@ export default {
             if (this.showWhitespace) {
                 promise = promise
                     .then(() =>
-                          this.$whitespaceStore.getItem(`${this.fileId}`).then((white) => {
-                              this.whitespace = white === null || white;
-                          }));
+                        this.$whitespaceStore.getItem(`${this.fileId}`).then((white) => {
+                            this.whitespace = white === null || white;
+                        }));
             }
+
             if (this.showLanguage) {
                 promise = promise
-                    .then(() => this.$hlanguageStore.getItem(`${this.fileId}`).then((lang) => {
-                        this.selectedLanguage = lang || 'Default';
-                    }));
+                    .then(() =>
+                        this.$hlanguageStore.getItem(`${this.fileId}`).then((lang) => {
+                            this.selectedLanguage = lang || 'Default';
+                        }));
             }
+
             promise.then(() => {
                 this.loading = false;
             });
@@ -138,6 +142,7 @@ export default {
             languages,
             whitespace: true,
             fontSize: false,
+            fontSizeLoading: false,
             langLoading: false,
             whiteLoading: false,
             initial: true,
@@ -147,12 +152,10 @@ export default {
                 {
                     text: 'Student',
                     value: 'student',
-                },
-                {
+                }, {
                     text: 'Teacher',
                     value: 'teacher',
-                },
-                {
+                }, {
                     text: 'Diff',
                     value: 'diff',
                 },
@@ -178,9 +181,18 @@ export default {
         },
 
         fontSize(val) {
+            this.fontSizeLoading = true;
             const size = Math.max(val, 1);
-            this.$store.dispatch('pref/setFontSize', size);
-            this.$emit('font-size', size);
+            const cont = this.$store.dispatch('pref/setFontSize', size);
+
+            setTimeout(() => {
+                this.$nextTick(() => {
+                    cont.then(() => {
+                        this.fontSizeLoading = false;
+                        this.$emit('font-size', size);
+                    });
+                });
+            }, 200);
         },
 
         selectedLanguage(lang, old) {
@@ -198,17 +210,18 @@ export default {
         },
 
         whitespace(val) {
-            // Use a timeout to prevent very short loaders.
-            let load = true;
-            setTimeout(() => {
-                this.whiteLoading = load;
-            }, 100);
+            this.whiteLoading = true;
 
-            this.$whitespaceStore.setItem(`${this.fileId}`, val).then(() => {
-                load = false;
-                this.whiteLoading = false;
-                this.$emit('whitespace', val);
-            });
+            const cont = this.$whitespaceStore.setItem(`${this.fileId}`, val);
+
+            setTimeout(() => {
+                this.$nextTick(() => {
+                    cont.then(() => {
+                        this.whiteLoading = false;
+                        this.$emit('whitespace', val);
+                    });
+                });
+            }, 200);
         },
 
         selectedRevision(val) {
@@ -260,6 +273,9 @@ export default {
     .table td {
         vertical-align: middle;
         text-align: left;
+        &:first-child {
+            width: 10em;
+        }
     }
     .toggle-container {
         margin-bottom: -2px;

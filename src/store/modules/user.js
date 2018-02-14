@@ -22,7 +22,7 @@ const actions = {
                 if (err.response) {
                     reject(err.response.data);
                 } else {
-                    reject(null);
+                    reject(new Error('Login failed for a unknown reason!'));
                 }
             });
         });
@@ -66,7 +66,9 @@ const actions = {
             });
         });
     },
-    updateUserInfo({ commit }, { name, email, oldPw, newPw }) {
+    updateUserInfo({ commit }, {
+        name, email, oldPw, newPw,
+    }) {
         return axios.patch('/api/v1/login', {
             name,
             email,
@@ -87,7 +89,7 @@ const mutations = {
         state.email = userdata.email;
         state.name = userdata.name;
         state.canSeeHidden = userdata.hidden;
-        state.usernmae = userdata.username;
+        state.username = userdata.username;
     },
     [types.SNIPPETS](state, snippets) {
         state.snippets = snippets;
@@ -99,6 +101,7 @@ const mutations = {
         state.snippets = null;
         state.canSeeHidden = false;
         state.jwtToken = null;
+        state.username = null;
         Vue.prototype.$clearPermissions();
     },
     [types.NEW_SNIPPET](state, { key, value }) {

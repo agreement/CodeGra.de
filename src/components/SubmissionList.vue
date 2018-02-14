@@ -5,17 +5,19 @@
                 <input v-model="filter"
                        class="form-control"
                        placeholder="Type to Search"
-                       @keyup.enter="submit"/>
+                       @keyup.enter="$nextTick(submit)"/>
 
-                <b-form-checkbox class="input-group-addon" v-model="latestOnly" @change="submit"
-                    v-if="latest.length !== submissions.length">
-                    Latest only
-                </b-form-checkbox>
+                <b-input-group-prepend v-if="latest.length !== submissions.length" is-text>
+                    <b-form-checkbox v-model="latestOnly" @change="$nextTick(submit)">
+                        Latest only
+                    </b-form-checkbox>
+                </b-input-group-prepend>
 
-                <b-form-checkbox class="input-group-addon" v-model="mineOnly" @change="submit"
-                    v-if="assigneeFilter">
-                    Assigned to me
-                </b-form-checkbox>
+                <b-input-group-prepend v-if="assigneeFilter" is-text>
+                    <b-form-checkbox v-model="mineOnly" @change="$nextTick(submit)">
+                        Assigned to me
+                    </b-form-checkbox>
+                </b-input-group-prepend>
             </b-input-group>
         </b-form-fieldset>
 
@@ -33,6 +35,7 @@
         </div>
 
         <b-modal v-if="rubric"
+                 class="rubric-modal"
                  v-model="showRubricModal"
                  :ok-only="true"
                  ok-title="Close"
@@ -45,28 +48,30 @@
 
         <b-table striped hover
                  ref="table"
-                 @row-clicked='gotoSubmission'
-                 @sort-changed="sortChanged"
+                 @row-clicked="gotoSubmission"
+                 @sort-changed="(ctx) => $nextTick(() => sortChanged(ctx))"
                  :items="filteredSubmissions"
                  :fields="fields"
                  :current-page="currentPage"
                  :sort-compare="sortSubmissions"
                  :show-empty="true"
+                 :sort-by="this.$route.query.sortBy || 'user'"
+                 :sort-desc="!parseBool(this.$route.query.sortAsc, true)"
                  class="submissions-table">
-            <template slot="user" scope="item">
-                <a class="invisible-link"
-                   href="#"
-                   @click.prevent>
-                   {{item.value.name ? item.value.name : '-'}}
-                </a>
-            </template>
-            <template slot="grade" scope="item">
+            <a class="invisible-link"
+                href="#"
+                slot="user"
+                slot-scope="item"
+                @click.prevent>
+                {{item.value.name ? item.value.name : '-'}}
+            </a>
+            <template slot="grade" slot-scope="item">
                 {{formatGrade(item.value) || '-'}}
             </template>
-            <template slot="created_at" scope="item">
+            <template slot="created_at" slot-scope="item">
                 {{item.value ? item.value : '-'}}
             </template>
-            <template slot="assignee" scope="item">
+            <template slot="assignee" slot-scope="item">
                 <span v-if="!canChangeAssignee">
                     {{ item.value ? item.value.name : '-' }}
                 </span>
@@ -80,12 +85,6 @@
                     v-else/>
             </template>
         </b-table>
-
-        <b-alert variant="warning"
-                 :dismissable="true"
-                 :show="error !== ''">
-            {{ error }}
-        </b-alert>
     </div>
 </template>
 
@@ -124,6 +123,7 @@ export default {
 
     data() {
         return {
+            parseBool,
             showRubricModal: false,
             latestOnly: parseBool(this.$route.query.latest, true),
             mineOnly: parseBool(this.$route.query.mine, true),
@@ -151,7 +151,6 @@ export default {
             assigneeFilter: false,
             assignees: [],
             assigneeUpdating: [],
-            error: '',
         };
     },
 
@@ -204,21 +203,22 @@ export default {
     },
 
     mounted() {
-        this.assigneeFilter = this.submissions.some(s => s.assignee &&
-                                                    s.assignee.id === this.userId);
-        this.$refs.table.sortBy = this.$route.query.sortBy || 'user';
-        // Fuck you bootstrapVue (sortDesc should've been sortAsc).
-        this.$refs.table.sortDesc = parseBool(this.$route.query.sortAsc, true);
-
+        this.updateAssigneeFilter();
         if (this.graders) {
             this.updateGraders(this.graders);
         }
     },
 
     methods: {
+        updateAssigneeFilter() {
+            this.assigneeFilter = this.submissions.some(
+                s => s.assignee && s.assignee.id === this.userId,
+            );
+        },
+
         updateGraders(graders) {
             const assignees = graders.map(ass =>
-                                          ({ value: ass.id, text: ass.name, data: ass }));
+                ({ value: ass.id, text: ass.name, data: ass }));
             assignees.unshift({ value: null, text: '-', data: null });
             this.assignees = assignees;
         },
@@ -236,8 +236,9 @@ export default {
         sortChanged(context) {
             this.$router.replace({
                 query: Object.assign(
-                    // Fuck you bootstrapVue (sortDesc should've been sortAsc)
-                    {}, this.$route.query, { sortBy: context.sortBy, sortAsc: context.sortDesc },
+                    {},
+                    this.$route.query,
+                    { sortBy: context.sortBy, sortAsc: !context.sortDesc },
                 ),
             });
         },
@@ -258,7 +259,7 @@ export default {
                     search: this.filter || undefined,
                     // Fuck you bootstrapVue (sortDesc should've been sortAsc)
                     sortBy: this.$refs.table.sortBy,
-                    sortAsc: this.$refs.table.sortDesc,
+                    sortAsc: !this.$refs.table.sortDesc,
                 },
             });
         },
@@ -270,9 +271,7 @@ export default {
             };
             query.q = this.filter || undefined;
             this.$router.replace({
-                query: Object.assign(
-                    {}, this.$route.query, query,
-                ),
+                query: Object.assign({}, this.$route.query, query),
             });
         },
 
@@ -327,6 +326,7 @@ export default {
                     }
                 }
                 this.$emit('assigneeUpdated', submission, newAssignee);
+                this.updateAssigneeFilter();
             }, ({ response }) => {
                 // eslint-disable-next-line
                 console.log(response);
@@ -377,5 +377,9 @@ export default {
 .submission-list .modal-dialog.modal-md {
     max-width: 1550px;
     width: 100%;
+}
+
+.rubric-modal .modal-body {
+    padding: 0;
 }
 </style>

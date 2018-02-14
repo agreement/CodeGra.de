@@ -16,17 +16,27 @@
                     :key="grader.id"
                     class="grader">
                     <td>{{ grader.name }}</td>
-                    <td>
-                        <b-popover placement="left"
-                                   :show="warningGraders[grader.id] || errorGraders[grader.id] ? true : false"
-                                   :content="errorGraders[grader.id] || warningGraders[grader.id]">
-                            <icon :name="iconStyle(grader.id)"
-                                  :spin="!(errorGraders[grader.id] || warningGraders[grader.id])"
-                                  :class="iconClass(grader.id)"
-                                  :style="{
-                                            opacity: warningGraders[grader.id] || loadingGraders[grader.id] || errorGraders[grader.id] ? 1 : 0,
-                                  }"/>
+                    <td :style="{ padding: 0, width: '2.8em', }">
+                        <b-popover placement="top"
+                                   :show="!!(warningGraders[grader.id] || errorGraders[grader.id])"
+                                   :target="`grader-icon-${assignment.id}-${grader.id}`">
+                            <span v-if="errorGraders[grader.id]">
+                                {{ errorGraders[grader.id] }}
+                            </span>
+                            <span v-else>
+                                {{ warningGraders[grader.id] }}
+                            </span>
                         </b-popover>
+
+                        <icon :name="iconStyle(grader.id)"
+                              :spin="!(errorGraders[grader.id] || warningGraders[grader.id])"
+                              :id="`grader-icon-${assignment.id}-${grader.id}`"
+                              :class="iconClass(grader.id)"
+                              :style="{
+                                      opacity: warningGraders[grader.id] ||
+                                               loadingGraders[grader.id] ||
+                                               errorGraders[grader.id] ? 1 : 0,
+                                      }"/>
                     </td>
                     <td>
                         <toggle label-on="Done"
@@ -34,6 +44,7 @@
                                 :disabled="!others && $store.getters['user/id'] != grader.id"
                                 style="width: 100%;"
                                 v-model="grader.done"
+                                disabled-text="You cannot change the grader status of other graders"
                                 @input="toggleGrader(grader)"/>
                     </td>
             </tr>
@@ -120,8 +131,8 @@ export default {
                     const warning = parseWarningHeader(res.headers.warning);
                     this.$set(this.warningGraders, grader.id, warning.text);
                     this.$nextTick(() => setTimeout(() => {
-                        this.$set(this.warningGraders, grader.id, false);
-                        delete this.warningGraders[grader.id];
+                        // this.$set(this.warningGraders, grader.id, false);
+                        // delete this.warningGraders[grader.id];
                     }, 2000));
                 }
             }, (err) => {

@@ -5,7 +5,7 @@
                 <span>Export as CSV</span>
             </b-button>
             <b-button v-b-toggle.settings>
-                <icon name='cog'></icon>
+                <icon name="cog"/>
             </b-button>
         </b-button-group>
         <b-collapse id="settings">
@@ -31,7 +31,10 @@
                              assignment will be exported.<br>The <i>Current</i> option only
                              exports the submissions that are shown by the current filter that
                              is applied to the list.">
-                <b-form-radio v-model="exportSetting" :options="['All', 'Current']"/>
+                <b-form-radio-group v-model="exportSetting">
+                    <b-form-radio value="All">All</b-form-radio>
+                    <b-form-radio value="Current">Current</b-form-radio>
+                </b-form-radio-group>
             </b-form-fieldset>
         </b-collapse>
     </div>

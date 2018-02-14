@@ -9,7 +9,7 @@
                             style="flex-basis: 20%;"
                             :key="`rubric-row-${row.id}`"
                             :class="{active: i === current}"
-                            @click.native="gotoItem(i)">
+                            @click="gotoItem(i)">
                         <b>{{ row.header }}</b>
                         <icon name="check"
                               v-if="selectedRows[row.id]"
@@ -32,11 +32,10 @@
                                 <b-card class="rubric-item"
                                         v-for="item in rubric.items"
                                         :key="`rubric-${rubric.id}-${item.id}`"
-                                        @click.native="selectOrUnselect(rubric, item)"
+                                        @click="selectOrUnselect(rubric, item)"
                                         :class="{ selected: selected[item.id] }">
                                     <div class="rubric-item-wrapper row">
-                                        <div class="col-12"
-                                             style="position: relative;">
+                                        <div style="position: relative;">
                                             <b>{{ item.points }} - {{ item.header }}</b>
                                             <div v-if="itemStates[item.id] === '__LOADING__'"
                                                  class="rubric-icon">
@@ -175,8 +174,10 @@ export default {
                     res[item.id] = true;
                     return res;
                 }, {});
-                this.selectedPoints = selected.reduce((res, item) => res + item.points,
-                                                      0);
+                this.selectedPoints = selected.reduce(
+                    (res, item) => res + item.points,
+                    0,
+                );
                 this.selectedRows = rubrics.reduce((res, row) => {
                     res[row.id] = row.items.some(item => this.selected[item.id]);
                     return res;
@@ -219,13 +220,9 @@ export default {
                     }
                 });
             } else if (selectItem) {
-                req = this.$http.patch(
-                    `/api/v1/submissions/${this.submission.id}/rubricitems/${item.id}`,
-                );
+                req = this.$http.patch(`/api/v1/submissions/${this.submission.id}/rubricitems/${item.id}`);
             } else {
-                req = this.$http.delete(
-                    `/api/v1/submissions/${this.submission.id}/rubricitems/${item.id}`,
-                );
+                req = this.$http.delete(`/api/v1/submissions/${this.submission.id}/rubricitems/${item.id}`);
             }
 
             req.then(() => {
@@ -301,6 +298,11 @@ export default {
         border-bottom-right-radius: 0;
         border-top-right-radius: 0;
     }
+
+    .card-body {
+        padding: .5rem .75rem;
+    }
+
     .card:nth-child(5n), .card:first-child {
         border-left: 0;
     }
@@ -409,18 +411,29 @@ export default {
     margin-top: 0.5em;
     padding-right: 0.5em;
 }
-</style>
 
-<style lang="less">
-.rubric-viewer {
-    .card-header,
-    .card-block {
-        padding: .5rem .75rem;
-        .rubric-item-wrapper {
-            margin: -0.5em;
-            padding: 0.5em;
-            align-items: center;
-        }
+.rubric {
+    .card-body {
+        padding: 0;
     }
+}
+
+.card-header,
+.card.rubric-item,
+.card-block {
+    .card-body {
+        padding: .5rem .75rem;
+    }
+
+    .rubric-item-wrapper {
+        margin: -0.5em;
+        padding: 0.5em;
+        align-items: center;
+    }
+}
+
+.card.rubric-item .card-body {
+    padding-right: 0;
+    padding-bottom: 0;
 }
 </style>

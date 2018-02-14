@@ -50,34 +50,35 @@ export default {
                 this.courseId,
                 true,
             ),
-        ]).then(([assignments, course, perms]) => {
+        ]).then(([{ data: assignments }, { data: course }, perms]) => {
             this.permissions = perms;
 
-            let data = assignments.data;
-            for (let i = 0, len = data.length; i < len; i += 1) {
-                const deadline = moment.utc(data[i].deadline, moment.ISO_8601).local();
-                const reminderTime = moment.utc(data[i].reminder_time, moment.ISO_8601).local();
+            for (let i = 0, len = assignments.length; i < len; i += 1) {
+                const deadline = moment.utc(assignments[i].deadline, moment.ISO_8601).local();
+                const reminderTime = moment.utc(
+                    assignments[i].reminder_time,
+                    moment.ISO_8601,
+                ).local();
                 let defaultReminderTime = deadline.clone().add(7, 'days');
 
                 if (defaultReminderTime.isBefore(moment())) {
                     defaultReminderTime = moment().add(3, 'days');
                 }
 
-                data[i].deadline = deadline.format('YYYY-MM-DDTHH:mm');
-                data[i].created_at = moment.utc(data[i].created_at, moment.ISO_8601)
+                assignments[i].deadline = deadline.format('YYYY-MM-DDTHH:mm');
+                assignments[i].created_at = moment.utc(assignments[i].created_at, moment.ISO_8601)
                     .local()
                     .format('YYYY-MM-DDTHH:mm');
-                data[i].has_reminder_time = reminderTime.isValid();
-                data[i].reminder_time = (reminderTime.isValid() ?
-                                         reminderTime :
-                                         defaultReminderTime)
+                assignments[i].has_reminder_time = reminderTime.isValid();
+                assignments[i].reminder_time = (reminderTime.isValid() ?
+                    reminderTime :
+                    defaultReminderTime)
                     .format('YYYY-MM-DDTHH:mm');
             }
-            this.assignments = data;
+            this.assignments = assignments;
 
-            data = course.data;
-            this.course = data;
-            setPageTitle(data.name);
+            this.course = course;
+            setPageTitle(course.name);
 
             this.loading = false;
         });

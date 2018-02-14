@@ -1,49 +1,37 @@
 <template>
 <div>
     <div>
-        <label class="custom-control custom-checkbox">
-            <input class="custom-control-input"
-                   type="checkbox"
-                   v-model="graders"/>
-            <span aria-hidden="true"
-                  class="custom-control-indicator"/>
-            <span><b>Graders</b><description-popover
-                                    description="Toggle this checkbox to send a
-                                                 reminder to the graders that
-                                                 are causing the grading to not
-                                                 be done at the given
-                                                 time."
-                                    placement="right"/></span>
-        </label>
-        <b-collapse :visible="graders">
-            <b-input-group left="Time to send"
+        <b-form-checkbox v-model="graders">
+            <b>Graders</b>
+            <description-popover
+                description="Toggle this checkbox to send a reminder to the
+                             graders that are causing the grading to not be done
+                             at the given time."
+                placement="right"/>
+        </b-form-checkbox>
+        <b-collapse :visible="graders" :id="`collapse-${Math.random()}`">
+            <b-input-group prepend="Time to send"
                            class="extra-box">
                 <input type="datetime-local"
                        @keyup.ctrl.enter="updateReminder"
                        class="form-control"
                        v-model="assignment.reminder_time"/>
-        </b-input-group>
+            </b-input-group>
         </b-collapse>
     </div>
     <hr/>
     <div>
-        <label class="custom-control custom-checkbox">
-            <input class="custom-control-input"
-                   type="checkbox"
-                   v-model="finished"/>
-            <span aria-hidden="true"
-                  class="custom-control-indicator"/>
-            <span><b>Finished</b><description-popover
-                                     description="Toggle this checkbox to send
-                                                  the given email address a
-                                                  reminder when the grading is
-                                                  done. You can select multiple
-                                                  address in the same as in your
-                                                  email client."
-                                     placement="right"/></span>
-        </label>
-        <b-collapse :visible="finished">
-            <b-input-group left="Send to"
+        <b-form-checkbox v-model="finished">
+            <b>Finished</b>
+            <description-popover
+                description="Toggle this checkbox to send the given email
+                             address a reminder when the grading is done. You
+                             can select multiple address in the same as in your
+                             email client."
+                placement="right"/>
+        </b-form-checkbox>
+        <b-collapse :visible="finished" :id="`collapse-${Math.random()}`">
+            <b-input-group prepend="Send to"
                            class="extra-box">
                 <input type="text"
                        @keyup.ctrl.enter="updateReminder"
@@ -54,21 +42,19 @@
     </div>
     <hr/>
     <b-collapse :visible="graders || finished"
-                class="custom-controls-stacked grade-options">
-        <label class="custom-control custom-radio"
-               v-for="item in options">
-            <input type="radio"
-                   class="custom-control-input"
-                   :id="`${assignment.id}-${item.value}`"
-                   :value="item.value"
-                   v-model="assignment.done_type"/>
-            <span aria-hidden="true" class="custom-control-indicator"/>
-            <span>{{ item.text }}</span>
-            <description-popover
-                :description="item.help"
-                hug-text
-                placement="right"/>
-        </label>
+                class="grade-options"
+                :id="`collapse-${Math.random()}`">
+        <b-form-radio-group v-model="assignment.done_type">
+            <b-form-radio v-for="item in options"
+                          :key="item.value"
+                          :value="item.value">
+                {{ item.text }}
+                <description-popover
+                    :description="item.help"
+                    hug-text
+                    placement="right"/>
+            </b-form-radio>
+        </b-form-radio-group>
         <hr style="width: 100%"/>
     </b-collapse>
 

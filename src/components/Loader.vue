@@ -1,8 +1,8 @@
 <template>
-    <div class="loader" v-if="center">
-        <icon name="refresh" :scale="scale" spin></icon>
-    </div>
-    <icon v-else name="refresh" :scale="scale" spin></icon>
+<div class="center loader" v-if="center">
+    <icon name="refresh" :scale="scale" spin></icon>
+</div>
+<icon class="loader" v-else name="refresh" :scale="scale" spin></icon>
 </template>
 
 <script>
@@ -30,12 +30,9 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.loader {
-    display: -webkit-flex; /* Safari */
+.center.loader {
     display: flex;
-    -webkit-align-items: center; /* Safari 7.0+ */
     align-items: center;
-    -webkit-justify-content: center;
     justify-content: center;
 }
 </style>

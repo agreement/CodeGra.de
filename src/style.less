@@ -69,6 +69,10 @@ footer {
         .primary-button-color;
     }
 
+    &-secondary {
+        .secondary-button-color;
+    }
+
     .fa-icon {
         &:not(:first-child) {
             margin-left: .66em;
@@ -105,9 +109,13 @@ table.table {
 
 input, textarea {
     .default-input-colors;
+    &:disabled {
+        cursor: not-allowed;
+    }
 }
 
-#app.dark ~ .popover {
+#app.dark ~ .popover,
+#app.dark .popover {
     .dark-popover-colors;
 }
 
@@ -134,6 +142,10 @@ input[type="number"] {
     appearance: textfield;
 }
 
+.btn.disabled {
+    cursor: not-allowed;
+}
+
 input:disabled,
 textarea:disabled {
     background: white;
@@ -156,14 +168,16 @@ textarea:disabled {
     .default-button-group-colors;
 }
 
+#app {
+    .default-checkbox-and-radio-colors;
+}
+
+
 .input-group {
     .default-input-group-colors;
 
     .custom-checkbox {
         margin-right: 0;
-        padding: .5rem .75rem;
-        padding-left: 2.25rem;
-        font-size: 0.95em;
 
         .custom-control-indicator {
             top: .625rem;
@@ -173,7 +187,8 @@ textarea:disabled {
 }
 
 .btn-group .popover-container,
-.input-group .input-group-btn {
+.input-group .input-group-append,
+.input-group .input-group-prepend {
     &:not(:first-child) .btn {
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
@@ -182,6 +197,11 @@ textarea:disabled {
     &:not(:last-child) .btn {
         border-top-right-radius: 0;
         border-bottom-right-radius: 0;
+    }
+
+    &:last-child .input-group-text {
+        border-top-right-radius: 0.25rem;
+        border-bottom-right-radius: 0.25rem;
     }
 }
 
@@ -199,9 +219,24 @@ textarea:disabled {
         cursor: pointer;
     }
 
-    & &-control {
+    & &-label {
         cursor: pointer;
-        border: 0;
+        border-color: @color-lighter-gray;
+
+        &::after {
+            height: inherit;
+            background-color: @color-lighter-gray;
+        }
+
+        #app.dark & {
+            border-color: @color-primary-darker;
+            background-color: @color-primary;
+            &::after {
+                background-color: @color-primary-darker;
+                border-color: @color-primary-darker;
+                color: @color-secondary-text-lighter;
+            }
+        }
     }
 }
 
@@ -315,4 +350,8 @@ textarea:disabled {
 
 #app.dark .card-header {
     background-color: @color-primary-darker;
+}
+
+.modal-dialog {
+    margin-top: 7rem;
 }

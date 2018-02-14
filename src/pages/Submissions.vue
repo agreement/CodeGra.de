@@ -1,55 +1,67 @@
 <template>
-    <loader :class="`col-md-12 text-center`" v-if="loading"/>
-    <div class="page submission-list" v-else>
-        <h4>
-            Submissions for {{ assignment.name }} in
-            <router-link :to="courseRoute"
-                         v-if="canManage || !inLTI">
-                {{ course.name }}
-            </router-link>
-            <span v-else>{{ course.name }}</span>
-        </h4>
+<loader center v-if="loading"/>
+<div class="submission-list" v-else>
+    <h4>
+        Submissions for {{ assignment.name }} in
+        <router-link :to="courseRoute"
+                     v-if="canManage || !inLTI">
+            {{ course.name }}
+        </router-link>
+        <span v-else>{{ course.name }}</span>
+    </h4>
 
-        <submission-list
-            :assignment="assignment"
-            :submissions="submissions"
-            :canDownload="canDownload"
-            :rubric="rubric"
-            :graders="graders"
-            @assigneeUpdated="updateAssignee"/>
+    <submission-list
+        :assignment="assignment"
+        :submissions="submissions"
+        :canDownload="canDownload"
+        :rubric="rubric"
+        :graders="graders"
+        @assigneeUpdated="updateAssignee"/>
 
-        <b-modal id="wrong-files-modal" hide-footer>
-            <p>The following files should not be in your archive according to the <code style="margin: 0 0.25rem;">.cgignore</code> file:</p>
-            <ul style="list-style-type: none">
-                <li style="margin-right: 2px; padding: 0.5em;" v-for="file in wrongFiles">
-                    <code style="margin-right: 0.25rem">{{ file[0] }}</code> is ignored by <code>{{ file[1] }}</code>
-                </li>
-            </ul>
-            <b-button-toolbar justify>
-                <submit-button ref="submitDelete"
-                               label="Delete files" default="danger"
-                               @click="overrideSubmit('delete', $refs.submitDelete)"/>
-                <submit-button ref="submitKeep"
-                               label="Keep files" default="warning"
-                               @click="overrideSubmit('keep', $refs.submitKeep)"/>
-                <submit-button label="Cancel submission"
-                               @click="$root.$emit('hide::modal', 'wrong-files-modal');"/>
-            </b-button-toolbar>
-        </b-modal>
+    <b-modal id="wrong-files-modal"
+             hide-footer
+             title="Probably superfluous files found!">
+        <p>
+            The following files should not be in your archive according to
+            the <code style="margin: 0 0.25rem;">.cgignore</code> file. This
+            means the following files are probably not necessary to hand
+            in:
+        </p>
+        <ul style="list-style-type: none">
+            <li style="margin-right: 2px; padding: 0.5em;" v-for="file in wrongFiles">
+                <code style="margin-right: 0.25rem">{{ file[0] }}</code> is ignored by <code>{{ file[1] }}</code>
+            </li>
+        </ul>
+        <p>
+            This could be a mistake so please make sure no necessary code is
+            present in these files before you delete them!
+        </p>
+        <b-button-toolbar justify>
+            <submit-button ref="submitDelete"
+                           label="Delete files" default="danger"
+                           @click="overrideSubmit('delete', $refs.submitDelete)"/>
+            <submit-button ref="submitKeep"
+                           label="Keep files" default="warning"
+                           @click="overrideSubmit('keep', $refs.submitKeep)"/>
+            <submit-button label="Cancel submission"
+                           @click="$root.$emit('bv::hide::modal', 'wrong-files-modal');"/>
+        </b-button-toolbar>
+    </b-modal>
 
-        <b-popover
-            placement="top"
-            :triggers="assignment.is_lti && !inLTI ? ['hover'] : []"
-            content="You can only submit this assignment from within your LMS">
-            <file-uploader
-                ref="uploader"
-                :url="`/api/v1/assignments/${this.assignmentId}/submission?ignored_files=error`"
-                :show-empty="true"
-                @error="uploadError"
-                @response="goToSubmission"
-                v-if="canUpload"/>
+    <div v-if="canUpload">
+        <b-popover target="file-uploader"
+                   placement="top"
+                   :triggers="assignment.is_lti && !inLTI ? ['hover'] : []">
+            You can only submit this assignment from within your LMS
         </b-popover>
+        <file-uploader id="file-uploader"
+                       ref="uploader"
+                       :url="`/api/v1/assignments/${this.assignmentId}/submission?ignored_files=error`"
+                       :show-empty="true"
+                       @error="uploadError"
+                       @response="goToSubmission"/>
     </div>
+</div>
 </template>
 
 <script>
@@ -180,12 +192,13 @@ export default {
             });
 
             this.wrongFiles = err.data.invalid_files;
-            this.$root.$emit('show::modal', 'wrong-files-modal');
+            this.$root.$emit('bv::show::modal', 'wrong-files-modal');
         },
 
         overrideSubmit(type, btn) {
-            const requestData = this.$refs.uploader.requestData;
+            const { requestData } = this.$refs.uploader;
             const url = `/api/v1/assignments/${this.assignmentId}/submission?ignored_files=${type}`;
+
             btn.submit(this.$http.post(url, requestData).then((res) => {
                 this.goToSubmission(res);
             }, ({ response }) => {

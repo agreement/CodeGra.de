@@ -20,9 +20,9 @@
             <div class="col-md-6">
                 <b-form-fieldset>
                     <b-input-group>
-                        <b-input-group-button v-if="editable">
+                        <b-input-group-prepend v-if="editable">
                             <submit-button @click="putFeedback" ref="submitButton"/>
-                        </b-input-group-button>
+                        </b-input-group-prepend>
 
                         <input type="number"
                                class="form-control"
@@ -33,43 +33,47 @@
                                placeholder="Grade"
                                @keydown.enter="putFeedback"
                                v-model="grade"/>
-
-                        <div :class="`text-right input-group-addon
-                                     ${rubricOverridden ? 'rubric-overridden' : ''}`"
-                             style="text-align: center !important; display: inline;"
-                             v-if="showRubric">
-                            <b-popover triggers="click"
-                                       placement="top"
-                                       content="Rubric grade was overridden."
-                                       v-if="rubricOverridden">
+                        <b-input-group-append class="text-right"
+                                              style="text-align: center !important; display: inline;"
+                                              v-if="showRubric"
+                                              is-text>
+                            <span v-if="rubricOverridden"
+                                  v-b-popover.top.click="'Rubric grade was overridden.'">
                                 {{ rubricScore }}
-                            </b-popover>
+                            </span>
                             <span v-else>{{ rubricScore }}</span>
-                        </div>
-                        <b-input-group-button class="delete-button-group">
-                            <b-popover :triggers="showDeleteButton ? 'hover' : ''" placement="top" :content="deleteButtonText">
-                                <submit-button @click="deleteGrade"
-                                               ref="deleteButton"
-                                               default="danger"
-                                               :disabled="!showDeleteButton"
-                                               class="delete-button"
-                                               style="height: 100%;"
-                                               label="">
-                                               <icon :name="rubricOverridden ? 'reply' : 'times'"/>
-                                </submit-button>
-                            </b-popover>
-                        </b-input-group-button>
+                        </b-input-group-append>
 
-                        <b-input-group-button v-if="showRubric">
-                            <b-popover placement="top"
-                                       triggers="hover"
-                                       content="Rubric">
-                                <b-button variant="secondary"
-                                          v-b-toggle.rubric-collapse>
-                                    <icon name="bars"/>
-                                </b-button>
+                        <b-input-group-append class="delete-button-group">
+                            <b-popover :triggers="showDeleteButton ? 'hover' : ''"
+                                       placement="top"
+                                       target="delete-grade-button">
+                                {{ deleteButtonText }}
                             </b-popover>
-                        </b-input-group-button>
+                            <submit-button @click="deleteGrade"
+                                           id="delete-grade-button"
+                                           ref="deleteButton"
+                                           default="danger"
+                                           :disabled="!showDeleteButton"
+                                           class="delete-button"
+                                           style="height: 100%;"
+                                           label="">
+                                <icon :name="rubricOverridden ? 'reply' : 'times'"/>
+                            </submit-button>
+                        </b-input-group-append>
+
+                        <b-input-group-append v-if="showRubric">
+                            <b-popover placement="top"
+                                       target="rubric-collapse-button"
+                                       triggers="hover">
+                                Rubric
+                            </b-popover>
+                            <b-button variant="secondary"
+                                      id="rubric-collapse-button"
+                                      v-b-toggle.rubric-collapse>
+                                <icon name="bars"/>
+                            </b-button>
+                        </b-input-group-append>
                     </b-input-group>
                     <grade-history v-if="gradeHistory"
                                    ref="gradeHistory"
@@ -161,7 +165,7 @@ export default {
         },
 
         showRubric() {
-            return this.rubric && this.rubric.rubrics.length;
+            return !!(this.rubric && this.rubric.rubrics.length);
         },
 
         rubricOverridden() {
@@ -171,8 +175,10 @@ export default {
             if (!this.rubricHasSelectedItems) {
                 return true;
             }
-            const rubricGrade = Math.max(0,
-                (this.rubricPoints.selected / this.rubricPoints.max) * 10);
+            const rubricGrade = Math.max(
+                0,
+                (this.rubricPoints.selected / this.rubricPoints.max) * 10,
+            );
             return this.grade !== formatGrade(rubricGrade);
         },
 
@@ -219,7 +225,7 @@ export default {
 
     methods: {
         expandSnippet(event) {
-            const field = this.$refs.field;
+            const { field } = this.$refs;
             const end = field.$el.selectionEnd;
             if (field.$el.selectionStart === end) {
                 event.preventDefault();
@@ -263,10 +269,10 @@ export default {
 
         putFeedback() {
             const grade = parseFloat(this.grade);
-            const overrideGrade = this.rubricOverridden || !this.showRubric;
+            const overrideGrade = ((this.rubricOverridden || !this.showRubric) &&
+                                   this.externalGrade !== this.grade);
 
-            if (!(grade >= 0 && grade <= 10) && overrideGrade &&
-                    this.externalGrade !== this.grade) {
+            if (!(grade >= 0 && grade <= 10) && overrideGrade) {
                 this.$refs.submitButton.fail(`Grade '${this.grade}' must be between 0 and 10`);
                 return;
             }
@@ -274,14 +280,18 @@ export default {
             const viewer = this.$refs.rubricViewer;
             const viewerReq = viewer ? viewer.submitAllItems() : Promise.resolve();
             const data = { feedback: this.feedback || '' };
-            if (overrideGrade && this.externalGrade !== this.grade) {
+            if (overrideGrade) {
                 data.grade = grade;
             }
 
-            const req = this.$http.patch(`/api/v1/submissions/${this.submission.id}`, data);
-            req.then(() => {
-                if (overrideGrade) this.grade = grade;
-                this.gradeUpdated(grade);
+            const req = this.$http.patch(
+                `/api/v1/submissions/${this.submission.id}`,
+                data,
+            ).then(() => {
+                if (overrideGrade) {
+                    this.grade = grade;
+                    this.gradeUpdated(grade);
+                }
             });
             this.$refs.submitButton.submit(Promise.all([req, viewerReq]).catch((err) => {
                 throw err.response.data.message;

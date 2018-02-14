@@ -41,10 +41,12 @@ export default {
     methods: {
         submit() {
             const button = this.$refs.submit;
+
             if (this.name === '' || this.name == null) {
-                button.submit(Promise.reject('Please select a assignment name'));
+                button.fail('Please select a assignment name');
                 return;
             }
+
             const req = this.$http.post(`/api/v1/courses/${this.courseId}/assignments/`, {
                 name: this.name,
             }).then(({ data: assig }) => {

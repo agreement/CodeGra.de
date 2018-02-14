@@ -12,11 +12,13 @@
                 }"
                 class="hljs"
                 @click="onClick">
-                <li v-on:click="editable && addFeedback($event, i)" v-for="(line, i) in codeLines"
-                    :class="{ 'linter-feedback-outer': linterFeedback[i] && !diffMode }" v-bind:key="i">
+                <li @click="editable && addFeedback($event, i)"
+                    v-for="(line, i) in codeLines"
+                    :class="{ 'linter-feedback-outer': linterFeedback[i] && !diffMode }"
+                    :key="i">
 
                     <linter-feedback-area :feedback="linterFeedback[i]"
-                                          v-if="linterFeedback[i] !== null && !diffMode"/>
+                                          v-if="linterFeedback[i] != null && !diffMode"/>
 
                     <code v-html="line"/>
 
@@ -28,7 +30,7 @@
                                    :can-use-snippets="canUseSnippets"
                                    v-on:feedbackChange="val => { feedbackChange(i, val); }"
                                    v-on:cancel='onChildCancel'
-                                   v-if="feedback[i] !== undefined && feedback[i] !== null && !diffMode"/>
+                                   v-if="feedback[i] != null && !diffMode"/>
                 </li>
             </ol>
         </div>
@@ -287,8 +289,7 @@ export default {
                 line.replace(filesRegex, (fileName) => {
                     const fileId = fileIds[fileName];
                     return `<a href="${fileId}" data-file-id="${fileId}" style="text-decoration: underline;">${fileName}</a>`;
-                }),
-            );
+                }));
         },
 
         onClick(event) {

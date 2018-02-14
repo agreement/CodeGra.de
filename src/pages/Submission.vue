@@ -1,38 +1,38 @@
 <template>
-    <loader style="text-align: center; margin-top: 30px;" v-if="loading"/>
-    <div class="page submission outer-container"
-         v-else>
-        <div class="row justify-content-center inner-container">
-            <div class="col-md-9 code-and-grade">
-                <submission-nav-bar v-if="submissions"
-                                    v-model="submission"
-                                    :submissions="submissions"
-                                    :filter="filterSubmissions"/>
+<loader center v-if="loading"/>
+<div class="page submission outer-container" id="submission-page" v-else>
+    <div class="row justify-content-center inner-container">
+        <div class="col-md-9 code-and-grade">
+            <submission-nav-bar v-if="submissions"
+                                v-model="submission"
+                                :submissions="submissions"
+                                :filter="filterSubmissions"/>
 
-                <b-popover v-if="showPreferences"
-                           triggers="click"
+            <div v-if="showPreferences">
+                <b-button class="settings-toggle"
+                          id="codeviewer-settings-toggle">
+                    <icon name="cog"/>
+                </b-button>
+                <b-popover triggers="click"
                            class="settings-popover"
-                           :popover-style="{'max-width': '80%', width: '35em'}"
+                           target="codeviewer-settings-toggle"
+                           container="#submission-page"
                            placement="right">
-                    <b-btn class="settings-toggle" id="codeviewer-settings-toggle">
-                        <icon name="cog"/>
-                    </b-btn>
-                    <div slot="content">
-                        <div class="settings-content"
-                             id="codeviewer-settings-content"
-                             ref="settingsContent">
-                            <preference-manager :file-id="currentFile && currentFile.id"
-                                                :show-revision="canSeeRevision"
-                                                :show-language="!diffMode"
-                                                @whitespace="whitespaceChanged"
-                                                @language="languageChanged"
-                                                @font-size="fontSizeChanged"
-                                                @revision="revisionChanged"/>
-                        </div>
+                    <div class="settings-content"
+                         id="codeviewer-settings-content"
+                         ref="settingsContent">
+                        <preference-manager :file-id="currentFile && currentFile.id"
+                                            :show-revision="canSeeRevision"
+                                            :show-language="!diffMode"
+                                            @whitespace="whitespaceChanged"
+                                            @language="languageChanged"
+                                            @font-size="fontSizeChanged"
+                                            @revision="revisionChanged"/>
                     </div>
                 </b-popover>
+            </div>
 
-                <div v-if="!fileTree || !currentFile" class="no-file">
+            <div v-if="!fileTree || !currentFile" class="no-file">
                     <loader/>
                 </div>
                 <b-alert show
@@ -90,7 +90,7 @@
                     <div v-if="canDeleteSubmission">
                         <b-btn class="text-center"
                                 variant="danger"
-                                @click="$root.$emit('show::modal',`modal_delete`)">
+                                @click="$root.$emit('bv::show::modal',`modal_delete`)">
                             <icon name="times"/> Delete
                         </b-btn>
                         <b-modal :id="`modal_delete`" title="Are you sure?" :hide-footer="true">
@@ -107,7 +107,7 @@
                                                 label="Yes"/>
                                 <b-btn class="text-center"
                                         variant="success"
-                                        @click="$root.$emit('hide::modal', `modal_delete`)">
+                                        @click="$root.$emit('bv::hide::modal', `modal_delete`)">
                                     No!
                                 </b-btn>
                             </b-button-toolbar>
@@ -151,6 +151,7 @@ import {
 import * as assignmentState from '@/store/assignment-states';
 
 import { setPageTitle, pageTitleSep } from '@/pages/title';
+
 
 export default {
     name: 'submission-page',
@@ -246,7 +247,9 @@ export default {
                         submissionId: submission.id,
                     },
                     query: Object.assign(
-                        {}, this.$route.query, { revision: this.selectedRevision },
+                        {},
+                        this.$route.query,
+                        { revision: this.selectedRevision },
                     ),
                 });
             }
@@ -265,7 +268,6 @@ export default {
             if (treeTo == null) {
                 return;
             }
-
             let fileId = Number(this.$route.params.fileId);
 
             let file;
@@ -284,12 +286,15 @@ export default {
                 if (this.currentFile == null || this.currentFile.id !== file.id) {
                     this.currentFile = file;
                 }
+
                 fileId = file.id || (file.ids && (file.ids[0] || file.ids[1]));
                 this.$router.replace({
                     name: 'submission_file',
                     params: { fileId },
                     query: Object.assign(
-                        {}, this.$route.query, { revision: this.selectedRevision },
+                        {},
+                        this.$route.query,
+                        { revision: this.selectedRevision },
                     ),
                 });
             }
@@ -346,9 +351,7 @@ export default {
 
     methods: {
         getAssignment() {
-            return this.$http.get(
-                `/api/v1/assignments/${this.assignmentId}`,
-            ).then(({ data: assignment }) => {
+            return this.$http.get(`/api/v1/assignments/${this.assignmentId}`).then(({ data: assignment }) => {
                 this.assignment = assignment;
                 this.canSeeFeedback = this.canSeeFeedback ||
                     (assignment.state === assignmentState.DONE);
@@ -356,9 +359,7 @@ export default {
         },
 
         getAllSubmissions() {
-            return this.$http.get(
-                `/api/v1/assignments/${this.assignmentId}/submissions/?extended`,
-            ).then(({ data: submissions }) => {
+            return this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/?extended`).then(({ data: submissions }) => {
                 this.submissions = submissions;
                 this.submission = submissions.find(sub =>
                     sub.id === this.submissionId);
@@ -454,9 +455,7 @@ export default {
             if (!UserConfig.features.rubrics) {
                 return Promise.resolve(null);
             }
-            return this.$http.get(
-                `/api/v1/submissions/${this.submissionId}/rubrics/`,
-            ).then(({ data: rubric }) => {
+            return this.$http.get(`/api/v1/submissions/${this.submissionId}/rubrics/`).then(({ data: rubric }) => {
                 this.rubric = rubric;
             }, () => null);
         },
@@ -509,11 +508,13 @@ export default {
 
                 if (this.submissionId === sub.id) {
                     this.forceInclude.add(sub.id);
-                    this.$router.replace({ query: Object.assign(
-                        {},
-                        this.$route.query,
-                        { forceInclude: JSON.stringify([...this.forceInclude]) },
-                    ) });
+                    this.$router.replace({
+                        query: Object.assign(
+                            {},
+                            this.$route.query,
+                            { forceInclude: JSON.stringify([...this.forceInclude]) },
+                        ),
+                    });
                     return true;
                 }
                 return false;
@@ -540,8 +541,10 @@ export default {
         gradeUpdated(grade) {
             this.$set(this.submission, 'grade', grade);
             if (this.submissions) {
-                this.$set(this.submissions, this.submissions.indexOf(this.submission),
-                    this.submission);
+                this.$set(
+                    this.submissions, this.submissions.indexOf(this.submission),
+                    this.submission,
+                );
             }
         },
 
@@ -703,50 +706,49 @@ export default {
     margin-top: 1em;
 }
 
-.settings-popover {
+#codeviewer-settings-toggle {
     z-index: 10;
+    width: 2.5em;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    background: #f8f8f8;
 
-    .settings-toggle {
-        border: 1px solid rgba(0, 0, 0, 0.15);
-        background: #f8f8f8;
-
-        &:focus {
-            box-shadow: none;
-        }
-
-        #app.dark & {
-            background: @color-primary-darkest;
-            color: @color-secondary-text-lighter;
-        }
+    &:focus {
+        box-shadow: none;
     }
 
-    @media (min-width: 992px) {
-        position: absolute;
-        right: 100%;
-        top: 4rem;
-        margin-right: -1rem;
-
-        .settings-toggle {
-            border-right: 0;
-            border-top-right-radius: 0;
-            border-bottom-right-radius: 0;
-        }
-    }
-
-    @media (max-width: 992px) {
-        margin-bottom: -1px;
-
-        .settings-toggle {
-            margin-left: 0.5em;
-            border-bottom: 0;
-            border-bottom-left-radius: 0;
-            border-bottom-right-radius: 0;
-        }
+    #app.dark & {
+        background: @color-primary-darkest;
+        color: @color-secondary-text-lighter;
     }
 }
 
-#codeviewer-settings-content {
-    margin: -.75em -1em;
-    padding: .75em 1em;
+
+@media (min-width: 992px) {
+    #codeviewer-settings-toggle {
+        position: absolute;
+        right: 100%;
+        top: 4rem;
+
+        margin-right: -1rem;
+        border-right: 0;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+}
+
+@media (max-width: 992px) {
+    #codeviewer-settings-toggle {
+        margin-left: 0.5em;
+        border-bottom: 0;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+        margin-bottom: -1px;
+    }
+}
+</style>
+
+<style lang="less">
+#submission-page .popover {
+    max-width: 45em;
 }
 </style>

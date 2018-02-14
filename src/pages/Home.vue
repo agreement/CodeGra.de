@@ -1,6 +1,8 @@
 <template>
     <div class="page home col-12">
-        <b-jumbotron :fluid="true" header="Code grading made intuitive" lead="The best code grader & feedback tool on the web" >
+        <b-jumbotron fluid
+                     header="Code grading made intuitive"
+                     lead="The best code grader &amp; feedback tool on the web">
             <b-btn variant="primary"
                    size="lg"
                    v-if="!loggedIn && UserConfig.features.register"
@@ -8,9 +10,9 @@
                 Sign up
             </b-btn>
         </b-jumbotron>
-        <div class="row justify-content-center container">
+        <div class="row justify-content-center content-container">
             <div class="content col-10">
-                <h3>Made with ❤️ & 🍺</h3>
+                <h3>Made with ❤️ &amp; 🍺</h3>
                 <p>
                     Getting feedback as computer science students was frustating
                     and non-intuitive. All online feedback systems where
@@ -48,6 +50,7 @@
                             <img src="/static/img/feature-3.png">
                         </div>
                     </div>
+                </div>
                 </div>
             </div>
         </div>
@@ -97,11 +100,13 @@ export default {
     .default-background;
     background-image: url('/static/img/screenshot.png');
 
-    h1 {        font-size: 50px;
+    h1 {
+        font-size: 50px;
         text-transform: uppercase;
         font-weight: 700;
         font-family: Montserrat,"Helvetica Neue",Helvetica,Arial,sans-serif;
     }
+
     position: fixed;
     left: 0;
     width: 100%;
@@ -125,14 +130,15 @@ export default {
     }
 }
 
-.container {
+.content-container {
     .default-background;
     margin-top: 50vh;
     width: 100%;
-    padding-top: 30px;
+    padding: 30px;
     z-index: 1;
     margin-left: 0;
     margin-right: 0;
+    position: relative;
 }
 
 .page {

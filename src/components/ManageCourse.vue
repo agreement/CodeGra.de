@@ -96,7 +96,7 @@ export default {
 
     methods: {
         toggleDiv(id) {
-            this.$root.$emit('collapse::toggle', id);
+            this.$root.$emit('bv::toggle::collapse', id);
         },
     },
 

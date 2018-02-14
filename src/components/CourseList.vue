@@ -1,58 +1,51 @@
 <template>
-    <div>
-        <div class="row">
-            <b-input-group class="col-12">
-                <input v-model="filter"
-                       class="form-control"
-                       placeholder="Type to Search"
-                       v-on:keyup.enter="submit"/>
-            </b-input-group>
-        </div>
-
-        <!-- Main table element -->
-        <b-table striped hover
-                @row-clicked="gotoCourse"
-                :items="courses"
-                :fields="fields"
-                :current-page="currentPage"
-                :filter="filter"
-                :show-empty="true">
-            <template slot="name" scope="item">
-                <a class="invisible-link"
-                   href="#"
-                   @click.prevent>
-                    {{item.value ? item.value : '-'}}
-                </a>
-            </template>
-            <template slot="role" scope="item">
-                {{item.value ? item.value : '-'}}
-            </template>
-            <template slot="actions" scope="item">
-                <b-button-group>
-                    <b-popover class="popover-container"
-                               placement="top"
-                               content="View assignments"
-                               triggers="hover">
-                        <b-btn size="sm" variant="success" @click.stop="gotoCourse(item.item)">
-                            <icon name="list"></icon>
-                        </b-btn>
-                    </b-popover>
-                    <b-popover v-if="item.item.manageable"
-                               class="popover-container"
-                               placement="top"
-                               content="Manage course"
-                               triggers="hover">
-                        <b-btn @click.stop="gotoCourseEdit(item.item) "size="sm" variant="warning">
-                            <icon name="pencil"></icon>
-                        </b-btn>
-                    </b-popover>
-                </b-button-group>
-            </template>
-            <template slot="empty">
-                No results found.
-            </template>
-        </b-table>
+<div class="course-list">
+    <div class="row">
+        <b-input-group class="col-12">
+            <input v-model="filter"
+                   class="form-control"
+                   placeholder="Type to Search"
+                   v-on:keyup.enter="submit"/>
+        </b-input-group>
     </div>
+
+    <!-- Main table element -->
+    <b-table striped hover
+             @row-clicked="gotoCourse"
+             :items="courses"
+             :fields="fields"
+             :current-page="currentPage"
+             :filter="filter"
+             :show-empty="true">
+        <a class="invisible-link"
+           href="#"
+           @click.prevent
+           slot-scope="item">
+            {{item.value ? item.value : '-'}}
+        </a>
+        <template slot="role" slot-scope="item">
+            {{item.value ? item.value : '-'}}
+        </template>
+        <b-button-group slot="actions" slot-scope="item">
+            <b-btn size="sm"
+                   variant="success"
+                   @click.stop="gotoCourse(item.item)"
+                   v-b-popover.hover.top="'View assignments'">
+                <icon name="list"/>
+            </b-btn>
+            <b-btn v-if="item.item.manageable"
+                   @click.stop="gotoCourseEdit(item.item)"
+                   size="sm"
+                   variant="warning"
+                   v-b-popover.hover.top="'Manage course'">
+                <icon name="pencil"/>
+            </b-btn>
+        </b-button-group>
+        <template slot-scope="empty">
+            No results found.
+        </template>
+    </b-table>
+</div>
 </template>
 
 <script>

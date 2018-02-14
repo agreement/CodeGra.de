@@ -109,13 +109,11 @@ export default {
                 return;
             }
 
-            this.$refs.submit.submit(
-                this.$http.patch('/api/v1/login?type=reset_email', {
-                    username: this.username,
-                }).catch((err) => {
-                    throw err.response.data.message;
-                }),
-            );
+            this.$refs.submit.submit(this.$http.patch('/api/v1/login?type=reset_email', {
+                username: this.username,
+            }).catch((err) => {
+                throw err.response.data.message;
+            }));
         },
 
         login(event) {
@@ -125,16 +123,14 @@ export default {
                 return;
             }
 
-            this.$refs.submit.submit(
-                this.tryLogin({
-                    username: this.username,
-                    password: this.password,
-                }).then(() => {
-                    this.$router.replace({ name: 'assignments' });
-                }, (reason) => {
-                    throw reason ? reason.message : '';
-                }),
-            );
+            this.$refs.submit.submit(this.tryLogin({
+                username: this.username,
+                password: this.password,
+            }).then(() => {
+                this.$router.replace({ name: 'assignments' });
+            }, (reason) => {
+                throw reason ? reason.message : '';
+            }));
         },
         ...mapActions({
             tryLogin: 'user/login',

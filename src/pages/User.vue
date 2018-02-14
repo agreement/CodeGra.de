@@ -7,8 +7,8 @@
                     <user-info></user-info>
                 </b-card>
             </div>
-            <div class="col-md-6">
-                <b-card header="Snippets" style="margin-bottom: 15px;" v-if="snippets">
+            <div :class="snippets ? 'col-md-6' : 'col-12'">
+                <b-card header="Snippets" v-if="snippets">
                     <snippet-manager></snippet-manager>
                 </b-card>
                 <b-card header="Preferences">
@@ -89,5 +89,9 @@ export default {
             margin-top: 15px;
         }
     }
+}
+
+.card {
+    margin-bottom: 15px;
 }
 </style>

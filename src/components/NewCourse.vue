@@ -39,16 +39,18 @@ export default {
     methods: {
         submit() {
             const button = this.$refs.submit;
+
             if (this.name === '' || this.name == null) {
-                button.submit(Promise.reject('Please select a course name'));
+                button.fail('Please select a course name');
                 return;
             }
+
             const req = this.$http.post('/api/v1/courses/', { name: this.name })
-                  .then(({ data: assig }) => {
-                      window.location.href = `/courses/${assig.id}?created=true`;
-                  }).catch((err) => {
-                      throw err.response.data.message;
-                  });
+                .then(({ data: assig }) => {
+                    window.location.href = `/courses/${assig.id}?created=true`;
+                }).catch((err) => {
+                    throw err.response.data.message;
+                });
             button.submit(req);
         },
     },

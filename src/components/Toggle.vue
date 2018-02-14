@@ -1,20 +1,26 @@
 <template>
 <div class="toggle-container" :class="{ disabled }" :checked="current">
+    <div class="toggle" @click="toggle" :id="toggleId">
+        <b-button class="off" variant="default">
+            {{ labelOff }}
+        </b-button>
+        <b-button class="on" variant="primary">
+            {{ labelOn }}
+        </b-button>
+    </div>
     <b-popover :triggers="disabled ? ['hover'] : []"
-               content="You cannot change the grader status of other graders">
-        <div class="toggle" @click="toggle">
-            <b-button class="off" variant="default">
-                {{ labelOff }}
-            </b-button>
-            <b-button class="on" variant="primary">
-                {{ labelOn }}
-            </b-button>
-        </div>
+               :target="toggleId">
+        <span>
+            {{ disabledText }}
+        </span>
+
     </b-popover>
 </div>
 </template>
 
 <script>
+let i = 0;
+
 export default {
     name: 'toggle',
 
@@ -39,11 +45,16 @@ export default {
         disabled: {
             default: false,
         },
+        disabledText: {
+            default: '',
+            type: String,
+        },
     },
 
     data() {
         return {
             current: this.value === this.valueOn,
+            toggleId: `toggle-${i++}`,
         };
     },
 
@@ -61,10 +72,10 @@ export default {
 <style lang="less" scoped>
 @import '~mixins.less';
 
-#app.dark ~ .popover .toggle {
+#app.dark .toggle {
     // TODO: Find better colors here.
     .off {
-        background: white;
+        background: @color-light-gray;
         color: @text-color;
     }
     .on {
@@ -94,7 +105,7 @@ export default {
         display: block;
         width: 100%;
         height: 100%;
-        transition: transform 300ms ease-out 0;
+        transition: transform 300ms ease-out;
         padding: .375rem;
         pointer-events: none;
         text-align: center;

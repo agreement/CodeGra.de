@@ -68,7 +68,8 @@ export default {
                                     toastObject.goAway(0);
                                 },
                             },
-                        });
+                        },
+                    );
                 }
                 if (data.updated_email) {
                     this.$toasted.info(
@@ -81,7 +82,8 @@ export default {
                                     toastObject.goAway(0);
                                 },
                             },
-                        });
+                        },
+                    );
                 }
             }).catch((err) => {
                 if (first && err.response && err.response.status === 401) {

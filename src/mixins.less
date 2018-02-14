@@ -8,6 +8,9 @@
 @color-secondary-text-lighter: #858b8e;
 @color-secondary-text: #464a4c;
 
+@color-lighter-gray: rgb(233, 236, 239);
+@color-light-gray: lighten(gray, 20%);
+
 @linum-bg: #f8f8f8;
 @line-bg: white;
 
@@ -151,6 +154,28 @@
     }
 }
 
+.secondary-button-color {
+    &:not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info) {
+        &, &.disabled {
+            background-color: @background-color;
+            &:hover:not(:disabled) {
+                background-color: darken(@background-color, 10%);
+            }
+            color: @text-color;
+            border-color: #ccc;
+
+            #app.dark & {
+                background-color: @color-primary;
+                border-color: @color-primary-darker;
+                &:hover:not(:disabled) {
+                    background-color: @color-primary-darker;
+                }
+                color: @text-color-dark;
+            }
+        }
+    }
+}
+
 .default-custom-control-input-colors {
     #app:not(.dark) &,
     #app:not(.dark) ~ .popover & {
@@ -197,20 +222,6 @@
             background-color: @text-color-dark;
         }
     }
-
-    #app.dark .custom-checkbox &,
-    #app.dark ~ .popover .custom-checkbox & {
-        &:checked ~ .custom-control-indicator {
-            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='%232c3e50' d='M6.564.75l-3.59 3.612-1.538-1.55L0 4.26 2.974 7.25 8 2.193z'/%3E%3C/svg%3E");
-        }
-    }
-
-    #app.dark .custom-radio &,
-    #app.dark ~ .popover .custom-radio & {
-        &:checked ~ .custom-control-indicator {
-            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3E%3Ccircle r='3' fill='%232c3e50'/%3E%3C/svg%3E");
-        }
-    }
 }
 
 .default-card-colors {
@@ -246,19 +257,31 @@
 
 .dark-popover-colors {
     background-color: @color-primary;
-    color: @text-color-dark;
+    .popover-body {
+        color: @text-color-dark;
+    }
+    .popover-header {
+        background-color: @color-primary-darkest;
+        border-bottom-color: @color-primary-darkest;
+        color: @color-secondary-text-lighter;
+    }
     box-shadow: 1px 1px 6px @color-primary-darker;
-    &.popover-top::after {
-        border-top-color: @color-primary;
-    }
-    &.popover-left::after {
-        border-left-color: @color-primary;
-    }
-    &.popover-right::after {
+    &.bs-popover-right .arrow::after {
         border-right-color: @color-primary;
     }
-    &.popover-bottom::after {
+    &.bs-popover-left .arrow::after {
+        border-left-color: @color-primary;
+    }
+    &.bs-popover-top .arrow::after {
+        border-top-color: @color-primary;
+    }
+    &.bs-popover-auto .arrow::after,
+    &.bs-popover-bottom .arrow::after {
         border-bottom-color: @color-primary;
+    }
+
+    .arrow {
+        backbround: @color-primary;
     }
 
     input, textarea {
@@ -286,7 +309,7 @@
 .default-collapse-wrapper-colors,
 .default-form-control-colors,
 .default-list-group-item-colors {
-    #app.dark & {
+    #app.dark &:not(.list-group-item-info) {
         background-color: @color-primary;
         border-color: @color-primary-darker;
         color: @text-color-dark;
@@ -319,24 +342,56 @@
     #app & .btn:focus {
         box-shadow: none;
     }
+}
 
-    #app.dark & {
-        .btn-secondary:not(.btn-success):not(.btn-danger):not(.btn-warning):not(.btn-info) {
-            background-color: @color-primary;
-            border-color: @color-primary-darker;
-            &:hover:not(:disabled) {
+.default-checkbox-and-radio-colors {
+    &, & ~ .popover {
+        .custom-checkbox .custom-control-label,
+        .custom-radio .custom-control-label {
+            cursor: pointer;
+        }
+
+        .custom-checkbox input:disabled ~ .custom-control-label,
+        .custom-radio input:disabled ~ .custom-control-label {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        .custom-control-input:checked ~ .custom-control-label {
+            &::before {
                 background-color: @color-primary-darker;
+                color: @color-primary-darker;
             }
-            color: @text-color-dark;
+            &::after {
+                background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='%23fff' d='M6.564.75l-3.59 3.612-1.538-1.55L0 4.26 2.974 7.25 8 2.193z'/%3E%3C/svg%3E");
+            }
+        }
+    }
+
+    &.dark, &.dark ~ .popover {
+        & .custom-control-input:not(:checked) ~ .custom-control-label::before {
+            background-color: transparent;
+            border: 1px solid @color-secondary-text-lighter;
+        }
+
+        & .custom-control-input:checked ~ .custom-control-label {
+            &::before {
+                background-color: @text-color-dark;
+                color: @color-primary-darker;
+            }
+            &::after {
+                background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='%232c3e50' d='M6.564.75l-3.59 3.612-1.538-1.55L0 4.26 2.974 7.25 8 2.193z'/%3E%3C/svg%3E");
+            }
         }
     }
 }
 
 
 .dark-input-group-colors {
-    .input-group-addon {
+    .input-group-addon, .input-group-text {
         background-color: @color-primary-darker;
         color: @color-secondary-text-lighter;
+        border-color: @color-primary-darkest;
     }
 
     .btn-info {
@@ -367,6 +422,7 @@
             color: @color-secondary !important;
         }
     }
+
     #app.dark & {
         .dark-input-group-colors;
     }
@@ -377,11 +433,17 @@
         background-color: @color-primary;
         .dropdown-item {
             color: @text-color-dark;
+            border-color: @color-primary-darker;
+            outline: none !important;
+            &:hover, &:focus {
+                background-color: @color-primary-darker;
+            }
         }
-        .active:not(.dropdown-header), .dropdown-divider {
-            background-color: @color-primary-darker;
 
+        .dropdown-divider {
+            border-top-color: @color-primary-darker;
         }
+
         .dropdown-header {
             color: @color-secondary-text-lighter;
         }
