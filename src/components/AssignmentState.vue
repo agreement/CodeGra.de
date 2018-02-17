@@ -1,6 +1,6 @@
 <template>
-<div v-if="editable && permissions.can_edit_assignment_info">
-    <b-button-group @click.native="updateState">
+<div v-if="editable">
+    <b-button-group @click="updateState">
         <b-button class="state-button larger"
                   :size="size"
                   :variant="ltiHiddenOpenVariant"
