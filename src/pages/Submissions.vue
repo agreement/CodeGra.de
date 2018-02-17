@@ -123,11 +123,16 @@ export default {
                     'can_submit_own_work',
                     'can_see_others_work',
                     'can_see_grade_before_open',
+                    'can_upload_after_deadline',
                     ...MANAGE_COURSE_PERMISSIONS,
                 ],
                 this.courseId,
-            ).then(([submit, others, before, ...manage]) => {
-                this.canUpload = submit && this.assignment.state === assignmentState.SUBMITTING;
+            ).then(([submit, others, before, afterDeadline, ...manage]) => {
+                this.canUpload = (
+                    submit &&
+                        (this.assignment.state === assignmentState.SUBMITTING ||
+                         (afterDeadline && this.assignment.state !== assignmentState.HIDDEN))
+                );
                 this.canManage = manage.some(x => x);
 
                 if (others) {
