@@ -12,6 +12,7 @@ import BootstrapVue from 'bootstrap-vue';
 import axios from 'axios';
 import Toasted from 'vue-toasted';
 import localforage from 'localforage';
+import memoryStorageDriver from 'localforage-memoryStorageDriver';
 
 import App from '@/App';
 import router from '@/router';
@@ -37,115 +38,126 @@ axios.defaults.transformRequest.push((data, headers) => {
 
 Vue.prototype.$http = axios;
 
-localforage.setDriver(localforage.INDEXEDDB);
-Vue.prototype.$hlanguageStore = localforage.createInstance({
-    name: 'highlightLanguageStore',
-});
-Vue.prototype.$whitespaceStore = localforage.createInstance({
-    name: 'showWhitespaceStore',
-});
-
-const reUnescapedHtml = /[&<>"'`]/g;
-const reHasUnescapedHtml = RegExp(reUnescapedHtml.source);
-/** Used to map characters to HTML entities. */
-const htmlEscapes = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-    '`': '&#96;',
-};
-Vue.prototype.$htmlEscape = (string) => {
-    if (string && reHasUnescapedHtml.test(string)) {
-        return string.replace(reUnescapedHtml, ent => htmlEscapes[ent]);
-    }
-    return string;
-};
-
-// Fix axios automatically parsing all responses as JSON... WTF!!!
-axios.defaults.transformResponse = [
-    function defaultTransformResponse(data, headers) {
-        switch (headers['content-type']) {
-        case 'application/json':
-            return JSON.parse(data);
-        default:
-            return data;
-        }
-    },
+const DRIVERS = [
+    localforage.INDEXEDDB,
+    localforage.WEBSQL,
+    localforage.LOCALSTORAGE,
+    'memoryStorageDriver',
 ];
 
-axios.interceptors.response.use(response => response, (() => {
-    let toastVisible = false;
-    return (error) => {
-        if (!error.response && error.request && !toastVisible) {
-            toastVisible = true;
-            Vue.toasted.error('There was an error connecting to the server... Please try again later', {
-                position: 'bottom-center',
-                duration: 3000,
-                onComplete: () => {
-                    toastVisible = false;
-                },
-            });
-        }
-        throw error;
+// eslint-disable-next-line
+localforage.defineDriver(memoryStorageDriver).then(() => {
+    Vue.prototype.$hlanguageStore = localforage.createInstance({
+        name: 'highlightLanguageStore',
+        driver: DRIVERS,
+    });
+    Vue.prototype.$whitespaceStore = localforage.createInstance({
+        name: 'showWhitespaceStore',
+        driver: DRIVERS,
+    });
+
+    const reUnescapedHtml = /[&<>"'`]/g;
+    const reHasUnescapedHtml = RegExp(reUnescapedHtml.source);
+    /** Used to map characters to HTML entities. */
+    const htmlEscapes = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+        '`': '&#96;',
     };
-})());
+    Vue.prototype.$htmlEscape = (string) => {
+        if (string && reHasUnescapedHtml.test(string)) {
+            return string.replace(reUnescapedHtml, ent => htmlEscapes[ent]);
+        }
+        return string;
+    };
 
-const permissionStore = new PermissionStore(axios);
-
-Vue.prototype.$clearPermissions = (...args) => permissionStore.clearCache(...args);
-Vue.prototype.$hasPermission = (...args) => permissionStore.hasPermission(...args);
-
-/* eslint-disable no-new */
-const app = new Vue({
-    el: '#app',
-    router,
-    template: '<App/>',
-    components: { App },
-    store,
-    created() {
-        this.verifyLogin();
-        let shown = false;
-
-        this.clickHideSettings = (event) => {
-            shown = false;
-            if (event.target.closest('.popover-body')) {
-                return;
+    // Fix axios automatically parsing all responses as JSON... WTF!!!
+    axios.defaults.transformResponse = [
+        function defaultTransformResponse(data, headers) {
+            switch (headers['content-type']) {
+            case 'application/json':
+                return JSON.parse(data);
+            default:
+                return data;
             }
+        },
+    ];
 
-            setTimeout(() => {
-                this.$nextTick(() => {
-                    if (!shown) {
-                        this.$root.$emit('bv::hide::popover');
-                    }
+    axios.interceptors.response.use(response => response, (() => {
+        let toastVisible = false;
+        return (error) => {
+            if (!error.response && error.request && !toastVisible) {
+                toastVisible = true;
+                Vue.toasted.error('There was an error connecting to the server... Please try again later', {
+                    position: 'bottom-center',
+                    duration: 3000,
+                    onComplete: () => {
+                        toastVisible = false;
+                    },
                 });
-            }, 10);
-        };
-        document.body.addEventListener('click', this.clickHideSettings, true);
-
-        this.$root.$on('bv::popover::show', () => {
-            shown = true;
-        });
-
-        this.keyupHideSettings = (event) => {
-            if (event.key === 'Escape') {
-                this.$root.$emit('bv::hide::popover');
             }
+            throw error;
         };
-        document.body.addEventListener('keyup', this.keyupHideSettings);
-    },
-    methods: {
-        ...mapActions('user', [
-            'verifyLogin',
-        ]),
-    },
-});
+    })());
 
-// Clear some items in vuex store on CTRL-F5
-document.addEventListener('keydown', (event) => {
-    if (event.code === 'F5' && event.ctrlKey) {
-        permissionStore.clearCache();
-        app.$store.commit(`user/${mutationTypes.CLEAR_CACHE}`);
-    }
-}, true);
+    const permissionStore = new PermissionStore(axios, { driver: DRIVERS });
+
+    Vue.prototype.$clearPermissions = (...args) => permissionStore.clearCache(...args);
+    Vue.prototype.$hasPermission = (...args) => permissionStore.hasPermission(...args);
+
+    /* eslint-disable no-new */
+    const app = new Vue({
+        el: '#app',
+        router,
+        template: '<App/>',
+        components: { App },
+        store,
+        created() {
+            this.verifyLogin();
+            let shown = false;
+
+            this.clickHideSettings = (event) => {
+                shown = false;
+                if (event.target.closest('.popover-body')) {
+                    return;
+                }
+
+                setTimeout(() => {
+                    this.$nextTick(() => {
+                        if (!shown) {
+                            this.$root.$emit('bv::hide::popover');
+                        }
+                    });
+                }, 10);
+            };
+            document.body.addEventListener('click', this.clickHideSettings, true);
+
+            this.$root.$on('bv::popover::show', () => {
+                shown = true;
+            });
+
+            this.keyupHideSettings = (event) => {
+                if (event.key === 'Escape') {
+                    this.$root.$emit('bv::hide::popover');
+                }
+            };
+            document.body.addEventListener('keyup', this.keyupHideSettings);
+        },
+        methods: {
+            ...mapActions('user', [
+                'verifyLogin',
+            ]),
+        },
+    });
+
+    // Clear some items in vuex store on CTRL-F5
+    document.addEventListener('keydown', (event) => {
+        if (event.code === 'F5' && event.ctrlKey) {
+            permissionStore.clearCache();
+            app.$store.commit(`user/${mutationTypes.CLEAR_CACHE}`);
+        }
+    }, true);
+});

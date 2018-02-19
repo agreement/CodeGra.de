@@ -1,10 +1,12 @@
 import localforage from 'localforage';
 
 export default class PermissionStore {
-    constructor(axios, maxAge = 1000 * 60 * 60 * 24) {
-        this.store = localforage.createInstance({
-            name: 'permissions',
-        });
+    constructor(axios, config, maxAge = 1000 * 60 * 60 * 24) {
+        this.store = localforage.createInstance(
+            Object.assign({}, config, {
+                name: 'permissions',
+            }),
+        );
         this.onGoingRequests = {};
         this.maxAge = maxAge;
         this.http = axios;

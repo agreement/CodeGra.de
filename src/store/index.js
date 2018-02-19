@@ -8,9 +8,13 @@ import pref from './modules/preference';
 Vue.use(Vuex);
 
 const debug = process.env.NODE_ENV !== 'production';
-const plugins = [
-    createPersistedState(),
-];
+const plugins = [];
+
+try {
+    plugins.push(createPersistedState());
+} catch (e) {
+    // NOOP
+}
 
 export default new Vuex.Store({
     modules: {
