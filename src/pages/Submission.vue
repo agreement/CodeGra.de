@@ -214,7 +214,7 @@ export default {
 
         submission(submission) {
             if (submission.id === this.submissionId) {
-                this.initalLoad = false;
+                this.initialLoad = false;
                 return;
             }
 
@@ -273,7 +273,7 @@ export default {
             let file;
             if (fileId) {
                 file = this.searchTree(treeTo, fileId);
-                if (file == null && this.currentFile != null) {
+                if (file == null && this.currentFile != null && this.currentFile.revision != null) {
                     file = this.searchTree(treeTo, this.currentFile.revision.id);
                 }
             }
