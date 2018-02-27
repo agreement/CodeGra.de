@@ -15,7 +15,7 @@ only_own = pytest.mark.only_own
     'named_user', [
         'Thomas Schaper',
         perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid1'),
+        perm_error(error=403)('Student1'),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],
     indirect=True
@@ -105,7 +105,7 @@ def test_add_feedback(
     'named_user', [
         'Thomas Schaper',
         perm_error(error=403)('admin'),
-        late_error(('Stupid1')),
+        late_error(('Student1')),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],
     indirect=True
@@ -201,7 +201,7 @@ def test_get_feedback(
     'named_user', [
         'Thomas Schaper',
         perm_error(error=403)('admin'),
-        perm_error(error=403)(('Stupid1')),
+        perm_error(error=403)(('Student1')),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],
     indirect=True
@@ -277,7 +277,7 @@ def test_delete_feedback(
     'named_user', [
         'Thomas Schaper',
         perm_error(error=403)('admin'),
-        late_error(('Stupid1')),
+        late_error(('Student1')),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],
     indirect=True
@@ -395,7 +395,7 @@ def test_get_all_feedback(
     'named_user', [
         'Thomas Schaper',
         perm_error(error=403)('admin'),
-        only_own(('Stupid1')),
+        only_own(('Student1')),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],
     indirect=True

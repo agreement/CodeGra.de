@@ -98,7 +98,7 @@ def test_login(
 @pytest.mark.parametrize(
     'named_user', [
         does_have_permission('Thomas Schaper'),
-        'Stupid1',
+        'Student1',
     ],
     indirect=True
 )
@@ -125,7 +125,7 @@ def test_extended_get_login(test_client, named_user, logged_in, request):
     'named_user,roles',
     [
         ('Thomas Schaper', ['Student', 'TA', 'TA', None]),
-        ('Stupid1', [None, None, 'Student', 'Student']),
+        ('Student1', [None, None, 'Student', 'Student']),
         ('admin', [None, None, None, None]),
     ],
     indirect=['named_user'],
@@ -536,7 +536,7 @@ def test_reset_password(
     'named_user',
     [
         ('Thomas Schaper'),
-        ('Stupid1'),
+        ('Student1'),
         ('admin'),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],

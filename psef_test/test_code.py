@@ -14,10 +14,10 @@ late_error = pytest.mark.late_error
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        'Stupid1',
+        'Student1',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid3'),
+        perm_error(error=403)('Student3'),
     ],
     indirect=True
 )
@@ -83,10 +83,10 @@ def test_get_code_metadata(
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        'Stupid1',
+        'Student1',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid3'),
+        perm_error(error=403)('Student3'),
     ],
     indirect=True
 )
@@ -214,10 +214,10 @@ def test_get_code_plaintext_revisions(
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        'Stupid1',
+        'Student1',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid3'),
+        perm_error(error=403)('Student3'),
     ],
     indirect=True
 )

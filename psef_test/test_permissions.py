@@ -172,7 +172,7 @@ def test_all_permissions(
     ]
 )
 @pytest.mark.parametrize(
-    'named_user', ['Thomas Schaper', 'Stupid1', 'admin'],
+    'named_user', ['Thomas Schaper', 'Student1', 'admin'],
     indirect=['named_user']
 )
 def test_get_all_permissions(

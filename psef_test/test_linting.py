@@ -87,8 +87,8 @@ ALL_LINTERS = sorted(['Flake8', 'MixedWhitespace', 'Pylint'])
 @pytest.mark.parametrize(
     'named_user,use_ta', [
         ('Thomas Schaper', False),
-        get_works(perm_error(error=403)(('Stupid1', True))),
-        get_works(perm_error(error=403)(('Stupid1', False))),
+        get_works(perm_error(error=403)(('Student1', True))),
+        get_works(perm_error(error=403)(('Student1', False))),
         perm_error(error=403)(('admin', False)),
         perm_error(error=401)(('NOT_LOGGED_IN', False)),
         perm_error(error=401)(('NOT_LOGGED_IN', True)),

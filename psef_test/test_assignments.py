@@ -69,7 +69,7 @@ def rubric(logged_in, ta_user, test_client, original_rubric_data, assignment):
 @pytest.mark.parametrize(
     'named_user,hidden', [
         ('Thomas Schaper', True),
-        ('Stupid1', False),
+        ('Student1', False),
         ('nobody', False),
         perm_error(error=401)(('NOT_LOGGED_IN', False)),
     ],
@@ -111,8 +111,8 @@ def test_get_all_assignments(
         ('Thomas Schaper', 'Project Software Engineering', True, True),
         ('Thomas Schaper', 'Project Software Engineering', False, False),
         ('Thomas Schaper', 'Programmeertalen', True, False),
-        ('Stupid1', 'Programmeertalen', False, False),
-        ('Stupid1', 'Project Software Engineering', False, True),
+        ('Student1', 'Programmeertalen', False, False),
+        ('Student1', 'Project Software Engineering', False, True),
         ('NOT_LOGGED_IN', 'Programmeertalen', False, True),
     ],
     indirect=['named_user', 'course_name', 'state_is_hidden']
@@ -260,7 +260,7 @@ def test_update_assignment(
 
 @pytest.mark.parametrize(
     'named_user',
-    [http_err(error=403)('Stupid1'),
+    [http_err(error=403)('Student1'),
      http_err(error=401)('NOT_LOGGED_IN')],
     indirect=True
 )
@@ -502,7 +502,7 @@ def test_get_and_add_rubric_row(
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        http_err(error=403)('Stupid1'),
+        http_err(error=403)('Student1'),
         http_err(error=401)('NOT_LOGGED_IN')
     ],
     indirect=True
@@ -547,7 +547,7 @@ def test_delete_rubric(
 
 @pytest.mark.parametrize(
     'named_user',
-    [http_err(error=403)('Stupid1'),
+    [http_err(error=403)('Student1'),
      http_err(error=401)('NOT_LOGGED_IN')],
     indirect=True
 )
@@ -869,7 +869,7 @@ def test_updating_wrong_rubric(
     ]
 )
 @pytest.mark.parametrize('assignment', ['new', 'old'], indirect=True)
-@pytest.mark.parametrize('named_user', ['Stupid1', 'Devin Hillenius'],
+@pytest.mark.parametrize('named_user', ['Student1', 'Devin Hillenius'],
                          indirect=True)
 # yapf: enable
 def test_upload_files(
@@ -984,9 +984,9 @@ def test_upload_too_large_file(
         (['Thomas Schaper', 'Devin Hillenius']),
         (['Devin Hillenius']),
         http_err(error=400)(['Thomas Schaper', -1]),
-        http_err(error=400)(['Thomas Schaper', 'Stupid1']),
-        http_err(error=400)(['Stupid1']),
-        http_err(error=400)(['Stupid1', 'Devin Hillenius']),
+        http_err(error=400)(['Thomas Schaper', 'Student1']),
+        http_err(error=400)(['Student1']),
+        http_err(error=400)(['Student1', 'Devin Hillenius']),
         http_err(error=400)(['Devin Hillenius', 'admin']),
     ]
 )
@@ -1263,7 +1263,7 @@ def test_reminder_email_divide(
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        http_err(error=403)('Stupid1'),
+        http_err(error=403)('Student1'),
         http_err(error=401)('NOT_LOGGED_IN')
     ],
     indirect=True
@@ -1338,7 +1338,7 @@ def test_get_all_graders(
         http_err(error=401)('NOT_LOGGED_IN'),
         'Devin Hillenius',
         pytest.mark.no_grade(
-            pytest.mark.no_others(pytest.mark.no_hidden('Stupid1'))
+            pytest.mark.no_others(pytest.mark.no_hidden('Student1'))
         ),
     ],
     indirect=True
@@ -1398,14 +1398,14 @@ def test_get_all_submissions(
 # yapf: disable
 @pytest.mark.parametrize(
     'named_user', ['Thomas Schaper',
-                   http_err(error=403)('Stupid1')],
+                   http_err(error=403)('Student1')],
     indirect=True
 )
 @pytest.mark.parametrize(
     'filename,result', [
         (
             'correct.tar.gz', {
-                'Stupid1': {
+                'Student1': {
                         'entries': [{
                                     'name': 'Single file',
                                     'id': int
@@ -1429,7 +1429,7 @@ def test_get_all_submissions(
                         'id': int,
                         'username': '0000003',
                 },
-                'Stupid2': {
+                'Student2': {
                         'entries': [{
                                     'name': 'Single file',
                                     'id': int
@@ -1445,7 +1445,7 @@ def test_get_all_submissions(
         ),
         (
             'correct_difficult.tar.gz', {
-                'Stupid1': {
+                'Student1': {
                         'entries': [{
                                     'name': '__WARNING__',
                                     'id': int,
@@ -1478,7 +1478,7 @@ def test_get_all_submissions(
                         'id': int,
                         'username': 'GEEN_INT',
                 },
-                'Stupid2': {
+                'Student2': {
                         'entries': [{
                                     'name': 'Single file',
                                     'id': int
@@ -1494,7 +1494,7 @@ def test_get_all_submissions(
                         'id': int,
                         'username': '0000002',
                 },
-                'Stupid3': {
+                'Student3': {
                         'entries': [{
                                     'name': 'Comment',
                                     'id': int
@@ -1545,9 +1545,9 @@ def test_upload_blackboard_zip(
                 m.user_course,
             ).filter(m.user_course.c.course_id == crole.id).delete(False)
             session.commit()
-            session.query(m.User).filter_by(name='Stupid1').update(
+            session.query(m.User).filter_by(name='Student1').update(
                 {
-                    'username': result['Stupid1']['username']
+                    'username': result['Student1']['username']
                 }
             )
             assert get_student_users() == set()
@@ -1623,7 +1623,7 @@ def test_upload_blackboard_zip(
 def test_assigning_after_uploading(
     test_client, logged_in, assignment, error_template, ta_user
 ):
-    for user in ['Stupid1', 'Stupid2', 'Stupid3']:
+    for user in ['Student1', 'Student2', 'Student3']:
         with logged_in(m.User.query.filter_by(name=user).one()):
             test_client.req(
                 'post',
@@ -1747,7 +1747,7 @@ def test_reset_grader_status_after_upload(
     for user in session.query(m.User).filter(
         m.User.name.in_([
             'Œlµo',
-            'Stupid1',
+            'Student1',
         ])
     ):
         with logged_in(user):
@@ -2052,7 +2052,7 @@ def test_assign_after_blackboard_zip(
         )
     ]
 )
-@pytest.mark.parametrize('named_user', ['Stupid1'],
+@pytest.mark.parametrize('named_user', ['Student1'],
                          indirect=True)
 # yapf: enable
 def test_ignored_upload_files(
@@ -2409,7 +2409,7 @@ def test_warning_grader_done(
         http_err(error=401)(('NOT_LOGGED_IN', None)),
         ('Devin Hillenius', True),
         ('Devin Hillenius', False),
-        http_err(error=403)(('Stupid1', None)),
+        http_err(error=403)(('Student1', None)),
     ],
     indirect=['named_user']
 )
@@ -2540,7 +2540,7 @@ def test_grader_done(
         test_client.req(
             'post', (
                 f'/api/v1/assignments/{assig_id}/graders/' +
-                str(m.User.query.filter_by(name='Stupid1').first().id) +
+                str(m.User.query.filter_by(name='Student1').first().id) +
                 '/done'
             ),
             400,
@@ -2548,7 +2548,7 @@ def test_grader_done(
         )
 
     if not err:
-        new_user = m.User.query.filter_by(name='Stupid1').first()
+        new_user = m.User.query.filter_by(name='Student1').first()
         perm = m.Permission.query.filter_by(name='can_grade_work').first()
         new_user.courses[course_id].set_permission(perm, True)
         session.commit()
@@ -2583,7 +2583,7 @@ def test_grader_done(
         http_err(error=403)('admin'),
         http_err(error=401)('NOT_LOGGED_IN'),
         'Devin Hillenius',
-        http_err(error=403)('Stupid1'),
+        http_err(error=403)('Student1'),
     ],
     indirect=True
 )

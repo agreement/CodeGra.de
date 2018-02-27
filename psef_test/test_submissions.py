@@ -126,7 +126,7 @@ def test_get_grade_history(
         'Thomas Schaper',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid1'),
+        perm_error(error=403)('Student1'),
     ],
     indirect=True
 )
@@ -350,7 +350,7 @@ def test_negative_points(
         'Thomas Schaper',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403, can_get=True)('Stupid1'),
+        perm_error(error=403, can_get=True)('Student1'),
     ],
     indirect=True
 )
@@ -541,7 +541,7 @@ def test_selecting_rubric(
         'Thomas Schaper',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid1'),
+        perm_error(error=403)('Student1'),
     ],
     indirect=True
 )
@@ -759,8 +759,8 @@ def test_selecting_wrong_rubric(
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        'Stupid1',
-        perm_error(error=403)('Stupid2'),
+        'Student1',
+        perm_error(error=403)('Student2'),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],
     indirect=True
@@ -823,11 +823,11 @@ def test_get_dir_contents(
 @pytest.mark.parametrize(
     'named_user, get_own', [
         ('Thomas Schaper', False),
-        ('Stupid1', False),
+        ('Student1', False),
         ('Œlµo', True),
         perm_error(error=401)(('NOT_LOGGED_IN', False)),
         perm_error(error=403)(('admin', False)),
-        perm_error(error=403)(('Stupid3', False)),
+        perm_error(error=403)(('Student3', False)),
     ],
     indirect=['named_user']
 )
@@ -979,10 +979,10 @@ def test_get_teacher_zip_file(
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        'Stupid1',
+        'Student1',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid3'),
+        perm_error(error=403)('Student3'),
     ],
     indirect=True
 )
@@ -1415,7 +1415,7 @@ def test_change_grader_notification(
 )
 @pytest.mark.parametrize(
     'named_user',
-    ['Thomas Schaper', http_error(error=403)('Stupid1')],
+    ['Thomas Schaper', http_error(error=403)('Student1')],
     indirect=True
 )
 @pytest.mark.parametrize('graders', [(['Thomas Schaper', 'Devin Hillenius'])])
@@ -1470,14 +1470,14 @@ def test_change_grader(
                 )[0]
             assert submission['assignee']['name'] == old_grader
 
-            stupid1_id = m.User.query.filter_by(name='Stupid1').first().id
+            student1_id = m.User.query.filter_by(name='Student1').first().id
             test_client.req(
                 'patch',
                 f'/api/v1/submissions/{submission["id"]}/grader',
                 400,
                 result=error_template,
                 data={
-                    'user_id': stupid1_id
+                    'user_id': student1_id
                 }
             )
             with logged_in(ta_user):
@@ -1531,7 +1531,7 @@ def test_change_grader(
         perm_error(error=403)('Thomas Schaper'),
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid1'),
+        perm_error(error=403)('Student1'),
     ],
     indirect=True
 )
@@ -1592,7 +1592,7 @@ def test_delete_submission(
         'Thomas Schaper',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403, can_get=True)('Stupid1'),
+        perm_error(error=403, can_get=True)('Student1'),
     ],
     indirect=True
 )

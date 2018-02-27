@@ -8,7 +8,7 @@
   },
   {
     "name": "Security assignment",
-    "description": "Do stupid stuff with sec",
+    "description": "Do stuff with sec",
     "state": "hidden",
     "deadline": 15,
     "course": "Besturingssystemen"

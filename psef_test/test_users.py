@@ -1,6 +1,5 @@
-import pytest
-
 import psef as p
+import pytest
 import psef.errors as e
 import psef.models as m
 
@@ -12,7 +11,7 @@ data_error = pytest.mark.data_error
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        'Stupid1',
+        'Student1',
         perm_error(error=401)('NOT_LOGGED_IN'),
         'admin',
     ],
@@ -21,7 +20,7 @@ data_error = pytest.mark.data_error
 @pytest.mark.parametrize(
     'q,users',
     [
-        ('tuPId', ['stupid{}'.format(i) for i in range(1, 5)]),
+        ('UdeNt', ['student{}'.format(i) for i in range(1, 5)]),
         ('s chap', ['thomas']),
         ('s%chap', []),
         http_error(error=400)(('ko', []))  # Too short

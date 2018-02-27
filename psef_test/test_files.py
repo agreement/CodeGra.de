@@ -7,7 +7,7 @@ data_error = pytest.mark.data_error
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        'Stupid1',
+        'Student1',
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],
     indirect=True

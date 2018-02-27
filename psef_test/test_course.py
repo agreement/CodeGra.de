@@ -16,7 +16,7 @@ missing_error = pytest.mark.missing_error
             ]
         ),
         (
-            'Stupid1', [
+            'Student1', [
                 ('Programmeertalen', 'Student'),
                 ('Inleiding Programmeren', 'Student')
             ]
@@ -75,8 +75,8 @@ def test_get_all_extended_courses(ta_user, test_client, logged_in):
     'named_user,course_name,role', [
         ('Thomas Schaper', 'Programmeertalen', 'TA'),
         ('Thomas Schaper', 'Project Software Engineering', 'Student'),
-        ('Stupid1', 'Programmeertalen', 'Student'),
-        data_error(('Stupid1', 'Project Software Engineering', 'Student')),
+        ('Student1', 'Programmeertalen', 'Student'),
+        data_error(('Student1', 'Project Software Engineering', 'Student')),
         data_error(('admin', 'Project Software Engineering', 'Student')),
         perm_error(error=401)(
             ('NOT_LOGGED_IN', 'Project Software Engineering', 'Student')
@@ -119,7 +119,7 @@ def test_get_course_data(
 
 @pytest.mark.parametrize(
     'named_user', [
-        perm_error(error=403)('Stupid1'),
+        perm_error(error=403)('Student1'),
         'admin',
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],
@@ -173,7 +173,7 @@ def test_add_course(
 
 @pytest.mark.parametrize(
     'named_user,expected', [
-        ('Stupid1', ['Haskell', 'Shell', 'Python', 'Go']),
+        ('Student1', ['Haskell', 'Shell', 'Python', 'Go']),
         ('Thomas Schaper', ['Haskell', 'Shell', 'Python', 'Go', 'Erlang']),
         perm_error(error=403)(('admin', [])),
         perm_error(error=401)(('NOT_LOGGED_IN', [])),
@@ -214,8 +214,8 @@ def test_get_course_assignments(
     [
         (
             'Programmeertalen', [
-                'Thomas Schaper', 'Devin Hillenius', 'Stupid1', 'Stupid2',
-                'Stupid3', 'Stupid4', 'b', 'Robin', 'Œlµo'
+                'Thomas Schaper', 'Devin Hillenius', 'Student1', 'Student2',
+                'Student3', 'Student4', 'b', 'Robin', 'Œlµo'
             ]
         )
     ],
@@ -224,7 +224,7 @@ def test_get_course_assignments(
     'named_user', [
         'Thomas Schaper',
         perm_error(error=401)('NOT_LOGGED_IN'),
-        perm_error(error=403)('Stupid1'),
+        perm_error(error=403)('Student1'),
     ],
     indirect=['named_user']
 )
@@ -257,7 +257,7 @@ def test_get_course_users(
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        perm_error(error=403)('Stupid1'),
+        perm_error(error=403)('Student1'),
         perm_error(error=403)('admin'),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],
@@ -266,7 +266,7 @@ def test_get_course_users(
 @pytest.mark.parametrize(
     'to_add', [
         data_error(error=400)('thomas'),
-        data_error(error=400)('stupid1'),
+        data_error(error=400)('student1'),
         data_error(error=404)('non_existing'),
         data_error(error=404)('non_existing@example.com'),
         data_error(error=400)(1),
@@ -332,7 +332,7 @@ def test_add_user_to_course(
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        perm_error(error=403)('Stupid1'),
+        perm_error(error=403)('Student1'),
         perm_error(error=403)('admin'),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],
@@ -341,7 +341,7 @@ def test_add_user_to_course(
 @pytest.mark.parametrize(
     'to_update', [
         data_error(error=403)('thomas_schaper@example.com'),
-        ('stupid1@example.com'),
+        ('student1@example.com'),
         ('admin@example.com'),
         data_error(error=404)(-1),
         data_error(error=400)(True),
@@ -397,7 +397,7 @@ def test_update_user_in_course(
 @pytest.mark.parametrize(
     'named_user,role', [
         ('Thomas Schaper', 'TA'),
-        perm_error(error=403)(('Stupid1', 'Student')),
+        perm_error(error=403)(('Student1', 'Student')),
         perm_error(error=403)(('admin', None)),
         perm_error(error=401)(('NOT_LOGGED_IN', None)),
     ],
@@ -452,7 +452,7 @@ def test_get_courseroles(
 @pytest.mark.parametrize(
     'named_user', [
         ('Thomas Schaper'),
-        perm_error(error=403)(('Stupid1')),
+        perm_error(error=403)(('Student1')),
         perm_error(error=403)(('admin')),
         perm_error(error=401)(('NOT_LOGGED_IN')),
     ],
@@ -534,7 +534,7 @@ def test_add_courseroles(
 @pytest.mark.parametrize(
     'named_user,user_role', [
         ('Thomas Schaper', 'TA'),
-        perm_error(error=403)(('Stupid1', 'Student')),
+        perm_error(error=403)(('Student1', 'Student')),
         perm_error(error=403)(('admin', None)),
         perm_error(error=401)(('NOT_LOGGED_IN', None)),
     ],
@@ -606,7 +606,7 @@ def test_update_courseroles(
 @pytest.mark.parametrize(
     'named_user', [
         ('Thomas Schaper'),
-        perm_error(error=403)(('Stupid1')),
+        perm_error(error=403)(('Student1')),
         perm_error(error=403)(('admin')),
         perm_error(error=401)(('NOT_LOGGED_IN')),
     ],
@@ -734,7 +734,7 @@ def test_delete_lti_courseroles(
 @pytest.mark.parametrize(
     'named_user', [
         ('Thomas Schaper'),
-        perm_error(error=403)('Stupid1'),
+        perm_error(error=403)('Student1'),
         perm_error(error=403)('admin'),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],

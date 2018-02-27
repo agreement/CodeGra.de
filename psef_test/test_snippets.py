@@ -12,7 +12,7 @@ perm_error = pytest.mark.perm_error
 @pytest.mark.parametrize(
     'named_user', [
         ('Thomas Schaper'),
-        ('Stupid1'),
+        ('Student1'),
         ('admin'),
         perm_error(error=403)('nobody'),
         perm_error(error=401)('NOT_LOGGED_IN'),
@@ -61,7 +61,7 @@ def test_simple_add_delete(
 @pytest.mark.parametrize(
     'named_user', [
         ('Thomas Schaper'),
-        ('Stupid1'),
+        ('Student1'),
         ('admin'),
         perm_error(error=403)('nobody'),
         perm_error(error=401)('NOT_LOGGED_IN'),
@@ -127,7 +127,7 @@ def test_simple_update(
 @pytest.mark.parametrize(
     'named_user', [
         ('Thomas Schaper'),
-        ('Stupid1'),
+        ('Student1'),
         ('admin'),
     ],
     indirect=True
@@ -173,7 +173,7 @@ def test_full_update(named_user, logged_in, test_client):
 @pytest.mark.parametrize(
     'named_user', [
         ('Devin Hillenius'),
-        ('Stupid1'),
+        ('Student1'),
         ('admin'),
     ],
     indirect=True
