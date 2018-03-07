@@ -47,8 +47,10 @@ def original_rubric_data():
 
 
 @pytest.fixture
-def rubric(logged_in, ta_user, test_client, original_rubric_data, assignment):
-    with logged_in(ta_user):
+def rubric(
+    logged_in, teacher_user, test_client, original_rubric_data, assignment
+):
+    with logged_in(teacher_user):
         original = original_rubric_data
         yield test_client.req(
             'put',
@@ -150,9 +152,9 @@ def test_get_assignment(
 
 
 def test_get_non_existing_assignment(
-    ta_user, test_client, logged_in, error_template
+    teacher_user, test_client, logged_in, error_template
 ):
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'get', f'/api/v1/assignments/0', 404, result=error_template
         )
@@ -207,14 +209,14 @@ def test_update_assignment(
     keep_name,
     keep_deadline,
     keep_state,
-    ta_user,
+    teacher_user,
     test_client,
     logged_in,
     assignment,
     update_data,
     error_template,
 ):
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         data = copy.deepcopy(update_data)
         assig_id = assignment.id
 
@@ -311,7 +313,7 @@ err400 = http_err(error=400)
 )
 def test_add_rubric_row(
     item_description, item_points, row_description, row_header, assignment,
-    ta_user, logged_in, test_client, error_template, request, item_header,
+    teacher_user, logged_in, test_client, error_template, request, item_header,
     rubric
 ):
     row = {}
@@ -333,7 +335,7 @@ def test_add_rubric_row(
     marker = request.node.get_marker('http_err')
     code = 200 if marker is None else marker.kwargs['error']
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         data = test_client.req(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
@@ -367,7 +369,7 @@ def test_add_rubric_row(
 @pytest.mark.parametrize('row_header', [None, 'new rheader', err400(5)])
 def test_update_rubric_row(
     item_description, item_points, row_description, row_header, assignment,
-    ta_user, logged_in, test_client, error_template, request, item_header,
+    teacher_user, logged_in, test_client, error_template, request, item_header,
     rubric
 ):
     row = {}
@@ -389,7 +391,7 @@ def test_update_rubric_row(
     marker = request.node.get_marker('http_err')
     code = 200 if marker is None else marker.kwargs['error']
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         new_rubric = copy.deepcopy(rubric)
         new_rubric[0].update(row)
 
@@ -441,7 +443,7 @@ def test_update_rubric_row(
 )
 def test_get_and_add_rubric_row(
     item_description, item_points, row_description, row_header, assignment,
-    ta_user, logged_in, test_client, error_template, request, item_header
+    teacher_user, logged_in, test_client, error_template, request, item_header
 ):
     row = {}
     if row_header is not None:
@@ -481,7 +483,7 @@ def test_get_and_add_rubric_row(
         ] if marker is None else error_template
         res = res if marker is None else error_template
 
-        with logged_in(ta_user):
+        with logged_in(teacher_user):
             test_client.req(
                 'put',
                 f'/api/v1/assignments/{assignment.id}/rubrics/',
@@ -501,7 +503,8 @@ def test_get_and_add_rubric_row(
 
 @pytest.mark.parametrize(
     'named_user', [
-        'Thomas Schaper',
+        'Robin',
+        http_err(error=403)('Thomas Schaper'),
         http_err(error=403)('Student1'),
         http_err(error=401)('NOT_LOGGED_IN')
     ],
@@ -509,7 +512,7 @@ def test_get_and_add_rubric_row(
 )
 def test_delete_rubric(
     assignment, named_user, logged_in, test_client, error_template, request,
-    ta_user, rubric
+    teacher_user, rubric
 ):
     marker = request.node.get_marker('http_err')
     code = 204 if marker is None else marker.kwargs['error']
@@ -536,7 +539,7 @@ def test_delete_rubric(
                 result=error_template,
             )
     else:
-        with logged_in(ta_user):
+        with logged_in(teacher_user):
             test_client.req(
                 'get',
                 f'/api/v1/assignments/{assignment.id}/rubrics/',
@@ -558,7 +561,7 @@ def test_update_add_rubric_wrong_permissions(
     test_client,
     error_template,
     request,
-    ta_user,
+    teacher_user,
 ):
     marker = request.node.get_marker('http_err')
     rubric = {
@@ -589,7 +592,7 @@ def test_update_add_rubric_wrong_permissions(
             APICodes.NOT_LOGGED_IN
             if marker.kwargs['error'] == 401 else APICodes.INCORRECT_PERMISSION
         )
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         rubric = test_client.req(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
@@ -610,7 +613,7 @@ def test_update_add_rubric_wrong_permissions(
             APICodes.NOT_LOGGED_IN
             if marker.kwargs['error'] == 401 else APICodes.INCORRECT_PERMISSION
         )
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'get',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
@@ -624,14 +627,14 @@ def test_creating_wrong_rubric(
     test_client,
     logged_in,
     error_template,
-    ta_user,
+    teacher_user,
     assignment,
     session,
     course_name,
 ):
     assig_id = assignment.id
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         rubric = {
             'rows': [{
                 'header': 'My header',
@@ -737,13 +740,13 @@ def test_updating_wrong_rubric(
     test_client,
     logged_in,
     error_template,
-    ta_user,
+    teacher_user,
     assignment,
     session,
     course_name,
 ):
     assig_id = assignment.id
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         rubric = {
             'rows': [{
                 'header': 'My header',
@@ -874,7 +877,7 @@ def test_updating_wrong_rubric(
 # yapf: enable
 def test_upload_files(
     named_user, exts, test_client, logged_in, assignment, name, entries,
-    dirname, error_template, ta_user
+    dirname, error_template, teacher_user
 ):
     for ext in exts:
         print(f'Testing with extension "{ext}"')
@@ -978,7 +981,7 @@ def test_upload_too_large_file(
         assert res['message'].startswith('Uploaded files are too big')
 
 
-@pytest.mark.parametrize('named_user', ['Thomas Schaper'], indirect=True)
+@pytest.mark.parametrize('named_user', ['Robin'], indirect=True)
 @pytest.mark.parametrize(
     'graders', [
         (['Thomas Schaper', 'Devin Hillenius']),
@@ -1127,9 +1130,9 @@ def test_divide_assignments(
 
 
 def test_divide_non_existing_assignment(
-    ta_user, logged_in, test_client, error_template
+    teacher_user, logged_in, test_client, error_template
 ):
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch', f'/api/v1/assignments/0/divide', 404, error_template
         )
@@ -1137,7 +1140,7 @@ def test_divide_non_existing_assignment(
 
 @pytest.mark.parametrize('with_works', [True], indirect=True)
 def test_reminder_email_divide(
-    ta_user,
+    teacher_user,
     logged_in,
     test_client,
     assignment,
@@ -1150,7 +1153,7 @@ def test_reminder_email_divide(
     )
 
     def get_graders():
-        with logged_in(ta_user):
+        with logged_in(teacher_user):
             return test_client.req(
                 'get',
                 f'/api/v1/assignments/{assig_id}/graders/',
@@ -1160,7 +1163,7 @@ def test_reminder_email_divide(
 
     graders = get_graders()
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         graders = get_graders()
         random.shuffle(graders)
         grader_done = graders[0]['id']
@@ -1275,12 +1278,12 @@ def test_get_all_graders(
     logged_in,
     test_client,
     with_works,
-    ta_user,
+    teacher_user,
     with_assignees,
     request,
     error_template,
 ):
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         graders = []
         for grader in with_assignees:
             graders.append(m.User.query.filter_by(name=grader).one().id)
@@ -1397,7 +1400,7 @@ def test_get_all_submissions(
 
 # yapf: disable
 @pytest.mark.parametrize(
-    'named_user', ['Thomas Schaper',
+    'named_user', ['Robin',
                    http_err(error=403)('Student1')],
     indirect=True
 )
@@ -1515,7 +1518,7 @@ def test_get_all_submissions(
 # yapf: enable
 def test_upload_blackboard_zip(
     test_client, logged_in, named_user, assignment, filename, result,
-    error_template, request, ta_user, session, stubmailer
+    error_template, request, teacher_user, session, stubmailer
 ):
     course_id = assignment.course_id
 
@@ -1604,7 +1607,7 @@ def test_upload_blackboard_zip(
                 found_us = m.User.query.filter_by(name=name).all()
                 assert any(u.username == username for u in found_us)
 
-                with logged_in(ta_user):
+                with logged_in(teacher_user):
                     student_users = get_student_users()
                     print(student_users, result)
                     assert student_users == set(result.keys())
@@ -1621,7 +1624,7 @@ def test_upload_blackboard_zip(
 
 @pytest.mark.parametrize('with_works', [False], indirect=True)
 def test_assigning_after_uploading(
-    test_client, logged_in, assignment, error_template, ta_user
+    test_client, logged_in, assignment, error_template, teacher_user
 ):
     for user in ['Student1', 'Student2', 'Student3']:
         with logged_in(m.User.query.filter_by(name=user).one()):
@@ -1639,7 +1642,7 @@ def test_assigning_after_uploading(
                 },
                 result=dict,
             )
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment.id}/divide',
@@ -1681,7 +1684,7 @@ def test_assigning_after_uploading(
             result=dict,
         )
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         olmo_by = None
         for assig in assigs:
             counts[assig['assignee']['id']] += 1
@@ -1707,7 +1710,7 @@ def test_assigning_after_uploading(
             },
             result=dict,
         )
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         for assig in assigs:
             if assig['user']['name'] == 'Œlµo':
                 assert olmo_by == assig['assignee']['id']
@@ -1715,7 +1718,7 @@ def test_assigning_after_uploading(
 
 @pytest.mark.parametrize('with_works', [False], indirect=True)
 def test_reset_grader_status_after_upload(
-    test_client, logged_in, assignment, error_template, ta_user, session,
+    test_client, logged_in, assignment, error_template, teacher_user, session,
     stubmailer, monkeypatch_celery
 ):
     graders_done_q = m.AssignmentGraderDone.query.filter_by(
@@ -1723,7 +1726,7 @@ def test_reset_grader_status_after_upload(
     )
     grader_done = session.query(m.User).filter_by(name='Robin').one().id
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment.id}/divide',
@@ -1766,7 +1769,7 @@ def test_reset_grader_status_after_upload(
                 result=dict,
             )
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         res = test_client.req(
             'get',
             f'/api/v1/assignments/{assignment.id}/graders/',
@@ -1815,14 +1818,14 @@ def test_assign_after_blackboard_zip(
     filename,
     error_template,
     request,
-    ta_user,
+    teacher_user,
     stubmailer,
     monkeypatch_celery,
 ):
     graders_done_q = m.AssignmentGraderDone.query.filter_by(
         assignment_id=assignment.id
     )
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         graders = m.User.query.filter(
             m.User.name.in_(['Thomas Schaper', 'Robin'])
         ).order_by(m.User.name)
@@ -2057,11 +2060,11 @@ def test_assign_after_blackboard_zip(
 # yapf: enable
 def test_ignored_upload_files(
     named_user, exts, test_client, logged_in, assignment, name, entries,
-    dirname, error_template, ta_user, ignored, entries_delete
+    dirname, error_template, teacher_user, ignored, entries_delete
 ):
     entries.sort(key=lambda a: a['name'])
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         assig = test_client.req(
             'get', f'/api/v1/assignments/{assignment.id}', 200
         )
@@ -2159,7 +2162,7 @@ def test_ignored_upload_files(
                 result=entries_delete
             )
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment.id}',
@@ -2184,7 +2187,7 @@ def test_ignored_upload_files(
             },
         )
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment.id}',
@@ -2217,7 +2220,7 @@ def test_ignored_upload_files(
                     'entries': list},
         )
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment.id}',
@@ -2268,7 +2271,7 @@ def test_ignored_upload_files(
             }
         )
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment.id}',
@@ -2303,14 +2306,14 @@ def test_ignored_upload_files(
 
 
 def test_cgignore_permission(
-    ta_user, session, test_client, error_template, assignment, logged_in
+    teacher_user, session, test_client, error_template, assignment, logged_in
 ):
-    ta_user.courses[assignment.course_id].set_permission(
+    teacher_user.courses[assignment.course_id].set_permission(
         m.Permission.query.filter_by(name='can_edit_cgignore').one(),
         False,
     )
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment.id}',
@@ -2322,13 +2325,13 @@ def test_cgignore_permission(
 
 @pytest.mark.parametrize('with_works', [True], indirect=True)
 def test_warning_grader_done(
-    test_client, logged_in, request, assignment, ta_user, session,
+    test_client, logged_in, request, assignment, teacher_user, session,
     monkeypatch_celery
 ):
     assig_id = assignment.id
 
     def get_graders():
-        with logged_in(ta_user):
+        with logged_in(teacher_user):
             return test_client.req(
                 'get',
                 f'/api/v1/assignments/{assig_id}/graders/',
@@ -2340,7 +2343,7 @@ def test_warning_grader_done(
     random.shuffle(graders)
     grader_done = graders[-1]["id"]
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         _, rv = test_client.req(
             'post',
             f'/api/v1/assignments/{assig_id}/graders/{grader_done}/done',
@@ -2407,15 +2410,16 @@ def test_warning_grader_done(
     'named_user,toggle_self', [
         http_err(error=403)(('admin', None)),
         http_err(error=401)(('NOT_LOGGED_IN', None)),
-        ('Devin Hillenius', True),
-        ('Devin Hillenius', False),
+        ('Thomas Schaper', True),
+        ('Robin', False),
+        http_err(error=403)(('Thomas Schaper', False)),
         http_err(error=403)(('Student1', None)),
     ],
     indirect=['named_user']
 )
 def test_grader_done(
     named_user, error_template, test_client, logged_in, request, assignment,
-    ta_user, session, stubmailer, toggle_self, monkeypatch_celery,
+    teacher_user, session, stubmailer, toggle_self, monkeypatch_celery,
     stub_function_class, monkeypatch
 ):
     # Please note that we DO NOT monkey patch celery away here. This is because
@@ -2457,7 +2461,7 @@ def test_grader_done(
     err = code >= 400
 
     def get_graders():
-        with logged_in(ta_user):
+        with logged_in(teacher_user):
             return test_client.req(
                 'get',
                 f'/api/v1/assignments/{assig_id}/graders/',
@@ -2479,7 +2483,15 @@ def test_grader_done(
     if toggle_self:
         grader_done = named_user.id
     else:
-        grader_done = graders[-1]["id"]
+        if isinstance(named_user, str):
+            grader_done = 1
+        else:
+            for grader in graders:
+                if grader['id'] != named_user.id:
+                    grader_done = grader['id']
+                    break
+            else:
+                assert False
 
     with logged_in(named_user):
         test_client.req(
@@ -2536,7 +2548,7 @@ def test_grader_done(
     assert all(not g['done']
                for g in graders), 'Make sure all graders are again not done'
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'post', (
                 f'/api/v1/assignments/{assig_id}/graders/' +
@@ -2600,7 +2612,7 @@ def test_grader_done(
 )
 @pytest.mark.parametrize('with_works', [True], indirect=True)
 def test_reminder_email(
-    test_client, session, error_template, ta_user, monkeypatch, app,
+    test_client, session, error_template, teacher_user, monkeypatch, app,
     stub_function_class, assignment, named_user, with_type, with_time, request,
     logged_in, with_email, monkeypatch_celery
 ):
@@ -2615,7 +2627,7 @@ def test_reminder_email(
         ])
     ).all()
     assigned_graders = all_graders[2:3]
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment.id}/divide',
@@ -2715,7 +2727,7 @@ def test_reminder_email(
     err = code >= 400
 
     def set_to_done(grader, method='post'):
-        with logged_in(ta_user):
+        with logged_in(teacher_user):
             test_client.req(
                 method,
                 (
@@ -2755,7 +2767,7 @@ def test_reminder_email(
             set_to_done(grader, 'delete')
 
     def check_assig_state():
-        with logged_in(ta_user):
+        with logged_in(teacher_user):
             assig = test_client.req(
                 'get', f'/api/v1/assignments/{assig_id}', 200, result=dict
             )
@@ -2903,7 +2915,7 @@ def test_reminder_email(
 
 @pytest.mark.parametrize('with_works', [True], indirect=True)
 def test_warning_grading_done_email(
-    test_client, session, error_template, ta_user, monkeypatch, app, logged_in,
+    test_client, session, error_template, monkeypatch, app, logged_in,
     monkeypatch_celery, stub_function_class, assignment, teacher_user
 ):
     assig_id = assignment.id
@@ -2919,7 +2931,7 @@ def test_warning_grading_done_email(
     ).all()
 
     def set_to_done(grader, method='post'):
-        with logged_in(ta_user):
+        with logged_in(teacher_user):
             test_client.req(
                 method,
                 (
@@ -2950,15 +2962,15 @@ def test_warning_grading_done_email(
 
 
 def test_notification_permission(
-    test_client, session, ta_user, logged_in, assignment, error_template
+    test_client, session, teacher_user, logged_in, assignment, error_template
 ):
     assig_id = assignment.id
-    ta_user.courses[assignment.course_id].set_permission(
+    teacher_user.courses[assignment.course_id].set_permission(
         m.Permission.query.filter_by(name='can_update_course_notifications',
                                      ).one(),
         False,
     )
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assig_id}',

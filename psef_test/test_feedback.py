@@ -284,7 +284,7 @@ def test_delete_feedback(
 )
 def test_get_all_feedback(
     named_user, request, logged_in, test_client, assignment_real_works,
-    session, error_template, ta_user, monkeypatch, monkeypatch_celery
+    session, error_template, teacher_user, monkeypatch, monkeypatch_celery
 ):
     assignment, work = assignment_real_works
     assig_id = assignment.id
@@ -297,7 +297,7 @@ def test_get_all_feedback(
         m.File.name != '__init__',
     ).first()[0]
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'put',
             f'/api/v1/code/{code_id}/comments/0',
@@ -402,7 +402,7 @@ def test_get_all_feedback(
 )
 def test_get_assignment_all_feedback(
     named_user, request, logged_in, test_client, assignment_real_works,
-    session, error_template, ta_user, monkeypatch_celery
+    session, error_template, ta_user, monkeypatch_celery, teacher_user
 ):
     assignment, work = assignment_real_works
     assig_id = assignment.id
@@ -437,6 +437,7 @@ def test_get_assignment_all_feedback(
             data={'comment': 'for line - 1'},
         )
 
+    with logged_in(teacher_user):
         test_client.req(
             'post',
             f'/api/v1/assignments/{assignment.id}/linter',

@@ -158,13 +158,13 @@ def test_get_code_plaintext(
 )
 def test_get_code_plaintext_revisions(
     assignment_real_works, test_client, request, error_template, ta_user,
-    student_user, logged_in
+    teacher_user, student_user, logged_in
 ):
     assignment, work = assignment_real_works
     assignment_id = assignment.id
     work_id = work['id']
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment_id}',
@@ -172,6 +172,7 @@ def test_get_code_plaintext_revisions(
             data={'state': 'done'},
         )
 
+    with logged_in(ta_user):
         files = test_client.req(
             'get',
             f'/api/v1/submissions/{work_id}/files/',
@@ -195,7 +196,7 @@ def test_get_code_plaintext_revisions(
         res = test_client.get(f'/api/v1/code/{teacher_file_id}', )
         assert res.status_code == 200
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment_id}',

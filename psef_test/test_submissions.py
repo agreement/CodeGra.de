@@ -252,7 +252,7 @@ def test_patch_non_existing_submission(
 
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
 def test_negative_points(
-    request, test_client, logged_in, error_template, ta_user,
+    request, test_client, logged_in, error_template, teacher_user, ta_user,
     assignment_real_works, session
 ):
     assignment, work = assignment_real_works
@@ -283,7 +283,7 @@ def test_negative_points(
     }  # yapf: disable
     max_points = 9
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         rubric = test_client.req(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
@@ -356,7 +356,7 @@ def test_negative_points(
 )
 def test_selecting_rubric(
     named_user, request, test_client, logged_in, error_template, ta_user,
-    assignment_real_works, session
+    assignment_real_works, session, teacher_user
 ):
     assignment, work = assignment_real_works
     work_id = work['id']
@@ -406,7 +406,7 @@ def test_selecting_rubric(
     }  # yapf: disable
     max_points = 11
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         rubric = test_client.req(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
@@ -515,7 +515,7 @@ def test_selecting_rubric(
             )
 
         if not error:
-            with logged_in(ta_user):
+            with logged_in(teacher_user):
                 rubric = test_client.req(
                     'delete',
                     f'/api/v1/assignments/{assignment.id}/rubrics/',
@@ -538,7 +538,7 @@ def test_selecting_rubric(
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
 @pytest.mark.parametrize(
     'named_user', [
-        'Thomas Schaper',
+        'Robin',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
         perm_error(error=403)('Student1'),
@@ -547,7 +547,7 @@ def test_selecting_rubric(
 )
 def test_clearing_rubric(
     named_user, request, test_client, logged_in, error_template, ta_user,
-    assignment_real_works, session
+    assignment_real_works, session, teacher_user
 ):
     assignment, work = assignment_real_works
     work_id = work['id']
@@ -594,13 +594,15 @@ def test_clearing_rubric(
                     if item['description'] == desc:
                         return item
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         rubric = test_client.req(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
             200,
             data=rubric
         )
+
+    with logged_in(ta_user):
         rubric = test_client.req(
             'get',
             f'/api/v1/submissions/{work_id}/rubrics/',
@@ -654,7 +656,6 @@ def test_clearing_rubric(
             }
         )
 
-    with logged_in(ta_user):
         res = test_client.req(
             'get',
             f'/api/v1/submissions/{work_id}',
@@ -704,14 +705,8 @@ def test_clearing_rubric(
 
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
 def test_selecting_wrong_rubric(
-    request,
-    test_client,
-    logged_in,
-    error_template,
-    ta_user,
-    assignment_real_works,
-    session,
-    course_name,
+    request, test_client, logged_in, error_template, ta_user,
+    assignment_real_works, session, course_name, teacher_user
 ):
     assignment, work = assignment_real_works
     course = m.Course.query.filter_by(name=course_name).one()
@@ -739,7 +734,7 @@ def test_selecting_wrong_rubric(
         }]
     }  # yapf: disable
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         rubric = test_client.req(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
@@ -747,6 +742,7 @@ def test_selecting_wrong_rubric(
             data=rubric
         )
 
+    with logged_in(ta_user):
         test_client.req(
             'patch',
             f'/api/v1/submissions/{other_work_id}/'
@@ -1332,7 +1328,7 @@ def test_add_file(
 @pytest.mark.parametrize('with_works', [True], indirect=True)
 def test_change_grader_notification(
     logged_in, test_client, stubmailer, monkeypatch_celery, assignment,
-    ta_user, with_works
+    teacher_user, with_works, ta_user
 ):
     assig_id = assignment.id
     graders = m.User.query.filter(
@@ -1349,7 +1345,7 @@ def test_change_grader_notification(
     sub_id = subs[0].id
     sub2_id = subs[1].id
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/submissions/{sub_id}/grader',
@@ -1360,7 +1356,7 @@ def test_change_grader_notification(
             'patch',
             f'/api/v1/submissions/{sub2_id}/grader',
             204,
-            data={'user_id': ta_user.id},
+            data={'user_id': teacher_user.id},
         )
 
         assert not stubmailer.called, """
@@ -1379,6 +1375,7 @@ def test_change_grader_notification(
             204,
         )
 
+    with logged_in(ta_user):
         test_client.req(
             'patch',
             f'/api/v1/submissions/{sub_id}/grader',
@@ -1536,7 +1533,7 @@ def test_change_grader(
     indirect=True
 )
 def test_delete_submission(
-    named_user, request, test_client, logged_in, error_template, ta_user,
+    named_user, request, test_client, logged_in, error_template, teacher_user,
     assignment_real_works, session
 ):
     assignment, work = assignment_real_works
@@ -1556,7 +1553,7 @@ def test_delete_submission(
 
     assert os.path.isfile(diskname)
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/submissions/{work_id}',
@@ -1598,7 +1595,7 @@ def test_delete_submission(
 )
 def test_selecting_multiple_rubric_items(
     named_user, request, test_client, logged_in, error_template, ta_user,
-    assignment_real_works, session, bs_course
+    assignment_real_works, session, bs_course, teacher_user
 ):
     assignment, work = assignment_real_works
     work_id = work['id']
@@ -1640,7 +1637,7 @@ def test_selecting_multiple_rubric_items(
     }  # yapf: disable
     max_points = 12
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         bs_rubric = test_client.req(
             'put',
             f'/api/v1/assignments/{bs_course.id}/rubrics/',

@@ -222,7 +222,8 @@ def test_get_course_assignments(
 )
 @pytest.mark.parametrize(
     'named_user', [
-        'Thomas Schaper',
+        'Robin',
+        perm_error(error=403)('Thomas Schaper'),
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('Student1'),
     ],
@@ -256,7 +257,8 @@ def test_get_course_users(
 @pytest.mark.parametrize('course_n', ['Programmeertalen'])
 @pytest.mark.parametrize(
     'named_user', [
-        'Thomas Schaper',
+        'Robin',
+        perm_error(error=403)('Thomas Schaper'),
         perm_error(error=403)('Student1'),
         perm_error(error=403)('admin'),
         perm_error(error=401)('NOT_LOGGED_IN'),
@@ -331,7 +333,8 @@ def test_add_user_to_course(
 @pytest.mark.parametrize('course_n', ['Programmeertalen'])
 @pytest.mark.parametrize(
     'named_user', [
-        'Thomas Schaper',
+        'Robin',
+        perm_error(error=403)('Thomas Schaper'),
         perm_error(error=403)('Student1'),
         perm_error(error=403)('admin'),
         perm_error(error=401)('NOT_LOGGED_IN'),
@@ -339,8 +342,9 @@ def test_add_user_to_course(
     indirect=['named_user']
 )
 @pytest.mark.parametrize(
-    'to_update', [
-        data_error(error=403)('thomas_schaper@example.com'),
+    'to_update',
+    [
+        data_error(error=403)('OWN_EMAIL'),  # You cannot change your own role
         ('student1@example.com'),
         ('admin@example.com'),
         data_error(error=404)(-1),
@@ -372,7 +376,9 @@ def test_update_user_in_course(
         name=role_n, course=course
     ).one()
 
-    if isinstance(to_update, str):
+    if to_update == 'OWN_EMAIL':
+        user_id = 0 if isinstance(named_user, str) else named_user.id
+    elif isinstance(to_update, str):
         user_id = session.query(m.User).filter_by(email=to_update).one().id
     else:
         user_id = to_update
@@ -396,7 +402,8 @@ def test_update_user_in_course(
 @pytest.mark.parametrize('course_n', ['Programmeertalen'])
 @pytest.mark.parametrize(
     'named_user,role', [
-        ('Thomas Schaper', 'TA'),
+        ('Robin', 'Teacher'),
+        perm_error(error=403)(('Thomas Schaper', 'TA')),
         perm_error(error=403)(('Student1', 'Student')),
         perm_error(error=403)(('admin', None)),
         perm_error(error=401)(('NOT_LOGGED_IN', None)),
@@ -451,7 +458,8 @@ def test_get_courseroles(
 @pytest.mark.parametrize('course_n', ['Programmeertalen'])
 @pytest.mark.parametrize(
     'named_user', [
-        ('Thomas Schaper'),
+        ('Robin'),
+        perm_error(error=403)(('Thomas Schaper')),
         perm_error(error=403)(('Student1')),
         perm_error(error=403)(('admin')),
         perm_error(error=401)(('NOT_LOGGED_IN')),
@@ -533,7 +541,7 @@ def test_add_courseroles(
 @pytest.mark.parametrize('course_n', ['Programmeertalen'])
 @pytest.mark.parametrize(
     'named_user,user_role', [
-        ('Thomas Schaper', 'TA'),
+        ('Robin', 'Teacher'),
         perm_error(error=403)(('Student1', 'Student')),
         perm_error(error=403)(('admin', None)),
         perm_error(error=401)(('NOT_LOGGED_IN', None)),
@@ -542,7 +550,7 @@ def test_add_courseroles(
 )
 @pytest.mark.parametrize(
     'role_name', [
-        'TA',
+        'Teacher',
         'Student',
         data_error(error=404)(1000),
     ]
@@ -605,7 +613,7 @@ def test_update_courseroles(
 @pytest.mark.parametrize('course_n', ['Programmeertalen'])
 @pytest.mark.parametrize(
     'named_user', [
-        ('Thomas Schaper'),
+        ('Robin'),
         perm_error(error=403)(('Student1')),
         perm_error(error=403)(('admin')),
         perm_error(error=401)(('NOT_LOGGED_IN')),
@@ -622,7 +630,7 @@ def test_update_courseroles(
 )
 def test_delete_courseroles(
     logged_in, named_user, test_client, request, session, error_template,
-    course_n, role_name, ta_user
+    course_n, role_name, teacher_user
 ):
     perm_err = request.node.get_marker('perm_error')
     data_err = request.node.get_marker('data_error')
@@ -645,7 +653,7 @@ def test_delete_courseroles(
     else:
         role_id = role_name
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         orig_roles = test_client.req(
             'get',
             f'/api/v1/courses/{course.id}/roles/',
@@ -660,7 +668,7 @@ def test_delete_courseroles(
             result=error_template if error else None,
         )
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         new_roles = test_client.req(
             'get',
             f'/api/v1/courses/{course.id}/roles/',
@@ -681,8 +689,8 @@ def test_delete_courseroles(
     ]
 )
 def test_delete_lti_courseroles(
-    role_name, ta_user, course_n, session, test_client, logged_in, request,
-    error_template
+    role_name, teacher_user, course_n, session, test_client, logged_in,
+    request, error_template
 ):
     data_err = request.node.get_marker('data_error')
 
@@ -695,7 +703,7 @@ def test_delete_lti_courseroles(
     course.lti_provider = m.LTIProvider('NO_ACTUAL_KEY')
     session.commit()
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'post',
             f'/api/v1/courses/{course.id}/roles/',
@@ -733,7 +741,8 @@ def test_delete_lti_courseroles(
 
 @pytest.mark.parametrize(
     'named_user', [
-        ('Thomas Schaper'),
+        ('Robin'),
+        perm_error(error=403)('Thomas Schaper'),
         perm_error(error=403)('Student1'),
         perm_error(error=403)('admin'),
         perm_error(error=401)('NOT_LOGGED_IN'),
