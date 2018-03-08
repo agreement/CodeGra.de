@@ -237,6 +237,9 @@ set_bool(CONFIG['FEATURES'], feature_ops, 'AUTOMATIC_LTI_ROLE', True)
 # Should LTI be enabled.
 set_bool(CONFIG['FEATURES'], feature_ops, 'LTI', True)
 
+# Should linters be enabled.
+set_bool(CONFIG['FEATURES'], feature_ops, 'LINTERS', True)
+
 # Should incremental rubric submission be enabled.
 set_bool(
     CONFIG['FEATURES'], feature_ops, 'INCREMENTAL_RUBRIC_SUBMISSION', True

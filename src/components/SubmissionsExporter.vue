@@ -71,7 +71,7 @@ export default {
         columns: {
             type: Array,
             default() {
-                return [
+                const cols = [
                     {
                         name: 'Id',
                         enabled: false,
@@ -122,7 +122,10 @@ export default {
                             return '';
                         },
                     },
-                    {
+                ];
+
+                if (UserConfig.features.linters) {
+                    cols.push({
                         name: 'Linter feedback',
                         enabled: false,
                         getter: (submission) => {
@@ -131,8 +134,10 @@ export default {
                             }
                             return '';
                         },
-                    },
-                ];
+                    });
+                }
+
+                return cols;
             },
         },
     },

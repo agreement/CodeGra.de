@@ -432,3 +432,62 @@ def test_non_existing_linter(
                   'cfg': 'ERROR'},
             result=error_template
         )
+
+
+@pytest.mark.parametrize(
+    'filename,exps',
+    [
+        ('test_flake8.tar.gz', ['W191', 'E211', 'E201', 'E202']),
+    ],
+)
+def test_lint_later_submission_disabled_linters(
+    test_client, logged_in, assignment, exps, error_template, session,
+    filename, ta_user, student_user, monkeypatch_celery, teacher_user,
+    monkeypatch, app
+):
+    assig_id = assignment.id
+
+    with logged_in(teacher_user):
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assig_id}/linter',
+            200,
+            data={'name': 'Flake8',
+                  'cfg': ''},
+            result={
+                'done': 0,
+                'working': 0,
+                'id': str,
+                'crashed': 0,
+                'name': 'Flake8',
+            }
+        )
+
+    monkeypatch.setitem(app.config['FEATURES'], 'LINTERS', False)
+
+    with logged_in(student_user):
+        single_work = test_client.req(
+            'post',
+            f'/api/v1/assignments/{assig_id}/submission',
+            201,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../'
+                        f'test_data/test_linter/{filename}', filename
+                    )
+            }
+        )
+
+    with logged_in(ta_user):
+        code_id = session.query(m.File.id).filter(
+            m.File.work_id == single_work['id'],
+            m.File.parent != None,  # NOQA
+            m.File.name != '__init__.py',
+        ).first()[0]
+
+        comments = session.query(m.LinterComment).filter_by(
+            file_id=code_id,
+        ).all()
+
+        assert not comments, "Make sure linter did not run"

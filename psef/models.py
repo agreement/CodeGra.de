@@ -1051,8 +1051,14 @@ class Work(Base):
         All linters that have been used on the assignment will also run on this
         work.
 
+        If the linters feature is disabled this function will simply return and
+        not do anything.
+
         :returns: Nothing
         """
+        if not psef.helpers.has_feature('LINTERS'):
+            return
+
         for linter in self.assignment.linters:
             instance = LinterInstance(work=self, tester=linter)
 

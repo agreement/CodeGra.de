@@ -1160,6 +1160,7 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
 
 
 @api.route('/assignments/<int:assignment_id>/linters/', methods=['GET'])
+@helpers.feature_required('LINTERS')
 def get_linters(assignment_id: int
                 ) -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
     """Get all linters for the given :class:`.models.Assignment`.
@@ -1227,6 +1228,7 @@ def get_linters(assignment_id: int
 
 
 @api.route('/assignments/<int:assignment_id>/linter', methods=['POST'])
+@helpers.feature_required('LINTERS')
 def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
     """Starts running a specific linter on all the latest submissions
     (:class:`.models.Work`) of the given :class:`.models.Assignment`.

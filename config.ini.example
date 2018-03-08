@@ -191,6 +191,9 @@
 # Should LTI be enabled.
 # LTI = true
 
+# Should linters be enabled
+# linters = true
+
 # Should rubrics be submitted incrementally, so if a user selects a item should
 # this be automatically be submitted to the server, or should it only be
 # possible to submit a complete rubric at once. This feature is useless if

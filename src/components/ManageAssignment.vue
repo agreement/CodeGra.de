@@ -49,8 +49,9 @@
         </div>
 
         <div class="row">
-            <div class="col-lg-5 comp-wrapper">
-                <div v-if="permissions.can_assign_graders">
+            <div class="col-lg-5">
+                <div v-if="permissions.can_assign_graders"
+                     class="comp-wrapper">
                     <h5>
                         Divide submissions
                         <description-popover
@@ -68,13 +69,24 @@
                                         v-else/>
                 </div>
 
-                <div v-if="permissions.can_edit_cgignore">
-                    <h5 style="margin-top: 1em">CGIgnore file</h5>
+                <div v-if="permissions.can_edit_cgignore"
+                     class="comp-wrapper">
+                    <h5>CGIgnore file</h5>
                     <CGIgnoreFile :assignment="assignment"/>
                 </div>
+            </div>
 
-                <div v-if="permissions.can_update_grader_status || permissions.can_grade_work">
-                    <h5 class="header-top-margin">
+            <div class="col-lg-7">
+                <div v-if="permissions.can_use_linter && UserConfig.features.linters"
+                     :course-id="assignment.course.id"
+                     class="comp-wrapper">
+                    <h5>Linters</h5>
+                    <linters :assignment="assignment"/>
+                </div>
+
+                <div v-if="permissions.can_update_grader_status || permissions.can_grade_work"
+                     class="comp-wrapper">
+                    <h5>
                         Finished grading
                         <description-popover
                             description="Indicate that a grader is done with
@@ -87,16 +99,9 @@
                                              :others="permissions.can_update_grader_status || false"
                                              v-else/>
                 </div>
-            </div>
 
-            <div class="col-lg-7 comp-wrapper">
-                <div v-if="permissions.can_use_linter"
-                     :course-id="assignment.course.id">
-                    <h5>Linters</h5>
-                    <linters :assignment="assignment"/>
-                </div>
-
-                <div v-if="permissions.can_update_course_notifications">
+                <div v-if="permissions.can_update_course_notifications"
+                     class="comp-wrapper">
                     <h5>
                         Notifications
                         <description-popover
@@ -260,10 +265,6 @@ export default {
 .manage-assignment {
     flex-grow: 1;
     max-width: 100%;
-}
-
-.header-top-margin {
-    margin-top: 1em;
 }
 
 .header {

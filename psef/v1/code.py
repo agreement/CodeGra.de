@@ -204,6 +204,7 @@ def get_feedback(file: models.File, linter: bool = False) -> _FeedbackMapping:
         auth.ensure_can_see_grade(file.work)
 
         if linter:
+            helpers.ensure_feature('LINTERS')
             comments = db.session.query(
                 models.LinterComment,
             ).filter_by(file_id=file.id).all()

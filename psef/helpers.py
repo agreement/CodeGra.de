@@ -427,6 +427,31 @@ def make_empty_response(
     return response
 
 
+def has_feature(feature_name: str) -> bool:
+    """Check if a certain feature is enabled.
+
+    :param feature_name: The name of te feature to check for.
+    :returns: A boolean indicating if the given feature is enabled
+    """
+    return bool(psef.app.config['FEATURES'][feature_name])
+
+
+def ensure_feature(feature_name: str) -> None:
+    """Check if a certain feature is enabled.
+
+    :param feature_name: The name of te feature to check for.
+    :returns: Nothing.
+
+    :raises APIException: If the feature is not enabled. (DISABLED_FEATURE)
+    """
+    if not has_feature(feature_name):
+        raise psef.errors.APIException(
+            'This feature is not enabled for this instance.',
+            f'The feature "{feature_name}" is not enabled.',
+            psef.errors.APICodes.DISABLED_FEATURE, 400
+        )
+
+
 def feature_required(feature_name: str) -> t.Callable:
     """ A decorator used to make sure the function decorated is only called
     with a certain feature enabled.
@@ -442,15 +467,8 @@ def feature_required(feature_name: str) -> t.Callable:
     def decorator(f: t.Callable) -> t.Callable:
         @wraps(f)
         def decorated_function(*args: t.Any, **kwargs: t.Any) -> t.Any:
-            enabled = psef.app.config['FEATURES'][feature_name]
-            if enabled:
-                return f(*args, **kwargs)
-            else:
-                raise psef.errors.APIException(
-                    'This feature is not enabled for this instance.',
-                    f'The feature "{feature_name}" is not enabled.',
-                    psef.errors.APICodes.DISABLED_FEATURE, 400
-                )
+            ensure_feature(feature_name)
+            return f(*args, **kwargs)
 
         return decorated_function
 

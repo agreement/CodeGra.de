@@ -107,9 +107,10 @@ def get_feedback(work: models.Work) -> t.Mapping[str, str]:
         for comment in comments:
             fp.write(f'{comment}\n')
 
-        fp.write('\nLinter comments:\n')
-        for lcomment in linter_comments:
-            fp.write(f'{lcomment}\n')
+        if helpers.has_feature('LINTERS'):
+            fp.write('\nLinter comments:\n')
+            for lcomment in linter_comments:
+                fp.write(f'{lcomment}\n')
 
     return {'name': name, 'output_name': filename}
 

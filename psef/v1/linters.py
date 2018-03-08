@@ -24,6 +24,7 @@ from . import api
 
 
 @api.route('/linters/<linter_id>', methods=['DELETE'])
+@helpers.feature_required('LINTERS')
 def delete_linter_output(linter_id: str) -> EmptyResponse:
     """Delete the all the output created by the
     :class:`.models.AssignmentLinter` with the given id.
@@ -51,6 +52,7 @@ def delete_linter_output(linter_id: str) -> EmptyResponse:
 
 
 @api.route('/linters/<linter_id>', methods=['GET'])
+@helpers.feature_required('LINTERS')
 def get_linter_state(linter_id: str) -> JSONResponse[models.AssignmentLinter]:
     """Get the state of the :class:`.models.AssignmentLinter` with the given
     id.

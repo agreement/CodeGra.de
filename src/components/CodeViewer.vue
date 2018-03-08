@@ -14,11 +14,15 @@
                 @click="onClick">
                 <li @click="editable && addFeedback($event, i)"
                     v-for="(line, i) in codeLines"
-                    :class="{ 'linter-feedback-outer': linterFeedback[i] && !diffMode }"
+                    :class="{ 'linter-feedback-outer': UserConfig.features.linters &&
+                                                       linterFeedback[i] &&
+                                                       !diffMode }"
                     :key="i">
 
                     <linter-feedback-area :feedback="linterFeedback[i]"
-                                          v-if="linterFeedback[i] != null && !diffMode"/>
+                                          v-if="UserConfig.features.linters &&
+                                                linterFeedback[i] != null &&
+                                                !diffMode"/>
 
                     <code v-html="line"/>
 
@@ -116,6 +120,7 @@ export default {
         languages.sort(cmpNoCase);
         languages.unshift('Default');
         return {
+            UserConfig,
             code: '',
             rawCodeLines: [],
             codeLines: [],
@@ -204,7 +209,9 @@ export default {
 
                 Promise.all([
                     this.$http.get(`/api/v1/code/${fileId}?type=feedback`),
-                    this.$http.get(`/api/v1/code/${fileId}?type=linter-feedback`),
+                    (UserConfig.features.linters ?
+                        this.$http.get(`/api/v1/code/${fileId}?type=linter-feedback`) :
+                        Promise.resolve({ data: {} })),
                 ]).then(([feedback, linterFeedback]) => {
                     this.linterFeedback = linterFeedback.data;
                     this.feedback = feedback.data;
