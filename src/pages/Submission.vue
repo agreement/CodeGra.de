@@ -52,7 +52,6 @@
                              :file="currentFile"
                              :font-size="fontSize"
                              :show-whitespace="showWhitespace"
-                             :language="selectedLanguage"
                              @load="showPreferences = true"/>
                 <code-viewer v-else
                              :assignment="assignment"
@@ -62,6 +61,7 @@
                              :tree="fileTree"
                              :font-size="fontSize"
                              :show-whitespace="showWhitespace"
+                             @new-lang="languageChanged"
                              :language="selectedLanguage"
                              @load="showPreferences = true"/>
 

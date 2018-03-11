@@ -43,10 +43,6 @@ export default {
             type: Object,
             default: null,
         },
-        language: {
-            type: String,
-            default: 'Default',
-        },
         fontSize: {
             type: Number,
             default: 12,
@@ -78,10 +74,6 @@ export default {
 
         tree() {
             this.linkFiles();
-        },
-
-        language(lang) {
-            this.highlightCode(lang);
         },
     },
 

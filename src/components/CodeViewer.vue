@@ -159,6 +159,9 @@ export default {
         },
 
         language(lang) {
+            if (this.selectedLanguage === lang) {
+                return;
+            }
             this.selectedLanguage = lang;
             if (!this.isLargeFile) {
                 this.highlightCode(lang);
@@ -170,6 +173,7 @@ export default {
         loadCodeWithSettings(setLoading = true) {
             return this.$hlanguageStore.getItem(`${this.file.id}`).then((val) => {
                 if (val !== null) {
+                    this.$emit('new-lang', val);
                     this.selectedLanguage = val;
                 } else {
                     this.selectedLanguage = 'Default';
