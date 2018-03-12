@@ -1,20 +1,18 @@
-# -*- py-isort-options: '("-sg *"); -*-
-# Import flask and template operators
-import sys
-from flask import Flask, render_template, g, current_app, jsonify
-from celery import Celery
-import typing as t
 import os
-import flask_jwt_extended as flask_jwt
-from flask_mail import Mail
-from flask_limiter import Limiter, RateLimitExceeded, util
-
+import sys
+import types
+import typing as t
 import datetime
 from json import load as json_load
 
-import config as global_config
-
+import flask_jwt_extended as flask_jwt
+from flask import Flask, g, jsonify, current_app, render_template
+from celery import Celery
+from flask_mail import Mail
+from flask_limiter import Limiter, RateLimitExceeded, util
 from werkzeug.local import LocalProxy
+
+import config as global_config
 
 app = current_app
 
@@ -34,7 +32,8 @@ def seed_lti_lookups() -> None:
         'lti_lookups.json'
     )
     with open(_seed_data_path, 'r') as f:
-        LTI_ROLE_LOOKUPS = json_load(f)
+        # We freeze this map as changing it is probably never correct.
+        LTI_ROLE_LOOKUPS = types.MappingProxyType(json_load(f))
 
 
 seed_lti_lookups()

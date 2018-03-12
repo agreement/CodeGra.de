@@ -15,7 +15,7 @@ from operator import itemgetter
 from itertools import cycle
 from collections import defaultdict
 
-from sqlalchemy import event
+from sqlalchemy import orm, event
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from sqlalchemy.orm import deferred
 from werkzeug.utils import cached_property
@@ -276,6 +276,14 @@ class CourseRole(Base):
         secondary=course_permissions
     )
 
+    def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._has_permission_cache: t.MutableMapping[str, bool] = {}
+
+    @orm.reconstructor
+    def setup_has_permission_cache(self) -> None:
+        self._has_permission_cache = {}
+
     # Old syntax used to please sphinx
     course = db.relationship(
         'Course', foreign_keys=course_id, backref="roles"
@@ -296,6 +304,7 @@ class CourseRole(Base):
         :param should_have: If this role should have this permission
         :param perm: The permission this role should (not) have
         """
+        self.setup_has_permission_cache()
         try:
             if perm.default_value ^ should_have:
                 self._permissions[perm.name] = perm
@@ -319,16 +328,19 @@ class CourseRole(Base):
         else:
             permission_name = permission
 
+        if permission_name in self._has_permission_cache:
+            return self._has_permission_cache[permission_name]
+
         if permission_name in self._permissions:
             perm = self._permissions[permission_name]
-            return perm.course_permission and not perm.default_value
+            res = perm.course_permission and not perm.default_value
         else:
             if isinstance(permission, str):
                 permission = Permission.query.filter_by(  # type: ignore
                     name=permission).first()
 
             if isinstance(permission, Permission) and permission is not None:
-                return (
+                res = (
                     permission.default_value and permission.course_permission
                 )
             else:
@@ -336,6 +348,9 @@ class CourseRole(Base):
                     'The permission "{}" does not exist'.
                     format(permission_name)
                 )
+
+        self._has_permission_cache[permission_name] = res
+        return res
 
     def get_all_permissions(self) -> t.Mapping[str, bool]:
         """Get all course :class:`permissions` for this course role.
@@ -429,12 +444,21 @@ class Role(Base):
         backref=db.backref('roles', lazy='dynamic')
     )
 
+    def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._has_permission_cache: t.MutableMapping[str, bool] = {}
+
+    @orm.reconstructor
+    def setup_has_permission_cache(self) -> None:
+        self._has_permission_cache = {}
+
     def set_permission(self, perm: Permission, should_have: bool) -> None:
         """Set the given :class:`Permission` to the given value.
 
         :param should_have: If this role should have this permission
         :param perm: The permission this role should (not) have
         """
+        self.setup_has_permission_cache()
         try:
             if perm.default_value ^ should_have:
                 self._permissions[perm.name] = perm
@@ -457,19 +481,20 @@ class Role(Base):
         else:
             perm_name = permission
 
+        if perm_name in self._has_permission_cache:
+            return self._has_permission_cache[perm_name]
+
         if perm_name in self._permissions:
             perm = self._permissions[perm_name]
-            return (not perm.default_value) and (not perm.course_permission)
+            res = (not perm.default_value) and (not perm.course_permission)
         else:
             if not isinstance(permission, Permission):
                 permission = (
-                    Permission.query.
-                    filter_by(  # type: ignore
-                        name=permission
-                    ).first()
+                    Permission.query.filter_by(name=permission).first()
                 )
+
             if isinstance(permission, Permission):
-                return (
+                res = (
                     permission.default_value and
                     not permission.course_permission
                 )
@@ -477,6 +502,9 @@ class Role(Base):
                 raise KeyError(
                     'The permission "{}" does not exist'.format(permission)
                 )
+
+        self._has_permission_cache[perm_name] = res
+        return res
 
     def get_all_permissions(self) -> t.Mapping[str, bool]:
         """Get all course permissions (:class:`Permission`) for this role.

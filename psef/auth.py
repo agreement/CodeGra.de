@@ -18,11 +18,6 @@ jwt = flask_jwt.JWTManager()
 def init_app(app: t.Any) -> None:
     jwt.init_app(app)
 
-    @app.before_request
-    def reset_perm_cache() -> None:
-        global _PERM_CACHE
-        _PERM_CACHE = {}
-
 
 class PermissionException(APIException):
     """The exception used when a permission check fails.
@@ -197,9 +192,6 @@ def ensure_can_view_files(
             )
 
 
-_PERM_CACHE = {}  # type: t.MutableMapping[t.Tuple[str, t.Optional[int]], bool]
-
-
 def ensure_permission(permission_name: str, course_id: int = None) -> None:
     """Ensure that the current user is logged and has the given permission.
 
@@ -217,15 +209,9 @@ def ensure_permission(permission_name: str, course_id: int = None) -> None:
                                  current user. (INCORRECT_PERMISSION)
     """
     if _user_active():
-        val = None
-        if (permission_name, course_id) in _PERM_CACHE:
-            val = _PERM_CACHE[(permission_name, course_id)]
-        else:
-            val = psef.current_user.has_permission(
-                permission_name, course_id=course_id
-            )
-            _PERM_CACHE[(permission_name, course_id)] = val
-        if val:
+        if psef.current_user.has_permission(
+            permission_name, course_id=course_id
+        ):
             return
         else:
             raise PermissionException(
