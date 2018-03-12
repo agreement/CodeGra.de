@@ -12,6 +12,7 @@ import sys
 import shutil
 import typing as t
 import os.path
+import tarfile
 
 import archive
 
@@ -238,15 +239,48 @@ class IgnoreFilterManager:
                     assert to_remove.startswith(top)
                     os.unlink(to_remove)
 
-    def get_ignored_files_in_archive(self, arch: archive.BaseArchive
-                                     ) -> t.List[t.Tuple[str, str]]:
+    def get_ignored_files_in_archive(
+        self,
+        arch_wrapper: archive.Archive,
+    ) -> t.List[t.Tuple[str, str]]:
         """Get all ignored files in the given archive.
 
         :param arch: The archive to check for ignored files.
         :returns: All files that should be ignored.
         """
+        arch = arch_wrapper._archive
+
+        def get_names() -> t.Iterable[str]:
+            if isinstance(arch, archive.TarArchive):
+                info: tarfile.TarInfo
+                for info in arch._archive.getmembers():
+                    if info.isdir():
+                        yield info.name + '/'
+                    else:
+                        yield info.name
+            elif isinstance(arch, archive.ZipArchive):
+                seen_dirs = set()
+                for f in arch.filenames():
+                    first = True
+                    while f and f not in seen_dirs:
+                        f, tail = os.path.split(f)
+                        p = (f + '/' if f else '') + tail
+                        # We add p without trailing slash as this is easier to
+                        # search for
+                        seen_dirs.add(p)
+                        if not first:
+                            p += '/'
+                        yield p
+
+                        first = False
+            else:  # pragma: no cover
+                # This else is not possible as our archive package only
+                # supports tar.gz and zip files. However it doesn't hurt to
+                # have it here.
+                yield from arch.filenames()
+
         wrong_files = []
-        for name in arch._archive.filenames():
+        for name in get_names():
             is_ignored, line = self.is_ignored(name)
             if is_ignored:
                 wrong_files.append((name, line))

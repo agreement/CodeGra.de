@@ -2015,6 +2015,7 @@ def test_assign_after_blackboard_zip(
             [
                     'dir2/single_file_work',
                     'dir2/single_file_work_copy',
+                    'dir2/',
                     'dir/single_file_work',
             ],
             {
@@ -2113,12 +2114,16 @@ def test_assign_after_blackboard_zip(
             'gitignore_archive', ['.tar.gz'],
             [
                 'dir/\\wow',
+                'dir2/',
                 'dir2/single_file_work',
                 'dir2/single_file_work_copy',
+                'dirl/',
                 'dirl/single_file_work',
                 'dirl/single_file_work_copy',
+                'za/',
                 'za/single_file_work',
                 'za/single_file_work_copy',
+                'la/',
                 'la/single_file_work',
                 'la/single_file_work_copy',
                 'dir/single_file_work',
@@ -2126,6 +2131,7 @@ def test_assign_after_blackboard_zip(
                 'dir/wow\\wowsers',
                 'sub/dir/file',
                 'sub/dir/file2',
+                'bb[]/',
                 'bb[]/single_file_work',
                 'bb[]/single_file_work_copy',
             ],
@@ -2391,6 +2397,80 @@ def test_ignored_upload_files(
                     'id': int,
                     'entries': list},
         )
+
+
+@pytest.mark.parametrize('ext', ['tar.gz', 'zip'])
+def test_ignoring_dirs_tar_archives(
+    logged_in, student_user, teacher_user, assignment, test_client, ext
+):
+    # This tests for bug #398
+    with logged_in(teacher_user):
+        assig = test_client.req(
+            'get', f'/api/v1/assignments/{assignment.id}', 200
+        )
+        assert assig['cgignore'] is None
+
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment.id}',
+            204,
+            data={
+                'ignore': 'dir/\n'
+            }
+        )
+
+    with logged_in(student_user):
+        res = test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submission?'
+            'ignored_files=error',
+            400,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        f'test_submissions/multiple_dir_archive.{ext}',
+                        f'multiple_dir_archive.{ext}'
+                    )
+            },
+            result={
+                'code': 'INVALID_FILE_IN_ARCHIVE',
+                'message': str,
+                'description': str,
+                'invalid_files': list
+            }
+        )
+        for f in res['invalid_files']:
+            assert f[1] == 'dir/'
+        assert ['dir/', 'dir/'] in res['invalid_files']
+
+        res = test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submission?'
+            'ignored_files=delete',
+            201,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        f'test_submissions/multiple_dir_archive.{ext}',
+                        f'multiple_dir_archive.{ext}'
+                    )
+            },
+        )
+        res = test_client.req(
+            'get',
+            f'/api/v1/submissions/{res["id"]}/files/',
+            200,
+            result={
+                'entries': list,
+                'id': int,
+                'name': str
+            }
+        )
+        for entry in res['entries']:
+            print(entry)
+            assert entry['name'] != 'dir'
 
 
 def test_cgignore_permission(

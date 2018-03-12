@@ -68,7 +68,7 @@ export default {
             default: false,
         },
         label: {
-            type: String,
+            type: [String, Boolean],
             default: 'Submit',
         },
         size: {
@@ -116,6 +116,7 @@ export default {
         },
 
         reset() {
+            this.canceled = true;
             if (this.timeout != null) {
                 clearTimeout(this.timeout);
                 this.timeout = null;
@@ -123,6 +124,7 @@ export default {
 
             this.state = 'default';
             this.err = '';
+            this.pending = false;
         },
 
         succeed(res) {

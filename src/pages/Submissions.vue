@@ -188,6 +188,9 @@ export default {
         uploadError(err) {
             if (err.data.code !== 'INVALID_FILE_IN_ARCHIVE') return;
 
+            this.wrongFiles = err.data.invalid_files;
+            this.$root.$emit('bv::show::modal', 'wrong-files-modal');
+
             // We need the double next ticks as next ticks are executed before
             // data updates of the next tick.
             this.$nextTick(() => {
@@ -195,9 +198,6 @@ export default {
                     this.$refs.uploader.$refs.submitButton.reset();
                 });
             });
-
-            this.wrongFiles = err.data.invalid_files;
-            this.$root.$emit('bv::show::modal', 'wrong-files-modal');
         },
 
         overrideSubmit(type, btn) {
