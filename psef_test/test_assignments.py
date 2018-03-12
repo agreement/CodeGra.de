@@ -143,6 +143,7 @@ def test_get_assignment(
                 'done_type': None,
                 'reminder_time': None,
                 'done_email': None,
+                'fixed_max_rubric_points': None,
             }
         else:
             res = error_template
@@ -794,6 +795,93 @@ def test_updating_wrong_rubric(
             200,
             result=server_rubric
         )
+
+
+@pytest.mark.parametrize(
+    'named_user', [
+        http_err(error=403)('Student1'),
+        http_err(error=401)('NOT_LOGGED_IN'), 'Robin'
+    ],
+    indirect=True
+)
+@pytest.mark.parametrize(
+    'max_points', [http_err(error=400)('err'),
+                   http_err(error=400)(-1), 10, 2]
+)
+@pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
+def test_set_fixed_max_points(
+    rubric, named_user, test_client, logged_in, assignment_real_works,
+    max_points, request, error_template, ta_user, session
+):
+    assignment, work = assignment_real_works
+    work_id = work['id']
+    assignment_id = assignment.id
+
+    marker = request.node.get_marker('http_err')
+    code = 200 if marker is None else marker.kwargs['error']
+    res = list if marker is None else error_template
+
+    with logged_in(ta_user):
+        item = rubric[0]['items'][0]
+        test_client.req(
+            'patch',
+            f'/api/v1/submissions/{work_id}/rubricitems/{item["id"]}',
+            204,
+            result=None
+        )
+
+    if marker is None:
+        with logged_in(ta_user):
+            out = test_client.req('get', f'/api/v1/submissions/{work_id}', 200)
+            old_grade = out['grade']
+
+    with logged_in(named_user):
+        test_client.req(
+            'put',
+            f'/api/v1/assignments/{assignment_id}/rubrics/',
+            code,
+            result=res,
+            data={
+                'max_points': max_points
+            }
+        )
+
+    if marker is None:
+        with logged_in(ta_user):
+            out = test_client.req(
+                'get',
+                f'/api/v1/assignments/{assignment_id}',
+                200,
+            )
+            assert out['fixed_max_rubric_points'] == max_points
+            rubric = test_client.req(
+                'get', f'/api/v1/submissions/{work_id}/rubrics/', 200
+            )
+            points = sum(i['points'] for i in rubric['selected'])
+            assert out['fixed_max_rubric_points'] == rubric['points']['max']
+            out = test_client.req('get', f'/api/v1/submissions/{work_id}', 200)
+            assert out['grade'] == min((points / max_points) * 10, 10)
+
+        with logged_in(named_user):
+            test_client.req(
+                'put',
+                f'/api/v1/assignments/{assignment_id}/rubrics/',
+                200,
+                result=res,
+                data={
+                    'max_points': None
+                }
+            )
+
+        with logged_in(ta_user):
+            out = test_client.req(
+                'get',
+                f'/api/v1/assignments/{assignment_id}',
+                200,
+            )
+            assert out['fixed_max_rubric_points'] is None
+            out = test_client.req('get', f'/api/v1/submissions/{work_id}', 200)
+            assert out['grade'] == old_grade
 
 
 # yapf: disable

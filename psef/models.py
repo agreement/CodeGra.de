@@ -2098,6 +2098,11 @@ class Assignment(Base):
         lazy='joined'
     )
 
+    fixed_max_rubric_points = db.Column(
+        'fixed_max_rubric_points',
+        db.Float,
+        nullable=True,
+    )
     rubric_rows = db.relationship(
         'RubricRow',
         backref=db.backref('assignment'),
@@ -2251,7 +2256,7 @@ class Assignment(Base):
         """
         return self.lti_outcome_service_url is not None
 
-    @cached_property
+    @property
     def max_rubric_points(self) -> t.Optional[float]:
         """Get the maximum amount of points possible for the rubric
 
@@ -2262,6 +2267,13 @@ class Assignment(Base):
 
         :returns: The maximum amount of points.
         """
+        if self.fixed_max_rubric_points is not None:
+            return self.fixed_max_rubric_points
+        else:
+            return self._dynamic_max_points
+
+    @cached_property
+    def _dynamic_max_points(self) -> t.Optional[float]:
         sub = db.session.query(
             func.max(RubricItem.points).label('max_val')
         ).join(RubricRow, RubricRow.id == RubricItem.rubricrow_id
@@ -2335,7 +2347,7 @@ class Assignment(Base):
             return self.whitespace_linter_exists
 
     def __to_json__(self) -> t.Mapping[str, t.Any]:
-        """Creates a JSON serializable representation of this object.
+        """Creates a JSON serializable representation of this assignment.
 
         This object will look like this:
 
@@ -2359,6 +2371,12 @@ class Assignment(Base):
                 'reminder_time': str, # ISO UTC date. This will be `null` if
                                       # you don't have the permission to see
                                       # this or if it is unset.
+                'fixed_max_rubric_points': float, # The fixed value for the
+                                                  # maximum that can be
+                                                  # achieved in a rubric. This
+                                                  # can be higher and lower
+                                                  # than the actual max. Will
+                                                  # be `null` if unset.
             }
 
         :returns: An object as described above.
@@ -2379,6 +2397,7 @@ class Assignment(Base):
             'done_type': None,
             'done_email': None,
             'reminder_time': None,
+            'fixed_max_rubric_points': self.fixed_max_rubric_points,
         }
 
         try:

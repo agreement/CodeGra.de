@@ -17,10 +17,10 @@
 
         <b-form-fieldset>
             <b-input-group prepend="Full name">
-                <b-form-input :disabled="!canEditInfo"
-                              class="form-control"
-                              type="text"
-                              v-model="name"/>
+                <input :disabled="!canEditInfo"
+                       class="form-control"
+                       type="text"
+                       v-model="name"/>
             </b-input-group>
         </b-form-fieldset>
 

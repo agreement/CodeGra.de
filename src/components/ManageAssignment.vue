@@ -121,7 +121,7 @@
              v-if="permissions.manage_rubrics && UserConfig.features.rubrics">
             <div class="col-md-12 comp-wrapper">
                 <h5>Rubric</h5>
-                <rubric-editor :assignmentId="assignment.id"
+                <rubric-editor :assignment="assignment"
                                ref="rubricEditor"
                                :editable="true"/>
             </div>

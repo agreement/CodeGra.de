@@ -111,11 +111,51 @@
                 <submit-button default="danger"
                                label="Delete"
                                ref="deleteButton"
-                               @click="deleteRubric"
-                               style="float: left;"/>
-                <submit-button style="float: right;"
-                               ref="submitButton"
+                               @click="deleteRubric"/>
+                <div class="override-checkbox">
+                    <b-input-group>
+                        <b-input-group-prepend is-text>
+                            Max points<description-popover
+                                          placement="top"
+                                          description="The maximum amount of
+                                                       points a user can get for
+                                                       this rubric. You can set
+                                                       this to a higher or lower
+                                                       value manually, by
+                                                       default it is the sum of
+                                                       the max value in each
+                                                       category."/>
+                        </b-input-group-prepend>
+                        <input type="number"
+                               min="0"
+                               step="1"
+                               v-model="internalFixedMaxPoints"
+                               @keydown.ctrl.enter="submitMaxPoints"
+                               class="form-control"
+                               :placeholder="curMaxPoints"/>
+                        <b-input-group-append>
+                            <submit-button @click="resetFixedMaxPoints()"
+                                           class="round"
+                                           ref="maxPointsButton"
+                                           :disabled="internalFixedMaxPoints == null"
+                                           v-b-popover.top.hover="'Reset to the default value.'"
+                                           :label="false"
+                                           default="warning">
+                                <icon name="reply"/>
+                            </submit-button>
+                        </b-input-group-append>
+                    </b-input-group>
+                </div>
+                <submit-button ref="submitButton"
                                @click="submit"/>
+            </b-card>
+            <b-card class="extra-bar" v-else>
+                <span>
+                    To get a full mark you need to score
+                    {{ internalFixedMaxPoints || curMaxPoints }} points in this
+                    rubric.
+                </span>
+                <slot/>
             </b-card>
         </div>
     </b-form-fieldset>
@@ -126,32 +166,39 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/info';
+import 'vue-awesome/icons/reply';
 import arrayToSentence from 'array-to-sentence';
 
 import SubmitButton from './SubmitButton';
 import Loader from './Loader';
+import DescriptionPopover from './DescriptionPopover';
 
 export default {
     name: 'rubric-editor',
-
     data() {
         return {
             rubrics: [],
             selected: null,
             loading: true,
             currentCategory: 0,
+            assignmentId: this.assignment.id,
+            internalFixedMaxPoints: this.assignment.fixed_max_rubric_points,
         };
     },
 
     props: {
-        assignmentId: {
-            type: Number,
-            default: undefined,
+        assignment: {
+            default: null,
         },
 
         editable: {
             type: Boolean,
             default: true,
+        },
+
+        fixedMaxPoints: {
+            type: Number,
+            default: null,
         },
 
         defaultRubric: {
@@ -176,6 +223,25 @@ export default {
         }
     },
 
+    computed: {
+        curMaxPoints() {
+            return this.rubrics.reduce(
+                (cur, row) => {
+                    const extra = Math.max(...row.items.map(
+                        val => Number(val.points),
+                    ).filter(
+                        item => !Number.isNaN(item),
+                    ));
+                    if (extra === -Infinity) {
+                        return cur;
+                    }
+                    return cur + extra;
+                },
+                0,
+            );
+        },
+    },
+
     methods: {
         getEmptyItem() {
             return {
@@ -183,6 +249,11 @@ export default {
                 header: '',
                 description: '',
             };
+        },
+
+        resetFixedMaxPoints() {
+            this.internalFixedMaxPoints = null;
+            this.submitMaxPoints();
         },
 
         focusOnRow(rowIndex) {
@@ -202,13 +273,19 @@ export default {
         },
 
         setRubricData(serverRubrics) {
-            this.rubrics = serverRubrics.map((row) => {
-                row.items.sort((a, b) => a.points - b.points);
+            this.rubrics = serverRubrics.map((origRow) => {
+                const row = Object.assign({}, origRow);
+
+                // We slice here so we have a complete new object to sort.
+                row.items = row.items.slice().sort((a, b) => a.points - b.points);
+
                 if (this.editable) {
                     row.items.push(this.getEmptyItem());
                 }
+
                 return row;
             });
+
             if (this.editable) {
                 this.rubrics.push(this.getEmptyRow());
             }
@@ -249,6 +326,36 @@ export default {
             }));
         },
 
+        checkFixedMaxPoints() {
+            if (this.internalFixedMaxPoints === '' || this.internalFixedMaxPoints == null) {
+                this.internalFixedMaxPoints = null;
+            } else if (Number.isNaN(Number(this.internalFixedMaxPoints))) {
+                return `The given max points "${this.internalFixedMaxPoints}" is not a number`;
+            } else {
+                this.internalFixedMaxPoints = Number(this.internalFixedMaxPoints);
+            }
+
+            return undefined;
+        },
+
+        submitMaxPoints() {
+            const err = this.checkFixedMaxPoints();
+            if (err) {
+                this.$refs.maxPointsButton.fail(err);
+                return;
+            }
+
+            const req = this.$http.put(
+                `/api/v1/assignments/${this.assignmentId}/rubrics/`,
+                {
+                    max_points: this.internalFixedMaxPoints,
+                },
+            );
+            this.$refs.maxPointsButton.submit(req.catch(({ response }) => {
+                throw response.data.message;
+            }));
+        },
+
         submit() {
             const wrongCategories = [];
             const wrongItems = [];
@@ -283,8 +390,8 @@ export default {
             if (wrongItems.length > 0) {
                 const multiple = wrongItems.length > 2;
                 this.$refs.submitButton.fail(`
-For the following item${multiple ? 's have' : ' has'} please make sure
-points is a number: ${arrayToSentence(wrongItems)}.`);
+For the following item${multiple ? 's have' : ' has'} please make sure points is
+a number: ${arrayToSentence(wrongItems)}.`);
                 return;
             }
 
@@ -292,13 +399,23 @@ points is a number: ${arrayToSentence(wrongItems)}.`);
                 const multiple = wrongCategories.length > 2;
                 this.$refs.submitButton.fail(`
 The following categor${multiple ? 'ies have' : 'y has'} a no items:
-                        ${arrayToSentence(wrongCategories)}.`);
+${arrayToSentence(wrongCategories)}.`);
                 return;
             }
 
-            const req = this.$http.put(`/api/v1/assignments/${this.assignmentId}/rubrics/`, {
-                rows,
-            }).then(({ data }) => {
+            const err = this.checkFixedMaxPoints();
+            if (err) {
+                this.$refs.maxPointsButton.fail(err);
+                return;
+            }
+
+            const req = this.$http.put(
+                `/api/v1/assignments/${this.assignmentId}/rubrics/`,
+                {
+                    rows,
+                    max_points: this.internalFixedMaxPoints,
+                },
+            ).then(({ data }) => {
                 this.setRubricData(data);
             });
             this.$refs.submitButton.submit(req.catch(({ response }) => {
@@ -351,6 +468,7 @@ The following categor${multiple ? 'ies have' : 'y has'} a no items:
         Icon,
         SubmitButton,
         Loader,
+        DescriptionPopover,
     },
 };
 </script>
@@ -496,52 +614,55 @@ The following categor${multiple ? 'ies have' : 'y has'} a no items:
         }
     }
 
-    input,
-    textarea {
-        cursor: pointer;
-        &:disabled {
-            cursor: default;
-        }
-        background: transparent;
+    .inner-container,
+    .tab-container {
+        input,
+        textarea {
+            cursor: pointer;
+            &:disabled {
+                cursor: default;
+            }
+            background: transparent;
 
-        border: 1px solid transparent !important;
+            border: 1px solid transparent !important;
 
-        &:hover:not(:disabled) {
-            border: 1px solid @color-primary-darkest !important;
-        }
-        &:focus:not(:disabled) {
-            border-color: #5cb3fd !important;
-            cursor: text;
-        }
+            &:hover:not(:disabled) {
+                border: 1px solid @color-primary-darkest !important;
+            }
+            &:focus:not(:disabled) {
+                border-color: #5cb3fd !important;
+                cursor: text;
+            }
 
-        &.row-header,
-        &.row-description {
-            width: 100%;
-        }
+            &.row-header,
+            &.row-description {
+                width: 100%;
+            }
 
-        &.row-header {
-            font-weight: bold;
-        }
+            &.row-header {
+                font-weight: bold;
+            }
 
-        &.item-points {
-            font-weight: bold;
-            max-width: 25%;
-            text-align: left;
-            float: left;
-            margin-right: .2rem;
-        }
+            &.item-points {
+                font-weight: bold;
+                max-width: 25%;
+                text-align: left;
+                float: left;
+                margin-right: .2rem;
+            }
 
-        &.item-points,
-        &.item-header,
-        &.item-description {
-            padding: .375rem .1rem;
-        }
+            &.item-points,
+            &.item-header,
+            &.item-description {
+                padding: .375rem .1rem;
+            }
 
-        &.item-header {
-            font-weight: bold;
-            text-align: left;
-            margin-left: 0.1rem;
-            float: left;
+            &.item-header {
+                font-weight: bold;
+                text-align: left;
+                margin-left: 0.1rem;
+                float: left;
+            }
         }
     }
 
@@ -572,11 +693,33 @@ The following categor${multiple ? 'ies have' : 'y has'} a no items:
         cursor: help;
     }
 
-    .card.button-bar {
+    .card.button-bar,
+    .card.extra-bar {
         border-top: 0;
         border-top-left-radius: 0;
         border-top-right-radius: 0;
         background: #f7f7f9;
+        .card-body {
+            justify-content: space-between;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+        }
+    }
+    .card.button-bar {
+        .override-checkbox {
+            justify-content: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        input {
+            width: 5em;
+        }
+    }
+    .card.extra-bar {
+        padding: 1em;
     }
 }
 
@@ -608,14 +751,14 @@ The following categor${multiple ? 'ies have' : 'y has'} a no items:
     }
 
     .card.button-bar .submit-button {
-        .btn {
+        &:not(.round) .btn {
             border-top-left-radius: 0;
             border-top-right-radius: 0;
         }
-        &:not(:first-child) .btn {
+        &:last-child:not(.round) .btn {
             border-bottom-left-radius: 0;
         }
-        &:not(:last-child) .btn {
+        &:first-child:not(.round) .btn {
             border-bottom-right-radius: 0;
         }
     }

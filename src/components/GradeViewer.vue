@@ -34,11 +34,13 @@
                                @keydown.enter="putFeedback"
                                v-model="grade"/>
                         <b-input-group-append class="text-right"
+                                              :class="{'rubric-overridden': rubricOverridden}"
+                                              variant="warning"
                                               style="text-align: center !important; display: inline;"
                                               v-if="showRubric"
                                               is-text>
                             <span v-if="rubricOverridden"
-                                  v-b-popover.top.click="'Rubric grade was overridden.'">
+                                  v-b-popover.top.hover="'Rubric grade was overridden.'">
                                 {{ rubricScore }}
                             </span>
                             <span v-else>{{ rubricScore }}</span>
@@ -328,7 +330,7 @@ textarea {
     }
 }
 
-.rubric-overridden {
+.rubric-overridden .input-group-text {
     background: fade(#f0ad4e, 50%) !important;
     cursor: help;
 

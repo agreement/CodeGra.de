@@ -376,15 +376,20 @@ def add_assignment_rubric(assignment_id: int
 
     .. :quickref: Assignment; Add a rubric to an assignment.
 
+    :>json array rows: An array of rows. Each row should be an object that
+        should contain a ``header`` mapping to a string, a ``description`` key
+        mapping to a string, an ``items`` key mapping to an array and it may
+        contain an ``id`` key mapping to the current id of this row. The items
+        array should contain objects with a ``description`` (string),
+        ``header`` (string) and ``points`` (number) and optionally an ``id`` if
+        you are modifying an existing item in an existing row.
+    :>json number max_points: Optionally override the maximum amount of points
+        you can get for this rubric. By passing ``null`` you reset this value,
+        by not passing it you keep its current value. (OPTIONAL)
+
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
 
-    :raises APIException: If no assignment with given id exists.
-                          (OBJECT_ID_NOT_FOUND)
-    :raises APIException: If there is no `rows` (list) item in the provided
-                          content. (INVALID_PARAM)
-    :raises APIException: If a `row` does not contain `header`, `description`
-                          or `items` (list).(INVALID_PARAM)
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the user is not allowed to manage rubrics.
                                 (INCORRECT_PERMISSION)
@@ -394,73 +399,100 @@ def add_assignment_rubric(assignment_id: int
     auth.ensure_permission('manage_rubrics', assig.course_id)
     content = ensure_json_dict(request.get_json())
 
-    helpers.ensure_keys_in_dict(content, [('rows', list)])
-    rows = t.cast(list, content['rows'])
-
-    row: JSONType
-    with db.session.begin_nested():
-        seen = set()
-        wrong_rows = []
-        for row in rows:
-            # Check for object of form:
-            # {
-            #   'description': str,
-            #   'header': str,
-            #   'items': list
-            # }
-            row = ensure_json_dict(row)
-            ensure_keys_in_dict(
-                row, [('description', str),
-                      ('header', str),
-                      ('items', list)]
-            )
-            header = t.cast(str, row['header'])
-            description = t.cast(str, row['description'])
-            items = t.cast(list, row['items'])
-
-            if 'id' in row:
-                seen.add(row['id'])
-                n = patch_rubric_row(
-                    assig, header, description, row['id'], items
-                )
-            else:
-                n = add_new_rubric_row(assig, header, description, items)
-
-            if n == 0:
-                wrong_rows.append(header)
-
-        if wrong_rows:
-            single = len(wrong_rows) == 1
-            raise APIException(
-                'The row{s} {rows} do{es} not contain at least one item.'.
-                format(
-                    rows=', and '.join(wrong_rows),
-                    s='' if single else 's',
-                    es='es' if single else '',
-                ), 'Not all rows contain at least one '
-                'item after updating the rubric.', APICodes.INVALID_STATE, 400
-            )
-
-        assig.rubric_rows = list(
-            filter(
-                lambda row: row is None or row.id in seen,
-                assig.rubric_rows,
-            )
+    if 'max_points' in content:
+        helpers.ensure_keys_in_dict(
+            content, [('max_points',
+                       (type(None), int, float))]
         )
-
-        db.session.flush()
-        max_points = assig.max_rubric_points
-
-        if max_points is None or max_points <= 0:
+        max_points = t.cast(t.Optional[float], content['max_points'])
+        if max_points is not None and max_points <= 0:
             raise APIException(
                 'The max amount of points you can '
                 'score should be higher than 0',
                 f'The max amount of points was {max_points} which is <= 0',
                 APICodes.INVALID_STATE, 400
             )
+        assig.fixed_max_rubric_points = max_points
+
+    if 'rows' in content:
+        with db.session.begin_nested():
+            helpers.ensure_keys_in_dict(content, [('rows', list)])
+            rows = t.cast(list, content['rows'])
+
+            id_wrong = [process_rubric_row(assig, row) for row in rows]
+            seen = set(
+                item_id for item_id, _ in id_wrong if item_id is not None
+            )
+            wrong_rows = set(err for _, err in id_wrong if err is not None)
+
+            if wrong_rows:
+                single = len(wrong_rows) == 1
+                raise APIException(
+                    'The row{s} {rows} do{es} not contain at least one item.'.
+                    format(
+                        rows=', and '.join(wrong_rows),
+                        s='' if single else 's',
+                        es='es' if single else '',
+                    ), 'Not all rows contain at least one '
+                    'item after updating the rubric.', APICodes.INVALID_STATE,
+                    400
+                )
+
+            assig.rubric_rows = [
+                row for row in assig.rubric_rows
+                if row is None or row.id in seen
+            ]
+
+            db.session.flush()
+            max_points = assig.max_rubric_points
+
+            if max_points is None or max_points <= 0:
+                raise APIException(
+                    'The max amount of points you can '
+                    'score should be higher than 0',
+                    f'The max amount of points was {max_points} which is <= 0',
+                    APICodes.INVALID_STATE, 400
+                )
 
     db.session.commit()
     return jsonify(assig.rubric_rows)
+
+
+def process_rubric_row(
+    assig: models.Assignment,
+    row: JSONType,
+) -> t.Tuple[t.Optional[int], t.Optional[str]]:
+    """Process a single rubric row updating or adding it.
+
+    This function works on the input json data. It makes sure that the input
+    has the correct format and dispatches it to the necessary functions.
+
+    :param assig: The assignment this rubric row should be added to.
+    :returns: A tuple with as the first element the id of the rubric row that
+        has been processed (this is ``None`` for a new row) and as second item
+        a string that describes were an error occurred if such an error did
+        occur.
+    """
+    row = ensure_json_dict(row)
+    ensure_keys_in_dict(
+        row, [('description', str),
+              ('header', str),
+              ('items', list)]
+    )
+    header = t.cast(str, row['header'])
+    description = t.cast(str, row['description'])
+    items = t.cast(list, row['items'])
+    row_id = None
+
+    if 'id' in row:
+        ensure_keys_in_dict(row, [('id', int)])
+        row_id = t.cast(int, row['id'])
+        n = patch_rubric_row(assig, header, description, row_id, items)
+    else:
+        n = add_new_rubric_row(assig, header, description, items)
+
+    err = header if n == 0 else None  # No items were added which is wrong
+    return row_id, err
 
 
 def add_new_rubric_row(
@@ -510,7 +542,7 @@ def add_new_rubric_row(
 
 def patch_rubric_row(
     assig: models.Assignment, header: str, description: str,
-    rubric_row_id: t.Any, items: t.Sequence[JSONType]
+    rubric_row_id: int, items: t.Sequence[JSONType]
 ) -> int:
     """Update a rubric row of the assignment.
 

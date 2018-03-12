@@ -35,14 +35,19 @@
         </div>
 
         <b-modal v-if="rubric"
+                 id="rubric-modal"
                  class="rubric-modal"
                  v-model="showRubricModal"
-                 :ok-only="true"
-                 ok-title="Close"
+                 :hide-footer="true"
                  :hide-header="true">
             <rubric-editor :editable="false"
                            :defaultRubric="rubric"
-                           :assignmentId="assignment.id"/>
+                           :assignment="assignment">
+                <b-button variant="primary"
+                          @click="$root.$emit('bv::hide::modal','rubric-modal')">
+                    Close
+                </b-button>
+            </rubric-editor>
         </b-modal>
 
 
