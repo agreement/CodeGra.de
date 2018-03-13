@@ -656,9 +656,7 @@ class OutcomeRequest:  # pragma: no cover
             self.lis_outcome_service_url,
             'POST',
             body=self.generate_request_xml(),
-            headers={
-                'Content-Type': 'application/xml'
-            }
+            headers={'Content-Type': 'application/xml'}
         )
 
         if monkey_patch_headers and monkey_patch_function:

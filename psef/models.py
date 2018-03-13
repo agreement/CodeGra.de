@@ -873,8 +873,9 @@ class User(Base):
             )
 
         # This should never happen but better safe than sorry.
-        if (username != self.username or
-                self.reset_token is None):  # pragma: no cover
+        if (
+            username != self.username or self.reset_token is None
+        ):  # pragma: no cover
             raise psef.auth.PermissionException(
                 'The given token is not valid for this user',
                 f'The given token {token} is not valid for user "{self.id}".',
@@ -2314,7 +2315,8 @@ class Assignment(Base):
     def is_open(self) -> bool:
         if (
             self.state == _AssignmentStateEnum.open and
-            self.deadline >= get_request_start_time()):
+            self.deadline >= get_request_start_time()
+        ):
             return True
         return False
 
@@ -2574,8 +2576,10 @@ class Assignment(Base):
         # First check if there were changes in the weights
         if len(user_weights) == len(self.assigned_graders):
             for user, weight in user_weights:
-                if (user.id not in self.assigned_graders or
-                        self.assigned_graders[user.id].weight != weight):
+                if (
+                    user.id not in self.assigned_graders or
+                    self.assigned_graders[user.id].weight != weight
+                ):
                     break
             else:
                 return

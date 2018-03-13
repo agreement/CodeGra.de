@@ -622,8 +622,7 @@ def get_submission_files_from_request(
     res = []
 
     if (
-        check_size and
-        request.content_length and
+        check_size and request.content_length and
         request.content_length > app.config['MAX_UPLOAD_SIZE']
     ):
         raise APIException(

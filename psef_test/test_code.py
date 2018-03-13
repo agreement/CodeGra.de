@@ -60,9 +60,7 @@ def test_get_code_metadata(
                 'is_directory': True,
                 'id': int,
             },
-            query={
-                'type': 'metadata'
-            }
+            query={'type': 'metadata'}
         )
 
         test_client.req(
@@ -74,9 +72,7 @@ def test_get_code_metadata(
                 'is_directory': False,
                 'id': int,
             },
-            query={
-                'type': 'metadata'
-            }
+            query={'type': 'metadata'}
         )
 
 
@@ -275,9 +271,7 @@ def test_get_file_url(
             )
             res = test_client.get(
                 f'/api/v1/files/{res["name"]}',
-                query_string={
-                    'mime': mimetype
-                }
+                query_string={'mime': mimetype}
             )
             assert res.status_code == 200
             assert res.headers['Content-Type'] == mimetype
@@ -550,9 +544,11 @@ def test_delete_code_with_comment(
             f'/api/v1/code/{f["id"]}',
             200,
             query={'operation': 'content'},
-            result={'name': f['name'],
-                    'id': int,
-                    'is_directory': False},
+            result={
+                'name': f['name'],
+                'id': int,
+                'is_directory': False
+            },
             real_data='WOWSERS123',
         )
 

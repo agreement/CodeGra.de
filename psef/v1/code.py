@@ -422,8 +422,10 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
 
     auth.ensure_can_edit_work(code.work)
 
-    if (request.content_length and
-            request.content_length > app.config['MAX_UPLOAD_SIZE']):
+    if (
+        request.content_length and
+        request.content_length > app.config['MAX_UPLOAD_SIZE']
+    ):
         raise APIException(
             'Uploaded files are too big.', 'Request is bigger than maximum '
             f'upload size of {app.config["MAX_UPLOAD_SIZE"]}.',

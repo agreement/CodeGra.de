@@ -513,9 +513,7 @@ def test_add_courseroles(
                 'get',
                 f'/api/v1/courses/{course.id}/roles/',
                 200,
-                query={
-                    'with_roles': 'true'
-                }
+                query={'with_roles': 'true'}
             )
 
             found_amount = 0

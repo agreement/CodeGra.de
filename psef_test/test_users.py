@@ -120,9 +120,7 @@ def test_register_user(
         '/api/v1/user',
         code,
         data=data,
-        result=error_template if code >= 400 else {
-            'access_token': str
-        }
+        result=error_template if code >= 400 else {'access_token': str}
     )
 
     if code < 400:
@@ -132,9 +130,7 @@ def test_register_user(
             'get',
             '/api/v1/login',
             200,
-            headers={
-                'Authorization': f'Bearer {access_token}'
-            }
+            headers={'Authorization': f'Bearer {access_token}'}
         )
 
         new_user = m.User.query.filter_by(username=username).one()

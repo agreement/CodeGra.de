@@ -42,7 +42,8 @@ def post_file() -> JSONResponse[str]:
     """
     if (
         request.content_length and
-        request.content_length > app.config['MAX_UPLOAD_SIZE']):
+        request.content_length > app.config['MAX_UPLOAD_SIZE']
+    ):
         raise APIException(
             'Uploaded file is too big.',
             'Request is bigger than maximum upload size of {}.'.format(

@@ -178,7 +178,8 @@ def update_role(course_id: int, role_id: int) -> EmptyResponse:
         models.Permission.course_permission == True,  # NOQA
     )
 
-    if (current_user.courses[course_id].id == role.id and
+    if (
+        current_user.courses[course_id].id == role.id and
         perm.name == 'can_edit_course_roles'
     ):
         raise APIException(
@@ -499,10 +500,14 @@ def get_courses() -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
             }
         return course.__to_json__()
 
-    return jsonify([{
-        'role': c.name,
-        **_get_rest(c.course),
-    } for c in current_user.courses.values()])
+    return jsonify(
+        [
+            {
+                'role': c.name,
+                **_get_rest(c.course),
+            } for c in current_user.courses.values()
+        ]
+    )
 
 
 @api.route('/courses/<int:course_id>', methods=['GET'])

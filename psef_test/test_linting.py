@@ -278,8 +278,10 @@ def test_whitespace_linter(
             'post',
             f'/api/v1/assignments/{assignment.id}/linter',
             200,
-            data={'name': 'MixedWhitespace',
-                  'cfg': 'ANY'},
+            data={
+                'name': 'MixedWhitespace',
+                'cfg': 'ANY'
+            },
             result={
                 'done': 4,
                 'working': 0,
@@ -313,8 +315,10 @@ def test_lint_later_submission(
             'post',
             f'/api/v1/assignments/{assig_id}/linter',
             200,
-            data={'name': 'Flake8',
-                  'cfg': ''},
+            data={
+                'name': 'Flake8',
+                'cfg': ''
+            },
             result={
                 'done': 0,
                 'working': 0,
@@ -384,8 +388,10 @@ def test_already_running_linter(
             'post',
             f'/api/v1/assignments/{assignment.id}/linter',
             200,
-            data={'name': 'Flake8',
-                  'cfg': 'ANY'},
+            data={
+                'name': 'Flake8',
+                'cfg': 'ANY'
+            },
             result={
                 'done': 0,
                 'working': 4,
@@ -413,8 +419,10 @@ def test_already_running_linter(
             'post',
             f'/api/v1/assignments/{assignment.id}/linter',
             409,
-            data={'name': 'Flake8',
-                  'cfg': 'ANY'},
+            data={
+                'name': 'Flake8',
+                'cfg': 'ANY'
+            },
             result=error_template,
         )
 
@@ -428,8 +436,10 @@ def test_non_existing_linter(
             'post',
             f'/api/v1/assignments/{assignment.id}/linter',
             404,
-            data={'name': 'NON_EXISTING',
-                  'cfg': 'ERROR'},
+            data={
+                'name': 'NON_EXISTING',
+                'cfg': 'ERROR'
+            },
             result=error_template
         )
 
@@ -452,8 +462,10 @@ def test_lint_later_submission_disabled_linters(
             'post',
             f'/api/v1/assignments/{assig_id}/linter',
             200,
-            data={'name': 'Flake8',
-                  'cfg': ''},
+            data={
+                'name': 'Flake8',
+                'cfg': ''
+            },
             result={
                 'done': 0,
                 'working': 0,

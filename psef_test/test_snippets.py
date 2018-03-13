@@ -46,10 +46,16 @@ def test_simple_add_delete(
                     **snip,
                 }
             )
-        res = test_client.req('get', '/api/v1/snippets/', error or 200,
-                              result=error_template if error else [
-                                  {'id': int, **snip} for snip in snips
-                              ],)
+        res = test_client.req(
+            'get',
+            '/api/v1/snippets/',
+            error or 200,
+            result=error_template
+            if error else [{
+                'id': int,
+                **snip
+            } for snip in snips],
+        )
         if not error:
             for snip in res:
                 test_client.req(
@@ -99,9 +105,11 @@ def test_simple_update(
             'get',
             '/api/v1/snippets/',
             error or 200,
-            result=error_template if error else [
-                {'id': int, **snip} for snip in snips
-            ],
+            result=error_template
+            if error else [{
+                'id': int,
+                **snip
+            } for snip in snips],
         )
         if not error:
             snips[0]['value'] = 'dag dag'
@@ -151,9 +159,15 @@ def test_full_update(named_user, logged_in, test_client):
                     **snip,
                 }
             )
-        snips = test_client.req('get', '/api/v1/snippets/', 200, result=[
-            {'id': int, **snip} for snip in snips
-        ])
+        snips = test_client.req(
+            'get',
+            '/api/v1/snippets/',
+            200,
+            result=[{
+                'id': int,
+                **snip
+            } for snip in snips]
+        )
         snips[0]['value'] = 'dag dag'
         snips[0]['key'] = 'hello hello'
         test_client.req(
@@ -165,9 +179,15 @@ def test_full_update(named_user, logged_in, test_client):
                 'key': snips[0]['key'],
             },
         )
-        test_client.req('get', '/api/v1/snippets/', 200, result=[
-            {'id': int, **snip} for snip in snips
-        ])
+        test_client.req(
+            'get',
+            '/api/v1/snippets/',
+            200,
+            result=[{
+                'id': int,
+                **snip
+            } for snip in snips]
+        )
 
 
 @pytest.mark.parametrize(

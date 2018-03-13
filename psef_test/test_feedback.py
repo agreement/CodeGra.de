@@ -348,8 +348,10 @@ def test_get_all_feedback(
             'get',
             f'/api/v1/submissions/{work_id}',
             code,
-            result={'name': str,
-                    'output_name': str} if code == 200 else error_template,
+            result={
+                'name': str,
+                'output_name': str
+            } if code == 200 else error_template,
             query={'type': 'feedback'},
         )
 
@@ -373,12 +375,11 @@ def test_get_all_feedback(
             'get',
             f'/api/v1/submissions/{work["id"]}',
             perm_err.kwargs['error'] if perm_err else 200,
-            result=error_template
-            if perm_err else {'name': str,
-                              'output_name': str},
-            query={
-                'type': 'feedback'
-            }
+            result=error_template if perm_err else {
+                'name': str,
+                'output_name': str
+            },
+            query={'type': 'feedback'}
         )
 
         if not perm_err:
@@ -420,8 +421,10 @@ def test_get_assignment_all_feedback(
             'patch',
             f'/api/v1/submissions/{work["id"]}',
             200,
-            data={'grade': 5,
-                  'feedback': 'Niet zo goed'},
+            data={
+                'grade': 5,
+                'feedback': 'Niet zo goed'
+            },
             result=dict
         )
         test_client.req(

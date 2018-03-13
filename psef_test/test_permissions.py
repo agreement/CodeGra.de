@@ -92,8 +92,10 @@ def test_non_existing_permission(
             'get',
             f'/api/v1/permissions/',
             404,
-            query={'permission': perm,
-                   'type': 'course'},
+            query={
+                'permission': perm,
+                'type': 'course'
+            },
             result=error_template
         )
 

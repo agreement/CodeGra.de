@@ -10,6 +10,7 @@ import typing as t
 import datetime
 
 from dateutil import parser as dateparser
+from dateutil.tz import gettz
 
 _txt_fmt = re.compile(
     r"Name: (?P<name>.+) \((?P<id>[^\n]*)\)\n"
@@ -98,8 +99,7 @@ def parse_info_file(file: str) -> SubmissionInfo:
 
             if bb_files:
                 files = [
-                    FileInfo(org, cur)
-                    for org, cur in
+                    FileInfo(org, cur) for org, cur in
                     _txt_files_fmt.findall(bb_files.decode('utf-8'))
                 ]
             else:
@@ -116,7 +116,8 @@ def parse_info_file(file: str) -> SubmissionInfo:
                 assignment_name=match.group('assignment').decode('utf-8'),
                 created_at=dateparser.parse(
                     match.group('datetime').decode('utf-8')
-                    .replace(" o'clock", "")
+                    .replace(" o'clock", ""),
+                    tzinfos={'CET': gettz('Europe/Amsterdam')}
                 ),
                 grade=grade,
                 text=match.group('text').decode('utf-8').rstrip(),

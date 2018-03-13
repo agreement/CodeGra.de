@@ -490,9 +490,7 @@ def test_get_and_add_rubric_row(
                 f'/api/v1/assignments/{assignment.id}/rubrics/',
                 code,
                 result=res,
-                data={
-                    'rows': [row]
-                }
+                data={'rows': [row]}
             )
             test_client.req(
                 'get',
@@ -585,9 +583,7 @@ def test_update_add_rubric_wrong_permissions(
             f'/api/v1/assignments/{assignment.id}/rubrics/',
             marker.kwargs['error'],
             result=error_template,
-            data={
-                'rows': [rubric]
-            }
+            data={'rows': [rubric]}
         )
         res['code'] = (
             APICodes.NOT_LOGGED_IN
@@ -598,9 +594,7 @@ def test_update_add_rubric_wrong_permissions(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
             200,
-            data={
-                'rows': [rubric]
-            }
+            data={'rows': [rubric]}
         )
     with logged_in(named_user):
         res = test_client.req(
@@ -841,9 +835,7 @@ def test_set_fixed_max_points(
             f'/api/v1/assignments/{assignment_id}/rubrics/',
             code,
             result=res,
-            data={
-                'max_points': max_points
-            }
+            data={'max_points': max_points}
         )
 
     if marker is None:
@@ -868,9 +860,7 @@ def test_set_fixed_max_points(
                 f'/api/v1/assignments/{assignment_id}/rubrics/',
                 200,
                 result=res,
-                data={
-                    'max_points': None
-                }
+                data={'max_points': None}
             )
 
         with logged_in(ta_user):
@@ -1112,9 +1102,7 @@ def test_divide_assignments(
                     f'/api/v1/assignments/{assignment.id}/divide',
                     400,
                     result=error_template,
-                    data={
-                        'graders': d
-                    }
+                    data={'graders': d}
                 )
 
         test_client.req(
@@ -1122,10 +1110,8 @@ def test_divide_assignments(
             f'/api/v1/assignments/{assignment.id}/divide',
             code,
             result=res,
-            data={
-                'graders': {i: 1
-                            for i in grader_ids}
-            }
+            data={'graders': {i: 1
+                              for i in grader_ids}}
         )
         assigs = test_client.req(
             'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
@@ -1194,10 +1180,8 @@ def test_divide_assignments(
                 f'/api/v1/assignments/{assignment.id}/divide',
                 code,
                 result=res,
-                data={
-                    'graders': {i: j
-                                for i, j in zip(grader_ids, [1.5, 3])}
-                }
+                data={'graders': {i: j
+                                  for i, j in zip(grader_ids, [1.5, 3])}}
             )
             assert assigs == test_client.req(
                 'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
@@ -1207,9 +1191,7 @@ def test_divide_assignments(
             'patch',
             f'/api/v1/assignments/{assignment.id}/divide',
             204,
-            data={
-                'graders': {}
-            }
+            data={'graders': {}}
         )
         for assig in test_client.req(
             'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
@@ -1279,10 +1261,8 @@ def test_reminder_email_divide(
             'patch',
             f'/api/v1/assignments/{assignment.id}/divide',
             204,
-            data={
-                'graders': {g['id']: 1
-                            for g in graders[:2]}
-            }
+            data={'graders': {g['id']: 1
+                              for g in graders[:2]}}
         )
 
         assert stubmailer.called == 2, (
@@ -1297,10 +1277,8 @@ def test_reminder_email_divide(
             'patch',
             f'/api/v1/assignments/{assignment.id}/divide',
             204,
-            data={
-                'graders': {g['id']: 1
-                            for g in graders[:3]}
-            }
+            data={'graders': {g['id']: 1
+                              for g in graders[:3]}}
         )
         assert not stubmailer.called, (
             'As the grader should have less assignments assigned (1/3 now '
@@ -1323,11 +1301,9 @@ def test_reminder_email_divide(
             'patch',
             f'/api/v1/assignments/{assignment.id}/divide',
             204,
-            data={
-                'graders': {
-                    grader_done: 1
-                }
-            }
+            data={'graders': {
+                grader_done: 1
+            }}
         )
         assert stubmailer.called == 1, (
             'Make sure user is mailed even if it had assigned submissions '
@@ -1379,10 +1355,8 @@ def test_get_all_graders(
             'patch',
             f'/api/v1/assignments/{assignment.id}/divide',
             204,
-            data={
-                'graders': {g: 1
-                            for g in graders}
-            }
+            data={'graders': {g: 1
+                              for g in graders}}
         )
 
     with logged_in(named_user):
@@ -1819,11 +1793,9 @@ def test_reset_grader_status_after_upload(
             'patch',
             f'/api/v1/assignments/{assignment.id}/divide',
             204,
-            data={
-                'graders': {
-                    grader_done: 1
-                }
-            }
+            data={'graders': {
+                grader_done: 1
+            }}
         )
         test_client.req(
             'post',
@@ -1923,10 +1895,8 @@ def test_assign_after_blackboard_zip(
             'patch',
             f'/api/v1/assignments/{assignment.id}/divide',
             204,
-            data={
-                'graders': {i.id: j
-                            for i, j in zip(graders, [1, 2])}
-            }
+            data={'graders': {i.id: j
+                              for i, j in zip(graders, [1, 2])}}
         )
         test_client.req(
             'post',
@@ -2261,9 +2231,7 @@ def test_ignored_upload_files(
             'patch',
             f'/api/v1/assignments/{assignment.id}',
             204,
-            data={
-                'ignore': '*'
-            }
+            data={'ignore': '*'}
         )
 
     with logged_in(named_user):
@@ -2286,9 +2254,7 @@ def test_ignored_upload_files(
             'patch',
             f'/api/v1/assignments/{assignment.id}',
             204,
-            data={
-                'ignore': '*\n!dir/'
-            }
+            data={'ignore': '*\n!dir/'}
         )
 
     with logged_in(named_user):
@@ -2309,9 +2275,11 @@ def test_ignored_upload_files(
             'get',
             f'/api/v1/submissions/{res["id"]}/files/',
             200,
-            result={'name': 'dir',
-                    'id': int,
-                    'entries': list},
+            result={
+                'name': 'dir',
+                'id': int,
+                'entries': list
+            },
         )
 
     with logged_in(teacher_user):
@@ -2319,9 +2287,7 @@ def test_ignored_upload_files(
             'patch',
             f'/api/v1/assignments/{assignment.id}',
             204,
-            data={
-                'ignore': '*'
-            }
+            data={'ignore': '*'}
         )
 
     with logged_in(named_user):
@@ -2370,9 +2336,7 @@ def test_ignored_upload_files(
             'patch',
             f'/api/v1/assignments/{assignment.id}',
             204,
-            data={
-                'ignore': '# Nothing'
-            }
+            data={'ignore': '# Nothing'}
         )
 
     with logged_in(named_user):
@@ -2393,9 +2357,11 @@ def test_ignored_upload_files(
             'get',
             f'/api/v1/submissions/{res["id"]}/files/',
             200,
-            result={'name': 'top',
-                    'id': int,
-                    'entries': list},
+            result={
+                'name': 'top',
+                'id': int,
+                'entries': list
+            },
         )
 
 
@@ -2414,9 +2380,7 @@ def test_ignoring_dirs_tar_archives(
             'patch',
             f'/api/v1/assignments/{assignment.id}',
             204,
-            data={
-                'ignore': 'dir/\n'
-            }
+            data={'ignore': 'dir/\n'}
         )
 
     with logged_in(student_user):
@@ -2534,11 +2498,9 @@ def test_warning_grader_done(
             f'/api/v1/assignments/{assig_id}/divide',
             204,
             result=None,
-            data={
-                'graders': {
-                    grader_done: 1
-                }
-            }
+            data={'graders': {
+                grader_done: 1
+            }}
         )
 
         _, rv = test_client.req(
@@ -2801,10 +2763,8 @@ def test_reminder_email(
             f'/api/v1/assignments/{assignment.id}/divide',
             204,
             result=None,
-            data={
-                'graders': {u.id: 1
-                            for u in assigned_graders}
-            }
+            data={'graders': {u.id: 1
+                              for u in assigned_graders}}
         )
 
         sub = assignment.get_all_latest_submissions()[0]

@@ -525,9 +525,10 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
     # `create_dir` means that the last file should be a dir or not.
     patharr, create_dir = psef.files.split_path(pathname)
 
-    if (not create_dir and
-            request.content_length and
-            request.content_length > app.config['MAX_UPLOAD_SIZE']):
+    if (
+        not create_dir and request.content_length and
+        request.content_length > app.config['MAX_UPLOAD_SIZE']
+    ):
         raise APIException(
             'Uploaded files are too big.', 'Request is bigger than maximum '
             f'upload size of {app.config["MAX_UPLOAD_SIZE"]}.',

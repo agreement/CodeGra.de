@@ -339,8 +339,10 @@ def test_lti_grade_passback(
             'patch',
             f'/api/v1/submissions/{work_id}',
             200,
-            data={'grade': grade,
-                  'feedback': 'feedback'},
+            data={
+                'grade': grade,
+                'feedback': 'feedback'
+            },
             headers={'Authorization': f'Bearer {token}'},
         )
 

@@ -80,8 +80,8 @@ def set_role_permission(role_id: int) -> EmptyResponse:
     value = t.cast(bool, content['value'])
 
     if (
-            current_user.role_id == role_id and
-            perm_name == 'can_manage_site_users'
+        current_user.role_id == role_id and
+        perm_name == 'can_manage_site_users'
     ):
         raise APIException(
             'You cannot remove this permission from your own role', (

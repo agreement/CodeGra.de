@@ -207,8 +207,10 @@ def test_delete_grade_submission(
             'patch',
             f'/api/v1/submissions/{work_id}',
             200,
-            data={'grade': 5,
-                  'feedback': ''},
+            data={
+                'grade': 5,
+                'feedback': ''
+            },
             result=dict
         )
         assert res['grade'] == 5
@@ -216,8 +218,10 @@ def test_delete_grade_submission(
             'patch',
             f'/api/v1/submissions/{work_id}',
             200,
-            data={'grade': None,
-                  'feedback': 'ww'},
+            data={
+                'grade': None,
+                'feedback': 'ww'
+            },
             result=dict
         )
         assert res['grade'] is None
@@ -244,8 +248,10 @@ def test_patch_non_existing_submission(
             'patch',
             f'/api/v1/submissions/0',
             404,
-            data={'grade': 4,
-                  'feedback': 'wow!'},
+            data={
+                'grade': 4,
+                'feedback': 'wow!'
+            },
             result=error_template
         )
 
@@ -858,11 +864,14 @@ def test_get_zip_file(
                 'get',
                 f'/api/v1/submissions/{work_id}',
                 error or 200,
-                result=error_template
-                if error else {'name': str,
-                               'output_name': str},
-                query={'type': 'zip',
-                       'owner': user_type},
+                result=error_template if error else {
+                    'name': str,
+                    'output_name': str
+                },
+                query={
+                    'type': 'zip',
+                    'owner': user_type
+                },
             )
 
             if not error:
@@ -901,11 +910,14 @@ def test_get_teacher_zip_file(
                 'get',
                 f'/api/v1/submissions/{work_id}',
                 error or 200,
-                result=error_template
-                if error else {'name': str,
-                               'output_name': str},
-                query={'type': 'zip',
-                       'owner': 'teacher'},
+                result=error_template if error else {
+                    'name': str,
+                    'output_name': str
+                },
+                query={
+                    'type': 'zip',
+                    'owner': 'teacher'
+                },
             )
             if error:
                 return set()
@@ -1052,18 +1064,14 @@ def test_add_file(
             f'/api/v1/submissions/{work_id}/files/',
             404,
             result=error_template,
-            query={
-                'path': '/non/existing/'
-            }
+            query={'path': '/non/existing/'}
         )
         test_client.req(
             'post',
             f'/api/v1/submissions/{work_id}/files/',
             400,
             result=error_template,
-            query={
-                'path': '/too_short/'
-            }
+            query={'path': '/too_short/'}
         )
 
         res = test_client.req(
@@ -1149,8 +1157,10 @@ def test_add_file(
             'post',
             f'/api/v1/submissions/{work_id}/files/',
             400,
-            query={'path': '/dir/dir2/file',
-                   'owner': 'auto'},
+            query={
+                'path': '/dir/dir2/file',
+                'owner': 'auto'
+            },
             real_data='TEAEST_FILE',
         )
 
@@ -1439,10 +1449,8 @@ def test_change_grader(
                 'patch',
                 f'/api/v1/assignments/{assignment.id}/divide',
                 204,
-                data={
-                    'graders': {g: 1
-                                for g in grader_ids}
-                }
+                data={'graders': {g: 1
+                                  for g in grader_ids}}
             )
             submission = test_client.req(
                 'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
@@ -1456,9 +1464,7 @@ def test_change_grader(
                 f'/api/v1/submissions/{submission["id"]}/grader',
                 404,
                 result=error_template,
-                data={
-                    'user_id': 100000
-                }
+                data={'user_id': 100000}
             )
             with logged_in(ta_user):
                 submission = test_client.req(
@@ -1473,9 +1479,7 @@ def test_change_grader(
                 f'/api/v1/submissions/{submission["id"]}/grader',
                 400,
                 result=error_template,
-                data={
-                    'user_id': student1_id
-                }
+                data={'user_id': student1_id}
             )
             with logged_in(ta_user):
                 submission = test_client.req(
@@ -1492,9 +1496,7 @@ def test_change_grader(
             f'/api/v1/submissions/{submission["id"]}/grader',
             code,
             result=res,
-            data={
-                'user_id': new_grader_id
-            }
+            data={'user_id': new_grader_id}
         )
         with logged_in(ta_user):
             submission = test_client.req(
@@ -1558,8 +1560,10 @@ def test_delete_submission(
             'patch',
             f'/api/v1/submissions/{work_id}',
             200,
-            data={'feedback': 'waaa',
-                  'grade': 5.65},
+            data={
+                'feedback': 'waaa',
+                'grade': 5.65
+            },
             result=dict,
         )
 
