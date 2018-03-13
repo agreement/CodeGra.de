@@ -1,20 +1,24 @@
+"""
+This package implements the backend for codegrade. Because of historic reasons
+this backend is named ``psef``.
+
+:license: AGPLv3, see LICENSE for details.
+"""
 import os
 import sys
+import json as system_json
 import types
 import typing as t
 import datetime
-from json import load as json_load
 
+import flask  # pylint: disable=unused-import
 import flask_jwt_extended as flask_jwt
-from flask import Flask, g, jsonify, current_app, render_template
-from celery import Celery
-from flask_mail import Mail
-from flask_limiter import Limiter, RateLimitExceeded, util
-from werkzeug.local import LocalProxy
+from flask import Flask, g, jsonify, current_app
+from flask_limiter import Limiter, RateLimitExceeded
 
 import config as global_config
 
-app = current_app
+app = current_app  # pylint: disable=invalid-name
 
 LTI_ROLE_LOOKUPS = {
 }  # type: t.Mapping[str, t.Mapping[str, t.Union[str, bool]]]
@@ -25,26 +29,31 @@ LTI_ROLE_LOOKUPS = {
 """
 
 
-def seed_lti_lookups() -> None:
-    global LTI_ROLE_LOOKUPS  # NOQA
+def _seed_lti_lookups() -> None:
+    """Seed the lti lookups.
+
+    This is done by reading the ``lti_lookups.json`` file and setting its
+    result in ``LTI_ROLE_LOOKUPS``. You should not call this function from
+    application code, this code is only for the first initialization.
+    """
+    # Global is necessary here as we cannot set the variable otherwise
+    global LTI_ROLE_LOOKUPS  # pylint: disable=global-statement
     _seed_data_path = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), '..', 'seed_data',
         'lti_lookups.json'
     )
     with open(_seed_data_path, 'r') as f:
         # We freeze this map as changing it is probably never correct.
-        LTI_ROLE_LOOKUPS = types.MappingProxyType(json_load(f))
+        LTI_ROLE_LOOKUPS = types.MappingProxyType(system_json.load(f))
 
 
-seed_lti_lookups()
+_seed_lti_lookups()
 
 if t.TYPE_CHECKING:  # pragma: no cover
-    import flask
-
-    import psef.models
+    import psef.models  # pylint: disable=unused-import
     current_user: 'psef.models.User' = None
 else:
-    current_user = flask_jwt.current_user
+    current_user = flask_jwt.current_user  # pylint: disable=invalid-name
 
 
 def limiter_key_func() -> None:  # pragma: no cover
@@ -56,103 +65,116 @@ def limiter_key_func() -> None:  # pragma: no cover
     raise ValueError('Key function should be overridden')
 
 
-limiter = Limiter(key_func=limiter_key_func)
+limiter = Limiter(key_func=limiter_key_func)  # pylint: disable=invalid-name
 
 
 def create_app(config: t.Mapping = None, skip_celery: bool = False) -> t.Any:
-    app = Flask(__name__)
+    """Create a new psef app.
 
-    @app.before_request
-    def set_request_start_time() -> None:
+    :param config: The config mapping that can be used to override config.
+    :param skip_celery: Set to true to disable sanity checks for celery.
+    :returns: A new psef app object.
+    """
+    resulting_app = Flask(__name__)
+
+    @resulting_app.before_request
+    def __set_request_start_time() -> None:  # pylint: disable=unused-variable
         g.request_start_time = datetime.datetime.utcnow()
 
-    @app.before_request
+    @resulting_app.before_request
     @flask_jwt.jwt_optional
-    def set_current_user() -> None:
+    def __set_current_user() -> None:  # pylint: disable=unused-variable
         # This code is necessary to make `flask_jwt_extended` understand that
         # we always want to try to load the given JWT token. The function body
         # SHOULD be empty here.
         pass
 
-    @app.teardown_request
-    def teardown_request(exception: t.Type[Exception]) -> None:
+    @resulting_app.teardown_request
+    def __teardown_request(exception: t.Type[Exception]) -> None:  # pylint: disable=unused-variable
         if exception:  # pragma: no cover
-            psef.models.db.session.expire_all()
-            psef.models.db.session.rollback()
+            models.db.session.expire_all()
+            models.db.session.rollback()
 
     # Configurations
-    app.config.update(global_config.CONFIG)
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    resulting_app.config.update(global_config.CONFIG)
+    resulting_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     if config is not None:  # pragma: no cover
-        app.config.update(config)
+        resulting_app.config.update(config)
 
-    @app.errorhandler(RateLimitExceeded)
-    def handle_error(err: RateLimitExceeded) -> 'flask.Response':
+    @resulting_app.errorhandler(RateLimitExceeded)
+    def __handle_error(_: RateLimitExceeded) -> 'flask.Response':  # pylint: disable=unused-variable
         res = jsonify(
-            psef.errors.APIException(
+            errors.APIException(
                 'Rate limit exceeded, slow down!',
                 'Rate limit is exceeded',
-                psef.errors.APICodes.RATE_LIMIT_EXCEEDED,
+                errors.APICodes.RATE_LIMIT_EXCEEDED,
                 429,
             )
         )
         res.status_code = 429
         return res
 
-    limiter.init_app(app)
+    limiter.init_app(resulting_app)
 
-    import psef.parsers  # NOQA
+    from . import auth
+    auth.init_app(resulting_app)
 
-    import psef.models  # NOQA
-    psef.models.init_app(app)
+    from . import parsers
+    parsers.init_app(resulting_app)
 
-    import psef.mail  # NOQA
-    psef.mail.init_app(app)
+    from . import models
+    models.init_app(resulting_app)
 
-    import psef.auth  # NOQA
-    psef.auth.init_app(app)
+    from . import mail
+    mail.init_app(resulting_app)
 
-    import psef.errors  # NOQA
-    psef.errors.init_app(app)
+    from . import errors
+    errors.init_app(resulting_app)
 
-    import psef.tasks
-    psef.tasks.init_app(app)
+    from . import tasks
+    tasks.init_app(resulting_app)
 
-    import psef.json  # NOQA
-    psef.json.init_app(app)
+    from . import json  # pylint: disable=reimported
+    json.init_app(resulting_app)
 
-    import psef.errors  # NOQA
-    import psef.files  # NOQA
-    import psef.lti  # NOQA
-    import psef.helpers  # NOQA
-    import psef.linters  # NOQA
+    from . import files
+    files.init_app(resulting_app)
 
-    import psef.tasks  # NOQA
+    from . import lti
+    lti.init_app(resulting_app)
+
+    from . import helpers
+    helpers.init_app(resulting_app)
+
+    from . import linters
+    linters.init_app(resulting_app)
 
     # Register blueprint(s)
-    from .v1 import api as api_v1_blueprint  # NOQA
-    app.register_blueprint(api_v1_blueprint, url_prefix='/api/v1')
+    from . import v1 as api_v1
+    api_v1.init_app(resulting_app)
 
     # Make sure celery is working
     if not skip_celery:  # pragma: no cover
         try:
-            psef.tasks.add(2, 3)
+            tasks.add(2, 3)
         except Exception:  # pragma: no cover
-            print(
+            print(  # pylint: disable=bad-builtin
                 'Celery is not responding! Please check your config',
                 file=sys.stderr
             )
             raise
 
-    if hasattr(app, 'debug') and app.debug:  # pragma: no cover
+    if hasattr(
+        resulting_app, 'debug'
+    ) and resulting_app.debug:  # pragma: no cover
         import flask_sqlalchemy
-        import flask  # NOQA
+        typ = t.TypeVar('typ')
 
-        @app.after_request
-        def print_queries(res):  # type: ignore
+        @resulting_app.after_request
+        def __print_queries(res: typ) -> typ:  # pylint: disable=unused-variable
             queries = flask_sqlalchemy.get_debug_queries()
-            print(
+            print(  # pylint: disable=bad-builtin
                 (
                     '\n{} - - made {} amount of queries totaling '
                     '{:.4f} seconds. The longest took {:.4f} seconds.'
@@ -165,4 +187,4 @@ def create_app(config: t.Mapping = None, skip_celery: bool = False) -> t.Any:
             )
             return res
 
-    return app
+    return resulting_app

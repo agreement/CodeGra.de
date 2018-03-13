@@ -15,7 +15,7 @@ Mako==1.0.7
 MarkupSafe==1.0
 passlib==1.7.1
 patool==1.12
-psycopg2==2.7.4
+psycopg2-binary==2.7.4
 py==1.5.2
 pytest==3.4.2
 pytest-cov==2.5.1

@@ -69,3 +69,6 @@ format:
 .PHONY: shrinkwrap
 shrinkwrap:
 	npm shrinkwrap --dev
+
+lint:
+	pylint psef --rcfile=setup.cfg

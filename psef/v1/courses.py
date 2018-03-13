@@ -8,6 +8,7 @@ are used to create courses and return information about courses.
 import typing as t
 import datetime
 
+import sqlalchemy
 from flask import request
 from mypy_extensions import TypedDict
 
@@ -18,16 +19,13 @@ from psef import LTI_ROLE_LOOKUPS, current_user
 from psef.errors import APICodes, APIException
 from psef.models import db
 from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
+    JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
     ensure_keys_in_dict, make_empty_response
 )
 
 from . import api
 
-if t.TYPE_CHECKING:  # pragma: no cover
-    import sqlalchemy  # NOQA
-
-_UserCourse = TypedDict(
+_UserCourse = TypedDict(  # pylint: disable=invalid-name
     '_UserCourse', {
         'User': models.User,
         'CourseRole': models.CourseRole
@@ -175,7 +173,7 @@ def update_role(course_id: int, role_id: int) -> EmptyResponse:
     perm = helpers.filter_single_or_404(
         models.Permission,
         models.Permission.name == permission,
-        models.Permission.course_permission == True,  # NOQA
+        models.Permission.course_permission == True,  # pylint: disable=singleton-comparison
     )
 
     if (
@@ -354,7 +352,7 @@ def get_all_course_users(course_id: int
     """
     auth.ensure_permission('can_edit_course_users', course_id)
 
-    users: t.Sequence['sqlalchemy.util.KeyedTuple']
+    users: t.Sequence[sqlalchemy.util.KeyedTuple]
     users = db.session.query(models.User, models.CourseRole).join(
         models.user_course,
         models.user_course.c.user_id == models.User.id,
@@ -529,12 +527,15 @@ def get_course_data(course_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
                           (OBJECT_ID_NOT_FOUND)
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     """
-    for c in current_user.courses.values():
-        if c.course.id == course_id:
-            return jsonify({
-                'role': c.name,
-                **c.course.__to_json__(),
-            })
+    # TODO: Optimize this loop to a single query
+    for course_role in current_user.courses.values():
+        if course_role.course.id == course_id:
+            return jsonify(
+                {
+                    'role': course_role.name,
+                    **course_role.course.__to_json__(),
+                }
+            )
 
     raise APIException(
         'Course not found',

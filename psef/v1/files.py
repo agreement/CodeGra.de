@@ -2,6 +2,8 @@
 This module defines all API routes with the main directory "files". These APIs
 serve to upload and download temporary files which are not stored explicitly in
 the database.
+
+:license: AGPLv3, see LICENSE for details.
 """
 import os
 import typing as t
@@ -15,10 +17,7 @@ import psef.auth as auth
 import psef.files
 from psef import app
 from psef.auth import APICodes, APIException
-from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
-    ensure_keys_in_dict, make_empty_response
-)
+from psef.helpers import JSONResponse, jsonify
 
 from . import api
 
@@ -81,7 +80,7 @@ def get_file(
     error = False
 
     @after_this_request
-    def delete_file(response: t.Any) -> t.Any:
+    def __delete_file(response: t.Any) -> t.Any:
         if not error:
             filename = safe_join(directory, file_name)
             os.unlink(filename)

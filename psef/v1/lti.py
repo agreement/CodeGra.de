@@ -1,3 +1,11 @@
+"""
+This module implements all lti routes. Please note that a lot of these routes
+are not useful for most clients as the ``/lti/launch/1`` route can only be used
+by an approved LTI provider and the ``/lti/launch/2`` route can only be used
+directly after a successful lti launch.
+
+:license: AGPLv3, see LICENSE for details.
+"""
 import typing as t
 import urllib
 import datetime
@@ -46,6 +54,22 @@ def launch_lti() -> t.Any:
 def second_phase_lti_launch(
 ) -> helpers.JSONResponse[t.Mapping[str, t.Union[str, models.Assignment, bool]]
                           ]:
+    """Do the second part of an LTI launch.
+
+    .. :quickref: LTI; Do the callback of a LTI launch.
+
+    :query string Jwt: The JWT token that is the current LTI state. This token
+        can only be acquired using the ``/lti/launch/1`` route.
+
+    :>json assignment: The assignment that the LTI launch was for.
+    :>json bool new_role_created: Was a new role created in the LTI launch.
+    :>json access_token: A fresh access token for the current user. This value
+        is not always available, this depends on internal state so you should
+        simply check.
+    :>json updated_email: The new email of the current user. This is value is
+        also not always available, check!
+    :raises APIException: If the given Jwt token is not valid. (INVALID_PARAM)
+    """
     try:
         launch_params = jwt.decode(
             flask.request.headers.get('Jwt', None),

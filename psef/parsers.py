@@ -16,6 +16,10 @@ from psef.errors import APICodes, APIException
 T = t.TypeVar('T', bound=enum.Enum)
 
 
+def init_app(_: t.Any) -> None:
+    pass
+
+
 def parse_datetime(
     to_parse: object,
     allow_none: bool = False,
@@ -48,18 +52,18 @@ def parse_datetime(
 
 def parse_enum(
     to_parse: object,
-    enum: t.Type[T],
+    parse_into_enum: t.Type[T],
     allow_none: bool = False,
     option_name: t.Optional[str] = None,
 ) -> T:
-    """Parse the given string to the given enum.
+    """Parse the given string to the given parse_into_enum.
 
     :param to_parse: The object to parse. If this value is not a string or
         ``None`` the function will always return a type error.
-    :param enum: The enum to parse to.
+    :param parse_into_enum: The enum to parse to.
     :param allow_none: Allow ``None`` to be passed and return ``None`` if this
         is the case. If this value is ``False`` and ``None`` is passed the
-        function will raise a :py:exception:`.APIException`.
+        function will raise a :class:`.APIException`.
     :param option_name: The name of the option, only used in error display.
     :returns: A instance of the given enum.
     :raises APIException: If the parsing fails in some way.
@@ -69,13 +73,13 @@ def parse_enum(
 
     if isinstance(to_parse, str):
         try:
-            return enum[to_parse]
+            return parse_into_enum[to_parse]
         except KeyError:
             pass
 
     raise APIException(
         f'The given {option_name or "option"} is not a valid option',
-        f'{to_parse} is not a member from {enum.__name__}.',
+        f'{to_parse} is not a member from {parse_into_enum.__name__}.',
         APICodes.INVALID_PARAM, 400
     )
 
@@ -84,6 +88,19 @@ def parse_email_list(
     to_parse: object,
     allow_none: bool = False,
 ) -> t.Optional[t.List[t.Tuple[str, str]]]:
+    """Parse email list into a list of emails.
+
+    This list should be in the form of a ``address-list`` as specified in
+    RFC2822.
+
+    :param to_parse: The object to parse, it should be a :class:`str` if you
+        want it to succeed.
+    :param allow_none: If ``True`` we will not error if ``to_parse`` is
+        ``None``.
+    :returns: A list of addresses or ``None`` if ``to_parse`` is ``None`` and
+        ``allow_none`` is ``True``.
+    :raises APIException: If the parsing fails in some way.
+    """
     if allow_none and to_parse is None:
         return None
 
@@ -103,6 +120,16 @@ def try_parse_email_list(
     to_parse: object,
     allow_none: bool = False,
 ) -> t.Optional[str]:
+    """Try parsing an email list.
+
+    This function is basically the same as :func:`.parse_email_list` but
+    this function returns ``to_parse`` stripped of unnecessary whitespaces if
+    the parsing succeeded.
+
+    :param to_parse: See :func:`.parse_email_list` for what it does.
+    :param allow_none: See :func:`.parse_email_list` for what it does.
+    :returns: Its input stripped of spaces if parsing succeeded.
+    """
     # parse_email will always throw when to_parse is not `(type(None), str)`
     if parse_email_list(to_parse, allow_none) is None:
         return None

@@ -4,6 +4,7 @@ about sqlalchemy.
 
 :license: AGPLv3, see LICENSE for details.
 """
+# pylint: skip-file
 
 import enum
 import typing as t
@@ -168,6 +169,9 @@ class DbColumn(t.Generic[T]):  # pragma: no cover
         ...
 
     def __invert__(self) -> 'DbColumn[T]':
+        ...
+
+    def desc(self) -> 'DbColumn[T]':
         ...
 
 

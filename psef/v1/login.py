@@ -2,6 +2,8 @@
 This module defines all API routes with the main directory "login". This APIs
 are used to handle starting and closing the user session and update the :class:
 User object of the logged in user.
+
+:license: AGPLv3, see LICENSE for details.
 """
 import typing as t
 
@@ -9,17 +11,15 @@ import flask_jwt_extended as flask_jwt
 from flask import request
 from validate_email import validate_email
 
-import psef
 import psef.auth as auth
 import psef.mail as mail
 import psef.models as models
 import psef.helpers as helpers
 from psef import current_user
-from psef.auth import jwt
 from psef.errors import APICodes, APIException
 from psef.models import db
 from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
+    JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
     ensure_json_dict, extended_jsonify, ensure_keys_in_dict,
     make_empty_response
 )
@@ -44,11 +44,11 @@ def login() -> ExtendedJSONResponse[t.Mapping[str, t.Union[models.User, str]]]:
         the server logged in as the given user.
 
     :raises APIException: If the request does not contain email and/or password
-                          parameter. (MISSING_REQUIRED_PARAM)
+        parameter. (MISSING_REQUIRED_PARAM)
     :raises APIException: If no user with email exists or the password is
-                          wrong. (LOGIN_FAILURE)
+        wrong. (LOGIN_FAILURE)
     :raises APIException: If the user with the given email and password is
-                          inactive. (INACTIVE_USER)
+        inactive. (INACTIVE_USER)
     """
     data = ensure_json_dict(request.get_json())
     ensure_keys_in_dict(data, [('username', str), ('password', str)])
@@ -95,9 +95,10 @@ def login() -> ExtendedJSONResponse[t.Mapping[str, t.Union[models.User, str]]]:
 
 @api.route("/login", methods=["GET"])
 @auth.login_required
-def me() -> t.Union[JSONResponse[t.Union[models.User, t.Mapping[int, str]]],
-                    ExtendedJSONResponse[models.User],
-                    ]:
+def self_information(
+) -> t.Union[JSONResponse[t.Union[models.User, t.Mapping[int, str]]],
+             ExtendedJSONResponse[models.User],
+             ]:
     """Get the info of the currently logged in :class:`.models.User`.
 
     .. :quickref: User; Get information about the currently logged in user.

@@ -6,9 +6,7 @@ This code is almost copied verbatim from dulwich.
 
 :license: AGPLv3, see LICENSE for details.
 """
-
 import re
-import sys
 import shutil
 import typing as t
 import os.path
@@ -27,23 +25,23 @@ def _translate_segment(segment: str) -> str:
         return '[^/]+'
 
     res = []
-    i, n = 0, len(segment)
-    while i < n:
-        c = segment[i:i + 1]
+    i, segment_length = 0, len(segment)
+    while i < segment_length:
+        char = segment[i:i + 1]
         i = i + 1
-        if c == '*':
+        if char == '*':
             res.append('[^/]*')
-        elif c == '?':
+        elif char == '?':
             res.append('.')
-        elif c == '[':
+        elif char == '[':
             j = i
-            if j < n and segment[j:j + 1] == '!':
+            if j < segment_length and segment[j:j + 1] == '!':
                 j = j + 1
-            if j < n and segment[j:j + 1] == ']':
+            if j < segment_length and segment[j:j + 1] == ']':
                 j = j + 1
-            while j < n and segment[j:j + 1] != ']':
+            while j < segment_length and segment[j:j + 1] != ']':
                 j = j + 1
-            if j >= n:
+            if j >= segment_length:
                 res.append('\\[')
             else:
                 stuff = segment[i:j].replace('\\', '\\\\')
@@ -52,7 +50,7 @@ def _translate_segment(segment: str) -> str:
                     stuff = '^' + stuff[1:]
                 res.append('[' + stuff + ']')
         else:
-            res.append(re.escape(c))
+            res.append(re.escape(char))
 
     return ''.join(res)
 
@@ -92,7 +90,7 @@ def translate(pat: str) -> str:
     if not pat.endswith('/'):
         res += '/?'
 
-    return res + '\Z'
+    return res + r'\Z'
 
 
 def read_ignore_patterns(f: t.Iterable[str]) -> t.Iterable[t.Tuple[str, str]]:
@@ -148,6 +146,9 @@ class Pattern:
 
 
 class IgnoreFilter:
+    """A ignore filter. This filter consists of multiple :class:`.Filter`.
+    """
+
     def __init__(self, patterns: t.Iterable[str]) -> None:
         self._patterns: t.List[Pattern] = []
         for pattern, orig_line in read_ignore_patterns(patterns):
@@ -161,7 +162,7 @@ class IgnoreFilter:
         """Yield all matching patterns for path.
 
         :param path: Path to match
-        :return: Iterator over  iterators
+        :return: Iterator over iterators
         """
         for pattern in self._patterns:
             if pattern.match(path):
@@ -179,7 +180,9 @@ class IgnoreFilterManager:
 
     def find_matching(self, path: str) -> t.Iterable[Pattern]:
         """Find matching patterns for path.
+
         Stops after the first ignore file with matches.
+
         :param path: Path to check
         :return: Iterator over Pattern instances
         """
@@ -203,6 +206,7 @@ class IgnoreFilterManager:
     def is_ignored(self,
                    path: str) -> t.Tuple[t.Optional[bool], t.Optional[str]]:
         """Check whether a path is explicitly included or excluded in ignores.
+
         :param path: Path to check
         :return: None if the file is not mentioned, True if it is included,
             False if it is explicitly excluded.
@@ -216,7 +220,9 @@ class IgnoreFilterManager:
     def delete_from_dir(self, top: str) -> None:
         """Delete all files from the given archive.
 
-        .. warning:: This mutates the given directory.
+        .. warning::
+
+            This mutates the given directory.
 
         :param top: The top directory of the archive to traverse and delete
             files from.
@@ -248,12 +254,14 @@ class IgnoreFilterManager:
         :param arch: The archive to check for ignored files.
         :returns: All files that should be ignored.
         """
-        arch = arch_wrapper._archive
+        arch = arch_wrapper._archive  # pylint: disable=protected-access
 
-        def get_names() -> t.Iterable[str]:
+        def __get_names() -> t.Iterable[str]:
             if isinstance(arch, archive.TarArchive):
                 info: tarfile.TarInfo
-                for info in arch._archive.getmembers():
+                # We need the protected access as this not publicly
+                # exposed. The version is pinned so this should be fine
+                for info in arch._archive.getmembers():  # pylint: disable=protected-access
                     if info.isdir():
                         yield info.name + '/'
                     else:
@@ -264,13 +272,13 @@ class IgnoreFilterManager:
                     first = True
                     while f and f not in seen_dirs:
                         f, tail = os.path.split(f)
-                        p = (f + '/' if f else '') + tail
+                        cur_path = (f + '/' if f else '') + tail
                         # We add p without trailing slash as this is easier to
                         # search for
-                        seen_dirs.add(p)
+                        seen_dirs.add(cur_path)
                         if not first:
-                            p += '/'
-                        yield p
+                            cur_path += '/'
+                        yield cur_path
 
                         first = False
             else:  # pragma: no cover
@@ -280,7 +288,7 @@ class IgnoreFilterManager:
                 yield from arch.filenames()
 
         wrong_files = []
-        for name in get_names():
+        for name in __get_names():
             is_ignored, line = self.is_ignored(name)
             if is_ignored:
                 wrong_files.append((name, line))

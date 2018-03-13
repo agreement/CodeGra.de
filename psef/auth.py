@@ -12,26 +12,34 @@ from mypy_extensions import NoReturn
 import psef
 from psef.errors import APICodes, APIException
 
-jwt = flask_jwt.JWTManager()
+jwt = flask_jwt.JWTManager()  # pylint: disable=invalid-name
 
 
 def init_app(app: t.Any) -> None:
+    """Initialize the app by initializing our jwt manager.
+
+    :param app: The flask app to initialize.
+    """
     jwt.init_app(app)
 
 
 class PermissionException(APIException):
     """The exception used when a permission check fails.
     """
-
-    def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
-        super(PermissionException, self).__init__(*args, **kwargs)
+    pass
 
 
-def _raise_login_exception(desc: str = 'No user was logged in.') -> NoReturn:
-    raise PermissionException(
+def _get_login_exception(
+    desc: str = 'No user was logged in.'
+) -> PermissionException:
+    return PermissionException(
         'You need to be logged in to do this.', desc, APICodes.NOT_LOGGED_IN,
         401
     )
+
+
+def _raise_login_exception(desc: str = 'No user was logged in.') -> NoReturn:
+    raise _get_login_exception(desc)
 
 
 @jwt.revoked_token_loader
@@ -57,29 +65,33 @@ jwt.user_loader_error_loader(
 )
 
 
+@jwt.user_loader_callback_loader
+def _load_user(user_id: int) -> t.Optional['psef.models.User']:
+    return psef.models.User.query.get(int(user_id))
+
+
 def _user_active() -> bool:
     """Check if there is a current user who is authenticated and active.
 
     :returns: True if there is an active logged in user
     """
+    # pylint: disable=protected-access
     user = psef.current_user._get_current_object()  # type: ignore
     return user is not None and user.is_active
 
 
-def login_required(fn: t.Callable) -> t.Callable:
+def login_required(fun: t.Callable) -> t.Callable:
     """Make sure a valid user is logged in at this moment.
 
     :raises PermissionException: If no user was logged in.
     """
 
-    @wraps(fn)
-    def wrapper(*args: t.Any, **kwargs: t.Any) -> t.Any:
-        if _user_active():
-            return fn(*args, **kwargs)
-        else:
-            _raise_login_exception()
+    @wraps(fun)
+    def __wrapper(*args: t.Any, **kwargs: t.Any) -> t.Any:
+        ensure_logged_in()
+        return fun(*args, **kwargs)
 
-    return wrapper
+    return __wrapper
 
 
 def ensure_logged_in() -> None:
@@ -247,15 +259,15 @@ def permission_required(
         :py:func:`ensure_permission` does this.
     """
 
-    def decorator(f: t.Callable) -> t.Callable:
+    def __decorator(f: t.Callable) -> t.Callable:
         @wraps(f)
-        def decorated_function(*args: t.Any, **kwargs: t.Any) -> t.Any:
+        def __decorated_function(*args: t.Any, **kwargs: t.Any) -> t.Any:
             ensure_permission(permission_name, course_id=course_id)
             return f(*args, **kwargs)
 
-        return decorated_function
+        return __decorated_function
 
-    return decorator
+    return __decorator
 
 
 class RequestValidatorMixin(object):
@@ -278,7 +290,7 @@ class RequestValidatorMixin(object):
     def is_valid_request(
         self,
         request: t.Any,
-        parameters: t.MutableMapping[str, str] = {},
+        parameters: t.Optional[t.MutableMapping[str, str]] = None,
         fake_method: t.Any = None,
         handle_error: bool = True
     ) -> bool:
@@ -287,11 +299,13 @@ class RequestValidatorMixin(object):
             https://github.com/simplegeo/python-oauth2
         '''
 
-        def handle(e: oauth2.Error) -> bool:
+        def __handle(err: oauth2.Error) -> bool:
             if handle_error:
                 return False
             else:
-                raise e
+                raise err
+            # This is needed to please pylint
+            raise RuntimeError()
 
         try:
             method, url, headers, parameters = self.parse_request(
@@ -302,22 +316,20 @@ class RequestValidatorMixin(object):
                 method, url, headers=headers, parameters=parameters
             )
 
-            oauth2.Token
             self.oauth_server.verify_request(
                 oauth_request, self.oauth_consumer, {}
             )
 
-        except oauth2.Error as e:
-            return handle(e)
-        except ValueError as e:
-            return handle(e)
+        except (oauth2.Error, ValueError) as err:
+            return __handle(err)
         # Signature was valid
         return True
 
     def parse_request(
-        self, request: t.Any,
-        parameters: t.Optional[t.MutableMapping[str, str]],
-        fake_method: t.Optional[t.Any]
+        self,
+        req: t.Any,
+        parameters: t.Optional[t.MutableMapping[str, str]] = None,
+        fake_method: t.Optional[t.Any] = None,
     ) -> t.Tuple[str, str, t.MutableMapping[str, str],
                  t.MutableMapping[str, str]]:  # pragma: no cover
         '''
@@ -337,22 +349,13 @@ class RequestValidatorMixin(object):
         '''
         raise NotImplementedError()
 
-    def valid_request(self, request: t.Any) -> None:
-        '''
-        Check whether the OAuth-signed request is valid and throw error if not.
-        '''
-        self.is_valid_request(request, parameters={}, handle_error=False)
-
 
 class _FlaskOAuthValidator(RequestValidatorMixin):
-    def __init__(self, key: str, secret: str) -> None:
-        super(_FlaskOAuthValidator, self).__init__(key, secret)
-
     def parse_request(
         self,
         req: 'flask.Request',
         parameters: t.MutableMapping[str, str] = None,
-        fake_method: t.Any = None
+        fake_method: t.Any = None,
     ) -> t.Tuple[str, str, t.MutableMapping[str, str], t.MutableMapping[str,
                                                                         str]]:
         '''
@@ -388,4 +391,4 @@ def ensure_valid_oauth(
 
 
 if t.TYPE_CHECKING:  # pragma: no cover
-    import flask  # NOQA
+    import flask  # pylint: disable=unused-import

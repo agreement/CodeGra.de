@@ -14,34 +14,40 @@ from celery.utils.log import get_task_logger
 
 import psef as p
 
-logger = get_task_logger(__name__)
+logger = get_task_logger(__name__)  # pylint: disable=invalid-name
 
+# pylint: disable=missing-docstring,no-self-use,pointless-statement
 if t.TYPE_CHECKING:  # pragma: no cover
 
     class CeleryTask:
-        def delay(self, *args: t.Any, **kwargs: t.Any) -> t.Any:
+        def delay(self, *_args: t.Any, **_kwargs: t.Any) -> t.Any:
             ...
 
-        def apply_async(self, *args: t.Any, **kwargs: t.Any) -> t.Any:
+        def apply_async(self, *_args: t.Any, **_kwargs: t.Any) -> t.Any:
             ...
 
     class Celery:
-        def __init__(self, name: str) -> None:
+        def __init__(self, _name: str) -> None:
             self.conf: t.MutableMapping[t.Any, t.Any] = {}
             self.control: t.Any
 
-        def init_app(self, app: t.Any) -> None:
+        def init_app(self, _app: t.Any) -> None:
             ...
 
-        def task(self, callback: t.Any) -> CeleryTask:
+        def task(self, _callback: t.Any) -> CeleryTask:
             # `CeleryTask()` is returned here as this code is also executed
             # when generating the documentation.
             return CeleryTask()
 else:
     Celery = _Celery
+# pylint: enable=missing-docstring,no-self-use,pointless-statement
 
 
 class MyCelery(Celery):
+    """A subclass of celery that makes sure tasks are always called with a
+    flask app context
+    """
+
     def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
         self._flask_app: t.Any = None
         super(MyCelery, self).__init__(*args, **kwargs)
@@ -51,16 +57,19 @@ class MyCelery(Celery):
             class TaskBase:
                 pass
         else:
-            TaskBase = self.Task
+            # self.Task is available in the `Celery` object.
+            TaskBase = self.Task  # pylint: disable=access-member-before-definition,invalid-name
 
         outer_self = self
 
-        class ContextTask(TaskBase):
+        class _ContextTask(TaskBase):
             abstract = True
 
             def __call__(self, *args: t.Any, **kwargs: t.Any) -> t.Any:
                 # This is not written by us but taken from here:
                 # https://web.archive.org/web/20150617151604/http://slides.skien.cc/flask-hacks-and-best-practices/#15
+
+                # pylint: disable=protected-access
 
                 if outer_self._flask_app is None:  # pragma: no cover
                     raise ValueError('You forgot the initialize celery!')
@@ -71,16 +80,21 @@ class MyCelery(Celery):
                 with outer_self._flask_app.app_context():  # pragma: no cover
                     return TaskBase.__call__(self, *args, **kwargs)
 
-        self.Task = ContextTask
+        self.Task = _ContextTask  # pylint: disable=invalid-name
 
     def init_app(self, app: t.Any) -> None:
         self._flask_app = app
 
 
-celery = MyCelery('psef')
+celery = MyCelery('psef')  # pylint: disable=invalid-name
 
 
 def init_app(app: t.Any) -> None:
+    """Initialize tasks for the given flask app.
+
+    :param: The flask app to initialize for.
+    :returns: Nothing
+    """
     celery.conf.update(app.config['CELERY_CONFIG'])
     # This is a weird class that is like a dict but not really.
     celery.conf.update({'task_ignore_result': True})
@@ -136,10 +150,12 @@ def _send_reminder_mails_1(assignment_id: int) -> None:
                     p.models.User.query.get(user_id),
                     conn,
                 )
+            # pylint: disable=broad-except
             except Exception:  # pragma: no cover
                 # This happens if mail sending fails or if the user has no
                 # e-mail address.
                 # TODO: add some sort of logging system.
+                # TODO: make this exception more specific
                 pass
 
 
@@ -164,16 +180,16 @@ def _send_grader_status_mail_1(
 
 
 @celery.task
-def _add_1(a: int, b: int) -> int:  # pragma: no cover
+def _add_1(first: int, second: int) -> int:  # pragma: no cover
     """This function is used for testing if celery works. What it actually does
     is completely irrelevant.
     """
-    return a + b
+    return first + second
 
 
-passback_grades = _passback_grades_1.delay
-lint_instances = _lint_instances_1.delay
-add = _add_1.delay
-send_reminder_mails = _send_reminder_mails_1.apply_async
-send_done_mail = _send_done_mail_1.delay
-send_grader_status_mail = _send_grader_status_mail_1.delay
+passback_grades = _passback_grades_1.delay  # pylint: disable=invalid-name
+lint_instances = _lint_instances_1.delay  # pylint: disable=invalid-name
+add = _add_1.delay  # pylint: disable=invalid-name
+send_reminder_mails = _send_reminder_mails_1.apply_async  # pylint: disable=invalid-name
+send_done_mail = _send_done_mail_1.delay  # pylint: disable=invalid-name
+send_grader_status_mail = _send_grader_status_mail_1.delay  # pylint: disable=invalid-name

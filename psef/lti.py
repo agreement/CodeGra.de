@@ -1,3 +1,8 @@
+"""This module contains the code used for all LTI functionality.
+
+:license: AGPLv3, see LICENSE for details. This does not include code copied
+    from https://github.com/ucfopen/lti-template-flask-oauth-tokens
+"""
 # This file contains large pieces of code from this github repository:
 # https://github.com/ucfopen/lti-template-flask-oauth-tokens
 
@@ -20,7 +25,13 @@ from psef.errors import APICodes, APIException
 from psef.models import db
 
 
-class LTI:
+def init_app(_: t.Any) -> None:
+    pass
+
+
+# TODO: This class has so many public methods as they are properties. A lot of
+# them can be converted to private properties which should be done.
+class LTI:  # pylint: disable=too-many-public-methods
     """The base LTI class.
     """
 
@@ -46,6 +57,14 @@ class LTI:
     # TODO support more than just flask
     @classmethod
     def create_from_request(cls: t.Type['LTI'], req: flask.Request) -> 'LTI':
+        """Create an instance from a flask request.
+
+        The request should have a ``form`` variable that has all the right
+        parameters. So this request should be from an LTI launch.
+
+        :param req: The request to create the LTI instance from.
+        :returns: A fresh LTI instance.
+        """
         params = req.form.copy()
 
         lti_provider = models.LTIProvider.query.filter_by(
@@ -90,12 +109,15 @@ class LTI:
         return self.launch_params['lis_person_name_full']
 
     @property
-    def username(self) -> str:
-        """The username of the current LTI user."""
+    def username(self) -> str:  # pragma: no cover
+        """The username of the current LTI user.
+        """
         return self.launch_params['user_id']
 
     @property
     def course_id(self) -> str:  # pragma: no cover
+        """The course id of the current LTI course.
+        """
         return self.launch_params['context_id']
 
     @property
@@ -129,12 +151,10 @@ class LTI:
         raise NotImplementedError
 
     @property
-    def assignment_state(
-        self
-    ) -> models._AssignmentStateEnum:  # pragma: no cover
+    def assignment_state(self) -> models._AssignmentStateEnum:  # pylint: disable=protected-access
         """The state of the current LTI assignment.
         """
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     @property
     def roles(self) -> t.Iterable[str]:  # pragma: no cover
@@ -378,7 +398,7 @@ class LTI:
 
         :returns: A boolean indicating if a ``sourcedid`` field was found.
         """
-        return False
+        raise NotImplementedError
 
     @staticmethod
     def generate_xml() -> str:  # pragma: no cover
@@ -463,8 +483,17 @@ class CanvasLTI(LTI):
     def has_result_sourcedid(self) -> bool:
         return 'lis_result_sourcedid' in self.launch_params
 
+    @staticmethod
+    def generate_xml() -> str:  # pragma: no cover
+        """Generate a config XML for this LTI consumer.
+
+        .. todo:: Implement this function
+        """
+        raise NotImplementedError
+
     @property
     def assignment_state(self) -> models._AssignmentStateEnum:
+        # pylint: disable=protected-access
         if self.launch_params['custom_canvas_assignment_published'] == 'true':
             return models._AssignmentStateEnum.open
         else:
@@ -484,7 +513,7 @@ class CanvasLTI(LTI):
             )
             deadline = deadline.astimezone(datetime.timezone.utc)
             return deadline.replace(tzinfo=None)
-        except Exception:
+        except (KeyError, ValueError, OverflowError):
             return (datetime.datetime.utcnow() + datetime.timedelta(days=365)
                     ) if default is None else default
 
@@ -497,7 +526,7 @@ READ_REQUEST = 'readResult'
 
 
 # TODO: Actually cover this in some way using unit tests
-class OutcomeRequest:  # pragma: no cover
+class OutcomeRequest:  # pragma: no cover, pylint: disable=protected-access,invalid-name,too-many-arguments,missing-docstring
     '''
     Class for consuming & generating LTI Outcome Requests.
 
@@ -643,13 +672,13 @@ class OutcomeRequest:  # pragma: no cover
 
             normalize = http._normalize_headers
 
-            def my_normalize(self: t.Any, headers: t.Sequence) -> t.Sequence:
+            def __my_normalize(self: t.Any, headers: t.Sequence) -> t.Sequence:
                 ret = normalize(self, headers)
                 if 'authorization' in ret:
                     ret['Authorization'] = ret.pop('authorization')
                 return ret
 
-            http._normalize_headers = my_normalize
+            http._normalize_headers = __my_normalize
             monkey_patch_function = normalize
 
         response, content = client.request(
@@ -680,9 +709,11 @@ class OutcomeRequest:  # pragma: no cover
         try:
             result = root['imsx_POXBody']['replaceResultRequest']
             self.operation = REPLACE_REQUEST
+
             # Get result sourced id from resultRecord
-            self.lis_result_sourcedid = result.resultRecord.\
-                sourcedGUID.sourcedId
+            record = result.resultRecord
+            self.lis_result_sourcedid = record.sourcedGUID.sourcedId
+
             self.score = str(result.resultRecord.result.resultScore.textString)
         except (KeyError, TypeError, AttributeError):
             pass
@@ -706,11 +737,13 @@ class OutcomeRequest:  # pragma: no cover
             pass
 
     def has_required_attributes(self) -> bool:
-        return self.consumer_key is not None\
-            and self.consumer_secret is not None\
-            and self.lis_outcome_service_url is not None\
-            and self.lis_result_sourcedid is not None\
-            and self.operation is not None
+        return (
+            self.consumer_key is not None and
+            self.consumer_secret is not None and
+            self.lis_outcome_service_url is not None and
+            self.lis_result_sourcedid is not None and
+            self.operation is not None
+        )
 
     def generate_request_xml(self) -> t.Union[bytes, str]:
         root = etree.Element(
@@ -784,7 +817,7 @@ class OutcomeResponse:  # pragma: no cover
     to send back to a TP.
     '''
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         request_type: str = None,
         score: str = None,
@@ -874,7 +907,7 @@ class OutcomeResponse:  # pragma: no cover
             except AttributeError:
                 # Not a readResult, just ignore!
                 pass
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             pass
 
     def generate_response_xml(self) -> str:

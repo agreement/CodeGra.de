@@ -17,12 +17,11 @@ from sqlalchemy.sql.expression import or_
 import psef.auth as auth
 import psef.models as models
 import psef.helpers as helpers
-from psef import app, limiter, current_user
+from psef import limiter, current_user
 from psef.errors import APICodes, APIException
 from psef.models import db
 from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, jsonify, escape_like,
-    ensure_json_dict, ensure_keys_in_dict, make_empty_response
+    JSONResponse, jsonify, escape_like, ensure_json_dict, ensure_keys_in_dict
 )
 
 from . import api

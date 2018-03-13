@@ -24,6 +24,10 @@
     <img src="https://5ezz6jithh.execute-api.us-east-1.amazonaws.com/prod/lambda-shield-redirect?user=CodeGra-de&repo=CodeGra.de"
       alt="Source Lines of Code" title="Source Lines of Code">
   </a>
+  <a href="https://github.com/CodeGra-de/CodeGra.de">
+    <img src="https://mperlet.github.io/pybadge/badges/10.svg"
+      alt="10.0" title="Pylint score">
+  </a>
   <a href="https://pyup.io/repos/github/CodeGra-de/CodeGra.de/">
     <img src="https://pyup.io/repos/github/CodeGra-de/CodeGra.de/shield.svg"
       alt="Python updates" title="Python updates">

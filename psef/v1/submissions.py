@@ -2,6 +2,8 @@
 This module defines all API routes with the main directory "submissions". The
 APIs allow the retrieving, and patching of :class: Work objects. Furthermore
 functions are defined to get related objects and information.
+
+:license: AGPLv3, see LICENSE for details.
 """
 
 import os
@@ -10,7 +12,7 @@ import numbers
 import zipfile
 import tempfile
 
-from flask import request, send_file, make_response, after_this_request
+from flask import request
 
 import psef.auth as auth
 import psef.files
@@ -20,15 +22,13 @@ from psef import app, current_user
 from psef.errors import APICodes, APIException
 from psef.models import FileOwner, db
 from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
+    JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
     ensure_json_dict, extended_jsonify, ensure_keys_in_dict,
-    make_empty_response, filter_single_or_404
+    make_empty_response
 )
+from psef.model_types import DbColumn
 
 from . import api
-
-if t.TYPE_CHECKING:  # pragma: no cover
-    import werkzeug
 
 
 @api.route("/submissions/<int:submission_id>", methods=['GET'])
@@ -95,8 +95,8 @@ def get_feedback(work: models.Work) -> t.Mapping[str, str]:
 
     path, name = psef.files.random_file_path('MIRROR_UPLOAD_DIR')
 
-    with open(path, 'w') as fp:
-        fp.write(
+    with open(path, 'w') as f:
+        f.write(
             'Assignment: {}\n'
             'Grade: {}\n'
             'General feedback:\n{}\n\n'
@@ -105,12 +105,12 @@ def get_feedback(work: models.Work) -> t.Mapping[str, str]:
             )
         )
         for comment in comments:
-            fp.write(f'{comment}\n')
+            f.write(f'{comment}\n')
 
         if helpers.has_feature('LINTERS'):
-            fp.write('\nLinter comments:\n')
+            f.write('\nLinter comments:\n')
             for lcomment in linter_comments:
-                fp.write(f'{lcomment}\n')
+                f.write(f'{lcomment}\n')
 
     return {'name': name, 'output_name': filename}
 
@@ -137,7 +137,7 @@ def get_zip(work: models.Work,
     code = helpers.filter_single_or_404(
         models.File,
         models.File.work_id == work.id,
-        models.File.parent_id == None,  # NOQA
+        t.cast(DbColumn[int], models.File.parent_id).is_(None),
     )
 
     path, name = psef.files.random_file_path('MIRROR_UPLOAD_DIR')
@@ -145,10 +145,10 @@ def get_zip(work: models.Work,
     with open(
         path,
         'w+b',
-    ) as fp, tempfile.TemporaryDirectory(
+    ) as f, tempfile.TemporaryDirectory(
         suffix='dir',
     ) as tmpdir, zipfile.ZipFile(
-        fp,
+        f,
         'w',
         compression=zipfile.ZIP_DEFLATED,
     ) as zipf:
@@ -157,7 +157,7 @@ def get_zip(work: models.Work,
 
         zipf.write(tmpdir, code.name)
 
-        for root, dirs, files in os.walk(tmpdir):
+        for root, _dirs, files in os.walk(tmpdir):
             for file in files:
                 path = os.path.join(root, file)
                 zipf.write(path, path[len(tmpdir):])
@@ -529,11 +529,7 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
         not create_dir and request.content_length and
         request.content_length > app.config['MAX_UPLOAD_SIZE']
     ):
-        raise APIException(
-            'Uploaded files are too big.', 'Request is bigger than maximum '
-            f'upload size of {app.config["MAX_UPLOAD_SIZE"]}.',
-            APICodes.REQUEST_TOO_LARGE, 400
-        )
+        helpers.raise_file_too_big_exception()
 
     if len(patharr) < 2:
         raise APIException(
@@ -547,7 +543,7 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
         models.File.work_id == submission_id,
         models.File.fileowner != exclude_owner,
         models.File.name == patharr[0],
-        models.File.parent_id == None,  # NOQA
+        t.cast(DbColumn[int], models.File.parent_id).is_(None),
     )
 
     code = None
@@ -662,9 +658,8 @@ def get_dir_contents(submission_id: int
         return jsonify(psef.files.get_stat_information(found_file))
     else:
         file = helpers.filter_single_or_404(
-            models.File,
-            models.File.work_id == submission_id,
-            models.File.parent_id == None,  # NOQA
+            models.File, models.File.work_id == submission_id,
+            t.cast(DbColumn[int], models.File.parent_id).is_(None),
             models.File.fileowner != exclude_owner
         )
 

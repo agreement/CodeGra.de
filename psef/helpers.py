@@ -7,10 +7,10 @@ import re
 import abc
 import typing as t
 import datetime
-from functools import wraps, reduce
+from functools import wraps
 
-import flask  # type: ignore
-import werkzeug
+import flask
+import mypy_extensions
 from typing_extensions import Protocol
 
 import psef
@@ -19,12 +19,17 @@ import psef.errors
 import psef.models
 
 if t.TYPE_CHECKING:  # pragma: no cover
-    from psef import model_types
+    from psef import model_types  # pylint: disable=unused-import
+    import werkzeug  # pylint: disable=unused-import
 
 #: Type vars
 T = t.TypeVar('T')
 Z = t.TypeVar('Z', bound='Comparable')
 Y = t.TypeVar('Y', bound='model_types.Base')
+
+
+def init_app(_: t.Any) -> None:
+    pass
 
 
 class Comparable(Protocol):  # pragma: no cover
@@ -36,11 +41,11 @@ class Comparable(Protocol):  # pragma: no cover
 
     @abc.abstractmethod
     def __eq__(self, other: t.Any) -> bool:
-        ...
+        ...  # pylint: disable=W0104
 
     @abc.abstractmethod
     def __lt__(self: Z, other: Z) -> bool:
-        ...
+        ...  # pylint: disable=W0104
 
     def __gt__(self: Z, other: Z) -> bool:
         return (not self < other) and self != other
@@ -49,7 +54,7 @@ class Comparable(Protocol):  # pragma: no cover
         return self < other or self == other
 
     def __ge__(self: Z, other: Z) -> bool:
-        return (not self < other)
+        return not (self < other)  # pylint: disable=superfluous-parens
 
 
 def get_all_subclasses(cls: t.Type[T]) -> t.Iterable[t.Type['T']]:
@@ -135,9 +140,9 @@ def get_request_start_time() -> datetime.datetime:
     return flask.g.request_start_time
 
 
-_JSONValue = t.Union[str, int, float, bool, None, t.Dict[str, t.Any],
+_JSONValue = t.Union[str, int, float, bool, None, t.Dict[str, t.Any],  # pylint: disable=invalid-name
                      t.List[t.Any]]
-JSONType = t.Union[t.Dict[str, _JSONValue], t.List[_JSONValue], _JSONValue]
+JSONType = t.Union[t.Dict[str, _JSONValue], t.List[_JSONValue], _JSONValue]  # pylint: disable=invalid-name
 
 
 class ExtendedJSONResponse(t.Generic[T]):
@@ -299,11 +304,11 @@ def ensure_keys_in_dict(
         ``mapping`` (MISSING_REQUIRED_PARAM)
     """
 
-    def _get_type_name(t: t.Union[t.Type, t.Tuple[t.Type, ...]]) -> str:
-        if isinstance(t, tuple):
-            return ', '.join(ty.__name__ for ty in t)
+    def __get_type_name(typ: t.Union[t.Type, t.Tuple[t.Type, ...]]) -> str:
+        if isinstance(typ, tuple):
+            return ', '.join(ty.__name__ for ty in typ)
         else:
-            return t.__name__
+            return typ.__name__
 
     missing: t.List[t.Union[T, str]] = []
     type_wrong = False
@@ -314,14 +319,14 @@ def ensure_keys_in_dict(
               ) or (check_type == int and isinstance(mapping[key], bool)):
             missing.append(
                 f'{str(key)} was of wrong type'
-                f' (should be a "{_get_type_name(check_type)}"'
+                f' (should be a "{__get_type_name(check_type)}"'
                 f', was a "{type(mapping[key]).__name__}")'
             )
             type_wrong = True
     if missing:
         msg = 'The given object does not contain all required keys'
         key_type = ', '.join(
-            f"\'{k[0]}\': {_get_type_name(k[1])}" for k in keys
+            f"\'{k[0]}\': {__get_type_name(k[1])}" for k in keys
         )
         raise psef.errors.APIException(
             msg + (' or the type was wrong' if type_wrong else ''),
@@ -332,20 +337,22 @@ def ensure_keys_in_dict(
         )
 
 
-def ensure_json_dict(json: JSONType) -> t.Dict[str, JSONType]:
+def ensure_json_dict(json_value: JSONType) -> t.Dict[str, JSONType]:
     """Make sure that the given json is a JSON dictionary
 
-    :param json: The input json that should be checked.
+    :param json_value: The input json that should be checked.
     :returns: Exactly the same JSON if it is in fact a dictionary.
 
     :raises psef.errors.APIException: If the given JSON is not a dictionary.
         (INVALID_PARAM)
     """
-    if isinstance(json, t.Dict):
-        return json
+    if isinstance(json_value, t.Dict):
+        return json_value
     raise psef.errors.APIException(
         'The given JSON is not a object as is required',
-        f'"{json}" is not a object', psef.errors.APICodes.INVALID_PARAM, 400
+        f'"{json_value}" is not a object',
+        psef.errors.APICodes.INVALID_PARAM,
+        400,
     )
 
 
@@ -464,12 +471,24 @@ def feature_required(feature_name: str) -> t.Callable:
     :raises APIException: If the feature is not enabled. (DISABLED_FEATURE)
     """
 
-    def decorator(f: t.Callable) -> t.Callable:
+    def __decorator(f: t.Callable) -> t.Callable:
         @wraps(f)
-        def decorated_function(*args: t.Any, **kwargs: t.Any) -> t.Any:
+        def __decorated_function(*args: t.Any, **kwargs: t.Any) -> t.Any:
             ensure_feature(feature_name)
             return f(*args, **kwargs)
 
-        return decorated_function
+        return __decorated_function
 
-    return decorator
+    return __decorator
+
+
+def raise_file_too_big_exception() -> mypy_extensions.NoReturn:
+    """Get an exception that should be thrown when uploade file is too big.
+
+    :returns: A exception that should be thrown when file is too big.
+    """
+    raise psef.errors.APIException(
+        'Uploaded files are too big.', 'Request is bigger than maximum '
+        f'upload size of {psef.current_app.config["MAX_UPLOAD_SIZE"]}.',
+        psef.errors.APICodes.REQUEST_TOO_LARGE, 400
+    )

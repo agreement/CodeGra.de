@@ -5,18 +5,13 @@ the APIs in this module are mostly used to manipulate
 
 :license: AGPLv3, see LICENSE for details.
 """
-import os
 import typing as t
 import numbers
 import datetime
-import threading
-from random import shuffle
 from collections import defaultdict
 
-import flask
-import dateutil
 import sqlalchemy.sql as sql
-from flask import request, send_file, after_this_request
+from flask import request
 from sqlalchemy.orm import undefer, joinedload
 from werkzeug.datastructures import FileStorage
 
@@ -37,7 +32,6 @@ from psef.helpers import (
     make_empty_response
 )
 
-from . import linters as linters_routes
 from . import api
 
 
@@ -152,11 +146,11 @@ def get_assignments_feedback(
             # This call should be cached in auth.py
             auth.ensure_can_see_grade(sub)
 
-            users, linters = sub.get_all_feedback()
+            user_feedback, linter_feedback = sub.get_all_feedback()
             item = {
                 'general': sub.comment or '',
-                'user': list(users),
-                'linter': list(linters),
+                'user': list(user_feedback),
+                'linter': list(linter_feedback),
             }
         except auth.PermissionException:
             item = {'user': [], 'linter': [], 'general': ''}
@@ -487,11 +481,12 @@ def process_rubric_row(
     if 'id' in row:
         ensure_keys_in_dict(row, [('id', int)])
         row_id = t.cast(int, row['id'])
-        n = patch_rubric_row(assig, header, description, row_id, items)
+        row_amount = patch_rubric_row(header, description, row_id, items)
     else:
-        n = add_new_rubric_row(assig, header, description, items)
+        row_amount = add_new_rubric_row(assig, header, description, items)
 
-    err = header if n == 0 else None  # No items were added which is wrong
+    # No items were added which is wrong
+    err = header if row_amount == 0 else None
     return row_id, err
 
 
@@ -541,8 +536,10 @@ def add_new_rubric_row(
 
 
 def patch_rubric_row(
-    assig: models.Assignment, header: str, description: str,
-    rubric_row_id: int, items: t.Sequence[JSONType]
+    header: str,
+    description: str,
+    rubric_row_id: int,
+    items: t.Sequence[JSONType],
 ) -> int:
     """Update a rubric row of the assignment.
 
@@ -551,7 +548,6 @@ def patch_rubric_row(
       All items not present in the given ``items`` array will be deleted from
       the rubric row.
 
-    :param models.Assignment assig: The assignment to add the rubric row to
     :param rubric_row_id: The id of the rubric row that should be updated.
     :param items: The items (:py:class:`models.RubricItem`) that should be
         added or updated. The format should be the same as in
@@ -625,13 +621,9 @@ def get_submission_files_from_request(
         check_size and request.content_length and
         request.content_length > app.config['MAX_UPLOAD_SIZE']
     ):
-        raise APIException(
-            'Uploaded files are too big.', 'Request is bigger than maximum '
-            f'upload size of {app.config["MAX_UPLOAD_SIZE"]}.',
-            APICodes.REQUEST_TOO_LARGE, 400
-        )
+        helpers.raise_file_too_big_exception()
 
-    if len(request.files) == 0:
+    if not request.files:
         raise APIException(
             "No file in HTTP request.",
             "There was no file in the HTTP request.",
@@ -858,11 +850,11 @@ def get_all_graders(
 
     result = assignment.get_all_graders(sort=True)
 
-    divided: t.MutableMapping[int, float] = defaultdict(lambda: 0)
-    for u in models.AssignmentAssignedGrader.query.filter_by(
+    divided: t.MutableMapping[int, float] = defaultdict(int)
+    for assigned_grader in models.AssignmentAssignedGrader.query.filter_by(
         assignment_id=assignment_id
     ):
-        divided[u.user_id] = u.weight
+        divided[assigned_grader.user_id] = assigned_grader.weight
 
     return jsonify(
         [
@@ -1003,7 +995,7 @@ def set_grader_to_done(assignment_id: int, grader_id: int) -> EmptyResponse:
     return make_empty_response()
 
 
-WorkList = t.Sequence[models.Work]
+WorkList = t.Sequence[models.Work]  # pylint: disable=invalid-name
 
 
 @api.route('/assignments/<int:assignment_id>/submissions/', methods=['GET'])
@@ -1089,7 +1081,8 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
 
     try:
         submissions = psef.files.process_blackboard_zip(files[0])
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
+        # TODO: Narrow this exception down.
         submissions = []
 
     if not submissions:
@@ -1180,9 +1173,10 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
     db.session.bulk_save_objects(subs)
     db.session.flush()
 
-    for h in hists:
-        h.work_id = h.work.id
-        h.user_id = h.user.id
+    # TODO: This loop should be eliminated.
+    for hist in hists:
+        hist.work_id = hist.work.id
+        hist.user_id = hist.user.id
 
     db.session.bulk_save_objects(hists)
     db.session.commit()
@@ -1330,7 +1324,3 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
         db.session.commit()
 
     return jsonify(res)
-
-
-if t.TYPE_CHECKING:  # pragma: no cover
-    from werkzeug.datastructures import FileStorage  # noqa
