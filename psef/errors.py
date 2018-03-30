@@ -49,6 +49,7 @@ class APICodes(IntEnum):
     NO_FILES_SUBMITTED = 18
     RATE_LIMIT_EXCEEDED = 19
     OBJECT_ALREADY_EXISTS = 20
+    INVALID_ARCHIVE = 21
 
 
 class APIException(Exception):

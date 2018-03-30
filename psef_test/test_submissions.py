@@ -1725,3 +1725,84 @@ def test_selecting_multiple_rubric_items(
             data={'items': to_select + [bs_rubric[0]['items'][0]['id']]},
             result=error_template,
         )
+
+
+@pytest.mark.parametrize('ext', ['tar.gz'])
+def test_uploading_unsafe_archive(
+    logged_in, student_user, teacher_user, assignment, test_client, ext,
+    error_template
+):
+    with logged_in(student_user):
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submission',
+            400,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        f'test_submissions/unsafe.{ext}', f'unsafe.{ext}'
+                    )
+            },
+            result=error_template,
+        )
+
+    with logged_in(teacher_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment.id}',
+            204,
+            data={
+                'ignore': 'a\n',
+            }
+        )
+
+    with logged_in(student_user):
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submission'
+            '?ignored_files=error',
+            400,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        f'test_submissions/unsafe.{ext}', f'unsafe.{ext}'
+                    )
+            },
+            result=error_template,
+        )
+
+
+@pytest.mark.parametrize('ignore', [True, False])
+@pytest.mark.parametrize('ext', ['tar.gz', 'zip'])
+def test_uploading_invalid_file(
+    logged_in, student_user, teacher_user, assignment, test_client, ignore,
+    error_template, ext
+):
+    if ignore:
+        with logged_in(teacher_user):
+            test_client.req(
+                'patch',
+                f'/api/v1/assignments/{assignment.id}',
+                204,
+                data={
+                    'ignore': 'a\n',
+                }
+            )
+
+    with logged_in(student_user):
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submission' +
+            ('?ignored_files=error' if ignore else ''),
+            400,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        f'test_submissions/single_file_work', f'arch.{ext}'
+                    )
+            },
+            result=error_template,
+        )

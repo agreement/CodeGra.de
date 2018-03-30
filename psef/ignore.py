@@ -15,6 +15,10 @@ import tarfile
 import archive
 
 
+class InvalidFile(ValueError):
+    pass
+
+
 def _translate_segment(segment: str) -> str:
     """Translate the given gitignore segment to regex segment.
 
@@ -186,8 +190,8 @@ class IgnoreFilterManager:
         :param path: Path to check
         :return: Iterator over Pattern instances
         """
-        if os.path.isabs(path):  # pragma: no cover
-            raise ValueError('%s is an absolute path' % path)
+        if os.path.isabs(path):
+            raise InvalidFile(f'File "{path}" is an absolute path')
 
         parts = path.split('/')
 

@@ -12,6 +12,8 @@ import enum
 import uuid
 import shutil
 import typing as t
+import tarfile
+import zipfile
 import tempfile
 from functools import reduce
 
@@ -23,7 +25,7 @@ from werkzeug.datastructures import FileStorage
 import psef.models as models
 from psef import app, blackboard
 from psef.errors import APICodes, APIException
-from psef.ignore import IgnoreFilterManager
+from psef.ignore import InvalidFile, IgnoreFilterManager
 
 _KNOWN_ARCHIVE_EXTENSIONS = tuple(archive.extension_map.keys())
 
@@ -344,6 +346,20 @@ def extract_to_temp(
             archive.extract(tmparchive, to_path=tmpdir, method='safe')
             if handle_ignore == IgnoreHandling.delete:
                 ignore_filter.delete_from_dir(tmpdir)
+    except (tarfile.ReadError, zipfile.BadZipFile):
+        raise APIException(
+            'The given archive could not be extracted',
+            "The given archive doesn't seem to be an archive",
+            APICodes.INVALID_ARCHIVE,
+            400,
+        )
+    except (InvalidFile, archive.UnsafeArchive) as e:
+        raise APIException(
+            'The given archive contains invalid files',
+            str(e),
+            APICodes.INVALID_FILE_IN_ARCHIVE,
+            400,
+        )
     finally:
         os.close(tmpfd)
         os.remove(tmparchive)
