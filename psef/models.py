@@ -1090,6 +1090,29 @@ class Work(Base):
         'User', foreign_keys=assigned_to, lazy='joined'
     )  # type: User
 
+    def divide_new_work(self) -> None:
+        """Divide a freshly created work.
+
+        First we check if an old work of the same author exists, that case the
+        same grader is assigned. Otherwise we take the grader that misses the
+        most of work.
+
+        :returns: Nothing
+        """
+        self.assigned_to = self.assignment.get_from_latest_submissions(
+            Work.assigned_to
+        ).filter(Work.user_id == self.user_id).limit(1).scalar()
+
+        if self.assigned_to is None:
+            missing, _ = self.assignment.get_divided_amount_missing()
+            if missing:
+                self.assigned_to = max(missing.keys(), key=missing.get)
+                self.assignment.set_graders_to_not_done(
+                    [self.assigned_to],
+                    send_mail=True,
+                    ignore_errors=True,
+                )
+
     def run_linter(self) -> None:
         """Run all linters for the assignment on this work.
 

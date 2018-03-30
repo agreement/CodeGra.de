@@ -681,49 +681,58 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
                                  assignment. (INCORRECT_PERMISSION)
     """
     files = get_submission_files_from_request(check_size=True)
-    assignment = helpers.get_or_404(models.Assignment, assignment_id)
+    assig = helpers.get_or_404(models.Assignment, assignment_id)
 
-    auth.ensure_permission('can_submit_own_work', assignment.course_id)
-    if not assignment.is_open:
-        auth.ensure_permission(
-            'can_upload_after_deadline', assignment.course_id
+    auth.ensure_permission('can_submit_own_work', assig.course_id)
+    if not assig.is_open:
+        auth.ensure_permission('can_upload_after_deadline', assig.course_id)
+
+    if assig.is_lti and assig.id not in current_user.assignment_results:
+        raise APIException(
+            (
+                "This assignment is a LTI assignment and it seems we don't "
+                "have the possibility to passback the grade to the LMS. "
+                "Please visit the assignment on your LMS again, if this issue "
+                "persist please contact your administrator."
+            ),
+            (
+                f'The assignment {assig.id} is not present in the '
+                f'user {current_user.id} `assignment_results`'
+            ),
+            APICodes.INVALID_STATE,
+            400,
         )
 
-    work = models.Work(assignment=assignment, user_id=current_user.id)
-    work.assigned_to = assignment.get_from_latest_submissions(
-        models.Work.assigned_to
-    ).filter(models.Work.user_id == current_user.id).limit(1).scalar()
-
-    if work.assigned_to is None:
-        missing, _ = assignment.get_divided_amount_missing()
-        if missing:
-            work.assigned_to = max(missing.keys(), key=lambda k: missing[k])
-            assignment.set_graders_to_not_done(
-                [work.assigned_to],
-                send_mail=True,
-                ignore_errors=True,
-            )
-
+    work = models.Work(assignment=assig, user_id=current_user.id)
+    work.divide_new_work()
     db.session.add(work)
 
-    raise_or_delete = psef.files.IgnoreHandling.keep
-    if request.args.get('ignored_files') == 'delete':
-        raise_or_delete = psef.files.IgnoreHandling.delete
-    if request.args.get('ignored_files') == 'error':
-        raise_or_delete = psef.files.IgnoreHandling.error
-
-    ignoretxt = assignment.cgignore or ''
+    try:
+        raise_or_delete = psef.files.IgnoreHandling[request.args.get(
+            'ignored_files',
+            'keep',
+        )]
+    except KeyError:  # The enum value does not exist
+        raise APIException(
+            'The given value for "ignored_files" is invalid',
+            (
+                f'The value "{request.args.get("ignored_files")}" is'
+                ' not in the `IgnoreHandling` enum'
+            ),
+            APICodes.INVALID_PARAM,
+            400,
+        )
 
     tree = psef.files.process_files(
         files,
         force_txt=False,
-        ignore_filter=IgnoreFilterManager(ignoretxt.split('\n')),
+        ignore_filter=IgnoreFilterManager(assig.cgignore),
         handle_ignore=raise_or_delete,
     )
     work.add_file_tree(db.session, tree)
     db.session.flush()
 
-    if assignment.is_lti:
+    if assig.is_lti:
         work.passback_grade(initial=True)
     db.session.commit()
 

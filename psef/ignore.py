@@ -178,8 +178,12 @@ class IgnoreFilterManager:
 
     def __init__(
         self,
-        global_filters: t.Sequence[str],
+        global_filters: t.Union[str, None, t.Sequence[str]],
     ) -> None:
+        if global_filters is None:
+            global_filters = []
+        elif isinstance(global_filters, str):
+            global_filters = global_filters.split('\n')
         self._filter = IgnoreFilter(global_filters)
 
     def find_matching(self, path: str) -> t.Iterable[Pattern]:

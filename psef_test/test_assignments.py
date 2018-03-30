@@ -1044,6 +1044,23 @@ def test_upload_files(
                 )
 
 
+def test_incorrect_ingore_files_value(
+    student_user, test_client, error_template, logged_in, assignment
+):
+    filestr = b'0' * 2 * 2 ** 3
+    with logged_in(student_user):
+        res = test_client.req(
+            'post', (
+                f'/api/v1/assignments/{assignment.id}/'
+                'submission?ignored_files=err'
+            ),
+            400,
+            real_data={'file': (io.BytesIO(filestr), f'filename')},
+            result=error_template
+        )
+        assert res['message'].startswith('The given value for "ignored_files"')
+
+
 def test_upload_too_large_file(
     student_user, test_client, error_template, logged_in, assignment
 ):
@@ -2185,7 +2202,7 @@ def test_ignored_upload_files(
             res = test_client.req(
                 'post',
                 f'/api/v1/assignments/{assignment.id}/submission?'
-                'ignored_files=ignore',
+                'ignored_files=keep',
                 201,
                 real_data={
                     'file':
