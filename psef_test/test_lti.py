@@ -243,7 +243,7 @@ def test_lti_no_course_roles(
 ])
 def test_lti_grade_passback(
     test_client, app, logged_in, ta_user, filename, monkeypatch, patch,
-    monkeypatch_celery
+    monkeypatch_celery, session
 ):
     due_at = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 
@@ -252,11 +252,13 @@ def test_lti_grade_passback(
             self.called = False
             self.args = []
             self.kwargs = {}
+            self.dirty = None
 
         def __call__(self, *args, **kwargs):
             self.called = True
             self.args = args
             self.kwargs = kwargs
+            self.dirty = session.dirty
 
     patch_delete = Patch()
     patch_replace = Patch()
@@ -400,10 +402,12 @@ def test_lti_grade_passback(
     set_grade(token, 6, work['id'])
     assert patch_replace.called
     assert not patch_delete.called
+    assert not patch_replace.dirty
     assert patch_replace.args[0] == '0.6'
     assert patch_replace.kwargs['result_data'] is None
     patch_delete.called = False
     patch_replace.called = False
+    patch_replace.dirty = None
 
     set_grade(token, None, work['id'])
 

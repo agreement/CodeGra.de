@@ -492,3 +492,23 @@ def raise_file_too_big_exception() -> mypy_extensions.NoReturn:
         f'upload size of {psef.current_app.config["MAX_UPLOAD_SIZE"]}.',
         psef.errors.APICodes.REQUEST_TOO_LARGE, 400
     )
+
+
+def callback_after_this_request(
+    fun: t.Callable[[], object],
+) -> t.Callable[[T], T]:
+    """Execute a callback after this request without changing the response.
+
+    :param fun: The callback to execute after the current request.
+    :returns: The function that will execute after this request that does that
+        the response as argument, so this function wraps your given callback.
+    """
+
+    @flask.after_this_request
+    def after(res: T) -> T:
+        """The entire callback that is executed at the end of the request.
+        """
+        fun()
+        return res
+
+    return after

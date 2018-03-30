@@ -1172,7 +1172,9 @@ class Work(Base):
         if add_to_session:
             db.session.add(history)
         if not never_passback and passback:
-            psef.tasks.passback_grades([self.id])
+            psef.helpers.callback_after_this_request(
+                lambda: psef.tasks.passback_grades([self.id])
+            )
 
         return history
 

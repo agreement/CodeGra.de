@@ -6,10 +6,9 @@ the database.
 :license: AGPLv3, see LICENSE for details.
 """
 import os
-import typing as t
 
 import werkzeug
-from flask import request, safe_join, after_this_request, send_from_directory
+from flask import request, safe_join, send_from_directory
 from werkzeug.exceptions import NotFound
 from werkzeug.datastructures import FileStorage
 
@@ -17,7 +16,7 @@ import psef.auth as auth
 import psef.files
 from psef import app
 from psef.auth import APICodes, APIException
-from psef.helpers import JSONResponse, jsonify
+from psef.helpers import JSONResponse, jsonify, callback_after_this_request
 
 from . import api
 
@@ -79,12 +78,11 @@ def get_file(
     directory = app.config['MIRROR_UPLOAD_DIR']
     error = False
 
-    @after_this_request
-    def __delete_file(response: t.Any) -> t.Any:
+    @callback_after_this_request
+    def __delete_file() -> None:
         if not error:
             filename = safe_join(directory, file_name)
             os.unlink(filename)
-        return response
 
     try:
         mimetype = request.args.get('mime', None)
