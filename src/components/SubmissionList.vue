@@ -400,6 +400,10 @@ export default {
 
 .rubric-modal .modal-body {
     padding: 0;
+
+    #app.dark & .nav-tabs {
+        background-color: @color-primary-darker;
+    }
 }
 
 .submission-list .search-wrapper {

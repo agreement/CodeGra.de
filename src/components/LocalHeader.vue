@@ -115,7 +115,7 @@ export default {
     border-color: @color-border-gray;
 
     #app.dark & {
-        border-color: @color-border-gray-darker;
+        border-color: @color-primary-darkest;
     }
 }
 </style>
