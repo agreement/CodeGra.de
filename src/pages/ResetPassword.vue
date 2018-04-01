@@ -1,27 +1,26 @@
 <template>
-    <div class="page reset-password row justify-content-center">
-        <b-form-fieldset class="col-sm-8 text-center"
-                         @keyup.native.ctrl.enter="submit">
-            <h4>Reset your password</h4>
+<div class="reset-password row justify-content-center">
+    <b-form-fieldset class="col-sm-8 text-center"
+                        @keyup.native.ctrl.enter="submit">
+        <h4>Reset your password</h4>
 
-            <password-input label="New password"
-                            v-model="newPw"/>
-            <password-input label="Confirm password"
-                            v-model="confirmPw"/>
+        <password-input label="New password"
+                        v-model="newPw"/>
+        <password-input label="Confirm password"
+                        v-model="confirmPw"/>
 
-            <submit-button ref="btn" @click="submit" popover-placement="bottom"/>
-        </b-form-fieldset>
-    </div>
+        <submit-button ref="btn" @click="submit" popover-placement="bottom"/>
+    </b-form-fieldset>
+</div>
 </template>
 
 <script>
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/eye';
 import 'vue-awesome/icons/eye-slash';
+import { mapActions } from 'vuex';
 
 import { SubmitButton, PasswordInput } from '@/components';
-
-import * as types from '../store/mutation-types';
 
 export default {
     name: 'reset-password',
@@ -40,6 +39,10 @@ export default {
     },
 
     methods: {
+        ...mapActions('user', [
+            'updateAccessToken',
+        ]),
+
         submit() {
             const button = this.$refs.btn;
 
@@ -55,10 +58,11 @@ export default {
                 user_id: Number(this.$route.query.user),
                 token: this.$route.query.token,
                 new_password: this.newPw,
-            }).then(({ data }) => {
-                this.$store.commit(`user/${types.UPDATE_ACCESS_TOKEN}`, data);
+            }).then(async ({ data }) => {
+                await this.updateAccessToken(data.access_token);
                 this.$router.replace({
-                    name: 'me',
+                    name: 'home',
+                    query: { sbloc: 'm' },
                 });
             }, (err) => {
                 throw err.response.data.message;
@@ -71,11 +75,11 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.input-group:not(:last-child) {
-    margin-bottom: 15px;
+.reset-password {
+    margin-top: 1rem;
 }
 
 h4 {
-    margin-bottom: 15px;
+    margin-bottom: 1rem;
 }
 </style>

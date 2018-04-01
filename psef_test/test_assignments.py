@@ -1,5 +1,6 @@
 import io
 import os
+import sys
 import copy
 import json
 import uuid
@@ -1042,6 +1043,77 @@ def test_upload_files(
                     },
                     result=error_template
                 )
+
+
+@pytest.mark.parametrize('name', ['single_file_archive'])
+@pytest.mark.parametrize('assignment', ['new', 'old'], indirect=True)
+@pytest.mark.parametrize('after_deadline', [True, False])
+@pytest.mark.parametrize(
+    'author',
+    ['student1',
+     http_err(error=404)(-1),
+     http_err(error=400)('admin')]
+)
+@pytest.mark.parametrize(
+    'named_user',
+    [
+        http_err(error=403)('Student1'),
+        'Devin Hillenius',
+        http_err(error=403)('admin'),
+    ],
+    indirect=True,
+)
+def test_upload_for_other(
+    named_user, test_client, logged_in, assignment, name, error_template,
+    teacher_user, after_deadline, author, session, request
+):
+    if isinstance(author, int):
+        author = 'DOES_NOT_EXIST'
+
+    marker = request.node.get_marker('http_err')
+    code = 201 if marker is None else marker.kwargs['error']
+    res = None if marker is None else error_template
+
+    if (
+        named_user.username == author and named_user.name == 'Student1' and
+        assignment.deadline > datetime.datetime.utcnow()
+    ):
+        code = 201
+        marker = None
+        res = None
+
+    if (
+        marker is None and not after_deadline and
+        assignment.deadline < datetime.datetime.utcnow()
+    ):
+        marker = True
+        code = 403
+        res = error_template
+        named_user.courses[assignment.course_id].set_permission(
+            session.query(
+                m.Permission
+            ).filter_by(name='can_upload_after_deadline').first(),
+            False
+        )
+
+    with logged_in(named_user):
+        res = test_client.req(
+            'post', (
+                f'/api/v1/assignments/{assignment.id}/submission?'
+                f'extended&author={author}'
+            ),
+            code,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        f'test_submissions/{name}.tar.gz', f'{name}'
+                    )
+            },
+            result=res
+        )
+        if not marker:
+            assert res['user']['username'] == author
 
 
 def test_incorrect_ingore_files_value(

@@ -1,74 +1,86 @@
 <template>
-    <tr>
-        <!-- TODO: Fix issues with iterations by relying on order !-->
-        <td class="align-middle">{{ name }}</td>
-
-        <td class="align-middle">
-            {{ description }}
-            <b-collapse :id="`collapse_${name}_${assignment.id}`" class="mt-2">
-                <div v-if="state == 'new'">
-                    <div v-if="Object.keys(options).length">
-                        <b-dropdown :text="selectedOption" class="margin">
-                            <b-dropdown-header>Select your config file</b-dropdown-header>
-                            <b-dropdown-item v-for="(_, optionName) in options" v-on:click="clicked(false, optionName)" :key="optionName">
-                                {{ optionName }}
-                            </b-dropdown-item>
-                            <b-dropdown-divider/>
-                            <b-dropdown-item v-on:click="clicked(true, 'Custom config')">Custom config</b-dropdown-item>
-                        </b-dropdown>
-                        <b-collapse :id="`sub_collapse_${name}_${assignment.id}`">
-                            <form>
-                                <input class="form-control margin"
-                                       :textarea="true"
-                                       :rows="10"
-                                       placeholder="Enter your custom config"
-                                       v-model="config"/>
-                            </form>
-                        </b-collapse>
-                    </div>
-                    <b-btn variant="primary" :disabled="Object.keys(options).length !== 0 && selectedOption === 'Select config file'" v-on:click="run">
+<div class="linter">
+    <div class="align-middle description">
+        <p>{{ description }}</p>
+        <hr>
+        <div v-if="state == 'new'"
+             :class="{ 'lonely-start-button-wrapper' : Object.keys(options).length == 0 }">
+            <div v-if="Object.keys(options).length > 0">
+                <b-button-toolbar justify class="margin">
+                    <b-dropdown :text="selectedOption">
+                        <b-dropdown-header>Select your config file</b-dropdown-header>
+                        <b-dropdown-item v-for="(_, optionName) in options"
+                                         @click="clicked(false, optionName)"
+                                         :key="optionName">
+                            {{ optionName }}
+                        </b-dropdown-item>
+                        <b-dropdown-divider/>
+                        <b-dropdown-item @click="clicked(true, 'Custom config')">Custom config</b-dropdown-item>
+                    </b-dropdown>
+                    <b-btn variant="primary"
+                           :disabled="Object.keys(options).length !== 0 && selectedOption === 'Select config file'"
+                           @click="run">
                         <loader :scale="1" v-if="starting"/>
-                        <span v-else>Run!</span>
+                        <span v-else>Run</span>
                     </b-btn>
-                </div>
-                <div v-else-if="state == 'running'">
-                    <b-progress v-model="done" :max="done + working + crashed" :precision="1" animated></b-progress>
-                    <span class="text-center progress-text">{{ done }} out of {{ working + done }}</span>
-                </div>
-                <div v-else>
-                    <div class="row justify-content-md-center">
-                        <b-btn class="text-center margin btn delete"
-                               variant="danger"
-                               @click="$root.$emit('bv::show::modal',`modal_${name}_${assignment.id}`)">
-                            Remove output
-                        </b-btn>
-                        <b-modal :id="`modal_${name}_${assignment.id}`"
-                                 title="Are you sure?"
-                                 :hide-footer="true">
-                            <div class="row justify-content-md-center"
-                                 v-if="deleting">
-                                <b-btn class="text-center" variant="outline-danger"><loader :scale="1"/></b-btn>
-                            </div>
-                            <div v-else>
-                                <b-btn class="text-center"
-                                       variant="outline-danger"
-                                       v-on:click="deleteFeedback">
-                                    Yes, delete this data.
-                                </b-btn>
-                                <b-btn class="text-center right-float"
-                                       variant="success"
-                                       v-on:click="$root.$emit('bv::hide::modal', `modal_${name}_${assignment.id}`)">
-                                    No!
-                                </b-btn>
-                            </div>
-                        </b-modal>
+                </b-button-toolbar>
+
+                <b-collapse :id="`sub_collapse_${name}_${assignment.id}`">
+                    <form>
+                        <textarea class="form-control margin"
+                                  rows="10"
+                                  placeholder="Enter your custom config"
+                                  v-model="config"/>
+                    </form>
+                </b-collapse>
+            </div>
+
+            <b-btn variant="primary"
+                   v-else
+                   :disabled="Object.keys(options).length !== 0 && selectedOption === 'Select config file'"
+                   @click="run">
+                <loader :scale="1" v-if="starting"/>
+                <span v-else>Run</span>
+            </b-btn>
+        </div>
+        <div v-else-if="state == 'running'">
+            <b-progress v-model="done"
+                        :max="done + working + crashed"
+                        :precision="1"
+                        animated/>
+            <span class="text-center progress-text">{{ done }} out of {{ working + done }}</span>
+        </div>
+        <div v-else>
+            <div class="row justify-content-md-center">
+                <b-btn class="text-center margin btn delete"
+                       variant="danger"
+                       @click="$root.$emit('bv::show::modal',`modal_${name}_${assignment.id}`)">
+                    Remove output
+                </b-btn>
+                <b-modal :id="`modal_${name}_${assignment.id}`"
+                         title="Are you sure?"
+                         :hide-footer="true">
+                    <div class="row justify-content-md-center"
+                         v-if="deleting">
+                        <b-btn class="text-center" variant="outline-danger"><loader :scale="1"/></b-btn>
                     </div>
-                </div>
-            </b-collapse>
-        </td>
-        <td class="align-middle">{{ strState() }}</td>
-        <td><b-btn v-b-toggle="`collapse_${name}_${assignment.id}`" v-on:click="opened = !opened" variant="primary">{{ opened ? 'Less' : 'More' }}</b-btn></td>
-    </tr>
+                    <div v-else>
+                        <b-btn class="text-center"
+                               variant="outline-danger"
+                               v-on:click="deleteFeedback">
+                            Yes, delete this data.
+                        </b-btn>
+                        <b-btn class="text-center right-float"
+                               variant="success"
+                               v-on:click="$root.$emit('bv::hide::modal', `modal_${name}_${assignment.id}`)">
+                            No!
+                        </b-btn>
+                    </div>
+                </b-modal>
+            </div>
+        </div>
+    </div>
+</div>
 </template>
 
 <script>
@@ -81,7 +93,14 @@ import Loader from './Loader';
 export default {
     name: 'linter',
 
-    props: ['name', 'options', 'description', 'initialState', 'initialId', 'assignment'],
+    props: [
+        'name',
+        'options',
+        'initialState',
+        'initialId',
+        'assignment',
+        'serverDescription',
+    ],
 
     data() {
         return {
@@ -90,13 +109,18 @@ export default {
             state: 'new',
             config: '',
             deleting: false,
-            opened: false,
             id: undefined,
             done: 0,
             working: 0,
             crashed: 0,
             starting: false,
         };
+    },
+
+    computed: {
+        description() {
+            return this.serverDescription;
+        },
     },
 
     mounted() {
@@ -118,7 +142,7 @@ export default {
         },
         changeSubCollapse(state) {
             if (Boolean(this.collapseState) !== state) {
-                this.$root.$emit('collapse::toggle', `sub_collapse_${this.name}_${this.assignment.id}`);
+                this.$root.$emit('bv::toggle::collapse', `sub_collapse_${this.name}_${this.assignment.id}`);
                 this.collapseState = !this.collapseState;
             }
         },
@@ -136,7 +160,6 @@ export default {
                 this.$root.$emit('bv::hide::modal', `modal_${this.name}_${this.assignment.id}`);
 
                 this.selected = false;
-                this.opened = false;
                 this.deleting = false;
 
                 this.$root.$emit('collapse::toggle', `collapse_${this.name}_${this.assignment.id}`);
@@ -218,12 +241,18 @@ export default {
 
 .progress-text {
     display: block;
-    margin-top: 15px;
+    margin: 15px 0;
+}
+
+.lonely-start-button-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 15px;
 }
 
 .btn.delete {
     height: 3em;
-    margin-top: 15px;
+    margin-top: 0;
     width: 14em;
 }
 </style>

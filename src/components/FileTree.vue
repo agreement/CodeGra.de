@@ -22,7 +22,7 @@
                            :collapsed="!fileInTree($route.params.fileId, f)"
                            :depth="depth + 1"
                            v-if="f.entries"/>
-                <router-link replace :to="getFileRoute(f)"
+                <router-link :to="getFileRoute(f)"
                              class="label"
                              v-else>
                     <icon name="file" class="file-icon"/>{{ f.name }}

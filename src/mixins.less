@@ -1,5 +1,6 @@
 @color-secondary: #2980b9;
 @color-secondary-darker: darken(@color-secondary, 7.5%);
+@color-secondary-darkest: darken(@color-secondary, 15%);
 
 @color-primary: #2c3e50;
 @color-primary-darker: darken(@color-primary, 7.5%);
@@ -8,8 +9,9 @@
 @color-secondary-text-lighter: #858b8e;
 @color-secondary-text: #464a4c;
 
-@color-lighter-gray: rgb(233, 236, 239);
 @color-light-gray: lighten(gray, 20%);
+@color-lighter-gray: rgb(233, 236, 239);
+@color-lightest-gray: lighten(@color-lighter-gray, 5%);
 
 @linum-bg: #f8f8f8;
 @line-bg: white;
@@ -30,24 +32,31 @@
 @color-diff-removed-light: #ffdddd;
 @color-diff-removed-dark: lighten(#D9534F, 10%);
 
-@media-small:     ~"@media only screen and (max-width: 576px)";
-@media-medium:    ~"@media only screen and (min-width: 768px)";
-@media-no-medium: ~"@media only screen and (max-width: 768px)";
-@media-large:     ~"@media only screen and (min-width: 992px)";
-@media-no-large:  ~"@media only screen and (max-width: 992px)";
+@color-border-gray-lighter: lighten(#989898, 25%);
+@color-border-gray: #989898;
+@color-border-gray-darker: darken(@color-border-gray, 35%);
+
+@media-small:     ~"only screen and (max-width: 628px)";
+@media-no-small:  ~"only screen and (min-width: 628px)";
+@media-medium:    ~"only screen and (min-width: 768px)";
+@media-no-medium: ~"only screen and (max-width: 768px)";
+@media-large:     ~"only screen and (min-width: 992px)";
+@media-no-large:  ~"only screen and (max-width: 992px)";
+
+@lti-colors:      ~"#app.lti:not(.dark)";
 
 .default-footer-colors {
     background-color: @footer-color;
     color: @color-secondary-text;
 
-    #app.dark & {
+    #app:not(.lti) #global-sidebar &, #app.dark & {
         background-color: @color-primary-darker;
         color: @color-secondary-text-lighter;
     }
 }
 
 .default-alter-danger-colors {
-    #app.dark & {
+    #app:not(.lti) #global-sidebar &, #app.dark & {
         background-color: @alert-danger-color;
         border-color:  @alert-danger-color;
         color: darken(@alert-danger-color, 30%);
@@ -55,14 +64,14 @@
 }
 
 .default-text-colors {
-    #app.dark & {
+    #app:not(.lti) #global-sidebar &, #app.dark & {
         color: @text-color-dark;
     }
     color: @text-color;
 }
 
 .default-secondary-text-colors {
-    #app.dark & {
+    #app:not(.lti) #global-sidebar &, #app.dark & {
         color: @color-secondary-text-lighter;
     }
     color: @color-secondary-text;
@@ -73,7 +82,7 @@
     &:hover {
         color: lighten(@color-primary, 10%);
     }
-    #app.dark & {
+    #app:not(.lti) #global-sidebar &, #app.dark & {
         color: lighten(@color-primary, 15%);
         &:hover {
             color: lighten(@color-primary, 30%);
@@ -84,7 +93,7 @@
 .navbar-color {
     background-color: @color-primary;
 
-    #app.dark & {
+    #app:not(.lti) #global-sidebar &, #app.dark & {
         background-color: @color-primary-darker;
     }
 }
@@ -92,14 +101,14 @@
 .default-background {
     background-color: #fff;
 
-    #app.dark & {
+    #app:not(.lti) #global-sidebar &, #app.dark & {
         background-color: @color-primary;
     }
 }
 
 .default-color {
     color: @text-color;
-    #app.dark & {
+    #app:not(.lti) #global-sidebar &, #app.dark & {
         color: @text-color-dark;
     }
 }
@@ -112,7 +121,7 @@
         background-color: @color-primary;
     }
 
-    #app.dark & {
+    #app:not(.lti) #global-sidebar &, #app.dark & {
         color: @color-primary-darker;
         border-color: @color-primary-darker;
 
@@ -138,7 +147,8 @@
         border-color: fade(@color-primary, 60);
     }
 
-    #app.dark &, #app.dark ~ .popover & {
+    .sidebar &,
+    #app:not(.lti) #global-sidebar &, #app.dark &, #app.dark ~ .popover & {
         background-color: @color-primary-darker;
         border-color: @color-primary-darker;
 
@@ -164,7 +174,7 @@
             color: @text-color;
             border-color: #ccc;
 
-            #app.dark & {
+            #app:not(.lti) #global-sidebar &, #app.dark & {
                 background-color: @color-primary;
                 border-color: @color-primary-darker;
                 &:hover:not(:disabled) {
@@ -197,6 +207,7 @@
         }
     }
 
+    #app:not(.lti) #global-sidebar &,
     #app.dark &,
     #app.dark ~ .popover & {
         & ~ .custom-control-indicator {
@@ -225,7 +236,7 @@
 }
 
 .default-card-colors {
-    #app.dark & {
+    #app:not(.lti) #global-sidebar &, #app.dark & {
         background-color: @color-primary;
         border-color: @color-primary-darker;
         .card-header {
@@ -237,19 +248,27 @@
 }
 
 .tab-colors {
-    #app.dark & {
-        background-color: @color-primary-darker;
+    #app:not(.lti) #global-sidebar &, #app.dark & {
         border-color: @color-primary-darkest;
+
         li.nav-item > .nav-link {
             border-color: @color-primary-darker;
+
             &.active {
                 background-color: @color-primary;
                 border-color: @color-primary-darkest;
+
+                &,
+                &:hover {
+                    border-bottom-color: transparent;
+                }
             }
+
             &:hover {
                 border-color: @color-primary-darkest;
                 color: darken(@text-color-dark, 20%);
             }
+
             color: @text-color-dark;
         }
     }
@@ -301,7 +320,7 @@
 }
 
 .default-table-colors {
-    #app.dark & {
+    #app:not(.lti) #global-sidebar &, #app.dark & {
         .dark-table-colors;
     }
 }
@@ -309,6 +328,7 @@
 .default-collapse-wrapper-colors,
 .default-form-control-colors,
 .default-list-group-item-colors {
+    #app:not(.lti) #global-sidebar &:not(.list-group-item-info),
     #app.dark &:not(.list-group-item-info) {
         background-color: @color-primary;
         border-color: @color-primary-darker;
@@ -317,6 +337,7 @@
 }
 
 .default-form-control-colors {
+    #app:not(.lti) #global-sidebar .has-danger &,
     #app.dark .has-danger & {
         border-color: #d9534f;
     }
@@ -333,6 +354,7 @@
 }
 
 .default-input-colors {
+    #app:not(.lti) #global-sidebar &,
     #app.dark & {
         .dark-input-colors;
     }
@@ -423,12 +445,14 @@
         }
     }
 
+    #app:not(.lti) #global-sidebar &,
     #app.dark & {
         .dark-input-group-colors;
     }
 }
 
 .default-dropdown-menu-colors {
+    #app:not(.lti) #global-sidebar &,
     #app.dark & {
         background-color: @color-primary;
         .dropdown-item {
@@ -467,6 +491,7 @@
             }
         }
 
+        #app:not(.lti) #global-sidebar &,
         #app.dark & {
             background-color: @color-primary;
             color: @text-color-dark;

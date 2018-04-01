@@ -5,6 +5,12 @@
     "short_description": "Add users",
     "long_description": "Users with this permission can add other users to the website."
   },
+  "can_submit_others_work": {
+    "default_value": false,
+    "course_permission": true,
+    "short_description": "Submit others work",
+    "long_description": "Users with this permission can submit work to an assignment for other users. This means they can submit work that will have another user as the author."
+  },
   "can_submit_own_work": {
     "default_value": true,
     "course_permission": true,

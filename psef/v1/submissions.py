@@ -11,8 +11,10 @@ import typing as t
 import numbers
 import zipfile
 import tempfile
+from collections import defaultdict
 
 from flask import request
+from mypy_extensions import TypedDict
 
 import psef.auth as auth
 import psef.files
@@ -26,9 +28,20 @@ from psef.helpers import (
     ensure_json_dict, extended_jsonify, ensure_keys_in_dict,
     make_empty_response
 )
-from psef.model_types import DbColumn
 
 from . import api
+from ..model_types import DbColumn
+
+Feedback = TypedDict(  # pylint: disable=invalid-name
+    'Feedback', {
+        'user': t.MutableMapping[int, t.MutableMapping[int, str]],
+        'linter': t.MutableMapping[
+            int,
+            t.MutableMapping[int, t.List[t.Tuple[str, models.LinterComment]]],
+        ],
+        'general': str
+    }
+)
 
 
 @api.route("/submissions/<int:submission_id>", methods=['GET'])
@@ -199,6 +212,56 @@ def delete_submission(submission_id: int) -> EmptyResponse:
     db.session.commit()
 
     return make_empty_response()
+
+
+@api.route('/submissions/<int:submission_id>/feedbacks/', methods=['GET'])
+def get_feedback_from_submission(submission_id: int) -> JSONResponse[Feedback]:
+    """Get all feedback for a submission
+
+    .. :quickref: Submission; Get all (linter, user and general) feedback.
+
+    :>json general: The general feedback given on this submission.
+    :>json user: A mapping between file id and a mapping that is between line
+        and feedback. So for example: ``{5: {0: 'Nice job!'}}`` means that file
+        with ``id`` 5 has feedback on line 0.
+    :>json linter: A mapping that is almost the same the user feedback mapping,
+        only the final key is not a string but a list of tuples where the first
+        item is the linter code and the second item is a
+        :class:`.models.LinterComment`.
+    """
+    work = helpers.get_or_404(models.Work, submission_id)
+    auth.ensure_can_see_grade(work)
+
+    res: Feedback = {
+        'general': work.comment or '',
+        'user': defaultdict(dict),
+        'linter': defaultdict(lambda: defaultdict(list)),
+    }
+
+    comments = models.Comment.query.filter(
+        t.cast(DbColumn[models.File], models.Comment.file).has(work=work),
+    ).order_by(
+        t.cast(DbColumn[int], models.Comment.file_id).asc(),
+        t.cast(DbColumn[int], models.Comment.line).asc(),
+    )
+
+    for comment in comments:
+        res['user'][comment.file_id][comment.line] = comment.comment
+
+    linter_comments = models.LinterComment.query.filter(
+        t.cast(DbColumn[models.File], models.LinterComment.file)
+        .has(work=work)
+    ).order_by(
+        t.cast(DbColumn[int], models.LinterComment.file_id).asc(),
+        t.cast(DbColumn[int], models.LinterComment.line).asc(),
+    )
+    if helpers.has_feature('LINTERS'):
+        for lcomment in linter_comments:
+            res['linter'][lcomment.file_id][lcomment.line].append(
+                (lcomment.linter_code, lcomment)
+            )
+
+    return jsonify(res)
 
 
 @api.route("/submissions/<int:submission_id>/rubrics/", methods=['GET'])

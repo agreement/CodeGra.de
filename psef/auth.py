@@ -127,6 +127,65 @@ def ensure_enrolled(course_id: int) -> None:
 
 
 @login_required
+def ensure_can_submit_work(
+    assig: 'psef.models.Assignment',
+    author: 'psef.models.User',
+) -> None:
+    """Check if the current user can submit for the given assignment as the given
+    author.
+
+    .. note::
+
+        This function also checks if the assignment is a LTI assignment. If
+        this is the case it makes sure the ``author`` can do grade passback.
+
+    :param assig: The assignment that should be submitted to.
+    :param author: The author of the submission.
+
+    :raises PermissionException: If there the current user cannot submit for
+        the given author.
+    :raises APIException: If the author is not enrolled in course of the given
+        assignment or if the LTI state was wrong.
+    """
+    submit_self = psef.current_user.id == author.id
+
+    if assig.course_id not in author.courses:
+        raise APIException(
+            'The given user is not enrolled in this course',
+            (
+                f'The user "{author.id}" is not enrolled '
+                f'in course "{assig.course_id}"'
+            ),
+            APICodes.INVALID_STATE,
+            400,
+        )
+
+    if submit_self:
+        ensure_permission('can_submit_own_work', assig.course_id)
+    else:
+        ensure_permission('can_submit_others_work', assig.course_id)
+
+    if not assig.is_open:
+        ensure_permission('can_upload_after_deadline', assig.course_id)
+
+    if assig.is_lti and assig.id not in author.assignment_results:
+        raise APIException(
+            (
+                "This assignment is a LTI assignment and it seems we "
+                "don't have the possibility to passback the grade to the "
+                "LMS. Please {}visit the assignment on the LMS again, if "
+                "this issue persist please contact your administrator."
+            ).format('let the given author ' if submit_self else ''),
+            (
+                f'The assignment {assig.id} is not present in the '
+                f'user {author.id} `assignment_results`'
+            ),
+            APICodes.INVALID_STATE,
+            400,
+        )
+
+
+@login_required
 def ensure_can_see_grade(work: 'psef.models.Work') -> None:
     """Ensure the current user can see the grade of the given work.
 

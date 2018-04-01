@@ -1,12 +1,6 @@
 <template>
-<loader v-if="loading"/>
+<loader v-if="loading" page-loader/>
 <div class="users-manager" v-else>
-    <b-form-fieldset>
-        <input v-model="filter"
-               class="form-control"
-               placeholder="Type to Search"
-               v-on:keyup.enter="submit"/>
-    </b-form-fieldset>
     <b-table striped
              ref="table"
              class="users-table"
@@ -18,7 +12,7 @@
              :response="true">
 
         <template slot="User" slot-scope="item">
-            <span>{{item.value.name}} ({{item.value.username}})</span>
+            <span class="username">{{item.value.name}} ({{item.value.username}})</span>
         </template>
 
         <template slot="CourseRole" slot-scope="item">
@@ -32,7 +26,7 @@
                         v-else>
                 <b-dropdown-header>Select the new role</b-dropdown-header>
                 <b-dropdown-item v-for="role in roles"
-                                 v-on:click="changed(item.item, role)"
+                                 @click="changed(item.item, role)"
                                  :key="role.id">
                     {{ role.name }}
                 </b-dropdown-item>
@@ -48,33 +42,9 @@
     <b-form-fieldset class="add-student"
                      id="new-users-input-field">
         <b-input-group>
-            <multiselect v-model="newStudentUsername"
-                         :hide-selected="false"
-                         :options="students"
-                         :multiple="false"
-                         :searchable="true"
-                         @search-change="asyncFind"
-                         :internal-search="true"
-                         :custom-label="o => `${o.name} (${o.username})`"
-                         :loading="loadingStudents"
-                         style="flex: 1;"
-                         placeholder="New student"
-                         label="name"
-                         track-by="username"
-                         v-if="canSearchUsers">
-                <span slot="noResult" v-if="searchQuery && searchQuery.length < 3">
-                    Please give a larger search string.
-                </span>
-                <span slot="noResult" v-else>
-                    No results were found. You can search on name and username.
-                </span>
-            </multiselect>
-            <input v-model="newStudentUsername"
-                   class="form-control"
-                   placeholder="New students username"
-                   :disabled="course.is_lti"
-                   @keyup.native.ctrl.enter="addUser"
-                   v-else/>
+            <user-selector v-model="newStudentUsername"
+                           placeholder="New student"
+                           :disabled="course.is_lti"/>
 
             <template slot="append">
                 <b-dropdown class="drop"
@@ -100,7 +70,6 @@
 <script>
 import { mapGetters } from 'vuex';
 import Icon from 'vue-awesome/components/Icon';
-import Multiselect from 'vue-multiselect';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/pencil';
 import 'vue-awesome/icons/floppy-o';
@@ -109,10 +78,21 @@ import 'vue-awesome/icons/ban';
 import { cmpNoCase, cmpOneNull } from '@/utils';
 import Loader from './Loader';
 import SubmitButton from './SubmitButton';
+import UserSelector from './UserSelector';
 
 export default {
     name: 'users-manager',
-    props: ['course'],
+    props: {
+        course: {
+            type: Object,
+            default: null,
+        },
+
+        filter: {
+            type: String,
+            default: '',
+        },
+    },
 
     data() {
         return {
@@ -120,16 +100,10 @@ export default {
             courseId: this.$route.params.courseId,
             users: [],
             loading: true,
-            filter: '',
             updating: {},
-            newStudentUsername: '',
-            students: [],
+            newStudentUsername: null,
             newRole: '',
             error: '',
-            canSearchUsers: false,
-            loadingStudents: false,
-            stopLoadingStudents: () => {},
-            searchQuery: null,
             fields: {
                 User: {
                     label: 'Name',
@@ -149,46 +123,31 @@ export default {
         }),
     },
 
-    methods: {
-        asyncFind(query) {
-            this.stopLoadingStudents();
-            this.searchQuery = query;
-
-            if (query.length < 3) {
-                this.students = [];
-                this.loadingStudents = false;
-            } else {
-                this.loadingStudents = true;
-                let stop = false;
-                let id;
-                id = setTimeout(() => {
-                    this.$http.get('/api/v1/users/', { params: { q: query } }).then(({ data }) => {
-                        if (stop) {
-                            return;
-                        }
-
-                        this.loadingStudentsCallback = null;
-                        this.students = data;
-                        this.loadingStudents = false;
-                    }, (err) => {
-                        if (stop) {
-                            return;
-                        }
-
-                        if (err.response.data.code === 'RATE_LIMIT_EXCEEDED') {
-                            id = setTimeout(() => this.asyncFind(query), 1000);
-                        } else {
-                            throw err;
-                        }
-                    });
-                }, 250);
-
-                this.stopLoadingStudents = () => {
-                    clearTimeout(id);
-                    stop = true;
-                };
-            }
+    watch: {
+        course() {
+            this.loadData();
         },
+    },
+
+    mounted() {
+        this.loadData();
+    },
+
+    methods: {
+        async loadData() {
+            this.loading = true;
+
+            await Promise.all([
+                this.getAllUsers(),
+                this.getAllRoles(),
+            ]);
+
+            this.loading = false;
+            this.$nextTick(() => {
+                this.$refs.table.sortBy = 'User';
+            });
+        },
+
         sortTable(a, b, sortBy) {
             if (typeof a[sortBy] === 'number' && typeof b[sortBy] === 'number') {
                 return a[sortBy] - b[sortBy];
@@ -215,11 +174,13 @@ export default {
                 this.users = data;
             });
         },
+
         getAllRoles() {
             return this.$http.get(`/api/v1/courses/${this.courseId}/roles/`).then(({ data }) => {
                 this.roles = data;
             });
         },
+
         changed(user, role) {
             for (let i = 0, len = this.users.length; i < len; i += 1) {
                 if (this.users[i].User.id === user.User.id) {
@@ -240,80 +201,56 @@ export default {
                 console.dir(err)
             });
         },
+
         addUser() {
             const btn = this.$refs.addUserButton;
 
             if (this.newRole === '') {
                 btn.fail('You have to select a role!');
-            } else if (this.newStudentUsername === '' || this.newStudentUsername == null) {
+            } else if (this.newStudentUsername == null || this.newStudentUsername.username === '') {
                 btn.fail('You have to add a non empty username!');
             } else {
                 btn.submit(this.$http.put(`/api/v1/courses/${this.courseId}/users/`, {
-                    username: this.newStudentUsername.username || this.newStudentUsername,
+                    username: this.newStudentUsername.username,
                     role_id: this.newRole.id,
                 }).then(({ data }) => {
                     this.newRole = '';
-                    this.newStudentUsername = '';
+                    this.newStudentUsername = null;
                     this.users.push(data);
-                }, (({ response }) => {
-                        throw response.data.message;
-                    })));
+                }, ({ response }) => {
+                    throw response.data.message;
+                }));
             }
         },
-    },
-
-    mounted() {
-        this.$hasPermission('can_search_users').then((val) => {
-            this.canSearchUsers = val;
-        });
-
-        Promise.all([
-            this.getAllUsers(),
-            this.getAllRoles(),
-        ]).then(() => {
-            this.loading = false;
-            this.$nextTick(() => {
-                this.$refs.table.sortBy = 'User';
-            });
-        });
     },
 
     components: {
         Icon,
         Loader,
         SubmitButton,
-        Multiselect,
+        UserSelector,
     },
 };
 </script>
 
 <style lang="less">
-table.users-table tr th:first-child {
-    width: 50%;
-}
-table.users-table tr th:nth-child(2) {
-    width: 50%;
-}
-
-table.users-table tr :nth-child(2) {
+.users-table tr :nth-child(2) {
     text-align: center;
 }
-table.users-table tr {
-    td {
-        vertical-align: middle;
-    }
-    td:first-child span {
-        line-height: 1.25;
-        padding: 0.5rem 0;
-        display: block;
+
+.users-table th,
+.users-table td {
+    &:last-child {
+        width: 1px;
     }
 }
 
-table.users-table .dropdown {
-    width: 25%;
-    .btn {
-        width: 100%;
-    }
+.users-table td {
+    vertical-align: middle;
+}
+
+.users-table .dropdown .btn {
+    width: 10rem;
 }
 
 .add-student .drop .btn {
@@ -324,40 +261,25 @@ table.users-table .dropdown {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
 }
+
+.username {
+    word-wrap: break-word;
+    word-break: break-word;
+    -ms-word-break: break-all;
+
+    -webkit-hyphens: auto;
+    -moz-hyphens: auto;
+    -ms-hyphens: auto;
+    hyphens: auto;
+}
 </style>
 
 <style lang="less">
-@import '~mixins.less';
-
 .add-user-button {
     .btn {
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
         height: 100%;
-    }
-}
-
-#app.dark .add-student {
-    .dark-selects-colors;
-}
-
-.add-student .multiselect {
-    .multiselect__tags {
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-    }
-
-    .multiselect__option--highlight {
-        background: @color-primary;
-        &::after {
-            background: @color-primary;
-        }
-        &.multiselect__option--selected {
-            background: #d9534f !important;
-            &::after {
-                background: #d9534f !important;
-            }
-        }
     }
 }
 </style>

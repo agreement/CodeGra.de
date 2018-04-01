@@ -1,5 +1,5 @@
 <template>
-<div>
+<div class="notifications">
     <div>
         <b-form-checkbox v-model="graders">
             <b>Graders</b>
@@ -179,6 +179,7 @@ hr {
 
 .grade-options {
     padding-left: 3px;
+
     & > .custom-control:last-child {
         margin-bottom: 0;
     }
@@ -190,5 +191,10 @@ label {
 
 .extra-box {
     padding: 0.75em 0;
+}
+
+.submit-button {
+    display: flex;
+    justify-content: flex-end;
 }
 </style>

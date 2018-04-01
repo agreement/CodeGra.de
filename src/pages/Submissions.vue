@@ -1,15 +1,6 @@
 <template>
 <loader center v-if="loading"/>
 <div class="submission-list" v-else>
-    <h4>
-        Submissions for {{ assignment.name }} in
-        <router-link :to="courseRoute"
-                     v-if="canManage || !inLTI">
-            {{ course.name }}
-        </router-link>
-        <span v-else>{{ course.name }}</span>
-    </h4>
-
     <submission-list
         :assignment="assignment"
         :submissions="submissions"
@@ -18,58 +9,29 @@
         :graders="graders"
         @assigneeUpdated="updateAssignee"/>
 
-    <b-modal id="wrong-files-modal"
-             hide-footer
-             title="Probably superfluous files found!">
-        <p>
-            The following files should not be in your archive according to
-            the <code style="margin: 0 0.25rem;">.cgignore</code> file. This
-            means the following files are probably not necessary to hand
-            in:
-        </p>
-        <ul style="list-style-type: none">
-            <li style="margin-right: 2px; padding: 0.5em;" v-for="file in wrongFiles">
-                <code style="margin-right: 0.25rem">{{ file[0] }}</code> is ignored by <code>{{ file[1] }}</code>
-            </li>
-        </ul>
-        <p>
-            This could be a mistake so please make sure no necessary code is
-            present in these files before you delete them!
-        </p>
-        <b-button-toolbar justify>
-            <submit-button ref="submitDelete"
-                           label="Delete files" default="danger"
-                           @click="overrideSubmit('delete', $refs.submitDelete)"/>
-            <submit-button ref="submitKeep"
-                           label="Keep files" default="warning"
-                           @click="overrideSubmit('keep', $refs.submitKeep)"/>
-            <submit-button label="Cancel submission"
-                           @click="$root.$emit('bv::hide::modal', 'wrong-files-modal');"/>
-        </b-button-toolbar>
-    </b-modal>
-
     <div v-if="canUpload">
-        <b-popover target="file-uploader"
+        <b-popover target="submission-file-uploader-wrapper"
                    placement="top"
-                   :triggers="assignment.is_lti && !inLTI ? ['hover'] : []">
-            You can only submit this assignment from within your LMS
+                   v-if="fileUploaderDisabled"
+                   triggers="hover">
+            <span>
+                {{ fileUploaderDisabledMessage }}
+            </span>
         </b-popover>
-        <file-uploader id="file-uploader"
-                       ref="uploader"
-                       :url="`/api/v1/assignments/${this.assignmentId}/submission?ignored_files=error`"
-                       :show-empty="true"
-                       @error="uploadError"
-                       @response="goToSubmission"/>
+        <span id="submission-file-uploader-wrapper">
+            <submission-uploader :assignment="assignment"
+                                 :for-others="canUploadForOthers"
+                                 :disabled="fileUploaderDisabled"
+                                 @created="goToSubmission"/>
+        </span>
     </div>
 </div>
 </template>
 
 <script>
-import { SubmissionList, Loader, SubmitButton } from '@/components';
-import { MANAGE_COURSE_PERMISSIONS } from '@/constants';
+import { SubmissionList, Loader, SubmitButton, SubmissionUploader } from '@/components';
 import moment from 'moment';
 
-import FileUploader from '@/components/FileUploader';
 import * as assignmentState from '../store/assignment-states';
 
 import { setPageTitle, pageTitleSep } from './title';
@@ -82,134 +44,138 @@ export default {
             loading: true,
             submissions: [],
             canUpload: false,
+            canUploadForOthers: false,
             assignment: null,
             course: null,
             canDownload: false,
-            canManage: false,
             rubric: null,
             graders: null,
-            inLTI: window.inLTI,
             wrongFiles: [],
         };
     },
 
     computed: {
         assignmentId() {
-            return this.$route.params.assignmentId;
+            return Number(this.$route.params.assignmentId);
         },
 
         courseId() {
             return this.$route.params.courseId;
         },
 
-        courseRoute() {
-            if (this.canManage) {
-                return { name: 'assignment_manage', params: { courseId: this.course.id } };
+        fileUploaderDisabledMessage() {
+            if (this.assignment.is_lti && !this.$inLTI) {
+                return 'You can only submit this assignment from within your LMS';
+            } else if (this.$inLTI && this.$LTIAssignmentId == null) {
+                return "You didn't launch the assignment using LTI, please navigate to the 'Assignments' page and submit your work there.";
+            } else if (this.$inLTI &&
+                       this.assignmentId !== this.$LTIAssignmentId) {
+                return 'You launched CodeGra.de for a different assignment. Please retry opening the correct assignment.';
+            } else {
+                return undefined;
             }
-            return { name: 'assignments', query: { q: this.course.name } };
+        },
+
+        fileUploaderDisabled() {
+            if (this.assignment.is_lti && !this.$inLTI) {
+                return true;
+            } else if (this.$inLTI && this.$LTIAssignmentId == null) {
+                return true;
+            } else if (this.$inLTI &&
+                       this.assignmentId !== this.$LTIAssignmentId) {
+                return true;
+            } else {
+                return false;
+            }
+        },
+    },
+
+    watch: {
+        assignmentId(newVal, oldVal) {
+            // If the assignmentId has not changed we do not need to reload the data.
+            if (newVal.toString() === oldVal.toString()) {
+                return;
+            }
+            this.loadData();
         },
     },
 
     mounted() {
-        this.loading = true;
-
-        Promise.all([
-            this.$http.get(`/api/v1/assignments/${this.assignmentId}`),
-            this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`),
-            this.$http.get(`/api/v1/assignments/${this.assignmentId}/rubrics/`).catch(() => ({ data: null })),
-        ]).then(([
-            { data: assignment },
-            { data: submissions },
-            { data: rubric },
-        ]) => {
-            let done = false;
-            this.course = assignment.course;
-            this.assignment = assignment;
-            this.submissions = submissions;
-            this.rubric = rubric;
-
-            setPageTitle(`${assignment.name} ${pageTitleSep} Submissions`);
-
-            this.$hasPermission(
-                [
-                    'can_submit_own_work',
-                    'can_see_others_work',
-                    'can_see_grade_before_open',
-                    'can_upload_after_deadline',
-                    ...MANAGE_COURSE_PERMISSIONS,
-                ],
-                this.courseId,
-            ).then(([submit, others, before, afterDeadline, ...manage]) => {
-                this.canUpload = (
-                    submit &&
-                        (this.assignment.state === assignmentState.SUBMITTING ||
-                         (afterDeadline && this.assignment.state !== assignmentState.HIDDEN))
-                );
-                this.canManage = manage.some(x => x);
-
-                if (others) {
-                    if (this.assignment.state === assignmentState.DONE) {
-                        this.canDownload = true;
-                    } else {
-                        this.canDownload = before;
-                    }
-                }
-
-                if (done) this.loading = false;
-                done = true;
-            });
-
-            submissions.forEach((sub) => {
-                sub.created_at = moment.utc(sub.created_at, moment.ISO_8601).local().format('YYYY-MM-DD HH:mm');
-            });
-
-            if (done) this.loading = false;
-            done = true;
-        }, (err) => {
-            // eslint-disable-next-line
-            console.dir(err);
-        });
-
-        this.$hasPermission([
-            'can_assign_graders',
-            'can_see_assignee',
-        ], this.courseId).then(([assign, see]) => {
-            if (assign && see) {
-                this.$http.get(`/api/v1/assignments/${this.assignmentId}/graders/`).then(({ data }) => {
-                    this.graders = data;
-                }).catch(() => {
-                    this.graders = null;
-                });
-            }
-        });
+        this.loadData();
     },
 
     methods: {
-        uploadError(err) {
-            if (err.data.code !== 'INVALID_FILE_IN_ARCHIVE') return;
+        loadData() {
+            this.loading = true;
+            Promise.all([
+                this.$http.get(`/api/v1/assignments/${this.assignmentId}`),
+                this.$http.get(`/api/v1/assignments/${this.assignmentId}/submissions/`),
+                this.$http.get(`/api/v1/assignments/${this.assignmentId}/rubrics/`).catch(() => ({ data: null })),
+            ]).then(([
+                { data: assignment },
+                { data: submissions },
+                { data: rubric },
+            ]) => {
+                let done = false;
+                this.course = assignment.course;
+                this.assignment = assignment;
+                this.submissions = submissions;
+                this.rubric = rubric;
 
-            this.wrongFiles = err.data.invalid_files;
-            this.$root.$emit('bv::show::modal', 'wrong-files-modal');
+                setPageTitle(`${assignment.name} ${pageTitleSep} Submissions`);
 
-            // We need the double next ticks as next ticks are executed before
-            // data updates of the next tick.
-            this.$nextTick(() => {
-                this.$nextTick(() => {
-                    this.$refs.uploader.$refs.submitButton.reset();
+                this.$hasPermission(
+                    [
+                        'can_submit_own_work',
+                        'can_submit_others_work',
+                        'can_see_others_work',
+                        'can_see_grade_before_open',
+                        'can_upload_after_deadline',
+                    ],
+                    this.courseId,
+                ).then(([submitOwn, submitOthers, others, before, afterDeadline]) => {
+                    this.canUploadForOthers = submitOthers;
+                    this.canUpload = (
+                        (submitOwn || submitOthers) &&
+                            (this.assignment.state === assignmentState.SUBMITTING ||
+                             (afterDeadline && this.assignment.state !== assignmentState.HIDDEN))
+                    );
+
+                    if (others) {
+                        if (this.assignment.state === assignmentState.DONE) {
+                            this.canDownload = true;
+                        } else {
+                            this.canDownload = before;
+                        }
+                    }
+
+                    if (done) this.loading = false;
+                    done = true;
                 });
+
+                submissions.forEach((sub) => {
+                    sub.created_at = moment.utc(sub.created_at, moment.ISO_8601).local().format('YYYY-MM-DD HH:mm');
+                });
+
+                if (done) this.loading = false;
+                done = true;
+            }, (err) => {
+                // eslint-disable-next-line
+                console.dir(err);
             });
-        },
 
-        overrideSubmit(type, btn) {
-            const { requestData } = this.$refs.uploader;
-            const url = `/api/v1/assignments/${this.assignmentId}/submission?ignored_files=${type}`;
-
-            btn.submit(this.$http.post(url, requestData).then((res) => {
-                this.goToSubmission(res);
-            }, ({ response }) => {
-                this.$emit('error', response);
-                throw response.data.message;
-            }));
+            this.$hasPermission([
+                'can_assign_graders',
+                'can_see_assignee',
+            ], this.courseId).then(([assign, see]) => {
+                if (assign && see) {
+                    this.$http.get(`/api/v1/assignments/${this.assignmentId}/graders/`).then(({ data }) => {
+                        this.graders = data;
+                    }).catch(() => {
+                        this.graders = null;
+                    });
+                }
+            });
         },
 
         goToSubmission({ data: submission }) {
@@ -230,7 +196,7 @@ export default {
     },
 
     components: {
-        FileUploader,
+        SubmissionUploader,
         SubmissionList,
         Loader,
         SubmitButton,

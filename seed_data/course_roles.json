@@ -45,7 +45,8 @@
       "can_view_own_teacher_files",
       "can_see_grade_history",
       "can_submit_own_work",
-      "can_delete_submission"
+      "can_delete_submission",
+      "can_submit_others_work"
     ],
     "initial_role": true
   },

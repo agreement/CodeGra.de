@@ -38,10 +38,14 @@ export default {
 @import '~mixins.less';
 
 .footer {
+    width: 100%;
     padding: 20px;
+
     /* Vertically center the text there */
     line-height: 100%;
     text-align: center;
+
+    .default-footer-colors;
 
     a {
         .default-link-colors;

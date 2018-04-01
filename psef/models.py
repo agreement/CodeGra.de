@@ -1424,14 +1424,13 @@ class Work(Base):
             :py:func:`psef.files.rename_directory_structure`
         :returns: Nothing
         """
-        assert isinstance(tree, dict)
         return self._add_file_tree(session, tree, None)
 
     def _add_file_tree(
         self,
         session: 'orm.scoped_session',
         tree: 'psef.files.ExtractFileTree',
-        top: 'File',
+        top: t.Optional['File'],
     ) -> None:
         """Add the given tree to the session with top as parent.
 
@@ -1472,10 +1471,10 @@ class Work(Base):
 
         def __get_user_feedback() -> t.Iterable[str]:
             comments = Comment.query.filter(
-                Comment.file.has(work=self),  # type: ignore
+                t.cast(DbColumn[File], Comment.file).has(work=self),
             ).order_by(
-                Comment.file_id.asc(),  # type: ignore
-                Comment.line.asc(),  # type: ignore
+                t.cast(DbColumn[int], Comment.file_id).asc(),
+                t.cast(DbColumn[int], Comment.line).asc(),
             )
             for com in comments:
                 yield f'{com.file.name}:{com.line}:0: {com.comment}'
@@ -2477,6 +2476,7 @@ class Assignment(Base):
                 'name': str, # Assignment name.
                 'is_lti': bool, # Is this an LTI assignment.
                 'course': models.Course, # Course of this assignment.
+                'cgignore': str, # The cginore of this assignment.
                 'whitespace_linter': bool, # Has the whitespace linter
                                            # run on this assignment.
                 'done_type': str, # The kind of reminder that will be sent.
@@ -2496,7 +2496,7 @@ class Assignment(Base):
 
         :returns: An object as described above.
 
-        .. todo:: Remove description from Assignment model.
+        .. todo:: Remove 'description' field from Assignment model.
         """
         res = {
             'id': self.id,

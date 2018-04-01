@@ -401,10 +401,10 @@ def extract(
             return None
         elif len(res) > 1:
             return {filename: res if isinstance(res, list) else [res]}
-        elif not isinstance(res[0], t.MutableMapping):
-            return {filename: res}
-        else:
+        elif isinstance(res[0], t.MutableMapping):
             return res[0]
+        else:
+            return {filename: res}
     finally:
         shutil.rmtree(tmpdir)
 

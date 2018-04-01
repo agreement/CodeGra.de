@@ -32,28 +32,10 @@ html {
     .default-list-group-item-colors;
 }
 
-#app {
-    display: flex;
-    min-height: 100vh;
-    flex-direction: column;
-}
-
 main {
-    padding-top: 1em;
-    .default-background;
-    .default-color;
-
     a {
         .default-link-colors;
     }
-}
-
-footer {
-    .default-footer-colors;
-}
-
-.page {
-    margin-bottom: 4em;
 }
 
 .btn-outline-primary {
@@ -240,23 +222,9 @@ textarea:disabled {
     }
 }
 
+.overview-mode .code,
 .code-viewer,
 .diff-viewer {
-    li {
-        padding: @line-spacing/2 0;
-
-        /* Prevent <li> overlapping <ol> border. */
-        &:first-child {
-            padding-top: @line-spacing;
-            border-top-right-radius: inherit;
-        }
-
-        &:last-child {
-            padding-bottom: @line-spacing;
-            border-bottom-right-radius: inherit;
-        }
-    }
-
     code {
         padding: 0;
         line-height: 1;
@@ -272,9 +240,12 @@ textarea:disabled {
         font-size: 1em;
     }
 
+    .feedback-outer {
+        padding-bottom: @line-spacing;
+    }
+
     .card {
         margin-top: @line-spacing;
-
         .card-block {
             padding: @line-spacing;
         }
@@ -330,8 +301,25 @@ textarea:disabled {
 .whitespace {
     color: rgba(0, 0, 0, .2);
 
-    .code-viewer .lint-whitespace &.space + &.tab,
-    .code-viewer .lint-whitespace &.tab + &.space {
+    #app.dark & {
+        color: @color-secondary-text;
+    }
+
+    .show-whitespace & {
+        position: relative;
+        tab-size: 4;
+
+        &::before {
+            content: attr(data-whitespace);
+            user-select: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    }
+
+    .lint-whitespace &.space + wbr + &.tab,
+    .lint-whitespace &.tab + wbr + &.space {
         background: rgba(255, 0, 0, .1);
         color: rgba(0, 0, 0, .4);
     }
@@ -352,6 +340,25 @@ textarea:disabled {
     background-color: @color-primary-darker;
 }
 
+#app.dark hr {
+    border-top-color: @color-primary-darkest;
+}
+
 .modal-dialog {
     margin-top: 7rem;
+}
+
+.scroller {
+    // Fixes performance issues on scrolling because the entire
+    // code viewer isn't repainted anymore.
+    will-change: transform;
+}
+
+.clearfix {
+    &::after {
+        display: block;
+        content: '';
+        clear: both;
+        height: 0;
+    }
 }

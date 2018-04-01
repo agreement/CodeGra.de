@@ -21,7 +21,7 @@ export default class PermissionStore {
         return this.store.clear();
     }
 
-    async hasPermission(permission, courseId, asMap) {
+    async hasPermission(permission, courseId, asMap, getError) {
         function wrapArray(val) {
             if (asMap) {
                 return Object.values(val);
@@ -87,7 +87,8 @@ export default class PermissionStore {
             return res;
         } catch (_) {
             delete this.onGoingRequests[cacheKey];
-            throw Error(getValues(() => false));
+            if (getError) throw Error(getValues(() => false));
+            else return getValues(() => false);
         }
     }
 }

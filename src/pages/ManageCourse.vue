@@ -1,24 +1,41 @@
 <template>
-    <div class="page manage-course">
-        <div v-if="created">
-            <b-alert variant="success" show dismissible>
-                <center><span>Succesfully created course!</span></center>
-            </b-alert>
-        </div>
-        <loader v-if="loading"></loader>
-        <manage-course v-else
-                       :assignments="assignments"
+<div v-else class="manage-course">
+    <local-header>
+        <b-form-fieldset class="filter-input">
+            <input v-model="filter"
+                    class="form-control"
+                    placeholder="Type to Search"/>
+        </b-form-fieldset>
+
+        <toggle label-off="Users" label-on="Roles"
+                :value-off="0" :value-on="1"
+                :colors="false"
+                class="component-toggler"
+                v-model="tabIndex"
+                :disabled-text="course ? `You don't have permission to edit the ${course.permissions.can_edit_course_users ? 'roles' : 'users'}.` : ''"
+                :disabled="!course || !course.canManage"/>
+    </local-header>
+
+    <loader v-if="!course" page-loader/>
+    <div class="content" v-else>
+        <users-manager v-show="tabIndex === 0"
                        :course="course"
-                       :permissions="permissions"
-                       @created="(assig) => { assignments.push(assig); }"/>
+                       :filter="filter"/>
+        <permissions-manager v-show="tabIndex === 1"
+                             :course-id="course.id"
+                             :filter="filter"/>
     </div>
+</div>
 </template>
 
 <script>
-import { ManageCourse, Loader } from '@/components';
-import moment from 'moment';
+import { mapActions, mapGetters } from 'vuex';
 
-import { MANAGE_COURSE_PERMISSIONS } from '@/constants';
+import UsersManager from '@/components/UsersManager';
+import PermissionsManager from '@/components/PermissionsManager';
+import LocalHeader from '@/components/LocalHeader';
+import Loader from '@/components/Loader';
+import Toggle from '@/components/Toggle';
 
 import { setPageTitle } from './title';
 
@@ -27,66 +44,98 @@ export default {
 
     data() {
         return {
-            assignments: [],
-            loading: true,
-            created: false,
-            course: null,
-            permissions: {},
+            tabIndex: 0,
+            filter: '',
         };
     },
 
     computed: {
-        courseId() { return this.$route.params.courseId; },
+        ...mapGetters('courses', ['courses']),
+
+        course() {
+            return this.courses[this.$route.params.courseId];
+        },
+
+        courseId() {
+            return this.$route.params.courseId;
+        },
     },
 
-    mounted() {
-        this.created = this.$route.query.created;
+    async mounted() {
+        await this.loadCourses();
+        this.tabIndex = this.getInitialTab();
+    },
 
-        Promise.all([
-            this.$http.get(`/api/v1/courses/${this.courseId}/assignments/`),
-            this.$http.get(`/api/v1/courses/${this.courseId}`),
-            this.$hasPermission(
-                MANAGE_COURSE_PERMISSIONS,
-                this.courseId,
-                true,
-            ),
-        ]).then(([{ data: assignments }, { data: course }, perms]) => {
-            this.permissions = perms;
+    watch: {
+        tabIndex(newVal) {
+            this.filter = '';
+            this.$router.replace(Object.assign({}, this.$route, {
+                hash: newVal === 1 ? '#roles' : '#users',
+            }));
+        },
 
-            for (let i = 0, len = assignments.length; i < len; i += 1) {
-                const deadline = moment.utc(assignments[i].deadline, moment.ISO_8601).local();
-                const reminderTime = moment.utc(
-                    assignments[i].reminder_time,
-                    moment.ISO_8601,
-                ).local();
-                let defaultReminderTime = deadline.clone().add(7, 'days');
+        course() {
+            setPageTitle(this.course.name);
+        },
 
-                if (defaultReminderTime.isBefore(moment())) {
-                    defaultReminderTime = moment().add(3, 'days');
+        $route(newVal, oldVal) {
+            if (newVal.hash !== oldVal.hash) {
+                if (newVal.params.courseId !== oldVal.params.courseId) {
+                    setPageTitle(this.course.name);
                 }
-
-                assignments[i].deadline = deadline.format('YYYY-MM-DDTHH:mm');
-                assignments[i].created_at = moment.utc(assignments[i].created_at, moment.ISO_8601)
-                    .local()
-                    .format('YYYY-MM-DDTHH:mm');
-                assignments[i].has_reminder_time = reminderTime.isValid();
-                assignments[i].reminder_time = (reminderTime.isValid() ?
-                    reminderTime :
-                    defaultReminderTime)
-                    .format('YYYY-MM-DDTHH:mm');
+                this.tabIndex = this.getInitialTab();
             }
-            this.assignments = assignments;
+        },
+    },
 
-            this.course = course;
-            setPageTitle(course.name);
+    methods: {
+        ...mapActions('courses', ['loadCourses']),
 
-            this.loading = false;
-        });
+        getInitialTab() {
+            const oldPage = this.$route.hash;
+
+            if (oldPage === '#users' && this.course.permissions.can_edit_course_users) {
+                return 0;
+            } else if (oldPage === '#roles' && this.course.permissions.can_edit_course_roles) {
+                return 1;
+            } else {
+                return this.course.permissions.can_edit_course_users ? 0 : 1;
+            }
+        },
     },
 
     components: {
+        UsersManager,
+        PermissionsManager,
+        LocalHeader,
         Loader,
-        ManageCourse,
+        Toggle,
     },
 };
 </script>
+
+<style lang="less">
+@import "~mixins.less";
+
+.manage-course {
+    display: flex;
+    flex-direction: column;
+}
+.manage-course > .content {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-input {
+    flex: 1 1 auto;
+    margin-right: 1rem;
+    margin-bottom: 0;
+}
+
+.component-toggler {
+    flex: 0 0 auto;
+    .default-text-colors;
+    font-size: 1.2em;
+}
+</style>

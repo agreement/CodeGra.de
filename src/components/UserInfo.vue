@@ -1,6 +1,6 @@
 <template>
 <div class="userinfo">
-    <loader class="col-md-12 text-center" v-if="loading"></loader>
+    <loader class="col-md-12 text-center" v-if="loading"/>
     <div @keyup.enter="submit" @keydown.capture="error = ''" v-else>
         <b-form-fieldset>
             <b-input-group prepend="Username">
@@ -104,7 +104,7 @@ import SubmitButton from './SubmitButton';
 import PasswordInput from './PasswordInput';
 
 export default {
-    name: 'userinfo',
+    name: 'user-info',
 
     data() {
         return {
@@ -120,14 +120,6 @@ export default {
             error: '',
             validator,
         };
-    },
-
-    components: {
-        Icon,
-        Loader,
-        DescriptionPopover,
-        SubmitButton,
-        PasswordInput,
     },
 
     mounted() {
@@ -154,6 +146,7 @@ export default {
                 throw err.response.data.message;
             }));
         },
+
         reset() {
             this.name = this.$store.state.user.name;
             this.email = this.$store.state.user.email;
@@ -188,6 +181,14 @@ export default {
             });
             this.$refs.submitButton.submit(req);
         },
+    },
+
+    components: {
+        Icon,
+        Loader,
+        DescriptionPopover,
+        SubmitButton,
+        PasswordInput,
     },
 };
 </script>

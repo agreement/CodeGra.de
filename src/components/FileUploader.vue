@@ -1,21 +1,25 @@
 <template>
-    <b-form-fieldset class="file-uploader">
-        <b-input-group>
-            <b-input-group-prepend>
-                <submit-button :disabled="this.file === null"
-                               class="file-uploader-button"
-                               @click.prevent="submit"
-                               :show-error="showError"
-                               ref="submitButton"/>
-            </b-input-group-prepend>
-            <b-form-file class="file-uploader-form"
-                         ref="formFile"
-                         name="file"
-                         placeholder="Click here to choose a file..."
-                         v-model="file"
-                         :disabled="disabled"/>
-        </b-input-group>
-    </b-form-fieldset>
+<b-form-fieldset class="file-uploader" :class="{ disabled }">
+    <b-input-group>
+        <b-input-group-prepend>
+            <submit-button :disabled="this.file === null"
+                           :id="buttonId"
+                           class="file-uploader-button"
+                           @click.prevent="submit"
+                           :show-error="showError"
+                           ref="submitButton"/>
+        </b-input-group-prepend>
+        <b-input-group-prepend v-if="$slots.default">
+            <slot/>
+        </b-input-group-prepend>
+        <b-form-file class="file-uploader-form"
+                     ref="formFile"
+                     name="file"
+                     placeholder="Click here to choose a file..."
+                     v-model="file"
+                     :disabled="disabled"/>
+    </b-input-group>
+</b-form-fieldset>
 </template>
 
 <script>
@@ -37,6 +41,13 @@ export default {
             type: Boolean,
             default: true,
         },
+        beforeUpload: {
+            type: Function,
+            default: () => true,
+        },
+        buttonId: {
+            default: undefined,
+        },
     },
 
     data() {
@@ -55,13 +66,31 @@ export default {
 
     methods: {
         submit() {
-            const req = this.$http.post(this.url, this.requestData).then((res) => {
-                this.$emit('response', res);
-            }, ({ response }) => {
-                this.$emit('error', response);
-                throw response.data.message;
+            let stopped = false;
+            if (this.disabled) {
+                return this.$refs.submitButton.fail('This uploader is disabled');
+            }
+
+            const req = Promise.resolve(this.beforeUpload()).then((stop) => {
+                if (stop) {
+                    stopped = true;
+                    this.$refs.submitButton.reset();
+                    return null;
+                }
+                return this.$http.post(this.url, this.requestData).then((res) => {
+                    this.$emit('response', res);
+                }, ({ response }) => {
+                    this.$emit('error', response);
+                    throw response.data.message;
+                });
             });
-            return this.$refs.submitButton.submit(req);
+
+            return this.$refs.submitButton.submit(req).then(() => {
+                if (!stopped) {
+                    this.$emit('clear');
+                    this.$refs.formFile.reset();
+                }
+            });
         },
     },
 
@@ -74,8 +103,20 @@ export default {
 <style lang="less" scoped>
 @import '~mixins.less';
 
-input:disabled {
+.form-group {
+    margin-bottom: 0;
+}
+
+.disabled, :disabled {
     cursor: not-allowed !important;
+}
+
+.file-uploader-button {
+    height: 100%;
+
+    button {
+        height: 100%;
+    }
 }
 </style>
 
@@ -86,19 +127,15 @@ input:disabled {
     border-left: 0;
 }
 
-.file-uploader-button {
-    height: 100%;
-    button {
-        height: 100%;
-    }
-}
+#app.dark .file-uploader-form {
+    .custom-file-label {
+        background: @color-primary;
+        color: @color-secondary-text-lighter;
 
-#app.dark .file-uploader-form .custom-file-control {
-    background: @color-primary;
-    color: @text-color-dark;
-    &::before {
-        background: @color-primary-darker;
-        color: white;
+        &::after {
+            background: @color-primary-darker;
+            color: white;
+        }
     }
 }
 </style>

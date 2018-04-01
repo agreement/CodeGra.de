@@ -1,5 +1,25 @@
 <template>
-<div class="submit-button">
+<b-button :disabled="pending || disabled"
+          :id="btnId"
+          :variant="variants[state]"
+          :size="size"
+          :tabindex="tabindex"
+          style="height: 100%;"
+          class="submit-button"
+          v-if="showInline"
+          @click="$emit('click', $event)">
+    <b-popover :show="shouldShowMessage"
+               class="warning-popover"
+               triggers=""
+               :target="btnId"
+               :placement="popoverPlacement">
+        <span>{{ err }}</span>
+    </b-popover>
+    <loader :scale="1" center v-if="pending"/>
+    <span v-else-if="label">{{ label }}</span>
+    <slot v-else/>
+</b-button>
+<div class="submit-button" v-else>
     <b-button :disabled="pending || disabled"
               :id="btnId"
               :variant="variants[state]"
@@ -59,6 +79,12 @@ export default {
         tabindex: {
             default: '0',
         },
+
+        showInline: {
+            default: false,
+            type: Boolean,
+        },
+
         popoverPlacement: {
             type: String,
             default: 'top',
@@ -173,6 +199,12 @@ export default {
     },
 };
 </script>
+
+<style lang="less">
+.submit-button .warning-popover + .fa-icon {
+    margin-left: 0;
+}
+</style>
 
 <style lang="less" scoped>
 .loader {

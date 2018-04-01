@@ -657,53 +657,38 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
 
     .. :quickref: Assignment; Create work by uploading a file.
 
-    An extra get parameter ``ignored_files`` can be given to determine how to
-    handle ignored files. The options are:
-
-    - ``ignore``, this the default, sipmly do nothing about ignored files.
-    - ``delete``, delete the ignored files.
-    - ``error``, raise an :py:class:`.APIException` when there are ignored
-      files in the archive.
+    :query ignored_files: How to handle ignored files. The options are:
+        ``ignore``: this the default, sipmly do nothing about ignored files,
+        ``delete``: delete the ignored files, ``error``: raise an
+        :py:class:`.APIException` when there are ignored files in the archive.
+    :query author: The username of the user that should be the author of this
+        new submission. Simply don't give this if you want to be the author.
 
     :param int assignment_id: The id of the assignment
     :returns: A JSON serialized work and with the status code 201.
 
     :raises APIException: If the request is bigger than the maximum upload
-                          size. (REQUEST_TOO_LARGE)
+        size. (REQUEST_TOO_LARGE)
     :raises APIException: If there was no file in the request.
-                          (MISSING_REQUIRED_PARAM)
+        (MISSING_REQUIRED_PARAM)
     :raises APIException: If some file was under the wrong key or some filename
-                          is empty. (INVALID_PARAM)
-    :raises APIException: If no assignment with given id exists.
-                          (OBJECT_ID_NOT_FOUND)
-    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
-    :raises PermissionException: If the user is not allowed to upload for this
-                                 assignment. (INCORRECT_PERMISSION)
+        is empty. (INVALID_PARAM)
     """
     files = get_submission_files_from_request(check_size=True)
     assig = helpers.get_or_404(models.Assignment, assignment_id)
+    given_author = request.args.get('author', None)
 
-    auth.ensure_permission('can_submit_own_work', assig.course_id)
-    if not assig.is_open:
-        auth.ensure_permission('can_upload_after_deadline', assig.course_id)
-
-    if assig.is_lti and assig.id not in current_user.assignment_results:
-        raise APIException(
-            (
-                "This assignment is a LTI assignment and it seems we don't "
-                "have the possibility to passback the grade to the LMS. "
-                "Please visit the assignment on your LMS again, if this issue "
-                "persist please contact your administrator."
-            ),
-            (
-                f'The assignment {assig.id} is not present in the '
-                f'user {current_user.id} `assignment_results`'
-            ),
-            APICodes.INVALID_STATE,
-            400,
+    if given_author is None:
+        author = current_user
+    else:
+        author = helpers.filter_single_or_404(
+            models.User,
+            models.User.username == given_author,
         )
 
-    work = models.Work(assignment=assig, user_id=current_user.id)
+    auth.ensure_can_submit_work(assig, author)
+
+    work = models.Work(assignment=assig, user_id=author.id)
     work.divide_new_work()
     db.session.add(work)
 

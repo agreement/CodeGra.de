@@ -8,17 +8,20 @@
                :tabindex="tabindex"
                type="text"
                v-model="password"
-               class="form-control"/>
+               class="form-control"
+               :placeholder="placeholder"/>
         <input v-else
                :tabindex="tabindex"
                type="password"
                v-model="password"
-               class="form-control"/>
+               class="form-control"
+               :placeholder="placeholder"/>
         <b-input-group-append>
             <b-button @click="visible = !visible"
+                      @mouseenter="isToggleHovered = true"
+                      @mouseleave="isToggleHovered = false"
                       variant="primary">
-                <icon v-if="visible" name="eye-slash"></icon>
-                <icon v-else name="eye"></icon>
+                <icon :name="icon"/>
             </b-button>
         </b-input-group-append>
     </b-input-group>
@@ -43,6 +46,11 @@ export default {
             type: String,
         },
 
+        placeholder: {
+            default: '',
+            type: String,
+        },
+
         tabindex: {
             default: undefined,
         },
@@ -51,8 +59,16 @@ export default {
     data() {
         return {
             visible: false,
+            isToggleHovered: false,
             password: this.value,
         };
+    },
+
+    computed: {
+        icon() {
+            const visible = this.isToggleHovered ? !this.visible : this.visible;
+            return visible ? 'eye' : 'eye-slash';
+        },
     },
 
     watch: {

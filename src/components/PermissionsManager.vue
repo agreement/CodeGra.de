@@ -1,64 +1,56 @@
 <template>
-    <loader v-if="loading"/>
-    <div class="permission-manager" v-else>
-        <b-form-fieldset>
-            <input v-model="filter"
+<loader v-if="loading" page-loader/>
+<div class="permissions-manager" v-else>
+    <b-table striped
+             class="permissions-table"
+             :fields="fields"
+             :items="items"
+             :filter="filter"
+             ref="permissionTable"
+             :response="true">
+        <template slot="name" slot-scope="item">
+            <span v-if="item.value !== 'Remove'">
+                {{ item.item.title }}
+                <description-popover
+                    hug-text
+                    :description="item.item.description"
+                    placement="right"/>
+            </span>
+            <b v-else-if="showDeleteRole">{{ item.value }}</b>
+        </template>
+        <template v-for="(field, i) in fields"
+                  :slot="field.key === 'name' ? `|||____$name$__||||${Math.random()}` : field.key"
+                  slot-scope="item"
+                  v-if="field.key != 'name'">
+            <b-input-group v-if="item.item.name !== 'Remove'">
+                <loader :scale="1"
+                        v-if="item.item[field.key] === 'loading'"/>
+                <span v-else-if="item.item.name === fixedPermission && field.own"
+                      v-b-popover.top.hover="'You cannot disable this permission for yourself'">
+                    <b-form-checkbox :checked="item.item[field.key]"
+                                     disabled/>
+                </span>
+                <b-form-checkbox :checked="item.item[field.key]"
+                                 @change="changeButton(item.item.name, field)"
+                                 v-else/>
+            </b-input-group>
+            <b-input-group v-else-if="showDeleteRole">
+                <submit-button :ref="`delete-perm-${i}`"
+                               label="Remove"
+                               default="danger"
+                               @click="removeRole(i)"/>
+            </b-input-group>
+        </template>
+    </b-table>
+    <b-form-fieldset class="add-role" v-if="showAddRole">
+        <b-input-group>
+            <input v-model="newRoleName"
                    class="form-control"
-                   placeholder="Type to Search"
-                   v-on:keyup.enter="submit"/>
-        </b-form-fieldset>
-        <div class="table-wrapper">
-            <b-table striped
-                     class="permissions-table"
-                     :fields="fields"
-                     :items="items"
-                     :filter="filter"
-                     ref="permissionTable"
-                     :response="true">
-                <template slot="name" slot-scope="item">
-                    <span v-if="item.value !== 'Remove'">
-                        {{ item.item.title }}
-                        <description-popover
-                            hug-text
-                            :description="item.item.description"
-                            placement="right"/>
-                    </span>
-                    <b v-else-if="showDeleteRole">{{ item.value }}</b>
-                </template>
-                <template v-for="(field, i) in fields"
-                          :slot="field.key === 'name' ? `|||____$name$__||||${Math.random()}` : field.key"
-                          slot-scope="item"
-                          v-if="field.key != 'name'">
-                    <b-input-group v-if="item.item.name !== 'Remove'">
-                        <loader :scale="1"
-                                v-if="item.item[field.key] === 'loading'"/>
-                        <span v-else-if="item.item.name === fixedPermission && field.own"
-                              v-b-popover.top.hover="'You cannot disable this permission for yourself'">
-                            <b-form-checkbox :checked="item.item[field.key]"
-                                             disabled/>
-                        </span>
-                        <b-form-checkbox :checked="item.item[field.key]"
-                                         @change="changeButton(item.item.name, field)"
-                                         v-else/>
-                    </b-input-group>
-                    <b-input-group v-else-if="showDeleteRole">
-                        <submit-button :ref="`delete-perm-${i}`"
-                                       label="Remove"
-                                       default="danger"
-                                       @click="removeRole(i)"/>
-                    </b-input-group>
-                </template>
-            </b-table>
-        </div>
-        <b-form-fieldset class="add-role" v-if="showAddRole">
-            <b-input-group>
-                <input v-model="newRoleName"
-                       class="form-control"
-                       placeholder="Name of new role"
-                       @keyup.ctrl.enter="addRole"/>
+                   placeholder="Name of new role"
+                   @keyup.ctrl.enter="addRole"/>
 
-                <submit-button label="Add"
-                               ref="addUserBtn"
+            <submit-button label="Add"
+                           ref="addUserBtn"
                                @click="addRole"/>
             </b-input-group>
         </b-form-fieldset>
@@ -82,6 +74,11 @@ export default {
 
     props: {
         courseId: {},
+
+        filter: {
+            type: String,
+            default: '',
+        },
 
         fixedPermission: {
             default: 'can_edit_course_roles',
@@ -117,7 +114,6 @@ export default {
     data() {
         return {
             loading: true,
-            filter: '',
             fields: [],
             items: [],
             newRoleName: '',
@@ -165,6 +161,7 @@ export default {
                 this.fields = fields;
             });
         },
+
         changeButton(permName, field) {
             let i = 0;
             for (let len = this.items.length; i < len; i += 1) {
@@ -184,6 +181,7 @@ export default {
                 this.$set(this.items, i, item);
             });
         },
+
         removeRole(index) {
             const perm = this.fields[index];
             const button = this.$refs[`delete-perm-${index}`][0];
@@ -201,6 +199,7 @@ export default {
                 this.fields.splice(index, 1);
             });
         },
+
         addRole() {
             const button = this.$refs.addUserBtn;
             if (this.newRoleName === '') {
@@ -222,9 +221,7 @@ export default {
     },
 
     mounted() {
-        Promise.all([
-            this.getAllPermissions(),
-        ]).then(() => {
+        this.getAllPermissions().then(() => {
             this.loading = false;
         });
     },
@@ -239,11 +236,16 @@ export default {
 </script>
 
 <style lang="less">
-.permission-manager {
+.permissions-manager {
     table.permissions-table {
+        margin-bottom: 0;
         .delete .loader {
             height: 1.25rem;
         }
+        th {
+            border-top: none;
+        }
+
         tr {
             :first-child {
                 vertical-align: middle;
@@ -268,12 +270,6 @@ export default {
 </style>
 
 <style lang="less" scoped>
-.table-wrapper {
-    width: 100%;
-    overflow-x: auto;
-    margin-bottom: 0.3em;
-}
-
 .info-popover {
     cursor: pointer;
     display: inline-block;
@@ -281,5 +277,9 @@ export default {
     sup {
         padding: 0 .25em;
     }
+}
+
+.add-role {
+    margin-top: 1rem;
 }
 </style>

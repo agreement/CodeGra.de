@@ -14,6 +14,7 @@ import Toasted from 'vue-toasted';
 import localforage from 'localforage';
 import memoryStorageDriver from 'localforage-memoryStorageDriver';
 
+import '@/polyfills';
 import App from '@/App';
 import router from '@/router';
 import store from './store';
@@ -24,10 +25,6 @@ Vue.use(BootstrapVue);
 Vue.use(Toasted);
 
 Vue.config.productionTip = false;
-
-// console.dir is just much more useful
-// eslint-disable-next-line
-if (console.dir) console.log = console.dir;
 
 axios.defaults.transformRequest.push((data, headers) => {
     if (store.state.user.jwtToken) {
@@ -44,6 +41,37 @@ const DRIVERS = [
     localforage.LOCALSTORAGE,
     'memoryStorageDriver',
 ];
+
+let inLTI = false;
+Object.defineProperty(Vue.prototype, '$inLTI', {
+    get() {
+        return inLTI;
+    },
+    set(val) {
+        if (val === true) {
+            inLTI = val;
+        } else {
+            throw new TypeError('You can only set this to true');
+        }
+    },
+});
+
+let LTIAssignmentId = null;
+Object.defineProperty(Vue.prototype, '$LTIAssignmentId', {
+    get() {
+        return LTIAssignmentId;
+    },
+    set(val) {
+        if (val == null) {
+            throw new TypeError('You cannot set this to null or undefined');
+        }
+        if (LTIAssignmentId == null || val === LTIAssignmentId) {
+            LTIAssignmentId = val;
+        } else {
+            throw new TypeError('You cannot change this property once it is set');
+        }
+    },
+});
 
 // eslint-disable-next-line
 localforage.defineDriver(memoryStorageDriver).then(() => {
@@ -67,7 +95,8 @@ localforage.defineDriver(memoryStorageDriver).then(() => {
         "'": '&#39;',
         '`': '&#96;',
     };
-    Vue.prototype.$htmlEscape = (string) => {
+    Vue.prototype.$htmlEscape = (inputString) => {
+        const string = `${inputString}`;
         if (string && reHasUnescapedHtml.test(string)) {
             return string.replace(reUnescapedHtml, ent => htmlEscapes[ent]);
         }
@@ -115,37 +144,35 @@ localforage.defineDriver(memoryStorageDriver).then(() => {
         template: '<App/>',
         components: { App },
         store,
+
+        data() {
+            return {
+                screenWidth: window.innerWidth,
+            };
+        },
+
         created() {
             this.verifyLogin();
-            let shown = false;
 
-            this.clickHideSettings = (event) => {
-                shown = false;
-                if (event.target.closest('.popover-body')) {
-                    return;
-                }
-
-                setTimeout(() => {
-                    this.$nextTick(() => {
-                        if (!shown) {
-                            this.$root.$emit('bv::hide::popover');
-                        }
-                    });
-                }, 10);
-            };
-            document.body.addEventListener('click', this.clickHideSettings, true);
-
-            this.$root.$on('bv::popover::show', () => {
-                shown = true;
+            window.addEventListener('resize', () => {
+                this.screenWidth = window.innerWidth;
             });
-
-            this.keyupHideSettings = (event) => {
-                if (event.key === 'Escape') {
-                    this.$root.$emit('bv::hide::popover');
-                }
-            };
-            document.body.addEventListener('keyup', this.keyupHideSettings);
         },
+
+        computed: {
+            $isSmallWindow() {
+                return this.screenWidth <= 628;
+            },
+
+            $isMediumWindow() {
+                return this.screenWidth >= 768;
+            },
+
+            $isLargeWindow() {
+                return this.screenWidth >= 992;
+            },
+        },
+
         methods: {
             ...mapActions('user', [
                 'verifyLogin',
@@ -154,10 +181,21 @@ localforage.defineDriver(memoryStorageDriver).then(() => {
     });
 
     // Clear some items in vuex store on CTRL-F5
-    document.addEventListener('keydown', (event) => {
-        if (event.code === 'F5' && event.ctrlKey) {
-            permissionStore.clearCache();
-            app.$store.commit(`user/${mutationTypes.CLEAR_CACHE}`);
+    document.addEventListener('keydown', async (event) => {
+        let isF5;
+        if (event.key !== undefined) {
+            isF5 = event.key === 'F5';
+        } else if (event.keyIdentifier !== undefined) {
+            isF5 = event.keyIdentifier === 'F5';
+        } else if (event.keyCode !== undefined) {
+            isF5 = event.keyCode === 116;
+        }
+
+        if (isF5 && (event.ctrlKey || event.shiftKey)) {
+            event.preventDefault();
+            await permissionStore.clearCache();
+            await app.$store.commit(`user/${mutationTypes.CLEAR_CACHE}`);
+            window.location.reload(true);
         }
     }, true);
 });

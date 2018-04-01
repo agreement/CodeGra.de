@@ -4,20 +4,24 @@
     </b-alert>
     <loader class="text-center" v-else-if="loading"></loader>
     <div class="code-viewer form-control" v-else>
-        <div class="scroller" ref="scroller">
+        <div class="scroller">
             <ol :class="{ editable, 'lint-whitespace': assignment.whitespace_linter, 'show-whitespace': showWhitespace }"
                 :style="{
                     paddingLeft: `${3 + Math.log10(codeLines.length) * 2/3}em`,
                     fontSize: `${fontSize}px`,
                 }"
                 class="hljs"
-                @click="onClick">
-                <li @click="editable && addFeedback($event, i)"
-                    v-for="(line, i) in codeLines"
-                    :class="{ 'linter-feedback-outer': UserConfig.features.linters &&
-                                                       linterFeedback[i] &&
-                                                       !diffMode }"
-                    :key="i">
+                @click="editable && addFeedback($event)">
+
+                <li v-for="(line, i) in codeLines"
+                    :key="i"
+                    class="line"
+                    :class="{
+                        'linter-feedback-outer': UserConfig.features.linters &&
+                                                 linterFeedback[i] &&
+                                                 !diffMode,
+                        'feedback-outer': feedback[i] != null && !diffMode }"
+                    :data-line="i">
 
                     <linter-feedback-area :feedback="linterFeedback[i]"
                                           v-if="UserConfig.features.linters &&
@@ -32,8 +36,8 @@
                                    :line="i"
                                    :fileId="file.id"
                                    :can-use-snippets="canUseSnippets"
-                                   v-on:feedbackChange="val => { feedbackChange(i, val); }"
-                                   v-on:cancel='onChildCancel'
+                                   @feedbackChange="val => { feedbackChange(i, val); }"
+                                   @cancel="onChildCancel"
                                    v-if="feedback[i] != null && !diffMode"/>
                 </li>
             </ol>
@@ -50,14 +54,12 @@ import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/cog';
 import 'vue-multiselect/dist/vue-multiselect.min.css';
 
-import { cmpNoCase } from '@/utils';
+import { visualizeWhitespace, cmpNoCase } from '@/utils';
 
 import FeedbackArea from './FeedbackArea';
 import LinterFeedbackArea from './LinterFeedbackArea';
 import Loader from './Loader';
 import Toggle from './Toggle';
-
-import { visualizeWhitespace } from './utils';
 
 const decoder = new TextDecoder('utf-8', { fatal: true });
 
@@ -128,7 +130,6 @@ export default {
             editing: {},
             feedback: {},
             linterFeedback: {},
-            clicks: {},
             error: false,
             darkMode: true,
             selectedLanguage: 'Default',
@@ -150,12 +151,6 @@ export default {
     watch: {
         file(f) {
             if (f) this.loadCodeWithSettings();
-        },
-
-        tree() {
-            if (!this.isLargeFile && !this.diffMode) {
-                this.linkFiles();
-            }
         },
 
         language(lang) {
@@ -204,9 +199,6 @@ export default {
                     this.rawCodeLines = this.code.split('\n');
 
                     this.highlightCode(this.selectedLanguage);
-                    if (!this.isLargeFile && !this.diffMode) {
-                        this.linkFiles();
-                    }
                 }, ({ response: { data: { message } } }) => {
                     error.push(message);
                 }),
@@ -287,53 +279,22 @@ export default {
             return [fileIds, filePaths];
         },
 
-        // Search for each file in this.files on each line, and
-        // replace each occurrence with a link to the file.
-        linkFiles() {
-            const [fileIds, filePaths] = this.flattenFileTree(this.tree);
-            if (!filePaths.length) {
-                return;
-            }
-            // Use a regex to match each file at most once.
-            const filesRegex = new RegExp(`\\b(${filePaths.join('|')})\\b`, 'g');
-            this.codeLines = this.codeLines.map(line =>
-                line.replace(filesRegex, (fileName) => {
-                    const fileId = fileIds[fileName];
-                    return `<a href="${fileId}" data-file-id="${fileId}" style="text-decoration: underline;">${fileName}</a>`;
-                }));
-        },
-
-        onClick(event) {
-            // Check if the click was on a link to a file.
-            const fileId = event.target.getAttribute('data-file-id');
-            if (fileId) {
-                event.stopImmediatePropagation();
-                event.preventDefault();
-                this.$router.push({
-                    name: 'submission_file',
-                    params: {
-                        courseId: this.assignment.course.id,
-                        assignmentId: this.assignment.id,
-                        submissionId: this.submission.id,
-                        fileId,
-                    },
-                    query: this.$route.query,
-                });
-            }
-        },
-
         onChildCancel(line) {
-            this.clicks[line] = true;
             Vue.set(this.editing, line, false);
             Vue.set(this.feedback, line, null);
         },
 
-        addFeedback(event, line) {
-            if (this.clicks[line] === true) {
-                delete this.clicks[line];
-            } else {
-                Vue.set(this.editing, line, true);
-                Vue.set(this.feedback, line, '');
+        addFeedback($event) {
+            const el = $event.target.closest('li.line');
+            if (!el) return;
+
+            const line = el.getAttribute('data-line');
+            Vue.set(this.editing, line, true);
+            Vue.set(this.feedback, line, '');
+
+            const feedbackArea = el.querySelector('.feedback-area');
+            if (feedbackArea) {
+                feedbackArea.querySelector('textarea').focus();
             }
         },
 
@@ -363,38 +324,8 @@ export default {
     padding: 0;
     background: #f8f8f8;
 
-    @media-no-large {
-        margin-top: 2.3rem;
-        overflow: visible !important;
-    }
-
-    ol {
-        min-height: 5em;
-        overflow-x: visible;
-        background: @linum-bg;
-    }
-
-    li {
-        background-color: lighten(@linum-bg, 1%);
-        border-left: 1px solid darken(@linum-bg, 5%);
-    }
-
     #app.dark & {
         background: @color-primary-darker;
-
-        li {
-            background: @color-primary-darker;
-            border-left: 1px solid darken(@color-primary-darkest, 5%);
-        }
-
-        ol {
-            background: @color-primary-darkest;
-            color: @color-secondary-text-lighter;
-        }
-
-        code {
-            color: #839496;
-        }
     }
 }
 
@@ -406,10 +337,18 @@ export default {
 }
 
 ol {
-    font-family: monospace;
-    font-size: small;
+    min-height: 5em;
     margin: 0;
     padding: 0;
+    overflow-x: visible;
+    background: @linum-bg;
+    font-family: monospace;
+    font-size: small;
+
+    #app.dark & {
+        background: @color-primary-darkest;
+        color: @color-secondary-text-lighter;
+    }
 }
 
 li {
@@ -417,19 +356,44 @@ li {
     padding-left: .75em;
     padding-right: .75em;
 
+    background-color: lighten(@linum-bg, 1%);
+    border-left: 1px solid darken(@linum-bg, 5%);
+
+    #app.dark & {
+        background: @color-primary-darker;
+        border-left: 1px solid darken(@color-primary-darkest, 5%);
+    }
+
+    &:hover {
+        cursor: text;
+    }
+
     .editable &:hover {
         cursor: pointer;
-
-        code {
-            border-radius: 0;
-            border-bottom: 1px solid currentColor;
-        }
     }
 }
 
 code {
+    border-bottom: 1px solid transparent;
     color: @color-secondary-text;
     white-space: pre-wrap;
+
+    word-wrap: break-word;
+    word-break: break-word;
+    -ms-word-break: break-all;
+
+    -webkit-hyphens: auto;
+    -moz-hyphens: auto;
+    -ms-hyphens: auto;
+    hyphens: auto;
+
+    #app.dark & {
+        color: #839496;
+    }
+
+    ol.editable li:hover & {
+        border-bottom-color: currentColor;
+    }
 }
 
 .add-feedback {
@@ -453,28 +417,17 @@ code {
 <style lang="less">
 @import '~mixins.less';
 
-.code-viewer {
-    .whitespace {
-        opacity: 0;
-        #app.dark & {
-            color: @color-secondary-text;
-        }
-    }
-
-    .show-whitespace .whitespace {
-        opacity: 1;
-    }
-}
-
-#app.dark .code-viewer ol
-.btn:not(.btn-success):not(.btn-danger):not(.btn-warning) {
+#app.dark .code-viewer ol .btn:not(.btn-success):not(.btn-danger):not(.btn-warning) {
     background: @color-secondary;
+
     &.btn-secondary {
         background-color: @color-primary-darker;
+
         &:hover {
             background: @color-primary-darker;
         }
     }
+
     &:hover {
         background: darken(@color-secondary, 10%);
     }

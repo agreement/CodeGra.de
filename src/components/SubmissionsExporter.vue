@@ -1,7 +1,7 @@
 <template>
     <div class="exporter">
         <b-button-group>
-            <b-button variant="primary" @click="createCSV">
+            <b-button variant="secondary" @click="createCSV">
                 <span>Export as CSV</span>
             </b-button>
             <b-button v-b-toggle.settings>
@@ -203,3 +203,11 @@ export default {
     },
 };
 </script>
+
+<style lang="less">
+@import "~mixins.less";
+
+.exporter .text-muted {
+    color: @color-light-gray !important;
+}
+</style>

@@ -174,6 +174,12 @@ class DbColumn(t.Generic[T]):  # pragma: no cover
     def desc(self) -> 'DbColumn[T]':
         ...
 
+    def asc(self) -> 'DbColumn[T]':
+        ...
+
+    def has(self, **kwargs: t.Any) -> 'DbColumn[T]':
+        ...
+
 
 class Base:  # pragma: no cover
     query = None  # type: t.ClassVar[t.Any]

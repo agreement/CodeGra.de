@@ -1,28 +1,31 @@
 <template>
     <b-card class="feedback-area non-editable" v-if="(done && !editing)">
-        <div v-on:click="changeFeedback()" :style="{'min-height': '1em'}">
+        <div @click="changeFeedback($event)" :style="{'min-height': '1em'}">
             <div v-html="newlines($htmlEscape(serverFeedback))"></div>
         </div>
     </b-card>
-    <div class="feedback-area edit" v-else>
+    <div class="feedback-area edit" v-else
+         @click="$event.stopPropagation()">
         <b-collapse class="collapsep"
                     v-if="canUseSnippets"
                     ref="snippetDialog"
                     :id="`collapse${line}`"
                     style="margin: 0">
-            <b-input-group>
-                <input class="input form-control"
-                       v-model="snippetKey"
-                       @keydown.ctrl.enter="addSnippet"/>
-                <b-input-group-append>
-                    <submit-button ref="addSnippetButton"
-                                   class="add-snippet-btn"
-                                   label=""
-                                   @click="addSnippet">
-                        <icon :scale="1" name="check"/>
-                    </submit-button>
-                </b-input-group-append>
-            </b-input-group>
+            <div>
+                <b-input-group class="input-snippet-group">
+                    <input class="input form-control"
+                           v-model="snippetKey"
+                           @keydown.ctrl.enter="addSnippet"/>
+                    <b-input-group-append>
+                        <submit-button ref="addSnippetButton"
+                                    class="add-snippet-btn"
+                                    label=""
+                                    @click="addSnippet">
+                            <icon :scale="1" name="check"/>
+                        </submit-button>
+                    </b-input-group-append>
+                </b-input-group>
+            </div>
         </b-collapse>
         <b-input-group class="editable-area">
             <textarea ref="field"
@@ -40,16 +43,20 @@
                        @click="findSnippet">
                     <icon name="plus" aria-hidden="true"></icon>
                 </b-btn>
-                <b-button variant="danger" @click="cancelFeedback">
-                    <icon name="refresh" spin v-if="deletingFeedback"></icon>
-                    <icon name="times" aria-hidden="true" v-else></icon>
-                </b-button>
+                <submit-button @click="cancelFeedback"
+                               ref="deleteFeedbackButton"
+                               default="danger"
+                               show-inline
+                               :label="false">
+                    <icon name="times" aria-hidden="true"/>
+                </submit-button>
             </div>
             <b-input-group-append class="submit-feedback">
-                <b-button variant="primary" @click="submitFeedback">
-                    <icon name="refresh" spin v-if="submittingFeedback"></icon>
-                    <icon name="check" aria-hidden="true" v-else></icon>
-                </b-button>
+                <submit-button @click="submitFeedback"
+                               ref="addFeedbackButton"
+                               :label="false">
+                    <icon name="check" aria-hidden="true"/>
+                </submit-button>
             </b-input-group-append>
         </b-input-group>
     </div>
@@ -75,12 +82,7 @@ export default {
             internalFeedback: this.feedback,
             serverFeedback: this.feedback,
             done: true,
-            error: '',
             snippetKey: '',
-            pending: false,
-            snippetDone: false,
-            deletingFeedback: false,
-            submittingFeedback: false,
         };
     },
 
@@ -91,34 +93,47 @@ export default {
             }
         });
     },
+
     methods: {
-        changeFeedback() {
+        changeFeedback(e) {
             if (this.editable) {
                 this.done = false;
                 this.$nextTick(() => this.$refs.field.focus());
                 this.internalFeedback = this.serverFeedback;
+                e.stopPropagation();
             }
         },
+
+        focusInput() {
+            this.$nextTick(() => {
+                if (this.$refs.field) this.$refs.field.focus();
+            });
+        },
+
         submitFeedback() {
-            if (this.internalFeedback === '') {
+            if (this.internalFeedback === '' || this.internalFeedback == null) {
                 this.cancelFeedback();
                 return;
             }
+
             const submitted = this.internalFeedback;
-            this.submittingFeedback = true;
-            this.$http.put(
+
+            const req = this.$http.put(
                 `/api/v1/code/${this.fileId}/comments/${this.line}`,
                 {
                     comment: submitted,
                 },
             ).then(() => {
-                this.$emit('feedbackChange', this.internalFeedback);
+                this.internalFeedback = submitted;
                 this.serverFeedback = submitted;
                 this.snippetKey = '';
-                this.$emit('feedbackChange', this.internalFeedback);
-                this.submittingFeedback = false;
                 this.done = true;
+                this.$emit('feedbackChange', submitted);
+            }, (err) => {
+                throw err.response.data.message;
             });
+
+            this.$refs.addFeedbackButton.submit(req);
         },
         newlines(value) {
             return value.replace(/\n/g, '<br>');
@@ -134,14 +149,24 @@ export default {
         cancelFeedback(val) {
             this.snippetKey = '';
             if (this.feedback !== '') {
-                this.deletingFeedback = true;
                 const done = () => {
-                    this.deletingFeedback = true;
                     this.$emit('cancel', this.line, val);
                 };
-                this.$http
-                    .delete(`/api/v1/code/${this.fileId}/comments/${this.line}`)
-                    .then(done, done);
+                const req = this.$http.delete(
+                    `/api/v1/code/${this.fileId}/comments/${this.line}`,
+                ).then(
+                    done,
+                    (err) => {
+                        // Don't error for a 404 as the comment was deleted.
+                        if (err.response.status === 404) {
+                            done();
+                        } else {
+                            throw err.response.data.message;
+                        }
+                    },
+                );
+
+                this.$refs.deleteFeedbackButton.submit(req);
             } else {
                 this.$emit('cancel', this.line, val);
             }
@@ -231,7 +256,7 @@ export default {
 .feedback-area {
     .default-text-colors;
     &.edit {
-        margin: 0.5em 0;
+        padding-top: @line-spacing;
     }
 }
 
@@ -254,15 +279,11 @@ button {
     &:hover {
         box-shadow: none;
     }
-    & button {
+    button, .submit-button {
         flex: 1;
         &:first-child {
             border-top-right-radius: 0px;
             border-top-left-radius: 0px;
-        }
-        &:last-child {
-            border-bottom-right-radius: 0px;
-            border-bottom-left-radius: 0px;
         }
     }
     min-height: 7em;
@@ -295,5 +316,18 @@ textarea {
 
 .input.snippet {
     margin: 0;
+}
+
+.input-snippet-group {
+    padding-top: 0;
+}
+</style>
+
+<style lang="less">
+.feedback-area .minor-buttons .submit-button.btn:last-child {
+    border-bottom-right-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-top-right-radius: 0px;
+    border-top-left-radius: 0px;
 }
 </style>

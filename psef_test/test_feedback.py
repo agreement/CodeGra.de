@@ -390,6 +390,31 @@ def test_get_all_feedback(
 
             assert expected.match(res.data.decode('utf8'))
 
+    with logged_in(named_user):
+        res = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work["id"]}/feedbacks/',
+            perm_err.kwargs['error'] if perm_err else 200,
+            result=error_template if perm_err else {
+                'user': dict,
+                'general': str,
+                'linter': dict,
+            },
+        )
+
+        if not perm_err:
+            assert str(code_id) in res['user']
+            assert res['user'][str(code_id)] == {
+                '0': 'for line 0',
+                '1': 'for line - 1',
+            }
+            assert str(code_id) in res['linter']
+            assert '1' in res['linter'][str(code_id)]
+            assert isinstance(res['linter'][str(code_id)]['1'], list)
+            assert isinstance(res['linter'][str(code_id)]['1'][0], list)
+            assert isinstance(res['linter'][str(code_id)]['1'][0][0], str)
+            assert isinstance(res['linter'][str(code_id)]['1'][0][1], dict)
+
 
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
 @pytest.mark.parametrize(

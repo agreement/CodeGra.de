@@ -2,13 +2,16 @@
 <div v-if="editable">
     <b-button-group @click="updateState">
         <b-button class="state-button larger"
-                  :size="size"
-                  :variant="ltiHiddenOpenVariant"
-                  :disabled="true"
                   v-if="assignment.is_lti"
-                  v-b-popover.top.hover="'Hidden or open, managed by LTI'">
-            <icon :name="icons[states.HIDDEN]" scale="0.75"/>
-            <icon :name="icons[states.OPEN]" scale="0.75"/>
+                  :size="size"
+                  value="open"
+                  :variant="ltiHiddenOpenVariant"
+                  v-b-popover.bottom.hover="'Hidden or open, managed by LTI'">
+            <loader v-if="isLoadingLTIHiddenOpen" :scale="0.75"/>
+            <span v-else>
+                <icon :name="icons[states.HIDDEN]" :scale="0.75"/>
+                <icon :name="icons[states.OPEN]" :scale="0.75"/>
+            </span>
         </b-button>
 
         <b-button-group v-else>
@@ -16,18 +19,18 @@
                       :size="size"
                       value="hidden"
                       :variant="hiddenVariant"
-                      v-b-popover.top.hover="labels[states.HIDDEN]">
-                <loader :scale="1" v-if="isLoadingHidden" scale="0.75"/>
-                <icon :name="icons[states.HIDDEN]" scale="0.75" v-else/>
+                      v-b-popover.bottom.hover="labels[states.HIDDEN]">
+                <loader v-if="isLoadingHidden" :scale="0.75"/>
+                <icon :name="icons[states.HIDDEN]" :scale="0.75" v-else/>
             </b-button>
 
             <b-button class="state-button"
                       :size="size"
                       value="open"
                       :variant="openVariant"
-                      v-b-popover.top.hover="labels[states.OPEN]">
-                <loader :scale="1" v-if="isLoadingOpen" scale="0.75"/>
-                <icon :name="icons[states.OPEN]" scale="0.75" v-else/>
+                      v-b-popover.bottom.hover="labels[states.OPEN]">
+                <loader v-if="isLoadingOpen" :scale="0.75"/>
+                <icon :name="icons[states.OPEN]" :scale="0.75" v-else/>
             </b-button>
         </b-button-group>
 
@@ -35,19 +38,21 @@
                   :size="size"
                   value="done"
                   :variant="doneVariant"
-                  v-b-popover.top.hover="labels[states.DONE]">
-            <loader :scale="1" v-if="isLoadingDone" scale="0.75"/>
-            <icon :name="icons[states.DONE]" scale="0.75" v-else/>
+                  v-b-popover.bottom.hover="labels[states.DONE]">
+            <loader v-if="isLoadingDone" :scale="0.75"/>
+            <icon :name="icons[states.DONE]" :scale="0.75" v-else/>
         </b-button>
     </b-button-group>
 </div>
 <icon :name="icons[assignment.state]"
       class="state-icon"
-      v-b-popover.top.hover="labels[assignment.state]"
+      v-b-popover.bottom.hover="labels[assignment.state]"
       v-else/>
 </template>
 
 <script>
+import { mapActions } from 'vuex';
+
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/eye-slash';
 import 'vue-awesome/icons/clock-o';
@@ -55,6 +60,8 @@ import 'vue-awesome/icons/pencil';
 import 'vue-awesome/icons/check';
 
 import * as states from '../store/assignment-states';
+
+import { waitAtLeast } from '../utils';
 
 import Loader from './Loader';
 
@@ -101,11 +108,13 @@ export default {
 
     computed: {
         ltiHiddenOpenVariant() {
-            return this.assignment.state !== states.DONE ? 'primary' : 'outline-primary';
+            const st = this.assignment.state;
+            return st !== states.DONE ? 'primary' : 'outline-primary';
         },
 
         hiddenVariant() {
-            return this.assignment.state === states.HIDDEN ? 'danger' : 'outline-danger';
+            const st = this.assignment.state;
+            return st === states.HIDDEN ? 'danger' : 'outline-danger';
         },
 
         openVariant() {
@@ -115,7 +124,8 @@ export default {
         },
 
         doneVariant() {
-            return this.assignment.state === states.DONE ? 'success' : 'outline-success';
+            const st = this.assignment.state;
+            return st === states.DONE ? 'success' : 'outline-success';
         },
 
         isLoadingLTIHiddenOpen() {
@@ -137,16 +147,26 @@ export default {
     },
 
     methods: {
+        ...mapActions('courses', ['updateAssignment']),
+
         updateState({ target }) {
-            const button = target.closest('button');
+            const button = target.closest('.state-button');
             if (!button) return;
 
             this.pendingState = button.getAttribute('value');
 
-            this.$http.patch(`/api/v1/assignments/${this.assignment.id}`, {
-                state: this.pendingState,
-            }).then(() => {
-                this.assignment.state = this.pendingState;
+            waitAtLeast(
+                500,
+                this.$http.patch(`/api/v1/assignments/${this.assignment.id}`, {
+                    state: this.pendingState,
+                }),
+            ).then(() => {
+                this.updateAssignment({
+                    assignmentId: this.assignment.id,
+                    assignmentProps: {
+                        state: this.pendingState,
+                    },
+                });
                 this.pendingState = '';
             }, (err) => {
                 // TODO: visual feedback
@@ -164,33 +184,11 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.state-button, .state-icon {
-    width: 1.75em;
-    margin-top: .5em;
-    margin-left: .375em;
-}
-.state-button {
-    margin-top: 0;
-}
+.state-button.larger {
+    width: 4em;
 
-.state-icon {
-    margin-top: .6em;
-}
-
-.state-button {
-    padding-left: .375rem;
-
-    &.larger {
-        width: 3.5em;
+    .fa-icon {
         margin-left: 0;
-
-        .btn-group {
-            display: block;
-        }
-
-        .fa-icon {
-            margin-left: 0;
-        }
     }
 }
 </style>

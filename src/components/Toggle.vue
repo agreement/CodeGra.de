@@ -1,19 +1,24 @@
 <template>
-<div class="toggle-container" :class="{ disabled }" :checked="current">
-    <div class="toggle" @click="toggle" :id="toggleId">
-        <b-button class="off" variant="default">
+<div class="toggle-container"
+     :class="{ disabled, colors }"
+     :checked="current == valueOn">
+    <div :id="toggleId">
+        <div class="label-off"
+            @click="toggle(false)">
             {{ labelOff }}
-        </b-button>
-        <b-button class="on" variant="primary">
+        </div>
+        <div class="toggle"
+             @click="toggle()"/>
+        <div class="label-on"
+             @click="toggle(true)">
             {{ labelOn }}
-        </b-button>
+        </div>
     </div>
-    <b-popover :triggers="disabled ? ['hover'] : []"
+    <b-popover placement="top"
+               v-if="disabled"
+               triggers="hover"
                :target="toggleId">
-        <span>
-            {{ disabledText }}
-        </span>
-
+        {{ disabledText }}
     </b-popover>
 </div>
 </template>
@@ -49,6 +54,10 @@ export default {
             default: '',
             type: String,
         },
+        colors: {
+            default: true,
+            type: Boolean,
+        },
     },
 
     data() {
@@ -58,12 +67,22 @@ export default {
         };
     },
 
+    watch: {
+        value(to) {
+            this.current = to;
+        },
+    },
+
     methods: {
-        toggle() {
+        toggle(to) {
             if (this.disabled) return;
 
-            this.current = !this.current;
-            this.$emit('input', this.current ? this.valueOn : this.valueOff);
+            const newState = to == null ? !this.current : to;
+
+            if (newState !== this.current) {
+                this.current = newState;
+                this.$emit('input', this.current ? this.valueOn : this.valueOff);
+            }
         },
     },
 };
@@ -72,66 +91,81 @@ export default {
 <style lang="less" scoped>
 @import '~mixins.less';
 
-#app.dark .toggle {
-    // TODO: Find better colors here.
-    .off {
-        background: @color-light-gray;
-        color: @text-color;
-    }
-    .on {
-        background: @color-primary-darker;
-        color: @text-color-dark;
+@transition-duration: 300ms;
+@unchecked-opacity: .5;
+
+.toggle-container {
+    cursor: default;
+
+    &.disabled {
+        cursor: not-allowed;
     }
 }
 
-.toggle-container {
+.label-off,
+.label-on,
+.toggle {
     display: inline-block;
-    overflow: hidden;
+    vertical-align: middle;
     cursor: pointer;
-    border-radius: .25rem;
-    width: 4rem;
+
+    .disabled & {
+        opacity: @unchecked-opacity;
+        cursor: not-allowed;
+    }
 }
 
 .toggle {
     position: relative;
-    width: 100%;
-    height: 2.25rem;
+    width: 2.1rem;
+    height: 1.2rem;
+    margin: 0 .5rem;
+    border-radius: .6rem;
 
-    .on,
-    .off {
-        position: absolute;
-        top: 0;
-        left: 0;
+    background-color: @color-light-gray;
+    transition: background-color @transition-duration;
+
+    &::before {
+        content: '';
         display: block;
-        width: 100%;
-        height: 100%;
-        transition: transform 300ms ease-out;
-        padding: .375rem;
-        pointer-events: none;
-        text-align: center;
-    }
+        width: 1rem;
+        height: 1rem;
+        transform: translate(.1rem, .1rem);
+        border-radius: 50%;
 
-    .off {
-        transform: translateX(0);
-    }
-
-    .on {
-        transform: translateX(100%);
-    }
-
-    [checked] & {
-        .off {
-            transform: translateX(-100%);
-        }
-
-        .on {
-            transform: translateX(0);
-        }
+        background-color: white;
+        transition: transform @transition-duration;
     }
 }
 
-.disabled .toggle {
-    cursor: not-allowed;
-    opacity: 0.4;
+.label-on,
+.label-off {
+    transition: opacity @transition-duration;
+}
+
+.label-on {
+    opacity: @unchecked-opacity;
+}
+
+[checked] {
+    &.colors .toggle {
+        background-color: @color-primary;
+
+        #app.dark & {
+            background-color: @color-primary-darkest;
+        }
+
+    }
+    .toggle::before {
+        transform: translate(100%, .1rem);
+    }
+
+    .label-on {
+        opacity: 1;
+    }
+
+    .label-off {
+        opacity: @unchecked-opacity;
+    }
 }
 </style>

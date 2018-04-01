@@ -1,63 +1,64 @@
 <template>
-    <div class="cgignore-file form-control">
+    <div class="cgignore-file">
         <textarea class="form-control"
-                  rows="10"
+                  rows="6"
                   v-model="content"
                   @keyup.ctrl.enter="updateIgnore"/>
-        <submit-button style="margin-top: 0.25em"
-                       label="Update"
+        <submit-button label="Update"
                        ref="submitBtn"
                        @click="updateIgnore"/>
     </div>
 </template>
 
 <script>
+import { mapGetters, mapActions } from 'vuex';
+
 import SubmitButton from './SubmitButton';
 
 export default {
     name: 'ignore-file',
 
     props: {
-        assignment: {
-            type: Object,
-            default: null,
+        assignmentId: {
+            type: Number,
+            required: true,
+        },
+    },
+
+    computed: {
+        ...mapGetters('courses', ['assignments']),
+
+        assignment() {
+            return this.assignments[this.assignmentId];
         },
     },
 
     data() {
         return {
-            content: this.assignment.cgignore === null ? (
-                this.parseInitialString('This file enables you to filter files from submissions. Its format is the same as `.gitignore`. If a file should be excluded according to this list a user will get a warning popup when submitting.')
-            ) : this.assignment.cgignore,
+            content: '',
         };
     },
 
-    computed: {
+    mounted() {
+        this.content = this.assignment.cgignore || '';
     },
 
     methods: {
-        parseInitialString(str) {
-            const maxLineSize = 50;
-            let res = '';
-            let init = str;
-            while (init) {
-                let lastWord = null;
-                for (let i = 0; i < maxLineSize; i += 1) {
-                    if (init[i] === ' ') lastWord = i;
-                }
-                if (init.length <= maxLineSize) lastWord = maxLineSize;
-                res += `# ${init.substring(0, lastWord || maxLineSize)}\n`;
-                init = init.substring(lastWord ? lastWord + 1 : maxLineSize);
-            }
-            return res;
-        },
+        ...mapActions('courses', ['updateAssignment']),
 
         updateIgnore() {
             this.$refs
                 .submitBtn
                 .submit(this.$http.patch(`/api/v1/assignments/${this.assignment.id}`, {
                     ignore: this.content,
-                }).catch(({ response }) => {
+                }).then(() => {
+                    this.updateAssignment({
+                        assignmentId: this.assignmentId,
+                        assignmentProps: {
+                            cgignore: this.content,
+                        },
+                    });
+                }, ({ response }) => {
                     throw response.data.message;
                 }));
         },
@@ -70,4 +71,9 @@ export default {
 </script>
 
 <style lang="less" scoped>
+.submit-button {
+    display: flex;
+    margin-top: 15px;
+    justify-content: flex-end;
+}
 </style>
