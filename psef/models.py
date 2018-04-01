@@ -6,6 +6,7 @@ This module defines all the objects in the database in their relation.
 # TODO: Split this file into one file per model.
 
 import os
+import abc
 import enum
 import math
 import uuid
@@ -256,31 +257,50 @@ class Permission(Base):
     )
 
 
-class CourseRole(Base):
+class AbstractRole:
+    """An abstract class that implements all functionality a role should have.
     """
-    A course role is used to describe the abilities of a :class:`User` in a
-    :class:`Course`.
 
-    :ivar name: The name of this role in the course.
-    :ivar ~.CourseRole.course_id: The :py:class:`Course` this role belongs to.
-    """
-    if t.TYPE_CHECKING:  # pragma: no cover
-        query = Base.query  # type: t.ClassVar[_MyQuery['CourseRole']]
-    __tablename__ = 'Course_Role'
-    id = db.Column('id', db.Integer, primary_key=True)
-    name: str = db.Column('name', db.Unicode)
-    course_id: int = db.Column(
-        'Course_id', db.Integer, db.ForeignKey('Course.id')
-    )
-    _permissions: t.MutableMapping[str, Permission] = db.relationship(
-        'Permission',
-        collection_class=attribute_mapped_collection('name'),
-        secondary=course_permissions
-    )
-
-    def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        name: str,
+        _permissions: t.MutableMapping[str, Permission] = None
+    ) -> None:
         self._has_permission_cache: t.MutableMapping[str, bool] = {}
+        self.name = name
+        if _permissions is not None:
+            self._permissions = _permissions
+
+    @property
+    @abc.abstractmethod
+    def id(self) -> int:
+        """The id of this role.
+        """
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def name(self) -> str:
+        """The name of this role.
+        """
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def _permissions(self) -> t.MutableMapping[str, Permission]:
+        """The permissions this role has a connection to.
+
+        A connection means this role has the permission if, and only if, the
+        ``default_value`` of this permission is ``False``.
+        """
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def uses_course_permissions(self) -> bool:
+        """Does this role use course permissions or global permissions.
+        """
+        raise NotImplementedError
 
     @orm.reconstructor
     def setup_has_permission_cache(self) -> None:
@@ -288,34 +308,23 @@ class CourseRole(Base):
         """
         self._has_permission_cache = {}
 
-    # Old syntax used to please sphinx
-    course = db.relationship(
-        'Course', foreign_keys=course_id, backref="roles"
-    )  # type: Course
-
-    def __to_json__(self) -> t.MutableMapping[str, t.Any]:
-        """Creates a JSON serializable representation of this object.
-        """
-        return {
-            'name': self.name,
-            'course': self.course,
-            'id': self.id,
-        }
-
     def set_permission(self, perm: Permission, should_have: bool) -> None:
         """Set the given :class:`Permission` to the given value.
 
         :param should_have: If this role should have this permission
         :param perm: The permission this role should (not) have
         """
-        self.setup_has_permission_cache()
-        try:
-            if perm.default_value ^ should_have:
-                self._permissions[perm.name] = perm
-            else:
-                self._permissions.pop(perm.name)
-        except KeyError:
-            pass
+        assert perm.course_permission == self.uses_course_permissions
+
+        if perm.default_value ^ should_have:
+            self._permissions[perm.name] = perm
+        else:
+            try:
+                del self._permissions[perm.name]
+            except KeyError:
+                pass
+
+        self._has_permission_cache[perm.name] = should_have
 
     def has_permission(self, permission: t.Union[str, Permission]) -> bool:
         """Check whether this course role has the specified
@@ -337,21 +346,22 @@ class CourseRole(Base):
 
         if permission_name in self._permissions:
             perm = self._permissions[permission_name]
-            res = perm.course_permission and not perm.default_value
+            res = not perm.default_value
         else:
             if isinstance(permission, str):
-                permission = Permission.query.filter_by(  # type: ignore
-                    name=permission).first()
+                permission = Permission.query.filter_by(
+                    course_permission=self.uses_course_permissions,
+                    name=permission,
+                ).first()
 
-            if isinstance(permission, Permission) and permission is not None:
-                res = (
-                    permission.default_value and permission.course_permission
-                )
-            else:
+            if permission is None:
                 raise KeyError(
-                    'The permission "{}" does not exist'.
-                    format(permission_name)
+                    f'The permission "{permission_name}" does not exist'
                 )
+
+            res = permission.default_value and (
+                permission.course_permission == self.uses_course_permissions
+            )
 
         self._has_permission_cache[permission_name] = res
         return res
@@ -363,19 +373,82 @@ class CourseRole(Base):
                   permission and the value indicates if this user has this
                   permission.
         """
-        perms: t.Sequence[Permission] = (
-            Permission.query.
-            filter_by(  # type: ignore
-                course_permission=True
-            ).all()
+        perms = Permission.query.filter_by(
+            course_permission=self.uses_course_permissions,
         )
-        result: t.MutableMapping[str, bool] = {}
-        for perm in perms:
-            if perm.name in self._permissions:
-                result[perm.name] = not perm.default_value
-            else:
-                result[perm.name] = perm.default_value
-        return result
+        return {
+            p.name: (p.name in self._permissions) ^ p.default_value
+            for p in perms
+        }
+
+    def __to_json__(self) -> t.MutableMapping[str, t.Any]:
+        """Creates a JSON serializable representation of a role.
+
+        This object will look like this:
+
+        .. code:: python
+
+            {
+                'id':    int, # The id of this role.
+                'name':  str, # The name of this role.
+            }
+
+        :returns: An object as described above.
+        """
+        return {
+            'name': self.name,
+            'id': self.id,
+        }
+
+
+class CourseRole(AbstractRole, Base):
+    """
+    A course role is used to describe the abilities of a :class:`User` in a
+    :class:`Course`.
+
+    :ivar name: The name of this role in the course.
+    :ivar ~.CourseRole.course_id: The :py:class:`Course` this role belongs to.
+    """
+    if t.TYPE_CHECKING:  # pragma: no cover
+        query = Base.query  # type: t.ClassVar[_MyQuery['CourseRole']]
+    __tablename__ = 'Course_Role'
+    id = db.Column('id', db.Integer, primary_key=True)
+    name: str = db.Column('name', db.Unicode)
+    course_id: int = db.Column(
+        'Course_id', db.Integer, db.ForeignKey('Course.id')
+    )
+    _permissions: t.MutableMapping[str, Permission] = db.relationship(
+        'Permission',
+        collection_class=attribute_mapped_collection('name'),
+        secondary=course_permissions
+    )
+
+    # Old syntax used to please sphinx
+    course = db.relationship(
+        'Course', foreign_keys=course_id, backref="roles"
+    )  # type: Course
+
+    @property
+    def uses_course_permissions(self) -> bool:
+        return True
+
+    def __init__(
+        self,
+        name: str,
+        course: 'Course',
+        _permissions: t.Optional[t.MutableMapping[str, Permission]] = None
+    ) -> None:
+        super().__init__(name=name, _permissions=_permissions)
+
+        # Mypy doesn't get the sqlalchemy magic
+        self.course = course  # type: ignore
+
+    def __to_json__(self) -> t.MutableMapping[str, t.Any]:
+        """Creates a JSON serializable representation of this object.
+        """
+        res = super().__to_json__()
+        res['course'] = self.course
+        return res
 
     @classmethod
     def get_initial_course_role(cls: t.Type['CourseRole'],
@@ -393,7 +466,7 @@ class CourseRole(Base):
 
     @staticmethod
     def get_default_course_roles(
-    ) -> t.Mapping[str, t.Mapping[str, Permission]]:
+    ) -> t.Mapping[str, t.MutableMapping[str, Permission]]:
         """Get all default course roles as specified in the config and their
         permissions (:class:`Permission`).
 
@@ -430,7 +503,7 @@ class CourseRole(Base):
         return res
 
 
-class Role(Base):
+class Role(AbstractRole, Base):
     """A role defines the set of global permissions :class:`Permission` of a
     :class:`User`.
 
@@ -448,109 +521,9 @@ class Role(Base):
         backref=db.backref('roles', lazy='dynamic')
     )
 
-    def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
-        super().__init__(*args, **kwargs)
-        self._has_permission_cache: t.MutableMapping[str, bool] = {}
-
-    @orm.reconstructor
-    def setup_has_permission_cache(self) -> None:
-        """Reset permission cache to an empty object.
-        """
-        self._has_permission_cache = {}
-
-    def set_permission(self, perm: Permission, should_have: bool) -> None:
-        """Set the given :class:`Permission` to the given value.
-
-        :param should_have: If this role should have this permission
-        :param perm: The permission this role should (not) have
-        """
-        self.setup_has_permission_cache()
-        try:
-            if perm.default_value ^ should_have:
-                self._permissions[perm.name] = perm
-            else:
-                self._permissions.pop(perm.name)
-        except KeyError:
-            pass
-
-    def has_permission(self, permission: t.Union[str, Permission]) -> bool:
-        """Check whether this role has the specified :class:`Permission`.
-
-        :param permission: The permission to check
-        :returns: Whether the role has the permission or not
-
-        :raises KeyEror: If the permission parameter is a string and no
-                         permission with this name exists.
-        """
-        if isinstance(permission, Permission):
-            perm_name = permission.name
-        else:
-            perm_name = permission
-
-        if perm_name in self._has_permission_cache:
-            return self._has_permission_cache[perm_name]
-
-        if perm_name in self._permissions:
-            perm = self._permissions[perm_name]
-            res = (not perm.default_value) and (not perm.course_permission)
-        else:
-            if not isinstance(permission, Permission):
-                permission = (
-                    Permission.query.filter_by(name=permission).first()
-                )
-
-            if isinstance(permission, Permission):
-                res = (
-                    permission.default_value and
-                    not permission.course_permission
-                )
-            else:
-                raise KeyError(
-                    'The permission "{}" does not exist'.format(permission)
-                )
-
-        self._has_permission_cache[perm_name] = res
-        return res
-
-    def get_all_permissions(self) -> t.Mapping[str, bool]:
-        """Get all course permissions (:class:`Permission`) for this role.
-
-        :returns: A name boolean mapping where the name is the name of the
-                  permission and the value indicates if this user has this
-                  permission.
-        """
-        perms: t.Sequence[Permission] = (
-            Permission.query.
-            filter_by(  # type: ignore
-                course_permission=False
-            ).all()
-        )
-        result: t.MutableMapping[str, bool] = {}
-        for perm in perms:
-            if perm.name in self._permissions:
-                result[perm.name] = not perm.default_value
-            else:
-                result[perm.name] = perm.default_value
-        return result
-
-    def __to_json__(self) -> t.MutableMapping[str, t.Any]:
-        """Creates a JSON serializable representation of a role.
-
-        This object will look like this:
-
-        .. code:: python
-
-            {
-                'id':    int, # The id of this role.
-                'name':  str, # The name of this role.
-            }
-
-        :returns: An object as described above.
-        """
-        return {
-            'name': self.name,
-            'id': self.id,
-        }
+    @property
+    def uses_course_permissions(self) -> bool:
+        return False
 
 
 class User(Base):
