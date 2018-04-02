@@ -55,7 +55,7 @@
                 <b-btn class="text-center margin btn delete"
                        variant="danger"
                        @click="$root.$emit('bv::show::modal',`modal_${name}_${assignment.id}`)">
-                    Remove output
+                    <span v-if="crashed > 0 || state === 'crashed'">Crashed! - </span>Remove output
                 </b-btn>
                 <b-modal :id="`modal_${name}_${assignment.id}`"
                          title="Are you sure?"
@@ -253,6 +253,6 @@ export default {
 .btn.delete {
     height: 3em;
     margin-top: 0;
-    width: 14em;
+    min-width: 14em;
 }
 </style>
