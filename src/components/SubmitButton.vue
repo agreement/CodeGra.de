@@ -45,6 +45,8 @@ import Loader from './Loader';
 
 let i = 0;
 
+export const SubmitButtonCancelled = Object.create(Error);
+
 export default {
     name: 'submit-button',
 
@@ -54,7 +56,7 @@ export default {
             err: '',
             pending: false,
             state: 'default',
-            canceled: true,
+            cancelled: true,
             btnId: `submitButton-i-${i++}`,
             variants: {
                 default: this.default,
@@ -134,15 +136,21 @@ export default {
     methods: {
         submit(promise) {
             this.pending = true;
-            this.canceled = false;
+            this.cancelled = false;
             return Promise.resolve(promise).then(
-                res => !this.canceled && this.succeed(res),
-                err => !this.canceled && this.fail(err),
+                res => !this.cancelled && this.succeed(res),
+                (err) => {
+                    if (this.cancelled) {
+                        throw SubmitButtonCancelled;
+                    } else {
+                        return this.fail(err);
+                    }
+                },
             );
         },
 
         reset() {
-            this.canceled = true;
+            this.cancelled = true;
             if (this.timeout != null) {
                 clearTimeout(this.timeout);
                 this.timeout = null;
@@ -160,7 +168,7 @@ export default {
         },
 
         cancel() {
-            this.canceled = true;
+            this.cancelled = true;
         },
 
         warn(err) {

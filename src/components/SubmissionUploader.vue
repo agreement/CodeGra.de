@@ -30,8 +30,11 @@
         </b-button-toolbar>
     </b-modal>
 
-    <b-popover :show.sync="showWarn" :target="uploaderId" placement="top"
-               :disabled="!showWarn">
+    <b-popover :show.sync="showWarn"
+               :target="uploaderId"
+               placement="top"
+               :disabled="!showWarn"
+               @hidden="$emit('warn-popover-hidden')">
         <p>You are now submitting with yourself as author, are you sure you want to continue?</p>
         <b-button-toolbar justify>
             <b-btn variant="danger" @click="rejectWarn">Stop</b-btn>
@@ -45,7 +48,6 @@
                    :disabled="disabled"
                    :before-upload="checkUpload"
                    @error="uploadError"
-
                    @clear="author = null"
                    @response="data => $emit('created', data)">
         <user-selector v-model="author"
@@ -118,6 +120,12 @@ export default {
         };
     },
 
+    destroyed() {
+        // Make sure we don't leak the promise and event handler
+        // set in the checkUpload method.
+        this.$emit('warn-popover-hidden');
+    },
+
     methods: {
         uploadError(err) {
             if (err.data.code !== 'INVALID_FILE_IN_ARCHIVE') return;
@@ -138,18 +146,27 @@ export default {
             if (this.warnForSelf && (this.author == null ||
                                      this.defaultAuthor.username === this.author.username)) {
                 this.showWarn = true;
-                const resetData = (res) => {
-                    this.showWarn = false;
-                    this.acceptWarn = null;
-                    this.rejectWarn = null;
-                    return res;
-                };
-                return (new Promise((resolve) => {
-                    this.rejectWarn = () => resolve(true);
-                    this.acceptWarn = () => resolve(false);
-                })).then(resetData, (d) => {
-                    resetData();
-                    throw d;
+                return new Promise((resolve) => {
+                    const resetData = () => {
+                        this.showWarn = false;
+                        this.acceptWarn = null;
+                        this.rejectWarn = null;
+                        // eslint-disable-next-line
+                        this.$off('warn-popover-hidden', continueUpload);
+                    };
+
+                    const continueUpload = () => {
+                        resetData();
+                        resolve(false);
+                    };
+                    const stopUpload = () => {
+                        resetData();
+                        resolve(true);
+                    };
+
+                    this.acceptWarn = continueUpload;
+                    this.rejectWarn = stopUpload;
+                    this.$on('warn-popover-hidden', stopUpload);
                 });
             }
 

@@ -23,7 +23,7 @@
 </template>
 
 <script>
-import SubmitButton from './SubmitButton';
+import SubmitButton, { SubmitButtonCancelled } from './SubmitButton';
 
 export default {
     name: 'file-uploader',
@@ -89,6 +89,10 @@ export default {
                 if (!stopped) {
                     this.$emit('clear');
                     this.$refs.formFile.reset();
+                }
+            }, (err) => {
+                if (err !== SubmitButtonCancelled) {
+                    throw err;
                 }
             });
         },
