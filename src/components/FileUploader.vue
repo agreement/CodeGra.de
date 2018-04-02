@@ -43,7 +43,7 @@ export default {
         },
         beforeUpload: {
             type: Function,
-            default: () => true,
+            default: () => false,
         },
         buttonId: {
             default: undefined,
