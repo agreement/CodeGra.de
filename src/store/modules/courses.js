@@ -1,5 +1,6 @@
 import Vue from 'vue';
 import axios from 'axios';
+import moment from 'moment';
 
 import { formatDate } from '@/utils';
 import * as types from '../mutation-types';
@@ -96,10 +97,23 @@ const mutations = {
         first = false;
         state.courses = courses.reduce((res, course) => {
             course.assignments.forEach((assignment) => {
+                const deadline = moment.utc(assignment.deadline, moment.ISO_8601).local();
+                const reminderTime = moment.utc(assignment.reminder_time, moment.ISO_8601).local();
+                let defaultReminderTime = deadline.clone().add(7, 'days');
+                if (defaultReminderTime.isBefore(moment())) {
+                    defaultReminderTime = moment().add(3, 'days');
+                }
+
                 assignment.course = course;
                 assignment.deadline = formatDate(assignment.deadline);
                 assignment.created_at = formatDate(assignment.created_at);
                 assignment.canManage = manageAssigs[course.id];
+                assignment.has_reminder_time = reminderTime.isValid();
+                assignment.reminder_time = (
+                    reminderTime.isValid() ?
+                        reminderTime :
+                        defaultReminderTime
+                ).format('YYYY-MM-DDTHH:mm');
             });
 
             course.permissions = perms[course.id];

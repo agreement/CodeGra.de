@@ -15,7 +15,7 @@
                 <input type="datetime-local"
                        @keyup.ctrl.enter="updateReminder"
                        class="form-control"
-                       v-model="assignment.reminder_time"/>
+                       v-model="reminderTime"/>
             </b-input-group>
         </b-collapse>
     </div>
@@ -36,7 +36,7 @@
                 <input type="text"
                        @keyup.ctrl.enter="updateReminder"
                        class="form-control"
-                       v-model="assignment.done_email"/>
+                       v-model="doneEmail"/>
             </b-input-group>
         </b-collapse>
     </div>
@@ -44,7 +44,7 @@
     <b-collapse :visible="graders || finished"
                 class="grade-options"
                 :id="`collapse-${Math.random()}`">
-        <b-form-radio-group v-model="assignment.done_type">
+        <b-form-radio-group v-model="doneType">
             <b-form-radio v-for="item in options"
                           :key="item.value"
                           :value="item.value">
@@ -63,6 +63,7 @@
 </template>
 
 <script>
+import { mapActions } from 'vuex';
 import moment from 'moment';
 
 import { convertToUTC, parseWarningHeader } from '@/utils';
@@ -87,8 +88,10 @@ export default {
     data() {
         return {
             graders: this.assignment.has_reminder_time,
-            origReminderTime: this.assignment.reminder_time,
+            reminderTime: this.assignment.reminder_time,
             finished: this.assignment.done_email != null,
+            doneEmail: this.assignment.done_email,
+            doneType: this.assignment.done_type,
             options: [
                 {
 
@@ -110,25 +113,27 @@ divided or because they were assigned work manually.`,
     watch: {
         finished(val) {
             if (!val && !this.graders) {
-                this.assignment.done_type = null;
+                this.doneType = null;
             }
         },
 
         graders(val) {
             if (!val && !this.finished) {
-                this.assignment.done_type = null;
+                this.doneType = null;
             }
         },
     },
 
     methods: {
+        ...mapActions('courses', ['updateAssignment']),
+
         updateReminder() {
-            const type = this.graders || this.finished ? String(this.assignment.done_type) : null;
-            const time = this.graders ? convertToUTC(this.assignment.reminder_time) : null;
-            const email = this.finished ? String(this.assignment.done_email) : null;
+            const type = this.graders || this.finished ? String(this.doneType) : null;
+            const time = this.graders ? convertToUTC(this.reminderTime) : null;
+            const email = this.finished ? this.doneEmail : null;
             const button = this.$refs.updateReminder;
 
-            if ((this.graders || this.finished) && !this.assignment.done_type) {
+            if ((this.graders || this.finished) && !type) {
                 let msg = 'Please select when grading on this assignment should be considered finished.';
                 if (this.graders) {
                     msg += ' This also indicates who should get a notification when they are not yet done grading.';
@@ -137,20 +142,21 @@ divided or because they were assigned work manually.`,
                 return;
             }
 
-            const req = this.$http.patch(this.assignmentUrl, {
+            const props = {
                 done_type: type,
-                reminder_time: time,
                 done_email: email,
-            }).then((res) => {
-                this.assignment.done_type = type;
+                reminder_time: time,
+            };
 
-                if (type == null) {
-                    this.assignment.reminder_time = this.origReminderTime;
-                } else {
-                    this.assignment.reminder_time = moment.utc(time).local().format('YYYY-MM-DDTHH:mm');
+            const req = this.$http.patch(this.assignmentUrl, props).then((res) => {
+                if (type != null) {
+                    props.reminder_time = moment.utc(time).local().format('YYYY-MM-DDTHH:mm');
                 }
 
-                this.assignment.done_email = email;
+                this.updateAssignment({
+                    assignmentId: this.assignment.id,
+                    assignmentProps: props,
+                });
 
                 if (res.headers.warning) {
                     button.cancel();
