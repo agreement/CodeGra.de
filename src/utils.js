@@ -14,16 +14,29 @@ export function filterSubmissions(
     callback = () => false,
 ) {
     const l = new Set();
-    const filterAssignee = submissions.some(s => s.assignee &&
+    let latestSubs = submissions;
+
+    // BLAZE IT: R y a n C e l s i u s ° S o u n d s
+    if (latest) {
+        latestSubs = submissions.filter((item) => {
+            if (l.has(item.user.id)) {
+                return callback(item);
+            } else {
+                l.add(item.user.id);
+                return true;
+            }
+        });
+    }
+
+    const filterAssignee = latestSubs.some(s => s.assignee &&
                                             s.assignee.id === userId);
 
-    return submissions.filter((item) => {
-        if ((latest && l.has(item.user.id)) ||
-            (filterAssignee && mine &&
-             (item.assignee == null || item.assignee.id !== userId))) {
+
+    return latestSubs.filter((item) => {
+        if (filterAssignee && mine &&
+             (item.assignee == null || item.assignee.id !== userId)) {
             return callback(item);
         } else if (!filter) {
-            l.add(item.user.id);
             return true;
         }
 
