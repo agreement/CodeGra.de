@@ -52,6 +52,13 @@ psef\.helpers module
     :undoc-members:
     :show-inheritance:
 
+psef\.ignore module
+--------------------
+
+.. automodule:: psef.ignore
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 psef\.json module
 -----------------
@@ -77,10 +84,34 @@ psef\.lti module
     :undoc-members:
     :show-inheritance:
 
+psef\.mail module
+-----------------
+
+.. automodule:: psef.mail
+    :members:
+    :show-inheritance:
+    :special-members:
+
 psef\.models module
 -------------------
 
 .. automodule:: psef.models
+    :members:
+    :show-inheritance:
+    :special-members:
+
+psef\.parsers module
+--------------------
+
+.. automodule:: psef.parsers
+    :members:
+    :show-inheritance:
+    :special-members:
+
+psef\.tasks module
+-------------------
+
+.. automodule:: psef.tasks
     :members:
     :show-inheritance:
     :special-members:

@@ -21,25 +21,25 @@ from psef import app, current_user
 from psef.errors import APICodes, APIException
 from psef.models import FileOwner, db
 from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
+    JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
     ensure_keys_in_dict, make_empty_response
 )
 
 from . import api
 
 _HumanFeedback = models.Comment
-_LinterFeedback = t.MutableSequence[t.Tuple[str, models.LinterComment]]
-_FeedbackMapping = t.Dict[str, t.Union[_HumanFeedback, _LinterFeedback]]
+_LinterFeedback = t.MutableSequence[t.Tuple[str, models.LinterComment]]  # pylint: disable=invalid-name
+_FeedbackMapping = t.Dict[str, t.Union[_HumanFeedback, _LinterFeedback]]  # pylint: disable=invalid-name
 
 
-@api.route("/code/<int:id>/comments/<int:line>", methods=['PUT'])
-def put_comment(id: int, line: int) -> EmptyResponse:
+@api.route("/code/<int:code_id>/comments/<int:line>", methods=['PUT'])
+def put_comment(code_id: int, line: int) -> EmptyResponse:
     """Create or change a single :class:`.models.Comment` of a code
     :class:`.models.File`.
 
     .. :quickref: Code; Add or change a comment.
 
-    :param int id: The id of the code file
+    :param int code_id: The id of the code file
     :param int line: The line number of the comment
     :returns: An empty response with return code 204
 
@@ -50,10 +50,10 @@ def put_comment(id: int, line: int) -> EmptyResponse:
                                  attached course. (INCORRECT_PERMISSION)
     """
     comment = db.session.query(models.Comment).filter(
-        models.Comment.file_id == id, models.Comment.line == line
+        models.Comment.file_id == code_id, models.Comment.line == line
     ).one_or_none()
 
-    def get_comment() -> str:
+    def __get_comment() -> str:
         content = ensure_json_dict(request.get_json())
         ensure_keys_in_dict(content, [('comment', str)])
         return t.cast(str, content['comment'])
@@ -63,9 +63,9 @@ def put_comment(id: int, line: int) -> EmptyResponse:
             'can_grade_work', comment.file.work.assignment.course_id
         )
 
-        comment.comment = get_comment()
+        comment.comment = __get_comment()
     else:
-        file = helpers.get_or_404(models.File, id)
+        file = helpers.get_or_404(models.File, code_id)
         auth.ensure_permission(
             'can_grade_work',
             file.work.assignment.course_id,
@@ -73,10 +73,10 @@ def put_comment(id: int, line: int) -> EmptyResponse:
 
         db.session.add(
             models.Comment(
-                file_id=id,
+                file_id=code_id,
                 user_id=current_user.id,
                 line=line,
-                comment=get_comment(),
+                comment=__get_comment(),
             )
         )
 
@@ -85,14 +85,14 @@ def put_comment(id: int, line: int) -> EmptyResponse:
     return make_empty_response()
 
 
-@api.route("/code/<int:id>/comments/<int:line>", methods=['DELETE'])
-def remove_comment(id: int, line: int) -> EmptyResponse:
+@api.route("/code/<int:code_id>/comments/<int:line>", methods=['DELETE'])
+def remove_comment(code_id: int, line: int) -> EmptyResponse:
     """Removes the given :class:`.models.Comment` in the given
     :class:`.models.File`
 
     .. :quickref: Code; Remove a comment.
 
-    :param int id: The id of the code file
+    :param int code_id: The id of the code file
     :param int line: The line number of the comment
     :returns: An empty response with return code 204
 
@@ -103,7 +103,7 @@ def remove_comment(id: int, line: int) -> EmptyResponse:
                                  attached course. (INCORRECT_PERMISSION)
     """
     comment = helpers.filter_single_or_404(
-        models.Comment, models.Comment.file_id == id,
+        models.Comment, models.Comment.file_id == code_id,
         models.Comment.line == line
     )
 
@@ -204,6 +204,7 @@ def get_feedback(file: models.File, linter: bool = False) -> _FeedbackMapping:
         auth.ensure_can_see_grade(file.work)
 
         if linter:
+            helpers.ensure_feature('LINTERS')
             comments = db.session.query(
                 models.LinterComment,
             ).filter_by(file_id=file.id).all()
@@ -301,7 +302,9 @@ def delete_code(file_id: int) -> EmptyResponse:
 
 
 def split_code(
-    code: models.File, new_owner: FileOwner, old_owner: FileOwner, copy: bool
+    code: models.File,
+    new_owner: FileOwner,
+    old_owner: FileOwner,
 ) -> models.File:
     """Split the given ``code`` into multiple code objects.
 
@@ -314,7 +317,6 @@ def split_code(
     :param code: The file to split.
     :param new_owner: The new ``fileowner`` of the new file.
     :param old_owner: The new ``fileowner`` of the old file.
-    :param copy: Should the file contents be copied over to the new file.
     :returns: The newly constructed file.
     """
     code.fileowner = old_owner
@@ -372,7 +374,6 @@ def redistribute_directory(
                 child,
                 new_directory.fileowner,
                 old_directory.fileowner,
-                copy=True
             )
             code.parent = new_directory
     db.session.flush()
@@ -412,6 +413,8 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
     :raises APIException: If the request is bigger than the maximum upload
         size. (REQUEST_TOO_LARGE)
     """
+    # If the operation is rename it /can/ be a directory. If it is not a rename
+    # (so an update of the contents) the target can **not** be a directory.
     dir_filter = None if request.args.get('operation') == 'rename' else True
     code = helpers.filter_single_or_404(
         models.File,
@@ -421,13 +424,11 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
 
     auth.ensure_can_edit_work(code.work)
 
-    if (request.content_length and
-            request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException(
-            'Uploaded files are too big.', 'Request is bigger than maximum '
-            f'upload size of {app.config["MAX_UPLOAD_SIZE"]}.',
-            APICodes.REQUEST_TOO_LARGE, 400
-        )
+    if (
+        request.content_length and
+        request.content_length > app.config['MAX_UPLOAD_SIZE']
+    ):
+        helpers.raise_file_too_big_exception()
 
     def _update_file(
         code: models.File,
@@ -467,7 +468,7 @@ def update_code(file_id: int) -> JSONResponse[models.File]:
         )
     else:
         with db.session.begin_nested():
-            code = split_code(code, current, other, copy=False)
+            code = split_code(code, current, other)
             _update_file(code, other)
 
     db.session.commit()

@@ -58,4 +58,4 @@ script:
   - "[[ $TO_RUN = 'coverage' ]] && travis-sphinx build --source=docs/ || true"
 
 after_success:
-  "[[ $TO_RUN = 'coverage' ]] && ( coveralls; codecov; travis-sphinx deploy; )"
+  "[[ $TO_RUN = 'coverage' ]] && ( coveralls; codecov; travis-sphinx deploy -c docs.codegra.de; )"

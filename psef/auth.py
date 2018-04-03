@@ -12,31 +12,34 @@ from mypy_extensions import NoReturn
 import psef
 from psef.errors import APICodes, APIException
 
-jwt = flask_jwt.JWTManager()
+jwt = flask_jwt.JWTManager()  # pylint: disable=invalid-name
 
 
 def init_app(app: t.Any) -> None:
-    jwt.init_app(app)
+    """Initialize the app by initializing our jwt manager.
 
-    @app.before_request
-    def reset_perm_cache() -> None:
-        global _PERM_CACHE
-        _PERM_CACHE = {}
+    :param app: The flask app to initialize.
+    """
+    jwt.init_app(app)
 
 
 class PermissionException(APIException):
     """The exception used when a permission check fails.
     """
-
-    def __init__(self, *args: t.Any, **kwargs: t.Any) -> None:
-        super(PermissionException, self).__init__(*args, **kwargs)
+    pass
 
 
-def _raise_login_exception(desc: str = 'No user was logged in.') -> NoReturn:
-    raise PermissionException(
+def _get_login_exception(
+    desc: str = 'No user was logged in.'
+) -> PermissionException:
+    return PermissionException(
         'You need to be logged in to do this.', desc, APICodes.NOT_LOGGED_IN,
         401
     )
+
+
+def _raise_login_exception(desc: str = 'No user was logged in.') -> NoReturn:
+    raise _get_login_exception(desc)
 
 
 @jwt.revoked_token_loader
@@ -62,29 +65,33 @@ jwt.user_loader_error_loader(
 )
 
 
+@jwt.user_loader_callback_loader
+def _load_user(user_id: int) -> t.Optional['psef.models.User']:
+    return psef.models.User.query.get(int(user_id))
+
+
 def _user_active() -> bool:
     """Check if there is a current user who is authenticated and active.
 
     :returns: True if there is an active logged in user
     """
+    # pylint: disable=protected-access
     user = psef.current_user._get_current_object()  # type: ignore
     return user is not None and user.is_active
 
 
-def login_required(fn: t.Callable) -> t.Callable:
+def login_required(fun: t.Callable) -> t.Callable:
     """Make sure a valid user is logged in at this moment.
 
     :raises PermissionException: If no user was logged in.
     """
 
-    @wraps(fn)
-    def wrapper(*args: t.Any, **kwargs: t.Any) -> t.Any:
-        if _user_active():
-            return fn(*args, **kwargs)
-        else:
-            _raise_login_exception()
+    @wraps(fun)
+    def __wrapper(*args: t.Any, **kwargs: t.Any) -> t.Any:
+        ensure_logged_in()
+        return fun(*args, **kwargs)
 
-    return wrapper
+    return __wrapper
 
 
 def ensure_logged_in() -> None:
@@ -116,6 +123,65 @@ def ensure_enrolled(course_id: int) -> None:
             'The user "{}" is not enrolled in course "{}"'.format(
                 psef.current_user.id, course_id
             ), APICodes.INCORRECT_PERMISSION, 403
+        )
+
+
+@login_required
+def ensure_can_submit_work(
+    assig: 'psef.models.Assignment',
+    author: 'psef.models.User',
+) -> None:
+    """Check if the current user can submit for the given assignment as the given
+    author.
+
+    .. note::
+
+        This function also checks if the assignment is a LTI assignment. If
+        this is the case it makes sure the ``author`` can do grade passback.
+
+    :param assig: The assignment that should be submitted to.
+    :param author: The author of the submission.
+
+    :raises PermissionException: If there the current user cannot submit for
+        the given author.
+    :raises APIException: If the author is not enrolled in course of the given
+        assignment or if the LTI state was wrong.
+    """
+    submit_self = psef.current_user.id == author.id
+
+    if assig.course_id not in author.courses:
+        raise APIException(
+            'The given user is not enrolled in this course',
+            (
+                f'The user "{author.id}" is not enrolled '
+                f'in course "{assig.course_id}"'
+            ),
+            APICodes.INVALID_STATE,
+            400,
+        )
+
+    if submit_self:
+        ensure_permission('can_submit_own_work', assig.course_id)
+    else:
+        ensure_permission('can_submit_others_work', assig.course_id)
+
+    if not assig.is_open:
+        ensure_permission('can_upload_after_deadline', assig.course_id)
+
+    if assig.is_lti and assig.id not in author.assignment_results:
+        raise APIException(
+            (
+                "This assignment is a LTI assignment and it seems we "
+                "don't have the possibility to passback the grade to the "
+                "LMS. Please {}visit the assignment on the LMS again, if "
+                "this issue persist please contact your administrator."
+            ).format('let the given author ' if submit_self else ''),
+            (
+                f'The assignment {assig.id} is not present in the '
+                f'user {author.id} `assignment_results`'
+            ),
+            APICodes.INVALID_STATE,
+            400,
         )
 
 
@@ -197,9 +263,6 @@ def ensure_can_view_files(
             )
 
 
-_PERM_CACHE = {}  # type: t.MutableMapping[t.Tuple[str, t.Optional[int]], bool]
-
-
 def ensure_permission(permission_name: str, course_id: int = None) -> None:
     """Ensure that the current user is logged and has the given permission.
 
@@ -217,15 +280,9 @@ def ensure_permission(permission_name: str, course_id: int = None) -> None:
                                  current user. (INCORRECT_PERMISSION)
     """
     if _user_active():
-        val = None
-        if (permission_name, course_id) in _PERM_CACHE:
-            val = _PERM_CACHE[(permission_name, course_id)]
-        else:
-            val = psef.current_user.has_permission(
-                permission_name, course_id=course_id
-            )
-            _PERM_CACHE[(permission_name, course_id)] = val
-        if val:
+        if psef.current_user.has_permission(
+            permission_name, course_id=course_id
+        ):
             return
         else:
             raise PermissionException(
@@ -261,15 +318,15 @@ def permission_required(
         :py:func:`ensure_permission` does this.
     """
 
-    def decorator(f: t.Callable) -> t.Callable:
+    def __decorator(f: t.Callable) -> t.Callable:
         @wraps(f)
-        def decorated_function(*args: t.Any, **kwargs: t.Any) -> t.Any:
+        def __decorated_function(*args: t.Any, **kwargs: t.Any) -> t.Any:
             ensure_permission(permission_name, course_id=course_id)
             return f(*args, **kwargs)
 
-        return decorated_function
+        return __decorated_function
 
-    return decorator
+    return __decorator
 
 
 class RequestValidatorMixin(object):
@@ -292,7 +349,7 @@ class RequestValidatorMixin(object):
     def is_valid_request(
         self,
         request: t.Any,
-        parameters: t.MutableMapping[str, str] = {},
+        parameters: t.Optional[t.MutableMapping[str, str]] = None,
         fake_method: t.Any = None,
         handle_error: bool = True
     ) -> bool:
@@ -301,11 +358,13 @@ class RequestValidatorMixin(object):
             https://github.com/simplegeo/python-oauth2
         '''
 
-        def handle(e: oauth2.Error) -> bool:
+        def __handle(err: oauth2.Error) -> bool:
             if handle_error:
                 return False
             else:
-                raise e
+                raise err
+            # This is needed to please pylint
+            raise RuntimeError()
 
         try:
             method, url, headers, parameters = self.parse_request(
@@ -316,22 +375,20 @@ class RequestValidatorMixin(object):
                 method, url, headers=headers, parameters=parameters
             )
 
-            oauth2.Token
             self.oauth_server.verify_request(
                 oauth_request, self.oauth_consumer, {}
             )
 
-        except oauth2.Error as e:
-            return handle(e)
-        except ValueError as e:
-            return handle(e)
+        except (oauth2.Error, ValueError) as err:
+            return __handle(err)
         # Signature was valid
         return True
 
     def parse_request(
-        self, request: t.Any,
-        parameters: t.Optional[t.MutableMapping[str, str]],
-        fake_method: t.Optional[t.Any]
+        self,
+        req: t.Any,
+        parameters: t.Optional[t.MutableMapping[str, str]] = None,
+        fake_method: t.Optional[t.Any] = None,
     ) -> t.Tuple[str, str, t.MutableMapping[str, str],
                  t.MutableMapping[str, str]]:  # pragma: no cover
         '''
@@ -351,22 +408,13 @@ class RequestValidatorMixin(object):
         '''
         raise NotImplementedError()
 
-    def valid_request(self, request: t.Any) -> None:
-        '''
-        Check whether the OAuth-signed request is valid and throw error if not.
-        '''
-        self.is_valid_request(request, parameters={}, handle_error=False)
-
 
 class _FlaskOAuthValidator(RequestValidatorMixin):
-    def __init__(self, key: str, secret: str) -> None:
-        super(_FlaskOAuthValidator, self).__init__(key, secret)
-
     def parse_request(
         self,
         req: 'flask.Request',
         parameters: t.MutableMapping[str, str] = None,
-        fake_method: t.Any = None
+        fake_method: t.Any = None,
     ) -> t.Tuple[str, str, t.MutableMapping[str, str], t.MutableMapping[str,
                                                                         str]]:
         '''
@@ -402,4 +450,4 @@ def ensure_valid_oauth(
 
 
 if t.TYPE_CHECKING:  # pragma: no cover
-    import flask  # NOQA
+    import flask  # pylint: disable=unused-import

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 This module contains all the linters that are integrated in the service.
 
@@ -13,14 +12,15 @@ import tempfile
 import traceback
 import subprocess
 
-import sqlalchemy
-from sqlalchemy.orm import sessionmaker
-
 import psef
 import psef.files
 import psef.models as models
 from psef.models import db
 from psef.helpers import get_all_subclasses
+
+
+def init_app(_: t.Any) -> None:
+    pass
 
 
 class Linter:
@@ -160,6 +160,12 @@ class MixedWhitespace(Linter):
     """
     RUN_LINTER: t.ClassVar[bool] = False
 
+    def run(self, tempdir: str, emit: t.Callable[[str, int, str, str], None]
+            ) -> None:  # pragma: no cover
+        # This method should never be called as ``RUN_LINTER`` is set to
+        # ``false..
+        assert False
+
 
 class LinterRunner():
     """This class is used to run a :class:`Linter` with a specific config on
@@ -199,7 +205,9 @@ class LinterRunner():
 
             try:
                 self.test(linter_instance)
-            except Exception as e:
+            # We want to catch all exceptions here as need to set our linter to
+            # the crashed state.
+            except Exception:  # pylint: disable=broad-except
                 traceback.print_exc()
                 linter_instance.state = models.LinterState.crashed
                 db.session.commit()
@@ -225,7 +233,7 @@ class LinterRunner():
 
         with tempfile.TemporaryDirectory() as tmpdir:
 
-            def emit(f: str, line: int, code: str, msg: str) -> None:
+            def __emit(f: str, line: int, code: str, msg: str) -> None:
                 if f.startswith(tmpdir):
                     f = f[len(tmpdir) + 1:]
                 if f not in temp_res:
@@ -240,20 +248,20 @@ class LinterRunner():
                 tmpdir,
             )
 
-            self.linter.run(os.path.join(tmpdir, code.name), emit)
+            self.linter.run(os.path.join(tmpdir, code.name), __emit)
 
         tmpdir = None
 
-        def do(tree: psef.files.FileTree, parent: str) -> None:
+        def __do(tree: psef.files.FileTree, parent: str) -> None:
             parent = os.path.join(parent, tree['name'])
             if 'entries' in tree:  # this is dir:
                 for entry in tree['entries']:
-                    do(entry, parent)
+                    __do(entry, parent)
             elif parent in temp_res:
                 res[tree['id']] = temp_res[parent]
                 del temp_res[parent]
 
-        do(files, '')
+        __do(files, '')
 
         models.LinterComment.query.filter_by(linter_id=linter_instance.id
                                              ).delete()

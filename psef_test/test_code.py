@@ -14,10 +14,10 @@ late_error = pytest.mark.late_error
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        'Stupid1',
+        'Student1',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid3'),
+        perm_error(error=403)('Student3'),
     ],
     indirect=True
 )
@@ -60,9 +60,7 @@ def test_get_code_metadata(
                 'is_directory': True,
                 'id': int,
             },
-            query={
-                'type': 'metadata'
-            }
+            query={'type': 'metadata'}
         )
 
         test_client.req(
@@ -74,19 +72,17 @@ def test_get_code_metadata(
                 'is_directory': False,
                 'id': int,
             },
-            query={
-                'type': 'metadata'
-            }
+            query={'type': 'metadata'}
         )
 
 
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        'Stupid1',
+        'Student1',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid3'),
+        perm_error(error=403)('Student3'),
     ],
     indirect=True
 )
@@ -158,13 +154,13 @@ def test_get_code_plaintext(
 )
 def test_get_code_plaintext_revisions(
     assignment_real_works, test_client, request, error_template, ta_user,
-    student_user, logged_in
+    teacher_user, student_user, logged_in
 ):
     assignment, work = assignment_real_works
     assignment_id = assignment.id
     work_id = work['id']
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment_id}',
@@ -172,6 +168,7 @@ def test_get_code_plaintext_revisions(
             data={'state': 'done'},
         )
 
+    with logged_in(ta_user):
         files = test_client.req(
             'get',
             f'/api/v1/submissions/{work_id}/files/',
@@ -195,7 +192,7 @@ def test_get_code_plaintext_revisions(
         res = test_client.get(f'/api/v1/code/{teacher_file_id}', )
         assert res.status_code == 200
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/assignments/{assignment_id}',
@@ -214,10 +211,10 @@ def test_get_code_plaintext_revisions(
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        'Stupid1',
+        'Student1',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid3'),
+        perm_error(error=403)('Student3'),
     ],
     indirect=True
 )
@@ -274,9 +271,7 @@ def test_get_file_url(
             )
             res = test_client.get(
                 f'/api/v1/files/{res["name"]}',
-                query_string={
-                    'mime': mimetype
-                }
+                query_string={'mime': mimetype}
             )
             assert res.status_code == 200
             assert res.headers['Content-Type'] == mimetype
@@ -549,9 +544,11 @@ def test_delete_code_with_comment(
             f'/api/v1/code/{f["id"]}',
             200,
             query={'operation': 'content'},
-            result={'name': f['name'],
-                    'id': int,
-                    'is_directory': False},
+            result={
+                'name': f['name'],
+                'id': int,
+                'is_directory': False
+            },
             real_data='WOWSERS123',
         )
 

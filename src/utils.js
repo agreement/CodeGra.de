@@ -14,16 +14,29 @@ export function filterSubmissions(
     callback = () => false,
 ) {
     const l = new Set();
-    const filterAssignee = submissions.some(s => s.assignee &&
+    let latestSubs = submissions;
+
+    // BLAZE IT: R y a n C e l s i u s ° S o u n d s
+    if (latest) {
+        latestSubs = submissions.filter((item) => {
+            if (l.has(item.user.id)) {
+                return callback(item);
+            } else {
+                l.add(item.user.id);
+                return true;
+            }
+        });
+    }
+
+    const filterAssignee = latestSubs.some(s => s.assignee &&
                                             s.assignee.id === userId);
 
-    return submissions.filter((item) => {
-        if ((latest && l.has(item.user.id)) ||
-            (filterAssignee && mine &&
-             (item.assignee == null || item.assignee.id !== userId))) {
+
+    return latestSubs.filter((item) => {
+        if (filterAssignee && mine &&
+             (item.assignee == null || item.assignee.id !== userId)) {
             return callback(item);
         } else if (!filter) {
-            l.add(item.user.id);
             return true;
         }
 
@@ -37,7 +50,7 @@ export function filterSubmissions(
             .toLowerCase()
             .split(' ')
             .every(word => Object.keys(terms)
-                   .some(key => terms[key].indexOf(word) >= 0));
+                .some(key => terms[key].indexOf(word) >= 0));
         if (out) {
             l.add(item.user.id);
         }
@@ -57,7 +70,7 @@ export function cmpOneNull(first, second) {
 }
 
 export function cmpNoCase(first, second) {
-    return first.toLowerCase().localeCompare(second.toLowerCase());
+    return first.toLocaleLowerCase().localeCompare(second.toLocaleLowerCase());
 }
 
 export function sortSubmissions(a, b, sortBy) {
@@ -109,6 +122,16 @@ export function parseBool(value, dflt = true) {
     return dflt;
 }
 
+export function partial(func, ...boundArgs) {
+    return function partialFn(...args) {
+        return func(...boundArgs, ...args);
+    };
+}
+
+export function formatDate(date) {
+    return moment.utc(date, moment.ISO_8601).local().format('YYYY-MM-DDTHH:mm');
+}
+
 export function convertToUTC(timeStr) {
     return moment(timeStr, moment.ISO_8601).utc().format('YYYY-MM-DDTHH:mm');
 }
@@ -121,4 +144,71 @@ export function parseWarningHeader(warningStr) {
     const text = arr.slice(2).join(' ').replace(/\\"/g, '"').slice(1, -1);
 
     return { code, agent, text };
+}
+
+export function waitAtLeast(time, ...promises) {
+    const timeout = new Promise(resolve => setTimeout(resolve, time));
+
+    return Promise.all([timeout, ...promises]).then((vals) => {
+        if (promises.length === 1) {
+            return vals[1];
+        } else {
+            return vals.slice(1);
+        }
+    });
+}
+
+//
+const eightSpaces = `<span class="whitespace space" data-whitespace="${Array(8 + 1).join('&middot;')}">${Array(8 + 1).join(' ')}</span><wbr>`;
+
+export function visualizeWhitespace(line) {
+    const newLine = [];
+
+    for (let i = 0; i < line.length;) {
+        const start = i;
+        if (line[i] === '<') {
+            while (line[i] !== '>' && i < line.length) i += 1;
+            newLine.push(line.slice(start, i + 1));
+            i += 1;
+        } else if (line[i] === ' ') {
+            while (line[i] === ' ' && i < line.length) i += 1;
+
+            let n = i - start;
+            while (n >= 8) {
+                newLine.push(eightSpaces);
+                n -= 8;
+            }
+            if (n > 0) {
+                const arr = Array(n + 1);
+                newLine.push(`<span class="whitespace space" data-whitespace="${arr.join('&middot;')}">${arr.join(' ')}</span><wbr>`);
+            }
+        } else if (line[i] === '\t') {
+            while (line[i] === '\t' && i < line.length) i += 1;
+
+            const arr = Array((i - start) + 1);
+            newLine.push(`<span class="whitespace tab" data-whitespace="${arr.join('&#8594;\t')}">${arr.join('\t')}</span><wbr>`);
+        } else {
+            while (line[i] !== '<' && line[i] !== ' ' && line[i] !== '\t' && i < line.length) i += 1;
+            newLine.push(line.slice(start, i));
+        }
+    }
+    return newLine.join('');
+}
+
+export function getExtension(name) {
+    const fileParts = name.split('.');
+    return fileParts.length > 1 ? fileParts[fileParts.length - 1] : null;
+}
+
+export function last(arr) {
+    return arr[arr.length - 1];
+}
+
+export function range(start, end) {
+    const len = end - start;
+    const res = Array(len);
+    for (let i = 0; i < len; ++i) {
+        res[i] = start + i;
+    }
+    return res;
 }

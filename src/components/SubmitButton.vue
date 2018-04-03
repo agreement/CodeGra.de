@@ -1,33 +1,63 @@
 <template>
-    <b-popover class="submission-popover"
-               :id="id"
-               :show="showError && (state === 'failure' || state === 'warning') && (Boolean(err) || showEmpty)"
-               :placement="popoverPlacement"
-               :content="err">
-        <b-button :disabled="pending || disabled"
-                  :variant="variants[state]"
-                  :size="size"
-                  :tabindex="tabindex"
-                  @click="$emit('click', $event)">
-            <loader :scale="1" :center="false" v-if="pending"/>
-            <span v-else-if="label">{{ label }}</span>
-            <slot v-else/>
-        </b-button>
+<b-button :disabled="pending || disabled"
+          :id="btnId"
+          :variant="variants[state]"
+          :size="size"
+          :tabindex="tabindex"
+          style="height: 100%;"
+          class="submit-button"
+          v-if="showInline"
+          @click="$emit('click', $event)">
+    <b-popover :show="shouldShowMessage"
+               class="warning-popover"
+               triggers=""
+               :target="btnId"
+               :placement="popoverPlacement">
+        <span>{{ err }}</span>
     </b-popover>
+    <loader :scale="1" center v-if="pending"/>
+    <span v-else-if="label">{{ label }}</span>
+    <slot v-else/>
+</b-button>
+<div class="submit-button" v-else>
+    <b-button :disabled="pending || disabled"
+              :id="btnId"
+              :variant="variants[state]"
+              :size="size"
+              :tabindex="tabindex"
+              style="height: 100%;"
+              @click="$emit('click', $event)">
+        <loader :scale="1" center v-if="pending"/>
+        <span v-else-if="label">{{ label }}</span>
+        <slot v-else/>
+    </b-button>
+    <b-popover :show="shouldShowMessage"
+               triggers=""
+               :target="btnId"
+               :placement="popoverPlacement">
+        <span>{{ err }}</span>
+    </b-popover>
+</div>
 </template>
 
 <script>
 import Loader from './Loader';
+
+let i = 0;
+
+export const SubmitButtonCancelled = Object.create(Error);
 
 export default {
     name: 'submit-button',
 
     data() {
         return {
+            pop: true,
             err: '',
             pending: false,
             state: 'default',
-            canceled: true,
+            cancelled: true,
+            btnId: `submitButton-i-${i++}`,
             variants: {
                 default: this.default,
                 success: this.success,
@@ -39,13 +69,24 @@ export default {
         };
     },
 
-    props: {
-        id: {
-            default: undefined,
+    computed: {
+        shouldShowMessage() {
+            return (this.showError &&
+                    (this.state === 'failure' || this.state === 'warning') &&
+                    (Boolean(this.err) || this.showEmpty));
         },
+    },
+
+    props: {
         tabindex: {
             default: '0',
         },
+
+        showInline: {
+            default: false,
+            type: Boolean,
+        },
+
         popoverPlacement: {
             type: String,
             default: 'top',
@@ -55,7 +96,7 @@ export default {
             default: false,
         },
         label: {
-            type: String,
+            type: [String, Boolean],
             default: 'Submit',
         },
         size: {
@@ -95,15 +136,21 @@ export default {
     methods: {
         submit(promise) {
             this.pending = true;
-            this.canceled = false;
-            return Promise.resolve(promise).then(res =>
-                !this.canceled && this.succeed(res),
-            err =>
-                !this.canceled && this.fail(err),
+            this.cancelled = false;
+            return Promise.resolve(promise).then(
+                res => !this.cancelled && this.succeed(res),
+                (err) => {
+                    if (this.cancelled) {
+                        throw SubmitButtonCancelled;
+                    } else {
+                        return this.fail(err);
+                    }
+                },
             );
         },
 
         reset() {
+            this.cancelled = true;
             if (this.timeout != null) {
                 clearTimeout(this.timeout);
                 this.timeout = null;
@@ -111,6 +158,7 @@ export default {
 
             this.state = 'default';
             this.err = '';
+            this.pending = false;
         },
 
         succeed(res) {
@@ -120,7 +168,7 @@ export default {
         },
 
         cancel() {
-            this.canceled = true;
+            this.cancelled = true;
         },
 
         warn(err) {
@@ -161,14 +209,17 @@ export default {
 </script>
 
 <style lang="less">
-.input-group-btn > .submission-popover {
-    height: 100%;
-
-    > span > button {
-        height: 100%;
-    }
+.submit-button .warning-popover + .fa-icon {
+    margin-left: 0;
 }
 </style>
+
+<style lang="less" scoped>
+.loader {
+    padding: 0.25em 0;
+}
+</style>
+
 
 <docs>
 Submit button component to be used when

@@ -17,7 +17,7 @@ from psef import current_user
 from psef.errors import APICodes, APIException
 from psef.models import db
 from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
+    JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
     ensure_keys_in_dict, make_empty_response
 )
 
@@ -80,8 +80,8 @@ def set_role_permission(role_id: int) -> EmptyResponse:
     value = t.cast(bool, content['value'])
 
     if (
-            current_user.role_id == role_id and
-            perm_name == 'can_manage_site_users'
+        current_user.role_id == role_id and
+        perm_name == 'can_manage_site_users'
     ):
         raise APIException(
             'You cannot remove this permission from your own role', (

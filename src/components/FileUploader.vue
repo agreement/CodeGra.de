@@ -1,24 +1,29 @@
 <template>
-    <b-form-fieldset>
-        <b-input-group>
-            <b-input-group-button>
-                <submit-button :disabled="this.file === null"
-                               @click.prevent="submit"
-                               :show-error="showError"
-                               ref="submitButton"/>
-            </b-input-group-button>
-            <b-form-file id="fileUploader"
-                         class="fileUploader"
-                         ref="formFile"
-                         name="file"
-                         v-model="file"
-                         :disabled="disabled"/>
-        </b-input-group>
-    </b-form-fieldset>
+<b-form-fieldset class="file-uploader" :class="{ disabled }">
+    <b-input-group>
+        <b-input-group-prepend>
+            <submit-button :disabled="this.file === null"
+                           :id="buttonId"
+                           class="file-uploader-button"
+                           @click.prevent="submit"
+                           :show-error="showError"
+                           ref="submitButton"/>
+        </b-input-group-prepend>
+        <b-input-group-prepend v-if="$slots.default">
+            <slot/>
+        </b-input-group-prepend>
+        <b-form-file class="file-uploader-form"
+                     ref="formFile"
+                     name="file"
+                     placeholder="Click here to choose a file..."
+                     v-model="file"
+                     :disabled="disabled"/>
+    </b-input-group>
+</b-form-fieldset>
 </template>
 
 <script>
-import SubmitButton from './SubmitButton';
+import SubmitButton, { SubmitButtonCancelled } from './SubmitButton';
 
 export default {
     name: 'file-uploader',
@@ -35,6 +40,13 @@ export default {
         showError: {
             type: Boolean,
             default: true,
+        },
+        beforeUpload: {
+            type: Function,
+            default: () => false,
+        },
+        buttonId: {
+            default: undefined,
         },
     },
 
@@ -54,14 +66,35 @@ export default {
 
     methods: {
         submit() {
-            return this.$refs.submitButton.submit(
-                this.$http.post(this.url, this.requestData).then((res) => {
+            let stopped = false;
+            if (this.disabled) {
+                return this.$refs.submitButton.fail('This uploader is disabled');
+            }
+
+            const req = Promise.resolve(this.beforeUpload()).then((stop) => {
+                if (stop) {
+                    stopped = true;
+                    this.$refs.submitButton.reset();
+                    return null;
+                }
+                return this.$http.post(this.url, this.requestData).then((res) => {
                     this.$emit('response', res);
                 }, ({ response }) => {
                     this.$emit('error', response);
                     throw response.data.message;
-                }),
-            );
+                });
+            });
+
+            return this.$refs.submitButton.submit(req).then(() => {
+                if (!stopped) {
+                    this.$emit('clear');
+                    this.$refs.formFile.reset();
+                }
+            }, (err) => {
+                if (err !== SubmitButtonCancelled) {
+                    throw err;
+                }
+            });
         },
     },
 
@@ -74,26 +107,39 @@ export default {
 <style lang="less" scoped>
 @import '~mixins.less';
 
-input:disabled {
+.form-group {
+    margin-bottom: 0;
+}
+
+.disabled, :disabled {
     cursor: not-allowed !important;
+}
+
+.file-uploader-button {
+    height: 100%;
+
+    button {
+        height: 100%;
+    }
 }
 </style>
 
 <style lang="less">
 @import '~mixins.less';
 
-.custom-file-control{
-    &::before {
-        border: 0 !important;
-    }
+.custom-file-label {
+    border-left: 0;
 }
 
-#app.dark .fileUploader .custom-file-control {
-    background: @color-primary;
-    color: @text-color-dark;
-    &::before {
-        background: @color-primary-darker;
-        color: white;
+#app.dark .file-uploader-form {
+    .custom-file-label {
+        background: @color-primary;
+        color: @color-secondary-text-lighter;
+
+        &::after {
+            background: @color-primary-darker;
+            color: white;
+        }
     }
 }
 </style>

@@ -92,8 +92,10 @@ def test_non_existing_permission(
             'get',
             f'/api/v1/permissions/',
             404,
-            query={'permission': perm,
-                   'type': 'course'},
+            query={
+                'permission': perm,
+                'type': 'course'
+            },
             result=error_template
         )
 
@@ -172,7 +174,7 @@ def test_all_permissions(
     ]
 )
 @pytest.mark.parametrize(
-    'named_user', ['Thomas Schaper', 'Stupid1', 'admin'],
+    'named_user', ['Thomas Schaper', 'Student1', 'admin'],
     indirect=['named_user']
 )
 def test_get_all_permissions(

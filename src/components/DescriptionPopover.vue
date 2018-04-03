@@ -1,24 +1,36 @@
 <template>
+<span class="description-popover"
+      :style="{ float: hugText ? 'none' : 'right' }">
     <b-popover :placement="placement"
                :triggers="triggers"
                class="description-popover"
                :show="show"
-               :style="{ float: hugText ? 'none' : 'right' }">
-        <span slot="content">
-            <slot name="description"><span v-html="description"/></slot>
-        </span>
-        <component :is="hugText ? 'sup' : 'span'" class="desc-pop-span">
-            <icon name="info" scale="0.75"/>
-        </component>
+               :target="compId"
+               :title="title">
+        <slot name="description"><span/>{{ description }}</slot>
     </b-popover>
+    <component :is="hugText ? 'sup' : 'span'"
+               class="desc-pop-span"
+               :id="compId">
+        <icon name="info" scale="0.75"/>
+    </component>
+</span>
 </template>
 
 <script>
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/info';
 
+let i = 0;
+
 export default {
     name: 'description-popover',
+
+    data() {
+        return {
+            compId: `description-popover-i-${i++}`,
+        };
+    },
 
     props: {
         description: {
@@ -40,9 +52,14 @@ export default {
             default: false,
         },
 
+        title: {
+            type: String,
+            default: undefined,
+        },
+
         placement: {
             type: String,
-            default: 'left',
+            default: 'right',
         },
     },
 

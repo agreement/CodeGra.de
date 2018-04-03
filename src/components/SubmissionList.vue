@@ -1,29 +1,38 @@
 <template>
-    <div class="submission-list">
-        <b-form-fieldset>
-            <b-input-group>
-                <input v-model="filter"
-                       class="form-control"
-                       placeholder="Type to Search"
-                       @keyup.enter="submit"/>
+<div class="submission-list">
+    <local-header>
+        <b-input-group class="search-wrapper">
+            <input v-model="filter"
+                   class="form-control"
+                   placeholder="Type to Search"
+                   @keyup.enter="$nextTick(submit)"/>
 
-                <b-form-checkbox class="input-group-addon" v-model="latestOnly" @change="submit"
-                    v-if="latest.length !== submissions.length">
+            <b-input-group-append v-if="latest.length !== submissions.length" is-text>
+                <b-form-checkbox v-model="latestOnly" @change="$nextTick(submit)">
                     Latest only
                 </b-form-checkbox>
+            </b-input-group-append>
 
-                <b-form-checkbox class="input-group-addon" v-model="mineOnly" @change="submit"
-                    v-if="assigneeFilter">
+            <b-input-group-append v-if="assigneeFilter" is-text>
+                <b-form-checkbox v-model="mineOnly" @change="$nextTick(submit)">
                     Assigned to me
                 </b-form-checkbox>
-            </b-input-group>
-        </b-form-fieldset>
+            </b-input-group-append>
+        </b-input-group>
 
-        <div style="margin-bottom: 1em; overflow: hidden;">
-            <submit-button label="Show Rubric"
-                           @click="showRubricModal = !showRubricModal"
-                           style="float: right;"
-                           v-if="rubric"/>
+        <div slot="extra" class="clearfix">
+            <div id="show-rubric-button-wrapper"
+                 style="float: right;">
+                <submit-button label="Show Rubric"
+                               @click="showRubricModal = !showRubricModal"
+                               default="secondary"
+                               :disabled="!rubric"/>
+            </div>
+            <b-popover target="show-rubric-button-wrapper"
+                       content="There is no rubric for this assignment"
+                       triggers="hover"
+                       placement="bottom"
+                       v-if="!rubric"/>
             <submissions-exporter v-if="canDownload && submissions.length"
                                   :get-submissions="filter => filter ? filteredSubmissions : submissions"
                                   :assignment-id="assignment.id"
@@ -31,71 +40,77 @@
                 Export feedback
             </submissions-exporter>
         </div>
+    </local-header>
 
-        <b-modal v-if="rubric"
-                 v-model="showRubricModal"
-                 :ok-only="true"
-                 ok-title="Close"
-                 :hide-header="true">
-            <rubric-editor :editable="false"
-                           :defaultRubric="rubric"
-                           :assignmentId="assignment.id"/>
-        </b-modal>
+    <b-modal v-if="rubric"
+             id="rubric-modal"
+             class="rubric-modal"
+             v-model="showRubricModal"
+             :hide-footer="true"
+             :hide-header="true">
+        <rubric-editor :editable="false"
+                       :defaultRubric="rubric"
+                       :assignment="assignment">
+            <b-button variant="primary"
+                      @click="$root.$emit('bv::hide::modal','rubric-modal')">
+                Close
+            </b-button>
+        </rubric-editor>
+    </b-modal>
 
 
-        <b-table striped hover
-                 ref="table"
-                 @row-clicked='gotoSubmission'
-                 @sort-changed="sortChanged"
-                 :items="filteredSubmissions"
-                 :fields="fields"
-                 :current-page="currentPage"
-                 :sort-compare="sortSubmissions"
-                 :show-empty="true"
-                 class="submissions-table">
-            <template slot="user" scope="item">
-                <a class="invisible-link"
-                   href="#"
-                   @click.prevent>
-                   {{item.value.name ? item.value.name : '-'}}
-                </a>
-            </template>
-            <template slot="grade" scope="item">
-                {{formatGrade(item.value) || '-'}}
-            </template>
-            <template slot="created_at" scope="item">
-                {{item.value ? item.value : '-'}}
-            </template>
-            <template slot="assignee" scope="item">
-                <span v-if="!canChangeAssignee">
-                    {{ item.value ? item.value.name : '-' }}
-                </span>
-                <loader :scale="1" v-else-if="assigneeUpdating[item.item.id]"/>
-                <b-form-select
-                    :options="assignees"
-                    :value="item.value ? item.value.id : null"
-                    @input="updateAssignee($event, item)"
-                    @click.native.stop
-                    style="max-width: 20em;"
-                    v-else/>
-            </template>
-        </b-table>
-
-        <b-alert variant="warning"
-                 :dismissable="true"
-                 :show="error !== ''">
-            {{ error }}
-        </b-alert>
-    </div>
+    <b-table striped hover
+             ref="table"
+             @row-clicked="gotoSubmission"
+             @sort-changed="(ctx) => $nextTick(() => sortChanged(ctx))"
+             :items="filteredSubmissions"
+             :fields="fields"
+             :current-page="currentPage"
+             :sort-compare="sortSubmissions"
+             :show-empty="true"
+             :sort-by="this.$route.query.sortBy || 'user'"
+             :sort-desc="!parseBool(this.$route.query.sortAsc, true)"
+             class="submissions-table">
+        <a class="invisible-link"
+           href="#"
+           slot="user"
+           slot-scope="item"
+           @click.prevent>
+            {{item.value.name ? item.value.name : '-'}}
+        </a>
+        <template slot="grade" slot-scope="item">
+            {{formatGrade(item.value) || '-'}}
+        </template>
+        <template slot="created_at" slot-scope="item">
+            {{item.value ? item.value : '-'}}
+        </template>
+        <template slot="assignee" slot-scope="item">
+            <span v-if="!canChangeAssignee">
+                {{ item.value ? item.value.name : '-' }}
+            </span>
+            <loader :scale="1" v-else-if="assigneeUpdating[item.item.id]"/>
+            <b-form-select
+                :options="assignees"
+                :value="item.value ? item.value.id : null"
+                @input="updateAssignee($event, item)"
+                @click.native.stop
+                style="max-width: 20em;"
+                v-else/>
+        </template>
+    </b-table>
+</div>
 </template>
 
 <script>
 import { mapGetters } from 'vuex';
 import { formatGrade, filterSubmissions, sortSubmissions, parseBool } from '@/utils';
+
+import * as assignmentState from '@/store/assignment-states';
 import SubmissionsExporter from './SubmissionsExporter';
 import Loader from './Loader';
 import SubmitButton from './SubmitButton';
 import RubricEditor from './RubricEditor';
+import LocalHeader from './LocalHeader';
 
 export default {
     name: 'submission-list',
@@ -124,6 +139,7 @@ export default {
 
     data() {
         return {
+            parseBool,
             showRubricModal: false,
             latestOnly: parseBool(this.$route.query.latest, true),
             mineOnly: parseBool(this.$route.query.mine, true),
@@ -151,7 +167,6 @@ export default {
             assigneeFilter: false,
             assignees: [],
             assigneeUpdating: [],
-            error: '',
         };
     },
 
@@ -204,21 +219,22 @@ export default {
     },
 
     mounted() {
-        this.assigneeFilter = this.submissions.some(s => s.assignee &&
-                                                    s.assignee.id === this.userId);
-        this.$refs.table.sortBy = this.$route.query.sortBy || 'user';
-        // Fuck you bootstrapVue (sortDesc should've been sortAsc).
-        this.$refs.table.sortDesc = parseBool(this.$route.query.sortAsc, true);
-
+        this.updateAssigneeFilter();
         if (this.graders) {
             this.updateGraders(this.graders);
         }
     },
 
     methods: {
+        updateAssigneeFilter() {
+            this.assigneeFilter = this.submissions.some(
+                s => s.assignee && s.assignee.id === this.userId,
+            );
+        },
+
         updateGraders(graders) {
             const assignees = graders.map(ass =>
-                                          ({ value: ass.id, text: ass.name, data: ass }));
+                ({ value: ass.id, text: ass.name, data: ass }));
             assignees.unshift({ value: null, text: '-', data: null });
             this.assignees = assignees;
         },
@@ -236,14 +252,11 @@ export default {
         sortChanged(context) {
             this.$router.replace({
                 query: Object.assign(
-                    // Fuck you bootstrapVue (sortDesc should've been sortAsc)
-                    {}, this.$route.query, { sortBy: context.sortBy, sortAsc: context.sortDesc },
+                    {},
+                    this.$route.query,
+                    { sortBy: context.sortBy, sortAsc: !context.sortDesc },
                 ),
             });
-        },
-
-        getTable() {
-            return this.$refs ? this.$refs.table : null;
         },
 
         gotoSubmission(submission) {
@@ -258,7 +271,8 @@ export default {
                     search: this.filter || undefined,
                     // Fuck you bootstrapVue (sortDesc should've been sortAsc)
                     sortBy: this.$refs.table.sortBy,
-                    sortAsc: this.$refs.table.sortDesc,
+                    sortAsc: !this.$refs.table.sortDesc,
+                    overview: this.assignment.state === assignmentState.DONE,
                 },
             });
         },
@@ -270,9 +284,7 @@ export default {
             };
             query.q = this.filter || undefined;
             this.$router.replace({
-                query: Object.assign(
-                    {}, this.$route.query, query,
-                ),
+                query: Object.assign({}, this.$route.query, query),
             });
         },
 
@@ -327,6 +339,7 @@ export default {
                     }
                 }
                 this.$emit('assigneeUpdated', submission, newAssignee);
+                this.updateAssigneeFilter();
             }, ({ response }) => {
                 // eslint-disable-next-line
                 console.log(response);
@@ -342,25 +355,31 @@ export default {
         SubmitButton,
         RubricEditor,
         SubmissionsExporter,
+        LocalHeader,
     },
 };
 </script>
 
 <style lang="less">
+@import "~mixins.less";
+
 .submissions-table {
+    padding-top: 5em;
+    content-sizing: content-box;
     td, th {
-        // grade
-        &:nth-child(2) {
-            width: 10em;
+        // student
+        &:nth-child(1) {
+            width: 30em;
         }
 
-        // student
+        // grade
         // created at
         // assignee
-        &:nth-child(1),
+        &:nth-child(2),
         &:nth-child(3),
         &:nth-child(4) {
-            width: 20em;
+            width: 1px;
+            white-space: nowrap;
         }
     }
 }
@@ -377,5 +396,20 @@ export default {
 .submission-list .modal-dialog.modal-md {
     max-width: 1550px;
     width: 100%;
+}
+
+.rubric-modal .modal-body {
+    padding: 0;
+
+    #app.dark & .nav-tabs {
+        background-color: @color-primary-darker;
+    }
+}
+
+.submission-list .search-wrapper {
+    flex: 1;
+    #app.dark & .input-group-append .input-group-text {
+        background-color: @color-primary-darkest !important;
+    }
 }
 </style>

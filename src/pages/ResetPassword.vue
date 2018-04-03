@@ -1,58 +1,26 @@
 <template>
-    <div class="page reset-password row justify-content-center">
-        <b-form-fieldset class="col-sm-8 text-center"
-                         @keyup.native.ctrl.enter="submit">
-            <h4>Reset your password</h4>
-            <b-input-group left="New password">
-                <input v-if="newPwVisible"
-                       type="text"
-                       class="form-control"
-                       tabindex="1"
-                       v-model="newPw"/>
-                <input v-else
-                       type="password"
-                       class="form-control"
-                       tabindex="1"
-                       v-model="newPw"/>
-                <b-input-group-button slot="right">
-                    <b-button @click="newPwVisible = !newPwVisible" >
-                        <icon v-if="!newPwVisible" name="eye"/>
-                        <icon v-else name="eye-slash"/>
-                    </b-button>
-                </b-input-group-button>
-            </b-input-group>
-            <b-input-group left="Confirm password">
-                <input v-if="confirmPwVisible"
-                       type="text"
-                       class="form-control"
-                       tabindex="2"
-                       v-model="confirmPw"/>
-                <input v-else
-                       type="password"
-                       class="form-control"
-                       tabindex="2"
-                       v-model="confirmPw"/>
-                <b-input-group-button slot="right">
-                    <b-button @click="confirmPwVisible = !confirmPwVisible" >
-                        <icon v-if="!confirmPwVisible" name="eye"/>
-                        <icon v-else name="eye-slash"/>
-                    </b-button>
-                </b-input-group-button>
-            </b-input-group>
+<div class="reset-password row justify-content-center">
+    <b-form-fieldset class="col-sm-8 text-center"
+                        @keyup.native.ctrl.enter="submit">
+        <h4>Reset your password</h4>
 
-            <submit-button ref="btn" @click="submit" popover-placement="bottom"/>
-        </b-form-fieldset>
-    </div>
+        <password-input label="New password"
+                        v-model="newPw"/>
+        <password-input label="Confirm password"
+                        v-model="confirmPw"/>
+
+        <submit-button ref="btn" @click="submit" popover-placement="bottom"/>
+    </b-form-fieldset>
+</div>
 </template>
 
 <script>
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/eye';
 import 'vue-awesome/icons/eye-slash';
+import { mapActions } from 'vuex';
 
-import { SubmitButton } from '@/components';
-
-import * as types from '../store/mutation-types';
+import { SubmitButton, PasswordInput } from '@/components';
 
 export default {
     name: 'reset-password',
@@ -61,49 +29,57 @@ export default {
         return {
             newPw: '',
             confirmPw: '',
-            newPwVisible: false,
-            confirmPwVisible: false,
         };
     },
 
     components: {
         Icon,
         SubmitButton,
+        PasswordInput,
     },
 
     methods: {
+        ...mapActions('user', [
+            'updateAccessToken',
+        ]),
+
         submit() {
-            let req;
+            const button = this.$refs.btn;
+
             if (this.newPw !== this.confirmPw) {
-                req = Promise.reject('The passwords don\'t match');
+                button.fail('The passwords don\'t match');
+                return;
             } else if (this.newPw === '') {
-                req = Promise.reject('The new password may not be empty');
-            } else {
-                req = this.$http.patch('/api/v1/login?type=reset_password', {
-                    user_id: Number(this.$route.query.user),
-                    token: this.$route.query.token,
-                    new_password: this.newPw,
-                }).then(({ data }) => {
-                    this.$store.commit(`user/${types.UPDATE_ACCESS_TOKEN}`, data);
-                    this.$router.replace({
-                        name: 'me',
-                    });
-                }, (err) => {
-                    throw err.response.data.message;
-                });
+                button.fail('The new password may not be empty');
+                return;
             }
-            this.$refs.btn.submit(req);
+
+            const req = this.$http.patch('/api/v1/login?type=reset_password', {
+                user_id: Number(this.$route.query.user),
+                token: this.$route.query.token,
+                new_password: this.newPw,
+            }).then(async ({ data }) => {
+                await this.updateAccessToken(data.access_token);
+                this.$router.replace({
+                    name: 'home',
+                    query: { sbloc: 'm' },
+                });
+            }, (err) => {
+                throw err.response.data.message;
+            });
+
+            button.submit(req);
         },
     },
 };
 </script>
 
 <style lang="less" scoped>
-.input-group:not(:last-child) {
-    margin-bottom: 15px;
+.reset-password {
+    margin-top: 1rem;
 }
 
 h4 {
-    margin-bottom: 15px;
+    margin-bottom: 1rem;
 }
 </style>

@@ -1,10 +1,12 @@
 import localforage from 'localforage';
 
 export default class PermissionStore {
-    constructor(axios, maxAge = 1000 * 60 * 60 * 24) {
-        this.store = localforage.createInstance({
-            name: 'permissions',
-        });
+    constructor(axios, config, maxAge = 1000 * 60 * 60 * 24) {
+        this.store = localforage.createInstance(
+            Object.assign({}, config, {
+                name: 'permissions',
+            }),
+        );
         this.onGoingRequests = {};
         this.maxAge = maxAge;
         this.http = axios;
@@ -19,7 +21,7 @@ export default class PermissionStore {
         return this.store.clear();
     }
 
-    async hasPermission(permission, courseId, asMap) {
+    async hasPermission(permission, courseId, asMap, getError) {
         function wrapArray(val) {
             if (asMap) {
                 return Object.values(val);
@@ -85,7 +87,8 @@ export default class PermissionStore {
             return res;
         } catch (_) {
             delete this.onGoingRequests[cacheKey];
-            throw Error(getValues(() => false));
+            if (getError) throw Error(getValues(() => false));
+            else return getValues(() => false);
         }
     }
 }

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 This module implements the parsing of blackboard gradebook info files.
 
@@ -10,8 +9,9 @@ import typing as t
 import datetime
 
 from dateutil import parser as dateparser
+from dateutil.tz import gettz
 
-_txt_fmt = re.compile(
+_TXT_FMT = re.compile(
     r"Name: (?P<name>.+) \((?P<id>[^\n]*)\)\n"
     r"Assignment: (?P<assignment>.+)\n"
     r"Date Submitted: (?P<datetime>.+)\n"
@@ -24,7 +24,7 @@ _txt_fmt = re.compile(
     r"".encode('utf-8')
 )
 
-_txt_files_fmt = re.compile(
+_TXT_FILES_FMT = re.compile(
     r"\tOriginal filename: (.+)\n"
     r"\tFilename: (.+)\n"
 )
@@ -81,12 +81,12 @@ def parse_info_file(file: str) -> SubmissionInfo:
     :returns: The parsed information
     :rtype: SubmissionInfo
     """
-    # _txt_fmt is a object gotten from `re.compile`
+    # _TXT_FMT is a object gotten from `re.compile`
     with open(file, 'r+') as f:
         with mmap.mmap(f.fileno(), 0) as data:
             # casting here is wrong, however see
             # https://github.com/python/typeshed/issues/1467
-            match = _txt_fmt.match(t.cast(bytes, data))
+            match = _TXT_FMT.match(t.cast(bytes, data))
 
             try:
                 grade = float(match.group('grade'))
@@ -98,9 +98,8 @@ def parse_info_file(file: str) -> SubmissionInfo:
 
             if bb_files:
                 files = [
-                    FileInfo(org, cur)
-                    for org, cur in
-                    _txt_files_fmt.findall(bb_files.decode('utf-8'))
+                    FileInfo(org, cur) for org, cur in
+                    _TXT_FILES_FMT.findall(bb_files.decode('utf-8'))
                 ]
             else:
                 content = (
@@ -116,7 +115,8 @@ def parse_info_file(file: str) -> SubmissionInfo:
                 assignment_name=match.group('assignment').decode('utf-8'),
                 created_at=dateparser.parse(
                     match.group('datetime').decode('utf-8')
-                    .replace(" o'clock", "")
+                    .replace(" o'clock", ""),
+                    tzinfos={'CET': gettz('Europe/Amsterdam')}
                 ),
                 grade=grade,
                 text=match.group('text').decode('utf-8').rstrip(),

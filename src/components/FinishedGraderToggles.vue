@@ -1,55 +1,62 @@
 <template>
 <div class="finished-grader-toggles">
-    <div class="form-control">
-        <table class="table-striped"
-               style="width: 100%;"
-               v-if="internalGraders">
-            <thead>
-                <tr>
-                    <th>Grader</th>
-                    <th/>
-                    <th style="text-align: center;">Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="grader, i in internalGraders"
-                    :key="grader.id"
-                    class="grader">
-                    <td>{{ grader.name }}</td>
-                    <td>
-                        <b-popover placement="left"
-                                   :show="warningGraders[grader.id] || errorGraders[grader.id] ? true : false"
-                                   :content="errorGraders[grader.id] || warningGraders[grader.id]">
-                            <icon :name="iconStyle(grader.id)"
-                                  :spin="!(errorGraders[grader.id] || warningGraders[grader.id])"
-                                  :class="iconClass(grader.id)"
-                                  :style="{
-                                            opacity: warningGraders[grader.id] || loadingGraders[grader.id] || errorGraders[grader.id] ? 1 : 0,
-                                  }"/>
-                        </b-popover>
-                    </td>
-                    <td>
-                        <toggle label-on="Done"
-                                label-off="Grading"
-                                :disabled="!others && $store.getters['user/id'] != grader.id"
-                                style="width: 100%;"
-                                v-model="grader.done"
-                                @input="toggleGrader(grader)"/>
-                    </td>
+    <table class="table table-striped"
+            v-if="internalGraders">
+        <thead>
+            <tr>
+                <th>Grader</th>
+                <th/>
+                <th>Status</th>
             </tr>
-            </tbody>
-        </table>
-        <span v-else>No graders found for this assignment</span>
-    </div>
+        </thead>
+        <tbody>
+            <tr v-for="grader, i in internalGraders"
+                :key="grader.id"
+                class="grader">
+                <td>{{ grader.name }}</td>
+                <td>
+                    <b-popover placement="top"
+                                :show="!!(warningGraders[grader.id] || errorGraders[grader.id])"
+                                :target="`grader-icon-${assignment.id}-${grader.id}`">
+                        <span v-if="errorGraders[grader.id]">
+                            {{ errorGraders[grader.id] }}
+                        </span>
+                        <span v-else>
+                            {{ warningGraders[grader.id] }}
+                        </span>
+                    </b-popover>
+
+                    <icon :name="iconStyle(grader.id)"
+                            :spin="!(errorGraders[grader.id] || warningGraders[grader.id])"
+                            :id="`grader-icon-${assignment.id}-${grader.id}`"
+                            :class="iconClass(grader.id)"
+                            :style="{
+                                    opacity: warningGraders[grader.id] ||
+                                            loadingGraders[grader.id] ||
+                                            errorGraders[grader.id] ? 1 : 0,
+                                    }"/>
+                </td>
+                <td>
+                    <toggle label-on="Done"
+                            label-off="Grading"
+                            :disabled="!others && $store.getters['user/id'] != grader.id"
+                            v-model="grader.done"
+                            disabled-text="You cannot change the grader status of other graders"
+                            @input="toggleGrader(grader)"/>
+                </td>
+        </tr>
+        </tbody>
+    </table>
+    <span v-else>No graders found for this assignment</span>
 </div>
 </template>
 
 <script>
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/times';
-import 'vue-awesome/icons/refresh';
+import 'vue-awesome/icons/circle-o-notch';
 import 'vue-awesome/icons/exclamation-triangle';
-import { parseWarningHeader } from '@/utils';
+import { parseWarningHeader, waitAtLeast } from '@/utils';
 
 import Toggle from './Toggle';
 import Loader from './Loader';
@@ -100,11 +107,11 @@ export default {
             } else if (this.warningGraders[graderId]) {
                 return 'exclamation-triangle';
             }
-            return 'refresh';
+            return 'circle-o-notch';
         },
         toggleGrader(grader) {
             this.$set(this.warningGraders, grader.id, undefined);
-            this.$set(this.loadingGraders, grader.id, undefined);
+            delete this.warningGraders[grader.id];
             this.$set(this.loadingGraders, grader.id, true);
 
             let req;
@@ -115,12 +122,12 @@ export default {
                 req = this.$http.delete(`/api/v1/assignments/${this.assignment.id}/graders/${grader.id}/done`);
             }
 
-            req.then((res) => {
+            waitAtLeast(500, req).then((res) => {
                 if (res.headers.warning) {
                     const warning = parseWarningHeader(res.headers.warning);
                     this.$set(this.warningGraders, grader.id, warning.text);
                     this.$nextTick(() => setTimeout(() => {
-                        this.$set(this.warningGraders, grader.id, false);
+                        this.$set(this.warningGraders, grader.id, undefined);
                         delete this.warningGraders[grader.id];
                     }, 2000));
                 }
@@ -130,11 +137,11 @@ export default {
                 this.$nextTick(() => setTimeout(() => {
                     grader.done = !grader.done;
 
-                    this.$set(this.errorGraders, grader.id, false);
+                    this.$set(this.errorGraders, grader.id, undefined);
                     delete this.errorGraders[grader.id];
                 }, 2000));
             }).then(() => {
-                this.$set(this.loadingGraders, grader.id, false);
+                this.$set(this.loadingGraders, grader.id, undefined);
                 delete this.loadingGraders[grader.id];
             });
         },
@@ -149,13 +156,30 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.table-striped th:first-child,
-.table-striped td:first-child {
-    padding-left: 0.5rem;
+.table {
+    margin-bottom: 0;
 }
 
-.table-striped td:last-child {
-    padding: 0.5rem 0.5rem;
-    display: flex;
+.table th {
+    border-top: none;
+}
+
+.table th:last-child {
+    text-align: center;
+}
+
+.table td:not(:first-child) {
+    padding: .5rem;
+}
+
+.table td:nth-child(2) {
+    padding-top: .75rem;
+}
+
+.table td:nth-child(2),
+.table td:last-child {
+    // Fit content
+    width: 1px;
+    white-space: nowrap;
 }
 </style>

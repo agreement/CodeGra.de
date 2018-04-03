@@ -1,9 +1,18 @@
 import Vue from 'vue';
 import Router from 'vue-router';
 import store from '@/store';
-import { ResetPassword, LTILaunch, Assignments, Courses, Home, Login, ManageCourse, Submission, Submissions, User, Registration } from '@/pages';
+import {
+    ResetPassword,
+    LTILaunch,
+    Home,
+    ManageCourse,
+    ManageAssignment,
+    Submission,
+    Submissions,
+    Admin,
+} from '@/pages';
 
-import { setPageTitle } from '@/pages/title';
+import { resetPageTitle } from '@/pages/title';
 
 Vue.use(Router);
 
@@ -27,19 +36,9 @@ const router = new Router({
             component: LTILaunch,
         },
         {
-            path: '/login',
-            name: 'login',
-            component: Login,
-        },
-        {
-            path: '/logout',
-            name: 'logout',
-            redirect: { name: 'home' },
-        },
-        {
-            path: '/me',
-            name: 'me',
-            component: User,
+            path: '/admin',
+            name: 'admin',
+            component: Admin,
         },
         {
             path: '/courses/:courseId/assignments/:assignmentId/submissions/:submissionId',
@@ -57,24 +56,14 @@ const router = new Router({
             component: Submissions,
         },
         {
-            path: '/assignments/',
-            name: 'assignments',
-            component: Assignments,
-        },
-        {
-            path: '/courses/',
-            name: 'courses',
-            component: Courses,
-        },
-        {
             path: '/courses/:courseId',
-            name: 'assignment_manage',
+            name: 'manage_course',
             component: ManageCourse,
         },
         {
-            path: '/register',
-            name: 'register',
-            component: Registration,
+            path: '/courses/:courseId/assignments/:assignmentId',
+            name: 'manage_assignment',
+            component: ManageAssignment,
         },
     ],
 });
@@ -87,14 +76,12 @@ const notLoggedInRoutes = new Set([
     'home',
     'lti-launch',
     'reset-password',
-    'login',
-    'register',
 ]);
 
 router.beforeEach((to, from, next) => {
-    // Unset page title. Pages will set  title,
+    // Unset page title. Pages will set title,
     // this is mostly to catch pages that don't.
-    setPageTitle();
+    resetPageTitle();
 
     const loggedIn = store.getters['user/loggedIn'];
     if (loggedIn && restorePath) {
@@ -109,10 +96,8 @@ router.beforeEach((to, from, next) => {
             // Store path so we can go to the requested route
             // when the user is logged in.
             restorePath = to.path;
-            next('/login');
+            next('/?sbloc=l');
         });
-    } else if (loggedIn && to.name === 'login' && !to.hash === '#forgot') {
-        next('/');
     } else {
         next();
     }

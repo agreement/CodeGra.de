@@ -13,19 +13,19 @@
     },
     {
         "file": "monte_carlo.py",
-        "user": "Stupid1",
+        "user": "Student1",
         "line": 5,
         "comment": "use better prng"
     },
     {
         "file": "compiler.c",
-        "user": "Stupid1",
+        "user": "Student1",
         "line": 50002,
         "comment": "cascading error"
     },
     {
         "file": "compiler.c",
-        "user": "Stupid1",
+        "user": "Student1",
         "line": 50003,
         "comment": "fails here"
     }

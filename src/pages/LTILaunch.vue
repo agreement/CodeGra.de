@@ -15,7 +15,6 @@ import 'vue-awesome/icons/times';
 import { Loader } from '@/components';
 import { mapActions } from 'vuex';
 
-import * as types from '../store/mutation-types';
 import { setPageTitle } from './title';
 
 export default {
@@ -35,10 +34,11 @@ export default {
     methods: {
         ...mapActions('user', [
             'logout',
+            'updateAccessToken',
         ]),
 
         secondStep(first) {
-            this.$set(window, 'inLTI', true);
+            this.$inLTI = true;
 
             setPageTitle('LTI is launching, please wait');
 
@@ -46,10 +46,14 @@ export default {
                 headers: {
                     Jwt: this.$route.query.jwt,
                 },
-            }).then(({ data }) => {
+            }).then(async ({ data }) => {
                 if (data.access_token) {
-                    this.$store.commit(`user/${types.UPDATE_ACCESS_TOKEN}`, data);
+                    await this.updateAccessToken(data.access_token);
+                } else {
+                    this.$clearPermissions();
                 }
+
+                this.$LTIAssignmentId = data.assignment.id;
                 this.$router.replace({
                     name: 'assignment_submissions',
                     params: {
@@ -68,7 +72,8 @@ export default {
                                     toastObject.goAway(0);
                                 },
                             },
-                        });
+                        },
+                    );
                 }
                 if (data.updated_email) {
                     this.$toasted.info(
@@ -81,7 +86,8 @@ export default {
                                     toastObject.goAway(0);
                                 },
                             },
-                        });
+                        },
+                    );
                 }
             }).catch((err) => {
                 if (first && err.response && err.response.status === 401) {

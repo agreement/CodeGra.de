@@ -1,31 +1,25 @@
 <template>
-    <b-form-fieldset class="submission-nav-bar">
-        <b-input-group>
-            <b-input-group-button>
-                <b-button class="angle-btn"
-                          @click="backToSubmissions">
-                    <icon name="angle-double-left"/>
-                </b-button>
-            </b-input-group-button>
-            <b-input-group-button>
-                <b-button :disabled="!hasPrev"
-                          @click="selectPrev">
-                    <icon name="angle-left"/>
-                </b-button>
-            </b-input-group-button>
-            <b-input-group-button style="flex-grow: 1;">
-                <b-form-select :options="options"
-                               v-model="selected"
-                               id="student-selector"/>
-            </b-input-group-button>
-            <b-input-group-button>
-                <b-button :disabled="!hasNext"
-                          @click="selectNext">
-                    <icon name="angle-right"/>
-                </b-button>
-            </b-input-group-button>
-        </b-input-group>
-    </b-form-fieldset>
+<b-input-group class="submission-nav-bar">
+    <b-button-group class="nav-wrapper">
+        <b-button class="angle-btn"
+                    @click="backToSubmissions">
+            <icon name="angle-double-left"/>
+        </b-button>
+        <b-button :disabled="!hasPrev"
+                    @click="selectPrev">
+            <icon name="angle-left"/>
+        </b-button>
+        <b-form-select :options="options"
+                        class="select"
+                        style=""
+                        v-model="selected"
+                        id="student-selector"/>
+        <b-button :disabled="!hasNext"
+                    @click="selectNext">
+            <icon name="angle-right"/>
+        </b-button>
+    </b-button-group>
+</b-input-group>
 </template>
 
 <script>
@@ -35,6 +29,8 @@ import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/angle-double-left';
 import 'vue-awesome/icons/angle-left';
 import 'vue-awesome/icons/angle-right';
+
+import LocalHeader from './LocalHeader';
 
 export default {
     name: 'submission-nav-bar',
@@ -90,15 +86,13 @@ export default {
     },
 
     watch: {
+        value(newVal) {
+            this.selected = newVal;
+        },
+
         selected(submission) {
             this.$emit('input', submission);
         },
-    },
-
-    mounted() {
-        this.$root.$on('shown::dropdown', () => {
-            this.$nextTick(this.scrollToItem);
-        });
     },
 
     methods: {
@@ -132,8 +126,11 @@ export default {
         },
 
         getItemText(submission) {
-            const date = moment.utc(submission.created_at, moment.ISO_8601)
-                .local().format('DD-MM-YYYY HH:mm');
+            const date = moment.utc(
+                submission.created_at,
+                moment.ISO_8601,
+            ).local().format('DD-MM-YYYY HH:mm');
+
             const grade = formatGrade(submission.grade);
             let text = `${submission.user.name} - ${date}`;
 
@@ -148,37 +145,48 @@ export default {
         },
 
         scrollToItem() {
-            let el = document.getElementById('selectedItem').parentNode;
-            for (let i = 0, end = 6; i < end; i += 1) {
-                el = el.previousSibling || el;
-            }
-            el.scrollIntoView(true);
+            this.$nextTick(() => {
+                let el = document.getElementById('selectedItem').parentNode;
+                for (let i = 0, end = 6; i < end; i += 1) {
+                    el = el.previousSibling || el;
+                }
+                el.scrollIntoView(true);
+            });
         },
     },
 
     components: {
         Icon,
+        LocalHeader,
     },
 };
 </script>
 
 <style lang="less" scoped>
-.btn-group {
-    width: 100%;
+.local-header {
+    flex: 1 1 auto;
 }
 
-.dropdown {
-    width: 100%;
+.select {
+    border-left: 0;
+    border-right: 0;
+}
+
+.slot {
+    margin-left: 15px;
+}
+
+.nav-wrapper {
+    flex: 1 1 auto;
+    margin-right: 15px;
 }
 </style>
 
 <style lang="less">
-.submission-nav-bar {
-    .dropdown button {
-        width: 100%;
-        font-size: 1rem;
-        padding: 0.5rem;
-    }
+.submission-nav-bar .dropdown button {
+    width: 100%;
+    font-size: 1rem;
+    padding: 0.5rem;
 }
 
 .dropdown-header .dropdown-item:active {

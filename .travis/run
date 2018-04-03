@@ -50,7 +50,7 @@ case "$TO_RUN" in
         set +o xtrace
         ;;
     "lint")
-        flake8 "$(pwd)/psef/"
+        pylint "$(pwd)/psef/" --rcfile=setup.cfg
         res="$?"
         make privacy_statement
         [[ -z "$NO_INSTALL" ]] && npm install

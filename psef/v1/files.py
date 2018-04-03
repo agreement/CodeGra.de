@@ -2,12 +2,13 @@
 This module defines all API routes with the main directory "files". These APIs
 serve to upload and download temporary files which are not stored explicitly in
 the database.
+
+:license: AGPLv3, see LICENSE for details.
 """
 import os
-import typing as t
 
 import werkzeug
-from flask import request, safe_join, after_this_request, send_from_directory
+from flask import request, safe_join, send_from_directory
 from werkzeug.exceptions import NotFound
 from werkzeug.datastructures import FileStorage
 
@@ -15,10 +16,7 @@ import psef.auth as auth
 import psef.files
 from psef import app
 from psef.auth import APICodes, APIException
-from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
-    ensure_keys_in_dict, make_empty_response
-)
+from psef.helpers import JSONResponse, jsonify, callback_after_this_request
 
 from . import api
 
@@ -42,7 +40,8 @@ def post_file() -> JSONResponse[str]:
     """
     if (
         request.content_length and
-        request.content_length > app.config['MAX_UPLOAD_SIZE']):
+        request.content_length > app.config['MAX_UPLOAD_SIZE']
+    ):
         raise APIException(
             'Uploaded file is too big.',
             'Request is bigger than maximum upload size of {}.'.format(
@@ -79,12 +78,11 @@ def get_file(
     directory = app.config['MIRROR_UPLOAD_DIR']
     error = False
 
-    @after_this_request
-    def delete_file(response: t.Any) -> t.Any:
+    @callback_after_this_request
+    def __delete_file() -> None:
         if not error:
             filename = safe_join(directory, file_name)
             os.unlink(filename)
-        return response
 
     try:
         mimetype = request.args.get('mime', None)

@@ -1,70 +1,56 @@
 <template>
-    <b-form-fieldset
-        class="rubric-viewer"
-        :class="{ editable }">
-        <b-input-group>
-            <div class="form-control outer-container">
-                <b-card-group class="tab-container">
-                    <b-card v-for="(row, i) in rubrics"
-                            style="flex-basis: 20%;"
-                            :key="`rubric-row-${row.id}`"
-                            :class="{active: i === current}"
-                            @click.native="gotoItem(i)">
-                        <b>{{ row.header }}</b>
-                        <icon name="check"
-                              v-if="selectedRows[row.id]"
-                              style="float: right;"/>
+<div class="rubric-viewer"
+     :class="{ editable }">
+    <b-tabs no-fade>
+        <b-tab class="rubric"
+               :head-html="getHeadHtml(rubric)"
+               :title="rubric.header"
+               v-for="(rubric, i) in rubrics"
+               :key="`rubric-${rubric.id}`">
+            <b-card no-block
+                    style="border-top: 0;">
+                <div class="card-header rubric-header">
+                    <span class="title">
+                        {{ rubric.description }}
+                    </span>
+                </div>
+                <b-card-group>
+                    <b-card class="rubric-item"
+                            v-for="item in rubric.items"
+                            :key="`rubric-${rubric.id}-${item.id}`"
+                            @click="selectOrUnselect(rubric, item)"
+                            :class="{ selected: selected[item.id] }">
+                        <div class="rubric-item-wrapper row">
+                            <div style="position: relative;">
+                                <b>{{ item.points }} - {{ item.header }}</b>
+                                <div v-if="itemStates[item.id] === '__LOADING__' || selected[item.id]"
+                                     class="rubric-icon">
+                                    <loader :scale="1" v-if="itemStates[item.id] === '__LOADING__'"/>
+                                    <icon name="check" v-else/>
+                                </div>
+                                <div v-else-if="itemStates[item.id]"
+                                     class="rubric-icon">
+                                    <b-popover show
+                                               :target="`rubric-error-icon-${rubric.id}-${item.id}`"
+                                               :content="itemStates[item.id]"
+                                               placement="top">
+                                    </b-popover>
+                                    <icon name="times"
+                                          :scale="1"
+                                          :id="`rubric-error-icon-${rubric.id}-${item.id}`"
+                                          style="color: red;"/>
+                                </div>
+                                <p class="item-description">
+                                    {{ item.description }}
+                                </p>
+                            </div>
+                        </div>
                     </b-card>
                 </b-card-group>
-                <div class="inner-container"
-                     ref="rubricContainer">
-                    <div class="rubric"
-                         v-for="(rubric, i) in rubrics"
-                         :key="`rubric-${rubric.id}`">
-                        <b-card no-block
-                                style="border-top: 0;">
-                            <div class="card-header rubric-header">
-                                <span class="title">
-                                    {{ rubric.description }}
-                                </span>
-                            </div>
-                            <b-card-group>
-                                <b-card class="rubric-item"
-                                        v-for="item in rubric.items"
-                                        :key="`rubric-${rubric.id}-${item.id}`"
-                                        @click.native="selectOrUnselect(rubric, item)"
-                                        :class="{ selected: selected[item.id] }">
-                                    <div class="rubric-item-wrapper row">
-                                        <div class="col-12"
-                                             style="position: relative;">
-                                            <b>{{ item.points }} - {{ item.header }}</b>
-                                            <div v-if="itemStates[item.id] === '__LOADING__'"
-                                                 class="rubric-icon">
-                                                <loader :scale="1"/>
-                                            </div>
-                                            <div v-else-if="itemStates[item.id]"
-                                                 class="rubric-icon">
-                                                <b-popover show
-                                                           :content="itemStates[item.id]"
-                                                           placement="top">
-                                                    <icon name="times"
-                                                          :scale="1"
-                                                          style="color: red;"/>
-                                                </b-popover>
-                                            </div>
-                                            <p class="item-description">
-                                                {{ item.description }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </b-card>
-                            </b-card-group>
-                        </b-card>
-                    </div>
-                </div>
-            </div>
-        </b-input-group>
-    </b-form-fieldset>
+            </b-card>
+        </b-tab>
+    </b-tabs>
+</div>
 </template>
 
 <script>
@@ -73,6 +59,8 @@ import 'vue-awesome/icons/angle-left';
 import 'vue-awesome/icons/angle-right';
 import 'vue-awesome/icons/times';
 import 'vue-awesome/icons/check';
+
+import { waitAtLeast } from '../utils';
 
 import Loader from './Loader';
 
@@ -132,6 +120,26 @@ export default {
     },
 
     methods: {
+        getHeadHtml(rubric) {
+            const selected = this.selectedRows[rubric.id];
+            const maxPoints = this.$htmlEscape(Math.max(...rubric.items.map(i => i.points)));
+            const header = this.$htmlEscape(`${rubric.header}`);
+
+            const getFraction = (upper, lower) => `<sup>${upper}</sup>&frasl;<sub>${lower}</sub>`;
+            let res;
+
+            if (selected) {
+                const selectedPoints = this.$htmlEscape(selected.points);
+                res = `<span>${header}</span>-<span>${getFraction(selectedPoints, maxPoints)}</span>`;
+            } else if (this.editable) {
+                res = header;
+            } else {
+                res = `<span>${header}</span>-<span>${getFraction('Nothing', maxPoints)}<span>`;
+            }
+
+            return `<div class="tab-header">${res}</div>`;
+        },
+
         clearSelected() {
             const clear = () => {
                 this.selected = {};
@@ -172,13 +180,18 @@ export default {
 
             if (selected) {
                 this.selected = selected.reduce((res, item) => {
-                    res[item.id] = true;
+                    res[item.id] = item;
                     return res;
                 }, {});
-                this.selectedPoints = selected.reduce((res, item) => res + item.points,
-                                                      0);
+                this.selectedPoints = selected.reduce(
+                    (res, item) => res + item.points,
+                    0,
+                );
                 this.selectedRows = rubrics.reduce((res, row) => {
-                    res[row.id] = row.items.some(item => this.selected[item.id]);
+                    res[row.id] = row.items.reduce(
+                        (cur, item) => cur || this.selected[item.id],
+                        false,
+                    );
                     return res;
                 }, {});
             }
@@ -190,8 +203,6 @@ export default {
                 }
                 this.$emit('input', points);
             }
-
-            this.$refs.rubricContainer.style.width = `${rubrics.length * 100}%`;
         },
 
         sortRubricItems(rubrics) {
@@ -219,16 +230,12 @@ export default {
                     }
                 });
             } else if (selectItem) {
-                req = this.$http.patch(
-                    `/api/v1/submissions/${this.submission.id}/rubricitems/${item.id}`,
-                );
+                req = this.$http.patch(`/api/v1/submissions/${this.submission.id}/rubricitems/${item.id}`);
             } else {
-                req = this.$http.delete(
-                    `/api/v1/submissions/${this.submission.id}/rubricitems/${item.id}`,
-                );
+                req = this.$http.delete(`/api/v1/submissions/${this.submission.id}/rubricitems/${item.id}`);
             }
 
-            req.then(() => {
+            waitAtLeast(500, req).then(() => {
                 row.items.forEach(({ id, points }) => {
                     if (this.selected[id]) {
                         this.selectedPoints -= points;
@@ -237,12 +244,12 @@ export default {
                 });
                 if (selectItem) {
                     this.selectedPoints += item.points;
-                    this.$set(this.selected, item.id, true);
+                    this.$set(this.selected, item.id, item);
                 } else {
-                    this.$set(this.selected, item.id, false);
+                    this.$set(this.selected, item.id, undefined);
                     delete this.selected[item.id];
                 }
-                this.$set(this.selectedRows, row.id, selectItem);
+                this.$set(this.selectedRows, row.id, selectItem ? item : false);
 
                 this.$emit('input', {
                     selected: this.selectedPoints,
@@ -263,16 +270,6 @@ export default {
                     });
                 }, 3000);
             });
-        },
-
-        gotoItem(i) {
-            this.current = i;
-            this.slide();
-        },
-
-        slide() {
-            this.$refs.rubricContainer.style.transform =
-                `translateX(-${100 * (this.current / this.rubrics.length)}%)`;
         },
     },
 
@@ -301,6 +298,11 @@ export default {
         border-bottom-right-radius: 0;
         border-top-right-radius: 0;
     }
+
+    .card-body {
+        padding: .5rem .75rem;
+    }
+
     .card:nth-child(5n), .card:first-child {
         border-left: 0;
     }
@@ -406,21 +408,48 @@ export default {
     margin: 0;
     max-height: 5em;
     overflow-y: auto;
+    padding-bottom: .5em;
     margin-top: 0.5em;
     padding-right: 0.5em;
+}
+
+.rubric {
+    .card-body {
+        padding: 0;
+    }
+}
+
+.card-header {
+    background-color: unset;
+}
+
+.card-header,
+.card.rubric-item,
+.card-block {
+    .card-body {
+        padding: .5rem .75rem;
+    }
+
+    .rubric-item-wrapper {
+        margin: -0.5em;
+        padding: 0.5em;
+        align-items: center;
+    }
+}
+
+.card.rubric-item .card-body {
+    padding-right: 0;
+    padding-bottom: 0;
 }
 </style>
 
 <style lang="less">
-.rubric-viewer {
-    .card-header,
-    .card-block {
-        padding: .5rem .75rem;
-        .rubric-item-wrapper {
-            margin: -0.5em;
-            padding: 0.5em;
-            align-items: center;
-        }
+.rubric-viewer .tab-header {
+    span:first-child {
+        margin-right: .5em;
+    }
+    span:last-child {
+        margin-left: .5em;
     }
 }
 </style>

@@ -11,11 +11,11 @@ test_setup:
 
 .PHONY: test_quick
 test_quick: test_setup
-	DEBUG=on env/bin/pytest --cov psef --cov-report term-missing $(TEST_FILE) -vvvvv -x $(TEST_FLAGS)
+	DEBUG=on env/bin/pytest -n auto --cov psef --cov-report term-missing $(TEST_FILE) -vvvvv -x $(TEST_FLAGS)
 
 .PHONY: test
 test: test_setup
-	DEBUG=on env/bin/pytest --cov psef --cov-report term-missing $(TEST_FILE) -vvvvv $(TEST_FLAGS)
+	DEBUG=on env/bin/pytest -n auto --cov psef --cov-report term-missing $(TEST_FILE) -vvvvv $(TEST_FLAGS)
 
 .PHONY: reset_db
 reset_db:
@@ -69,3 +69,6 @@ format:
 .PHONY: shrinkwrap
 shrinkwrap:
 	npm shrinkwrap --dev
+
+lint:
+	pylint psef --rcfile=setup.cfg

@@ -1,6 +1,8 @@
 """
 This module defines all API routes with the main directory "permissions". These
 APIs are used communicate the permissions users.
+
+:license: AGPLv3, see LICENSE for details.
 """
 
 import typing as t
@@ -10,13 +12,11 @@ from flask import request
 import psef.auth as auth
 from psef import current_user
 from psef.errors import APICodes, APIException
-from psef.helpers import (
-    JSONResponse, jsonify, ensure_json_dict, ensure_keys_in_dict
-)
+from psef.helpers import JSONResponse, jsonify, ensure_keys_in_dict
 
 from . import api
 
-_PermMap = t.Mapping[str, bool]
+_PermMap = t.Mapping[str, bool]  # pylint: disable=invalid-name
 
 
 @api.route('/permissions/', methods=['GET'])

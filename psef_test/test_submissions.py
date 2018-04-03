@@ -126,7 +126,7 @@ def test_get_grade_history(
         'Thomas Schaper',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid1'),
+        perm_error(error=403)('Student1'),
     ],
     indirect=True
 )
@@ -207,8 +207,10 @@ def test_delete_grade_submission(
             'patch',
             f'/api/v1/submissions/{work_id}',
             200,
-            data={'grade': 5,
-                  'feedback': ''},
+            data={
+                'grade': 5,
+                'feedback': ''
+            },
             result=dict
         )
         assert res['grade'] == 5
@@ -216,8 +218,10 @@ def test_delete_grade_submission(
             'patch',
             f'/api/v1/submissions/{work_id}',
             200,
-            data={'grade': None,
-                  'feedback': 'ww'},
+            data={
+                'grade': None,
+                'feedback': 'ww'
+            },
             result=dict
         )
         assert res['grade'] is None
@@ -244,15 +248,17 @@ def test_patch_non_existing_submission(
             'patch',
             f'/api/v1/submissions/0',
             404,
-            data={'grade': 4,
-                  'feedback': 'wow!'},
+            data={
+                'grade': 4,
+                'feedback': 'wow!'
+            },
             result=error_template
         )
 
 
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
 def test_negative_points(
-    request, test_client, logged_in, error_template, ta_user,
+    request, test_client, logged_in, error_template, teacher_user, ta_user,
     assignment_real_works, session
 ):
     assignment, work = assignment_real_works
@@ -283,7 +289,7 @@ def test_negative_points(
     }  # yapf: disable
     max_points = 9
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         rubric = test_client.req(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
@@ -350,13 +356,13 @@ def test_negative_points(
         'Thomas Schaper',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403, can_get=True)('Stupid1'),
+        perm_error(error=403, can_get=True)('Student1'),
     ],
     indirect=True
 )
 def test_selecting_rubric(
     named_user, request, test_client, logged_in, error_template, ta_user,
-    assignment_real_works, session
+    assignment_real_works, session, teacher_user
 ):
     assignment, work = assignment_real_works
     work_id = work['id']
@@ -406,7 +412,7 @@ def test_selecting_rubric(
     }  # yapf: disable
     max_points = 11
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         rubric = test_client.req(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
@@ -515,7 +521,7 @@ def test_selecting_rubric(
             )
 
         if not error:
-            with logged_in(ta_user):
+            with logged_in(teacher_user):
                 rubric = test_client.req(
                     'delete',
                     f'/api/v1/assignments/{assignment.id}/rubrics/',
@@ -538,16 +544,16 @@ def test_selecting_rubric(
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
 @pytest.mark.parametrize(
     'named_user', [
-        'Thomas Schaper',
+        'Robin',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid1'),
+        perm_error(error=403)('Student1'),
     ],
     indirect=True
 )
 def test_clearing_rubric(
     named_user, request, test_client, logged_in, error_template, ta_user,
-    assignment_real_works, session
+    assignment_real_works, session, teacher_user
 ):
     assignment, work = assignment_real_works
     work_id = work['id']
@@ -594,13 +600,15 @@ def test_clearing_rubric(
                     if item['description'] == desc:
                         return item
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         rubric = test_client.req(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
             200,
             data=rubric
         )
+
+    with logged_in(ta_user):
         rubric = test_client.req(
             'get',
             f'/api/v1/submissions/{work_id}/rubrics/',
@@ -654,7 +662,6 @@ def test_clearing_rubric(
             }
         )
 
-    with logged_in(ta_user):
         res = test_client.req(
             'get',
             f'/api/v1/submissions/{work_id}',
@@ -704,14 +711,8 @@ def test_clearing_rubric(
 
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
 def test_selecting_wrong_rubric(
-    request,
-    test_client,
-    logged_in,
-    error_template,
-    ta_user,
-    assignment_real_works,
-    session,
-    course_name,
+    request, test_client, logged_in, error_template, ta_user,
+    assignment_real_works, session, course_name, teacher_user
 ):
     assignment, work = assignment_real_works
     course = m.Course.query.filter_by(name=course_name).one()
@@ -739,7 +740,7 @@ def test_selecting_wrong_rubric(
         }]
     }  # yapf: disable
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         rubric = test_client.req(
             'put',
             f'/api/v1/assignments/{assignment.id}/rubrics/',
@@ -747,6 +748,7 @@ def test_selecting_wrong_rubric(
             data=rubric
         )
 
+    with logged_in(ta_user):
         test_client.req(
             'patch',
             f'/api/v1/submissions/{other_work_id}/'
@@ -759,8 +761,8 @@ def test_selecting_wrong_rubric(
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        'Stupid1',
-        perm_error(error=403)('Stupid2'),
+        'Student1',
+        perm_error(error=403)('Student2'),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],
     indirect=True
@@ -823,11 +825,11 @@ def test_get_dir_contents(
 @pytest.mark.parametrize(
     'named_user, get_own', [
         ('Thomas Schaper', False),
-        ('Stupid1', False),
+        ('Student1', False),
         ('Œlµo', True),
         perm_error(error=401)(('NOT_LOGGED_IN', False)),
         perm_error(error=403)(('admin', False)),
-        perm_error(error=403)(('Stupid3', False)),
+        perm_error(error=403)(('Student3', False)),
     ],
     indirect=['named_user']
 )
@@ -862,11 +864,14 @@ def test_get_zip_file(
                 'get',
                 f'/api/v1/submissions/{work_id}',
                 error or 200,
-                result=error_template
-                if error else {'name': str,
-                               'output_name': str},
-                query={'type': 'zip',
-                       'owner': user_type},
+                result=error_template if error else {
+                    'name': str,
+                    'output_name': str
+                },
+                query={
+                    'type': 'zip',
+                    'owner': user_type
+                },
             )
 
             if not error:
@@ -905,11 +910,14 @@ def test_get_teacher_zip_file(
                 'get',
                 f'/api/v1/submissions/{work_id}',
                 error or 200,
-                result=error_template
-                if error else {'name': str,
-                               'output_name': str},
-                query={'type': 'zip',
-                       'owner': 'teacher'},
+                result=error_template if error else {
+                    'name': str,
+                    'output_name': str
+                },
+                query={
+                    'type': 'zip',
+                    'owner': 'teacher'
+                },
             )
             if error:
                 return set()
@@ -979,10 +987,10 @@ def test_get_teacher_zip_file(
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        'Stupid1',
+        'Student1',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid3'),
+        perm_error(error=403)('Student3'),
     ],
     indirect=True
 )
@@ -1056,18 +1064,14 @@ def test_add_file(
             f'/api/v1/submissions/{work_id}/files/',
             404,
             result=error_template,
-            query={
-                'path': '/non/existing/'
-            }
+            query={'path': '/non/existing/'}
         )
         test_client.req(
             'post',
             f'/api/v1/submissions/{work_id}/files/',
             400,
             result=error_template,
-            query={
-                'path': '/too_short/'
-            }
+            query={'path': '/too_short/'}
         )
 
         res = test_client.req(
@@ -1153,8 +1157,10 @@ def test_add_file(
             'post',
             f'/api/v1/submissions/{work_id}/files/',
             400,
-            query={'path': '/dir/dir2/file',
-                   'owner': 'auto'},
+            query={
+                'path': '/dir/dir2/file',
+                'owner': 'auto'
+            },
             real_data='TEAEST_FILE',
         )
 
@@ -1332,7 +1338,7 @@ def test_add_file(
 @pytest.mark.parametrize('with_works', [True], indirect=True)
 def test_change_grader_notification(
     logged_in, test_client, stubmailer, monkeypatch_celery, assignment,
-    ta_user, with_works
+    teacher_user, with_works, ta_user
 ):
     assig_id = assignment.id
     graders = m.User.query.filter(
@@ -1349,7 +1355,7 @@ def test_change_grader_notification(
     sub_id = subs[0].id
     sub2_id = subs[1].id
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/submissions/{sub_id}/grader',
@@ -1360,7 +1366,7 @@ def test_change_grader_notification(
             'patch',
             f'/api/v1/submissions/{sub2_id}/grader',
             204,
-            data={'user_id': ta_user.id},
+            data={'user_id': teacher_user.id},
         )
 
         assert not stubmailer.called, """
@@ -1379,6 +1385,7 @@ def test_change_grader_notification(
             204,
         )
 
+    with logged_in(ta_user):
         test_client.req(
             'patch',
             f'/api/v1/submissions/{sub_id}/grader',
@@ -1415,7 +1422,7 @@ def test_change_grader_notification(
 )
 @pytest.mark.parametrize(
     'named_user',
-    ['Thomas Schaper', http_error(error=403)('Stupid1')],
+    ['Thomas Schaper', http_error(error=403)('Student1')],
     indirect=True
 )
 @pytest.mark.parametrize('graders', [(['Thomas Schaper', 'Devin Hillenius'])])
@@ -1442,10 +1449,8 @@ def test_change_grader(
                 'patch',
                 f'/api/v1/assignments/{assignment.id}/divide',
                 204,
-                data={
-                    'graders': {g: 1
-                                for g in grader_ids}
-                }
+                data={'graders': {g: 1
+                                  for g in grader_ids}}
             )
             submission = test_client.req(
                 'get', f'/api/v1/assignments/{assignment.id}/submissions/', 200
@@ -1459,9 +1464,7 @@ def test_change_grader(
                 f'/api/v1/submissions/{submission["id"]}/grader',
                 404,
                 result=error_template,
-                data={
-                    'user_id': 100000
-                }
+                data={'user_id': 100000}
             )
             with logged_in(ta_user):
                 submission = test_client.req(
@@ -1470,15 +1473,13 @@ def test_change_grader(
                 )[0]
             assert submission['assignee']['name'] == old_grader
 
-            stupid1_id = m.User.query.filter_by(name='Stupid1').first().id
+            student1_id = m.User.query.filter_by(name='Student1').first().id
             test_client.req(
                 'patch',
                 f'/api/v1/submissions/{submission["id"]}/grader',
                 400,
                 result=error_template,
-                data={
-                    'user_id': stupid1_id
-                }
+                data={'user_id': student1_id}
             )
             with logged_in(ta_user):
                 submission = test_client.req(
@@ -1495,9 +1496,7 @@ def test_change_grader(
             f'/api/v1/submissions/{submission["id"]}/grader',
             code,
             result=res,
-            data={
-                'user_id': new_grader_id
-            }
+            data={'user_id': new_grader_id}
         )
         with logged_in(ta_user):
             submission = test_client.req(
@@ -1531,12 +1530,12 @@ def test_change_grader(
         perm_error(error=403)('Thomas Schaper'),
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid1'),
+        perm_error(error=403)('Student1'),
     ],
     indirect=True
 )
 def test_delete_submission(
-    named_user, request, test_client, logged_in, error_template, ta_user,
+    named_user, request, test_client, logged_in, error_template, teacher_user,
     assignment_real_works, session
 ):
     assignment, work = assignment_real_works
@@ -1556,13 +1555,15 @@ def test_delete_submission(
 
     assert os.path.isfile(diskname)
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'patch',
             f'/api/v1/submissions/{work_id}',
             200,
-            data={'feedback': 'waaa',
-                  'grade': 5.65},
+            data={
+                'feedback': 'waaa',
+                'grade': 5.65
+            },
             result=dict,
         )
 
@@ -1592,13 +1593,13 @@ def test_delete_submission(
         'Thomas Schaper',
         perm_error(error=401)('NOT_LOGGED_IN'),
         perm_error(error=403)('admin'),
-        perm_error(error=403, can_get=True)('Stupid1'),
+        perm_error(error=403, can_get=True)('Student1'),
     ],
     indirect=True
 )
 def test_selecting_multiple_rubric_items(
     named_user, request, test_client, logged_in, error_template, ta_user,
-    assignment_real_works, session, bs_course
+    assignment_real_works, session, bs_course, teacher_user
 ):
     assignment, work = assignment_real_works
     work_id = work['id']
@@ -1640,7 +1641,7 @@ def test_selecting_multiple_rubric_items(
     }  # yapf: disable
     max_points = 12
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         bs_rubric = test_client.req(
             'put',
             f'/api/v1/assignments/{bs_course.id}/rubrics/',
@@ -1722,5 +1723,86 @@ def test_selecting_multiple_rubric_items(
             f'/api/v1/submissions/{work_id}/rubricitems/',
             400,
             data={'items': to_select + [bs_rubric[0]['items'][0]['id']]},
+            result=error_template,
+        )
+
+
+@pytest.mark.parametrize('ext', ['tar.gz'])
+def test_uploading_unsafe_archive(
+    logged_in, student_user, teacher_user, assignment, test_client, ext,
+    error_template
+):
+    with logged_in(student_user):
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submission',
+            400,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        f'test_submissions/unsafe.{ext}', f'unsafe.{ext}'
+                    )
+            },
+            result=error_template,
+        )
+
+    with logged_in(teacher_user):
+        test_client.req(
+            'patch',
+            f'/api/v1/assignments/{assignment.id}',
+            204,
+            data={
+                'ignore': 'a\n',
+            }
+        )
+
+    with logged_in(student_user):
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submission'
+            '?ignored_files=error',
+            400,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        f'test_submissions/unsafe.{ext}', f'unsafe.{ext}'
+                    )
+            },
+            result=error_template,
+        )
+
+
+@pytest.mark.parametrize('ignore', [True, False])
+@pytest.mark.parametrize('ext', ['tar.gz', 'zip'])
+def test_uploading_invalid_file(
+    logged_in, student_user, teacher_user, assignment, test_client, ignore,
+    error_template, ext
+):
+    if ignore:
+        with logged_in(teacher_user):
+            test_client.req(
+                'patch',
+                f'/api/v1/assignments/{assignment.id}',
+                204,
+                data={
+                    'ignore': 'a\n',
+                }
+            )
+
+    with logged_in(student_user):
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assignment.id}/submission' +
+            ('?ignored_files=error' if ignore else ''),
+            400,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../test_data/'
+                        f'test_submissions/single_file_work', f'arch.{ext}'
+                    )
+            },
             result=error_template,
         )

@@ -15,7 +15,7 @@ only_own = pytest.mark.only_own
     'named_user', [
         'Thomas Schaper',
         perm_error(error=403)('admin'),
-        perm_error(error=403)('Stupid1'),
+        perm_error(error=403)('Student1'),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],
     indirect=True
@@ -105,7 +105,7 @@ def test_add_feedback(
     'named_user', [
         'Thomas Schaper',
         perm_error(error=403)('admin'),
-        late_error(('Stupid1')),
+        late_error(('Student1')),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],
     indirect=True
@@ -201,7 +201,7 @@ def test_get_feedback(
     'named_user', [
         'Thomas Schaper',
         perm_error(error=403)('admin'),
-        perm_error(error=403)(('Stupid1')),
+        perm_error(error=403)(('Student1')),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],
     indirect=True
@@ -277,14 +277,14 @@ def test_delete_feedback(
     'named_user', [
         'Thomas Schaper',
         perm_error(error=403)('admin'),
-        late_error(('Stupid1')),
+        late_error(('Student1')),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],
     indirect=True
 )
 def test_get_all_feedback(
     named_user, request, logged_in, test_client, assignment_real_works,
-    session, error_template, ta_user, monkeypatch, monkeypatch_celery
+    session, error_template, teacher_user, monkeypatch, monkeypatch_celery
 ):
     assignment, work = assignment_real_works
     assig_id = assignment.id
@@ -297,7 +297,7 @@ def test_get_all_feedback(
         m.File.name != '__init__',
     ).first()[0]
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'put',
             f'/api/v1/code/{code_id}/comments/0',
@@ -348,8 +348,10 @@ def test_get_all_feedback(
             'get',
             f'/api/v1/submissions/{work_id}',
             code,
-            result={'name': str,
-                    'output_name': str} if code == 200 else error_template,
+            result={
+                'name': str,
+                'output_name': str
+            } if code == 200 else error_template,
             query={'type': 'feedback'},
         )
 
@@ -373,12 +375,11 @@ def test_get_all_feedback(
             'get',
             f'/api/v1/submissions/{work["id"]}',
             perm_err.kwargs['error'] if perm_err else 200,
-            result=error_template
-            if perm_err else {'name': str,
-                              'output_name': str},
-            query={
-                'type': 'feedback'
-            }
+            result=error_template if perm_err else {
+                'name': str,
+                'output_name': str
+            },
+            query={'type': 'feedback'}
         )
 
         if not perm_err:
@@ -389,20 +390,45 @@ def test_get_all_feedback(
 
             assert expected.match(res.data.decode('utf8'))
 
+    with logged_in(named_user):
+        res = test_client.req(
+            'get',
+            f'/api/v1/submissions/{work["id"]}/feedbacks/',
+            perm_err.kwargs['error'] if perm_err else 200,
+            result=error_template if perm_err else {
+                'user': dict,
+                'general': str,
+                'linter': dict,
+            },
+        )
+
+        if not perm_err:
+            assert str(code_id) in res['user']
+            assert res['user'][str(code_id)] == {
+                '0': 'for line 0',
+                '1': 'for line - 1',
+            }
+            assert str(code_id) in res['linter']
+            assert '1' in res['linter'][str(code_id)]
+            assert isinstance(res['linter'][str(code_id)]['1'], list)
+            assert isinstance(res['linter'][str(code_id)]['1'][0], list)
+            assert isinstance(res['linter'][str(code_id)]['1'][0][0], str)
+            assert isinstance(res['linter'][str(code_id)]['1'][0][1], dict)
+
 
 @pytest.mark.parametrize('filename', ['test_flake8.tar.gz'], indirect=True)
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
         perm_error(error=403)('admin'),
-        only_own(('Stupid1')),
+        only_own(('Student1')),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],
     indirect=True
 )
 def test_get_assignment_all_feedback(
     named_user, request, logged_in, test_client, assignment_real_works,
-    session, error_template, ta_user, monkeypatch_celery
+    session, error_template, ta_user, monkeypatch_celery, teacher_user
 ):
     assignment, work = assignment_real_works
     assig_id = assignment.id
@@ -420,8 +446,10 @@ def test_get_assignment_all_feedback(
             'patch',
             f'/api/v1/submissions/{work["id"]}',
             200,
-            data={'grade': 5,
-                  'feedback': 'Niet zo goed'},
+            data={
+                'grade': 5,
+                'feedback': 'Niet zo goed'
+            },
             result=dict
         )
         test_client.req(
@@ -437,6 +465,7 @@ def test_get_assignment_all_feedback(
             data={'comment': 'for line - 1'},
         )
 
+    with logged_in(teacher_user):
         test_client.req(
             'post',
             f'/api/v1/assignments/{assignment.id}/linter',

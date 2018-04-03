@@ -1,7 +1,7 @@
 <template>
     <footer class="footer">
         <small>
-            &copy; {{ new Date().getFullYear() }} - CodeGra.de ({{ version }}) - Made with ❤️ &amp 🍺 -
+            &copy; {{ new Date().getFullYear() }} - CodeGra.de ({{ version }}) - Made with ❤️ &amp; 🍺 -
             <a class="codegra-email" :href="`mailto:${email}`">{{ email }}</a> -
             <a class="privacy-statement" @click="showModal = !showModal">Privacy statement</a>
         </small>
@@ -38,10 +38,14 @@ export default {
 @import '~mixins.less';
 
 .footer {
+    width: 100%;
     padding: 20px;
+
     /* Vertically center the text there */
     line-height: 100%;
     text-align: center;
+
+    .default-footer-colors;
 
     a {
         .default-link-colors;

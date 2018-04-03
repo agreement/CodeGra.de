@@ -1,21 +1,41 @@
 <template>
-    <b-alert variant="danger" show v-if="error">
-        <div v-html="error"></div>
-    </b-alert>
-    <loader class="text-center" v-else-if="loading"></loader>
-    <div class="diff-viewer form-control" v-else>
+<b-alert variant="danger" show v-if="error">
+    <div v-html="error"></div>
+</b-alert>
+<loader class="text-center" v-else-if="loading"></loader>
+<div class="diff-viewer form-control" v-else-if="diffOnly">
+    <div v-for="(part, i) in changedParts"
+         :key="`part-${i}-line-${part[0]}`">
+        <hr v-if="i !== 0">
         <ol :class="{ 'show-whitespace': showWhitespace }"
+            class="diff-part"
+            :start="part[0] + 1"
             :style="{
-                paddingLeft: `${3 + Math.log10(lines.length) * 2/3}em`,
-                fontSize: `${fontSize}px`,
-            }">
-            <li v-for="(line, i) in lines"
-                :key="i"
-                :class="line.cls">
-                <code v-html="line.txt"/>
+                    paddingLeft: `${3 + Math.log10(part[1]) * 2/3}em`,
+                    fontSize: `${fontSize}px`,
+                    }">
+            <li v-for="line in range(part[0], part[1])"
+                :key="line"
+                :class="lines[line].cls">
+                <code v-html="lines[line].txt"/>
             </li>
         </ol>
     </div>
+</div>
+<div class="diff-viewer form-control" v-else>
+    <ol :class="{ 'show-whitespace': showWhitespace }"
+        class="scroller"
+        :style="{
+                paddingLeft: `${3 + Math.log10(lines.length) * 2/3}em`,
+                fontSize: `${fontSize}px`,
+                }">
+        <li v-for="(line, i) in lines"
+            :key="i"
+            :class="line.cls">
+            <code v-html="line.txt"/>
+        </li>
+    </ol>
+</div>
 </template>
 
 <script>
@@ -26,12 +46,12 @@ import 'vue-awesome/icons/plus';
 import 'vue-awesome/icons/cog';
 import 'vue-multiselect/dist/vue-multiselect.min.css';
 
+import { visualizeWhitespace, last, range } from '@/utils';
+
 import FeedbackArea from './FeedbackArea';
 import LinterFeedbackArea from './LinterFeedbackArea';
 import Loader from './Loader';
 import Toggle from './Toggle';
-
-import { visualizeWhitespace } from './utils';
 
 const decoder = new TextDecoder('utf-8', { fatal: true });
 
@@ -43,10 +63,6 @@ export default {
             type: Object,
             default: null,
         },
-        language: {
-            type: String,
-            default: 'Default',
-        },
         fontSize: {
             type: Number,
             default: 12,
@@ -54,6 +70,14 @@ export default {
         showWhitespace: {
             type: Boolean,
             default: true,
+        },
+        diffOnly: {
+            type: Boolean,
+            default: false,
+        },
+        context: {
+            type: Number,
+            default: 0,
         },
     },
 
@@ -64,6 +88,7 @@ export default {
             loading: true,
             error: false,
             canUseSnippets: false,
+            range,
         };
     },
 
@@ -74,14 +99,6 @@ export default {
     watch: {
         file(f) {
             if (f) this.getCode();
-        },
-
-        tree() {
-            this.linkFiles();
-        },
-
-        language(lang) {
-            this.highlightCode(lang);
         },
     },
 
@@ -140,6 +157,34 @@ export default {
             }
 
             this.lines = lines;
+        },
+    },
+
+    computed: {
+        changedParts() {
+            const res = [];
+            const end = this.lines.length;
+
+            if (!this.diffOnly) {
+                return res;
+            }
+
+            this.lines.forEach((line, i) => {
+                const startLine = Math.max(i - this.context, 0);
+                const endLine = Math.min(i + this.context + 1, end);
+
+                if (line.cls !== '') {
+                    if (res.length === 0) {
+                        res.push([startLine, endLine]);
+                    } else if (last(res)[1] > startLine - 2) {
+                        last(res)[1] = endLine;
+                    } else {
+                        res.push([startLine, endLine]);
+                    }
+                }
+            });
+
+            return res;
         },
     },
 
@@ -204,6 +249,10 @@ li {
         }
     }
 
+    &:hover {
+        cursor: text;
+    }
+
     #app.dark & {
         background: @color-primary-darker;
         border-left: 1px solid darken(@color-primary-darkest, 5%);
@@ -231,6 +280,18 @@ code {
 .loader {
     margin-top: 2.5em;
     margin-bottom: 3em;
+}
+
+.diff-part {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: .25rem;
+    z-index: 100;
+    li:first-child {
+        border-top-right-radius: .25rem;
+    }
+    li:last-child {
+        border-bottom-right-radius: .25rem;
+    }
 }
 </style>
 

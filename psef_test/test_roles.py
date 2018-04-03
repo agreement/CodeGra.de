@@ -10,7 +10,7 @@ missing_error = pytest.mark.missing_error
 @pytest.mark.parametrize(
     'named_user', [
         ('admin'),
-        perm_error(error=403)(('Stupid1')),
+        perm_error(error=403)(('Student1')),
         perm_error(error=403)(('Thomas Schaper')),
         perm_error(error=401)(('NOT_LOGGED_IN')),
     ],
@@ -58,7 +58,7 @@ def test_get_roles(
 @pytest.mark.parametrize(
     'named_user', [
         'admin',
-        perm_error(error=403)(('Stupid1')),
+        perm_error(error=403)(('Student1')),
         perm_error(error=403)(('Thomas Schaper')),
         perm_error(error=401)(('NOT_LOGGED_IN')),
     ],

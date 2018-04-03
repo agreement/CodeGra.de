@@ -1,49 +1,29 @@
 <template>
-    <div class="grade-history">
-        <b-collapse id="grade-history-collapse">
-            <table class="table b-table table-striped">
-                <thead>
-                    <tr>
-                        <th>Grader</th>
-                        <th>Grade</th>
-                        <th>Date</th>
-                        <th>By rubric</th>
-                        <th v-if="isLTI">In LTI</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="item in history">
-                        <td>{{ item.user.name }}</td>
-                        <td>{{ item.grade >= 0 ? Math.round(item.grade * 100) / 100 : 'Deleted' }}</td>
-                        <td>{{ item.changed_at }}</td>
-                        <td>
-                            <icon name="check" v-if="item.is_rubric"></icon>
-                            <icon name="times" v-else></icon>
-                        </td>
-                        <td v-if="isLTI">
-                            <icon name="check" v-if="item.passed_back"></icon>
-                            <icon name="times" v-else></icon>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </b-collapse>
-        <b-button-group>
-        <submit-button @click="toggleHistory"
-                       :label="content"
-                       class="grade-history-submit"
-                       ref="toggleButton"
-                       default="secondary"
-                       success="secondary"/>
-        </b-button-group>
-    </div>
+<loader v-if="loading"/>
+<div class="grade-history" v-else>
+    <b-table striped :items="history" :fields="fields">
+        <span slot="user" slot-scope="data">{{ data.item.user.name }}</span>
+        <span slot="grade" slot-scope="data">
+            {{ data.item.grade >= 0 ? Math.round(data.item.grade * 100) / 100 : 'Deleted' }}
+        </span>
+        <span slot="rubric" slot-scope="data">
+            <icon name="check" v-if="data.item.is_rubric"></icon>
+            <icon name="times" v-else></icon>
+        </span>
+        <span v-if="isLTI" slot="lti" slot-scope="data">
+            <icon name="check" v-if="data.item.passed_back"></icon>
+            <icon name="times" v-else></icon>
+        </span>
+    </b-table>
+</b-collapse>
+</div>
 </template>
 
 <script>
 import moment from 'moment';
 import Icon from 'vue-awesome/components/Icon';
 import 'vue-awesome/icons/bars';
-import SubmitButton from './SubmitButton';
+import Loader from './Loader';
 
 export default {
     name: 'grade-history',
@@ -68,34 +48,35 @@ export default {
     },
 
     data() {
+        const fields = [
+            {
+                key: 'user',
+                label: 'Grader',
+            }, {
+                key: 'grade',
+                label: 'Grade',
+            }, {
+                key: 'changed_at',
+                label: 'Date',
+            }, {
+                key: 'rubric',
+                label: 'By rubric',
+            },
+        ];
+        if (this.isLTI) {
+            fields.push({ key: 'lti', label: 'In LTI' });
+        }
         return {
-            show: false,
-            content: '',
-            history: null,
+            history: [],
+            fields,
+            loading: false,
         };
     },
 
-    mounted() {
-        this.content = this.showText;
-    },
-
     methods: {
-        toggleHistory() {
-            if (this.history === null) {
-                this.updateHistory().then(() => {
-                    this.$nextTick(this.toggleHistory);
-                });
-            } else {
-                this.$root.$emit('collapse::toggle', 'grade-history-collapse');
-                this.content = this.show ? this.showText : this.hideText;
-                this.show = !this.show;
-            }
-        },
         updateHistory() {
+            this.loading = true;
             const req = this.$http.get(`/api/v1/submissions/${this.submissionId}/grade_history/`);
-            this.$refs.toggleButton.submit(req.catch((err) => {
-                throw err.response.data.message;
-            }));
             return req.then(({ data }) => {
                 for (let i = 0, len = data.length; i < len; i += 1) {
                     data[i].changed_at = moment
@@ -104,13 +85,14 @@ export default {
                         .format('YYYY-MM-DD HH:mm');
                 }
                 this.history = data;
+                this.loading = false;
             });
         },
     },
 
     components: {
         Icon,
-        SubmitButton,
+        Loader,
     },
 };
 </script>
@@ -142,12 +124,22 @@ export default {
 #grade-history-collapse.show {
     max-height: 16em;
     margin-bottom: 15px;
-    overflow-x: auto;
     &.collapse-leave-active {
         margin-bottom: 0;
     }
-    &:not(.collapse-enter-active) {
-        overflow-y: auto;
+}
+
+.table {
+    th, td {
+        padding: .25rem !important;
     }
+    cursor: text !important;
+}
+.grade-history {
+    width: 30em;
+    margin: -.5rem -.75rem;
+    max-height: 40em;
+    overflow-y: auto;
+    padding: .5rem .75rem;
 }
 </style>

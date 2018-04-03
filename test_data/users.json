@@ -59,7 +59,7 @@
     }
   },
   {
-    "name": "Stupid1",
+    "name": "Student1",
     "role": "Student",
     "courses": {
       "Programmeertalen": "Student",
@@ -67,7 +67,7 @@
     }
   },
   {
-    "name": "Stupid2",
+    "name": "Student2",
     "role": "Student",
     "courses": {
       "Programmeertalen": "Student",
@@ -75,7 +75,7 @@
     }
   },
   {
-    "name": "Stupid3",
+    "name": "Student3",
     "role": "Student",
     "courses": {
       "Programmeertalen": "Student",
@@ -83,7 +83,7 @@
     }
   },
   {
-    "name": "Stupid4",
+    "name": "Student4",
     "role": "Student",
     "courses": {
       "Programmeertalen": "Student",

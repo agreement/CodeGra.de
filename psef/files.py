@@ -1,44 +1,57 @@
 """
 This module is used for file IO and handling and provides functions for
 extracting and abstracting the structures of directories and archives.
+
+:license: AGPLv3, see LICENSE for details.
 """
 
 import io
 import os
 import re
-import csv
 import enum
 import uuid
 import shutil
 import typing as t
+import tarfile
+import zipfile
 import tempfile
 from functools import reduce
 
 import archive
+import mypy_extensions
 from werkzeug.utils import secure_filename
-from mypy_extensions import NoReturn, TypedDict
 from werkzeug.datastructures import FileStorage
 
 import psef.models as models
-import psef.helpers as helpers
 from psef import app, blackboard
 from psef.errors import APICodes, APIException
-from psef.ignore import IgnoreFilterManager
+from psef.ignore import InvalidFile, IgnoreFilterManager
 
-_known_archive_extensions = tuple(archive.extension_map.keys())
+_KNOWN_ARCHIVE_EXTENSIONS = tuple(archive.extension_map.keys())
 
 # Gestolen van Erik Kooistra
-_bb_txt_format = re.compile(
+_BB_TXT_FORMAT = re.compile(
     r"(?P<assignment_name>.+)_(?P<student_id>.+?)_attempt_"
     r"(?P<datetime>\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}).txt"
 )
-FileTreeBase = TypedDict('FileTreeBase', {
-    'name': str,
-    'id': int,
-})
+FileTreeBase = mypy_extensions.TypedDict(  # pylint: disable=invalid-name
+    'FileTreeBase',
+    {
+        'name': str,
+        'id': int,
+    }
+)
 
 
-class FileTree(FileTreeBase, total=False):
+def init_app(_: t.Any) -> None:
+    pass
+
+
+# This is valid, see https://github.com/PyCQA/pylint/issues/1927
+class FileTree(  # pylint: disable=inherit-non-class,missing-docstring
+    FileTreeBase,
+    total=False,
+):
     entries: t.MutableSequence[t.Any]
 
 
@@ -47,6 +60,7 @@ class FileTree(FileTreeBase, total=False):
 # such a thing) we can't actually define a tree in types, however with enough
 # nesting we should come close enough (tm).
 if t.TYPE_CHECKING and not hasattr(t, 'SPHINX'):  # pragma: no cover
+    # pylint: disable=invalid-name
     _ExtractFileTreeValue0 = t.MutableSequence[
         t.Union[t.Tuple[str, str], t.MutableMapping[str, t.Any]]
     ]
@@ -63,10 +77,10 @@ if t.TYPE_CHECKING and not hasattr(t, 'SPHINX'):  # pragma: no cover
         t.Tuple[str, str], t.MutableMapping[str, _ExtractFileTreeValueN]
     ]]
 else:
-    ExtractFileTreeValue = t.MutableSequence[
+    ExtractFileTreeValue = t.MutableSequence[  # pylint: disable=invalid-name
         t.Union[t.Tuple[str, str], t.MutableMapping[str, t.Any]]
     ]
-ExtractFileTree = t.MutableMapping[str, ExtractFileTreeValue]
+ExtractFileTree = t.MutableMapping[str, ExtractFileTreeValue]  # pylint: disable=invalid-name
 
 
 class IgnoredFilesException(APIException):
@@ -254,20 +268,20 @@ def rename_directory_structure(rootdir: str) -> ExtractFileTree:
     :returns: The tree as described above
     :rtype: dict[str, dict[str, list[dict or tuple[str, str,]]]]
     """
-    dir = {}  # type: t.MutableMapping[str, t.Any]
+    directory = {}  # type: t.MutableMapping[str, t.Any]
     rootdir = rootdir.rstrip(os.sep)
     start = rootdir.rfind(os.sep) + 1
-    for path, dirs, files in os.walk(rootdir):
+    for path, _, files in os.walk(rootdir):
         folders = path[start:].split(os.sep)
         subdir = dict.fromkeys(files)
 
-        # `reduce` returns a reference within `dir` so `dir` will change on the
-        # next two lines.
-        parent = reduce(dict.get, folders[:-1], dir)
+        # `reduce` returns a reference within `directory` so `directory` will
+        # change on the next two lines.
+        parent = reduce(dict.get, folders[:-1], directory)
         parent[folders[-1]] = subdir
 
-    def convert_to_lists(name: str,
-                         dirs: t.Mapping[str, t.Any]) -> t.Sequence[t.Any]:
+    def __to_lists(name: str,
+                   dirs: t.Mapping[str, t.Any]) -> t.Sequence[t.Any]:
         res = [
         ]  # type: t.List[t.Union[t.Tuple[str, str], t.Mapping[str, t.Any]]]
         for key, value in dirs.items():
@@ -279,12 +293,12 @@ def rename_directory_structure(rootdir: str) -> ExtractFileTree:
             else:
                 res.append(
                     {
-                        key: convert_to_lists(os.path.join(name, key), value)
+                        key: __to_lists(os.path.join(name, key), value),
                     }
                 )
         return res
 
-    result_lists = convert_to_lists(rootdir[:start], dir)
+    result_lists = __to_lists(rootdir[:start], directory)
     assert len(result_lists) == 1
     return result_lists[0]
 
@@ -297,7 +311,7 @@ def is_archive(file: FileStorage) -> bool:
     :param file: Some file
     :returns: True if the file has a known extension
     """
-    return file.filename.endswith(_known_archive_extensions)
+    return file.filename.endswith(_KNOWN_ARCHIVE_EXTENSIONS)
 
 
 def extract_to_temp(
@@ -332,6 +346,20 @@ def extract_to_temp(
             archive.extract(tmparchive, to_path=tmpdir, method='safe')
             if handle_ignore == IgnoreHandling.delete:
                 ignore_filter.delete_from_dir(tmpdir)
+    except (tarfile.ReadError, zipfile.BadZipFile):
+        raise APIException(
+            'The given archive could not be extracted',
+            "The given archive doesn't seem to be an archive",
+            APICodes.INVALID_ARCHIVE,
+            400,
+        )
+    except (InvalidFile, archive.UnsafeArchive) as e:
+        raise APIException(
+            'The given archive contains invalid files',
+            str(e),
+            APICodes.INVALID_FILE_IN_ARCHIVE,
+            400,
+        )
     finally:
         os.close(tmpfd)
         os.remove(tmparchive)
@@ -373,10 +401,10 @@ def extract(
             return None
         elif len(res) > 1:
             return {filename: res if isinstance(res, list) else [res]}
-        elif not isinstance(res[0], t.MutableMapping):
-            return {filename: res}
-        else:
+        elif isinstance(res[0], t.MutableMapping):
             return res[0]
+        else:
+            return {filename: res}
     finally:
         shutil.rmtree(tmpdir)
 
@@ -500,7 +528,7 @@ def process_blackboard_zip(
     :returns: List of tuples (BBInfo, tree)
     """
 
-    def get_files(info: blackboard.SubmissionInfo) -> t.List[FileStorage]:
+    def __get_files(info: blackboard.SubmissionInfo) -> t.List[FileStorage]:
         files = []
         for blackboard_file in info.files:
             if isinstance(blackboard_file, blackboard.FileInfo):
@@ -525,7 +553,7 @@ def process_blackboard_zip(
     )
     try:
         info_files = filter(
-            None, (_bb_txt_format.match(f) for f in os.listdir(tmpdir))
+            None, (_BB_TXT_FORMAT.match(f) for f in os.listdir(tmpdir))
         )
         submissions = []
         for info_file in info_files:
@@ -534,9 +562,11 @@ def process_blackboard_zip(
             )
 
             try:
-                tree = process_files(get_files(info))
-            except Exception:
-                files = get_files(info)
+                tree = process_files(__get_files(info))
+            # TODO: We catch all exceptions, this should probably be narrowed
+            # down, however finding all exception types is difficult.
+            except Exception:  # pylint: disable=broad-except
+                files = __get_files(info)
                 files.append(
                     FileStorage(
                         stream=io.BytesIO(

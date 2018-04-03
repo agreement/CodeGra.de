@@ -1,6 +1,5 @@
-import pytest
-
 import psef as p
+import pytest
 import psef.errors as e
 import psef.models as m
 
@@ -12,7 +11,7 @@ data_error = pytest.mark.data_error
 @pytest.mark.parametrize(
     'named_user', [
         'Thomas Schaper',
-        'Stupid1',
+        'Student1',
         perm_error(error=401)('NOT_LOGGED_IN'),
         'admin',
     ],
@@ -21,7 +20,7 @@ data_error = pytest.mark.data_error
 @pytest.mark.parametrize(
     'q,users',
     [
-        ('tuPId', ['stupid{}'.format(i) for i in range(1, 5)]),
+        ('UdeNt', ['student{}'.format(i) for i in range(1, 5)]),
         ('s chap', ['thomas']),
         ('s%chap', []),
         http_error(error=400)(('ko', []))  # Too short
@@ -121,9 +120,7 @@ def test_register_user(
         '/api/v1/user',
         code,
         data=data,
-        result=error_template if code >= 400 else {
-            'access_token': str
-        }
+        result=error_template if code >= 400 else {'access_token': str}
     )
 
     if code < 400:
@@ -133,9 +130,7 @@ def test_register_user(
             'get',
             '/api/v1/login',
             200,
-            headers={
-                'Authorization': f'Bearer {access_token}'
-            }
+            headers={'Authorization': f'Bearer {access_token}'}
         )
 
         new_user = m.User.query.filter_by(username=username).one()

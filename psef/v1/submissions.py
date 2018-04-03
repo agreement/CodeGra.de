@@ -2,6 +2,8 @@
 This module defines all API routes with the main directory "submissions". The
 APIs allow the retrieving, and patching of :class: Work objects. Furthermore
 functions are defined to get related objects and information.
+
+:license: AGPLv3, see LICENSE for details.
 """
 
 import os
@@ -9,8 +11,10 @@ import typing as t
 import numbers
 import zipfile
 import tempfile
+from collections import defaultdict
 
-from flask import request, send_file, make_response, after_this_request
+from flask import request
+from mypy_extensions import TypedDict
 
 import psef.auth as auth
 import psef.files
@@ -20,15 +24,24 @@ from psef import app, current_user
 from psef.errors import APICodes, APIException
 from psef.models import FileOwner, db
 from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
+    JSONResponse, EmptyResponse, ExtendedJSONResponse, jsonify,
     ensure_json_dict, extended_jsonify, ensure_keys_in_dict,
-    make_empty_response, filter_single_or_404
+    make_empty_response
 )
 
 from . import api
+from ..model_types import DbColumn
 
-if t.TYPE_CHECKING:  # pragma: no cover
-    import werkzeug
+Feedback = TypedDict(  # pylint: disable=invalid-name
+    'Feedback', {
+        'user': t.MutableMapping[int, t.MutableMapping[int, str]],
+        'linter': t.MutableMapping[
+            int,
+            t.MutableMapping[int, t.List[t.Tuple[str, models.LinterComment]]],
+        ],
+        'general': str
+    }
+)
 
 
 @api.route("/submissions/<int:submission_id>", methods=['GET'])
@@ -95,8 +108,8 @@ def get_feedback(work: models.Work) -> t.Mapping[str, str]:
 
     path, name = psef.files.random_file_path('MIRROR_UPLOAD_DIR')
 
-    with open(path, 'w') as fp:
-        fp.write(
+    with open(path, 'w') as f:
+        f.write(
             'Assignment: {}\n'
             'Grade: {}\n'
             'General feedback:\n{}\n\n'
@@ -105,11 +118,12 @@ def get_feedback(work: models.Work) -> t.Mapping[str, str]:
             )
         )
         for comment in comments:
-            fp.write(f'{comment}\n')
+            f.write(f'{comment}\n')
 
-        fp.write('\nLinter comments:\n')
-        for lcomment in linter_comments:
-            fp.write(f'{lcomment}\n')
+        if helpers.has_feature('LINTERS'):
+            f.write('\nLinter comments:\n')
+            for lcomment in linter_comments:
+                f.write(f'{lcomment}\n')
 
     return {'name': name, 'output_name': filename}
 
@@ -136,7 +150,7 @@ def get_zip(work: models.Work,
     code = helpers.filter_single_or_404(
         models.File,
         models.File.work_id == work.id,
-        models.File.parent_id == None,  # NOQA
+        t.cast(DbColumn[int], models.File.parent_id).is_(None),
     )
 
     path, name = psef.files.random_file_path('MIRROR_UPLOAD_DIR')
@@ -144,10 +158,10 @@ def get_zip(work: models.Work,
     with open(
         path,
         'w+b',
-    ) as fp, tempfile.TemporaryDirectory(
+    ) as f, tempfile.TemporaryDirectory(
         suffix='dir',
     ) as tmpdir, zipfile.ZipFile(
-        fp,
+        f,
         'w',
         compression=zipfile.ZIP_DEFLATED,
     ) as zipf:
@@ -156,7 +170,7 @@ def get_zip(work: models.Work,
 
         zipf.write(tmpdir, code.name)
 
-        for root, dirs, files in os.walk(tmpdir):
+        for root, _dirs, files in os.walk(tmpdir):
             for file in files:
                 path = os.path.join(root, file)
                 zipf.write(path, path[len(tmpdir):])
@@ -198,6 +212,56 @@ def delete_submission(submission_id: int) -> EmptyResponse:
     db.session.commit()
 
     return make_empty_response()
+
+
+@api.route('/submissions/<int:submission_id>/feedbacks/', methods=['GET'])
+def get_feedback_from_submission(submission_id: int) -> JSONResponse[Feedback]:
+    """Get all feedback for a submission
+
+    .. :quickref: Submission; Get all (linter, user and general) feedback.
+
+    :>json general: The general feedback given on this submission.
+    :>json user: A mapping between file id and a mapping that is between line
+        and feedback. So for example: ``{5: {0: 'Nice job!'}}`` means that file
+        with ``id`` 5 has feedback on line 0.
+    :>json linter: A mapping that is almost the same the user feedback mapping,
+        only the final key is not a string but a list of tuples where the first
+        item is the linter code and the second item is a
+        :class:`.models.LinterComment`.
+    """
+    work = helpers.get_or_404(models.Work, submission_id)
+    auth.ensure_can_see_grade(work)
+
+    res: Feedback = {
+        'general': work.comment or '',
+        'user': defaultdict(dict),
+        'linter': defaultdict(lambda: defaultdict(list)),
+    }
+
+    comments = models.Comment.query.filter(
+        t.cast(DbColumn[models.File], models.Comment.file).has(work=work),
+    ).order_by(
+        t.cast(DbColumn[int], models.Comment.file_id).asc(),
+        t.cast(DbColumn[int], models.Comment.line).asc(),
+    )
+
+    for comment in comments:
+        res['user'][comment.file_id][comment.line] = comment.comment
+
+    linter_comments = models.LinterComment.query.filter(
+        t.cast(DbColumn[models.File], models.LinterComment.file)
+        .has(work=work)
+    ).order_by(
+        t.cast(DbColumn[int], models.LinterComment.file_id).asc(),
+        t.cast(DbColumn[int], models.LinterComment.line).asc(),
+    )
+    if helpers.has_feature('LINTERS'):
+        for lcomment in linter_comments:
+            res['linter'][lcomment.file_id][lcomment.line].append(
+                (lcomment.linter_code, lcomment)
+            )
+
+    return jsonify(res)
 
 
 @api.route("/submissions/<int:submission_id>/rubrics/", methods=['GET'])
@@ -524,14 +588,11 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
     # `create_dir` means that the last file should be a dir or not.
     patharr, create_dir = psef.files.split_path(pathname)
 
-    if (not create_dir and
-            request.content_length and
-            request.content_length > app.config['MAX_UPLOAD_SIZE']):
-        raise APIException(
-            'Uploaded files are too big.', 'Request is bigger than maximum '
-            f'upload size of {app.config["MAX_UPLOAD_SIZE"]}.',
-            APICodes.REQUEST_TOO_LARGE, 400
-        )
+    if (
+        not create_dir and request.content_length and
+        request.content_length > app.config['MAX_UPLOAD_SIZE']
+    ):
+        helpers.raise_file_too_big_exception()
 
     if len(patharr) < 2:
         raise APIException(
@@ -545,7 +606,7 @@ def create_new_file(submission_id: int) -> JSONResponse[t.Mapping[str, t.Any]]:
         models.File.work_id == submission_id,
         models.File.fileowner != exclude_owner,
         models.File.name == patharr[0],
-        models.File.parent_id == None,  # NOQA
+        t.cast(DbColumn[int], models.File.parent_id).is_(None),
     )
 
     code = None
@@ -660,9 +721,8 @@ def get_dir_contents(submission_id: int
         return jsonify(psef.files.get_stat_information(found_file))
     else:
         file = helpers.filter_single_or_404(
-            models.File,
-            models.File.work_id == submission_id,
-            models.File.parent_id == None,  # NOQA
+            models.File, models.File.work_id == submission_id,
+            t.cast(DbColumn[int], models.File.parent_id).is_(None),
             models.File.fileowner != exclude_owner
         )
 

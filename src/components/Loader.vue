@@ -1,13 +1,13 @@
 <template>
-    <div class="loader" v-if="center">
-        <icon name="refresh" :scale="scale" spin></icon>
-    </div>
-    <icon v-else name="refresh" :scale="scale" spin></icon>
+<div class="center loader" :class="{ 'page-loader': pageLoader }" v-if="center">
+    <icon name="circle-o-notch" :scale="scale" spin></icon>
+</div>
+<icon class="loader" v-else name="circle-o-notch" :scale="scale" spin></icon>
 </template>
 
 <script>
 import Icon from 'vue-awesome/components/Icon';
-import 'vue-awesome/icons/refresh';
+import 'vue-awesome/icons/circle-o-notch';
 
 export default {
     name: 'loader',
@@ -16,6 +16,10 @@ export default {
         center: {
             type: Boolean,
             default: true,
+        },
+        pageLoader: {
+            type: Boolean,
+            default: false,
         },
         scale: {
             type: Number,
@@ -30,12 +34,12 @@ export default {
 </script>
 
 <style lang="less" scoped>
-.loader {
-    display: -webkit-flex; /* Safari */
+.center.loader {
     display: flex;
-    -webkit-align-items: center; /* Safari 7.0+ */
     align-items: center;
-    -webkit-justify-content: center;
     justify-content: center;
+    &.page-loader {
+        flex: 1 1 auto;
+    }
 }
 </style>

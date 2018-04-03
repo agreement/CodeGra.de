@@ -87,9 +87,7 @@ def test_login(
             'get',
             '/api/v1/login',
             401 if error else 200,
-            headers={
-                'Authorization': f'Bearer {access_token}'
-            }
+            headers={'Authorization': f'Bearer {access_token}'}
         )
 
     test_client.req('get', '/api/v1/login', 401)
@@ -98,7 +96,7 @@ def test_login(
 @pytest.mark.parametrize(
     'named_user', [
         does_have_permission('Thomas Schaper'),
-        'Stupid1',
+        'Student1',
     ],
     indirect=True
 )
@@ -125,7 +123,7 @@ def test_extended_get_login(test_client, named_user, logged_in, request):
     'named_user,roles',
     [
         ('Thomas Schaper', ['Student', 'TA', 'TA', None]),
-        ('Stupid1', [None, None, 'Student', 'Student']),
+        ('Student1', [None, None, 'Student', 'Student']),
         ('admin', [None, None, None, None]),
     ],
     indirect=['named_user'],
@@ -181,8 +179,10 @@ def test_login_duplicate_email(
             'post',
             f'/api/v1/login',
             200,
-            data={'username': user.username,
-                  'password': 'a'},
+            data={
+                'username': user.username,
+                'password': 'a'
+            },
             result={
                 'user':
                     {
@@ -437,9 +437,7 @@ def test_reset_password(
         'patch',
         f'/api/v1/login?type=reset_email',
         204,
-        data={
-            'username': ta_user.username
-        }
+        data={'username': ta_user.username}
     )
     assert stubmailer.called
     msg = str(stubmailer.msg)
@@ -457,45 +455,55 @@ def test_reset_password(
         'patch',
         f'/api/v1/login?type=reset_password',
         400,
-        data={'user_id': user_id,
-              'new_password': '',
-              'token': token},
+        data={
+            'user_id': user_id,
+            'new_password': '',
+            'token': token
+        },
         result=error_template,
     )
     test_client.req(
         'patch',
         f'/api/v1/login?type=reset_password',
         403,
-        data={'user_id': user_id,
-              'new_password': 's',
-              'token': token + 's'},
+        data={
+            'user_id': user_id,
+            'new_password': 's',
+            'token': token + 's'
+        },
         result=error_template,
     )
     test_client.req(
         'patch',
         f'/api/v1/login?type=reset_password',
         403,
-        data={'user_id': user_id + 1,
-              'new_password': 's',
-              'token': token},
+        data={
+            'user_id': user_id + 1,
+            'new_password': 's',
+            'token': token
+        },
         result=error_template,
     )
     atoken = test_client.req(
         'patch',
         f'/api/v1/login?type=reset_password',
         200,
-        data={'user_id': user_id,
-              'new_password': '2o2',
-              'token': token},
+        data={
+            'user_id': user_id,
+            'new_password': '2o2',
+            'token': token
+        },
         result={'access_token': str},
     )['access_token']
     test_client.req(
         'patch',
         f'/api/v1/login?type=reset_password',
         403,
-        data={'user_id': user_id,
-              'new_password': 'wow',
-              'token': token},
+        data={
+            'user_id': user_id,
+            'new_password': 'wow',
+            'token': token
+        },
         result=error_template,
     )
 
@@ -504,18 +512,18 @@ def test_reset_password(
             'get',
             '/api/v1/login',
             200,
-            headers={
-                'Authorization': f'Bearer {atoken}'
-            }
+            headers={'Authorization': f'Bearer {atoken}'}
         )
 
     test_client.req(
         'patch',
         f'/api/v1/login?type=reset_password',
         403,
-        data={'user_id': user_id,
-              'new_password': '2o2',
-              'token': token},
+        data={
+            'user_id': user_id,
+            'new_password': '2o2',
+            'token': token
+        },
         result=error_template,
     )
 
@@ -536,7 +544,7 @@ def test_reset_password(
     'named_user',
     [
         ('Thomas Schaper'),
-        ('Stupid1'),
+        ('Student1'),
         ('admin'),
         perm_error(error=401)('NOT_LOGGED_IN'),
     ],

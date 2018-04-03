@@ -85,10 +85,10 @@ ALL_LINTERS = sorted(['Flake8', 'MixedWhitespace', 'Pylint'])
     indirect=['filename'],
 )
 @pytest.mark.parametrize(
-    'named_user,use_ta', [
-        ('Thomas Schaper', False),
-        get_works(perm_error(error=403)(('Stupid1', True))),
-        get_works(perm_error(error=403)(('Stupid1', False))),
+    'named_user,use_teacher', [
+        ('Robin', False),
+        get_works(perm_error(error=403)(('Student1', True))),
+        get_works(perm_error(error=403)(('Student1', False))),
         perm_error(error=403)(('admin', False)),
         perm_error(error=401)(('NOT_LOGGED_IN', False)),
         perm_error(error=401)(('NOT_LOGGED_IN', True)),
@@ -96,8 +96,9 @@ ALL_LINTERS = sorted(['Flake8', 'MixedWhitespace', 'Pylint'])
     indirect=['named_user']
 )
 def test_linters(
-    ta_user, named_user, test_client, logged_in, use_ta, assignment_real_works,
-    linter_cfgs_exp, request, error_template, session, monkeypatch_celery
+    teacher_user, named_user, test_client, logged_in, use_teacher,
+    assignment_real_works, linter_cfgs_exp, request, error_template, session,
+    monkeypatch_celery
 ):
     assignment, single_work = assignment_real_works
     assig_id = assignment.id
@@ -111,11 +112,11 @@ def test_linters(
 
     get_work = request.node.get_marker('get_works')
     perm_err = request.node.get_marker('perm_error')
-    set_perm_err = (not use_ta) and perm_err
+    set_perm_err = (not use_teacher) and perm_err
     if set_perm_err:
         run_err['error'] = set_perm_err.kwargs['error']
 
-    with logged_in(ta_user if use_ta else named_user):
+    with logged_in(teacher_user if use_teacher else named_user):
         for linter, cfg, _ in linter_cfgs_exp:
             data = {}
             if linter != False:  # NOQA
@@ -262,7 +263,7 @@ def test_linters(
 
 @pytest.mark.parametrize('with_works', [True], indirect=True)
 def test_whitespace_linter(
-    ta_user, test_client, assignment, logged_in, monkeypatch
+    teacher_user, test_client, assignment, logged_in, monkeypatch
 ):
     called = False
 
@@ -272,13 +273,15 @@ def test_whitespace_linter(
 
     monkeypatch.setattr(psef.tasks, 'lint_instances', patch)
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'post',
             f'/api/v1/assignments/{assignment.id}/linter',
             200,
-            data={'name': 'MixedWhitespace',
-                  'cfg': 'ANY'},
+            data={
+                'name': 'MixedWhitespace',
+                'cfg': 'ANY'
+            },
             result={
                 'done': 4,
                 'working': 0,
@@ -303,17 +306,19 @@ def test_whitespace_linter(
 )
 def test_lint_later_submission(
     test_client, logged_in, assignment, exps, error_template, session,
-    filename, ta_user, student_user, monkeypatch_celery
+    filename, teacher_user, student_user, monkeypatch_celery
 ):
     assig_id = assignment.id
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'post',
             f'/api/v1/assignments/{assig_id}/linter',
             200,
-            data={'name': 'Flake8',
-                  'cfg': ''},
+            data={
+                'name': 'Flake8',
+                'cfg': ''
+            },
             result={
                 'done': 0,
                 'working': 0,
@@ -337,7 +342,7 @@ def test_lint_later_submission(
             }
         )
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         code_id = session.query(m.File.id).filter(
             m.File.work_id == single_work['id'],
             m.File.parent != None,  # NOQA
@@ -367,7 +372,8 @@ def test_lint_later_submission(
 
 @pytest.mark.parametrize('with_works', [True], indirect=True)
 def test_already_running_linter(
-    ta_user, test_client, assignment, logged_in, error_template, monkeypatch
+    teacher_user, test_client, assignment, logged_in, error_template,
+    monkeypatch
 ):
     called = False
 
@@ -377,13 +383,15 @@ def test_already_running_linter(
 
     monkeypatch.setattr(psef.tasks, 'lint_instances', patch)
 
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'post',
             f'/api/v1/assignments/{assignment.id}/linter',
             200,
-            data={'name': 'Flake8',
-                  'cfg': 'ANY'},
+            data={
+                'name': 'Flake8',
+                'cfg': 'ANY'
+            },
             result={
                 'done': 0,
                 'working': 4,
@@ -411,22 +419,87 @@ def test_already_running_linter(
             'post',
             f'/api/v1/assignments/{assignment.id}/linter',
             409,
-            data={'name': 'Flake8',
-                  'cfg': 'ANY'},
+            data={
+                'name': 'Flake8',
+                'cfg': 'ANY'
+            },
             result=error_template,
         )
 
 
 @pytest.mark.parametrize('with_works', [True], indirect=True)
 def test_non_existing_linter(
-    ta_user, test_client, assignment, logged_in, error_template
+    teacher_user, test_client, assignment, logged_in, error_template
 ):
-    with logged_in(ta_user):
+    with logged_in(teacher_user):
         test_client.req(
             'post',
             f'/api/v1/assignments/{assignment.id}/linter',
             404,
-            data={'name': 'NON_EXISTING',
-                  'cfg': 'ERROR'},
+            data={
+                'name': 'NON_EXISTING',
+                'cfg': 'ERROR'
+            },
             result=error_template
         )
+
+
+@pytest.mark.parametrize(
+    'filename,exps',
+    [
+        ('test_flake8.tar.gz', ['W191', 'E211', 'E201', 'E202']),
+    ],
+)
+def test_lint_later_submission_disabled_linters(
+    test_client, logged_in, assignment, exps, error_template, session,
+    filename, ta_user, student_user, monkeypatch_celery, teacher_user,
+    monkeypatch, app
+):
+    assig_id = assignment.id
+
+    with logged_in(teacher_user):
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assig_id}/linter',
+            200,
+            data={
+                'name': 'Flake8',
+                'cfg': ''
+            },
+            result={
+                'done': 0,
+                'working': 0,
+                'id': str,
+                'crashed': 0,
+                'name': 'Flake8',
+            }
+        )
+
+    monkeypatch.setitem(app.config['FEATURES'], 'LINTERS', False)
+
+    with logged_in(student_user):
+        single_work = test_client.req(
+            'post',
+            f'/api/v1/assignments/{assig_id}/submission',
+            201,
+            real_data={
+                'file':
+                    (
+                        f'{os.path.dirname(__file__)}/../'
+                        f'test_data/test_linter/{filename}', filename
+                    )
+            }
+        )
+
+    with logged_in(ta_user):
+        code_id = session.query(m.File.id).filter(
+            m.File.work_id == single_work['id'],
+            m.File.parent != None,  # NOQA
+            m.File.name != '__init__.py',
+        ).first()[0]
+
+        comments = session.query(m.LinterComment).filter_by(
+            file_id=code_id,
+        ).all()
+
+        assert not comments, "Make sure linter did not run"

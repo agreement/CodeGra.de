@@ -27,6 +27,7 @@ config.features = Object.assign({}, {
     rubrics: true,
     automatic_lti_role: true,
     LTI: true,
+    linters: true,
     incremental_rubric_submission: true,
     register: true,
 }, userConfig.Features);

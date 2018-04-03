@@ -1,42 +1,45 @@
 <template>
-    <div class="divide-submissions">
-        <div class="form-control">
-            <div class="grader-list">
-                <b-input-group class="grader">
-                    <b class="input-group-addon">Grader</b>
-                    <input class="form-control"
-                           style="text-align: right;"
-                           disabled
-                           value="Weight"/>
-                    <p class="input-group-addon"
-                       style="width: 5em;">
-                        Percent
-                    </p>
-                </b-input-group>
-                <b-input-group v-for="grader, i in graders"
-                               :key="grader.id"
-                               class="grader">
-                    <b-form-checkbox class="input-group-addon"
-                                     @change="grader.weight = grader.weight ? 0 : 1"
-                                     :checked="grader.weight != 0">
+<div class="divide-submissions">
+    <table class="table table-striped grader-list">
+        <thead>
+            <tr>
+                <th class="name">Grader</th>
+                <th class="weight">Weight</th>
+                <th class="percentage">Percent</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr v-for="grader, i in graders"
+                class="grader">
+                <td class="name">
+                    <b-form-checkbox @change="graderChanged(i)"
+                                    :checked="grader.weight != 0">
                         {{ grader.name }}
                     </b-form-checkbox>
+                </td>
+                <td class="weight">
                     <input class="form-control"
-                           type="number"
-                           min="0"
-                           step="0.01"
-                           style="min-width: 3em;"
-                           v-model.number="grader.weight"/>
-                    <p class="input-group-addon grader-percentage"
-                       style="width: 5em;">
-                        {{ (100 * grader.weight / totalWeight).toFixed(1) }}%
-                    </p>
-                </b-input-group>
-            </div>
-            <submit-button label="Divide" @click="divideAssignments" ref="submitButton" v-if="graders.length"/>
-            <span v-else>No graders found for this assignment</span>
-        </div>
-    </div>
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        :ref="`inputField${i}`"
+                        style="min-width: 3em;"
+                        v-model.number="grader.weight"/>
+                </td>
+                <td class="percentage">
+                    {{ (100 * grader.weight / totalWeight).toFixed(1) }}%
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <submit-button label="Divide"
+                   @click="divideAssignments"
+                   ref="submitButton"
+                   v-if="graders.length"/>
+    <span v-else>No graders found for this assignment</span>
+</div>
 </template>
 
 <script>
@@ -60,25 +63,30 @@ export default {
 
     computed: {
         totalWeight() {
-            return Math.max(
-                this.graders.reduce((tot, grader) =>
-                                    tot + (grader.weight || 0), 0),
-                1);
+            const graderWeight = this.graders.reduce(
+                (tot, grader) => tot + (grader.weight || 0),
+                0,
+            );
+            return Math.max(graderWeight, 1);
         },
     },
 
     methods: {
+        graderChanged(i) {
+            this.graders[i].weight = this.graders[i].weight ? 0 : 1;
+            const field = this.$refs[`inputField${i}`][0];
+            field.focus();
+        },
+
         divideAssignments() {
-            const req = this.$http.patch(
-                `/api/v1/assignments/${this.assignment.id}/divide`, {
-                    graders: Object.values(this.graders)
-                        .filter(x => x.weight !== 0)
-                        .reduce((res, g) => {
-                            res[`${g.id}`] = g.weight;
-                            return res;
-                        }, {}),
-                },
-            );
+            const req = this.$http.patch(`/api/v1/assignments/${this.assignment.id}/divide`, {
+                graders: Object.values(this.graders)
+                    .filter(x => x.weight !== 0)
+                    .reduce((res, g) => {
+                        res[`${g.id}`] = g.weight;
+                        return res;
+                    }, {}),
+            });
             this.$refs.submitButton.submit(req.then(() => {
                 this.$emit('divided');
             }, (err) => {
@@ -95,26 +103,70 @@ export default {
 </script>
 
 <style lang="less" scoped>
+@import "~mixins.less";
+
 .grader-list {
-    margin-bottom: .5rem;
+    margin-bottom: 1rem;
+}
+
+th {
+    border-top: 0;
 }
 
 .grader {
-    width: 100%;
+    border-bottom: 1px solid #dee2e6;
 
-    &:not(:first-child) * {
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-    }
-
-    &:not(:last-child) * {
-        border-bottom-left-radius: 0;
-        border-bottom-right-radius: 0;
-        margin-bottom: -1px;
+    #app.dark & {
+        border-bottom: 1px solid @color-primary-darker;
     }
 }
 
-.grader-percentage {
+tbody .weight {
+    padding: 0;
+
+    input {
+        padding: .75rem;
+        border: none;
+        border-bottom: 1px solid transparent !important;
+        border-radius: 0;
+        background: transparent !important;
+
+        &:not(:disabled):hover {
+            border-color: @color-primary !important;
+
+            #app.dark & {
+                border-color: @color-primary-darkest !important;
+            }
+        }
+    }
+}
+
+.weight,
+.percentage {
     text-align: right;
+}
+
+.name,
+.percentage {
+    width: 1px;
+    white-space: nowrap;
+}
+
+.submit-button {
+    display: flex;
+    justify-content: flex-end;
+    margin-right: 1rem;
+}
+</style>
+
+<style lang="less">
+.grader-list {
+    .custom-checkbox {
+        display: flex;
+
+        label {
+            width: 100%;
+        }
+    }
 }
 </style>

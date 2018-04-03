@@ -13,17 +13,8 @@
       "can_see_others_work",
       "can_see_grade_before_open",
       "can_see_assignments",
-      "can_edit_assignment_info",
       "can_assign_graders",
-      "can_edit_cgignore",
-      "can_upload_bb_zip",
-      "can_edit_course_roles",
-      "can_edit_course_users",
-      "can_create_assignment",
-      "can_use_linter",
       "can_see_assignee",
-      "can_update_grader_status",
-      "manage_rubrics",
       "can_edit_others_work",
       "can_view_own_teacher_files",
       "can_see_hidden_assignments"
@@ -54,7 +45,8 @@
       "can_view_own_teacher_files",
       "can_see_grade_history",
       "can_submit_own_work",
-      "can_delete_submission"
+      "can_delete_submission",
+      "can_submit_others_work"
     ],
     "initial_role": true
   },

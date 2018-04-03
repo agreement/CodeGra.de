@@ -24,6 +24,11 @@
 # master = true
 # processes = 5
 
+# Thread should work, however they are not tested in our CI, nor are they used
+# in production anywhere as far as we are aware. It is probably better to keep
+# threads disabled and simply use processes.
+# enable-threads = false
+
 # Set debug to off
 # env = DEBUG=false
 
@@ -190,6 +195,9 @@
 
 # Should LTI be enabled.
 # LTI = true
+
+# Should linters be enabled
+# linters = true
 
 # Should rubrics be submitted incrementally, so if a user selects a item should
 # this be automatically be submitted to the server, or should it only be

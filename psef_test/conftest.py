@@ -82,9 +82,10 @@ def app(request):
                 self.app = app
 
             def __call__(self, environ, start_response):
-                if (_TOKENS and
-                        _TOKENS[-1] is not None and
-                        'HTTP_AUTHORIZATION' not in environ):
+                if (
+                    _TOKENS and _TOKENS[-1] is not None and
+                    'HTTP_AUTHORIZATION' not in environ
+                ):
                     environ['HTTP_AUTHORIZATION'] = f'Bearer {_TOKENS[-1]}'
                 return self.app(environ, start_response)
 
@@ -210,7 +211,7 @@ def named_user(session, request):
 
 @pytest.fixture
 def student_user(session):
-    return LocalProxy(session.query(m.User).filter_by(name="Stupid1").one)
+    return LocalProxy(session.query(m.User).filter_by(name="Student1").one)
 
 
 @pytest.fixture
@@ -346,7 +347,7 @@ def assignment(course_name, state_is_hidden, session, request, with_works):
     session.commit()
 
     if with_works:
-        names = ['Stupid1', 'Stupid2', 'Stupid3', 'Œlµo']
+        names = ['Student1', 'Student2', 'Student3', 'Œlµo']
         if with_works != 'single':
             names += names
         for uname in names:
@@ -400,7 +401,7 @@ def assignment_real_works(
     assignment,
 ):
     res = []
-    for name in ['Stupid1', 'Stupid2', 'Œlµo']:
+    for name in ['Student1', 'Student2', 'Œlµo']:
         user = m.User.query.filter_by(name=name).one()
         with logged_in(user):
             res.append(

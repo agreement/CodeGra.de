@@ -24,6 +24,10 @@
     <img src="https://5ezz6jithh.execute-api.us-east-1.amazonaws.com/prod/lambda-shield-redirect?user=CodeGra-de&repo=CodeGra.de"
       alt="Source Lines of Code" title="Source Lines of Code">
   </a>
+  <a href="https://github.com/CodeGra-de/CodeGra.de">
+    <img src="https://mperlet.github.io/pybadge/badges/10.svg"
+      alt="10.0" title="Pylint score">
+  </a>
   <a href="https://pyup.io/repos/github/CodeGra-de/CodeGra.de/">
     <img src="https://pyup.io/repos/github/CodeGra-de/CodeGra.de/shield.svg"
       alt="Python updates" title="Python updates">
@@ -98,72 +102,65 @@
   </a>
 </p>
 
-A code review tool
+# CodeGra.de
+CodeGra.de is a blended learning application designed especially for programming
+education. It makes grading and handing in programming exercises more insightful
+and effective for students and more efficient for teachers.
+Where programming exercises are currently reviewed in a classical and
+counter-intuitive way, resulting in only little and vague feedback, CodeGra.de
+creates the missing intuitive environment for reviewing programming exercises.
 
-## Build Setup
+This is achieved using some of the key-features CodeGra.de provides:
+- Line by line feedback making it possible to specifically write feedback for a
+specific part of the code.
+- Rubrics per assignment to aid with grading.
+- [CodeGra.de Filesystem](#codegrade-filesystem) enabling both students and teachers to access and hand
+in files on the CodeGra.de system locally without any overhead.
+- [CodeGra.de editor plugins](#codegrade-editor-plugins) allowing the teacher to locally review programming
+assignments and fill in rubrics using the editor of choice.
 
-### PostgreSQL initial setup for local development
+## Getting Started
+A local installation of CodeGra.de can be created using the running instructions
+on in the [CodeGra.de documentation](https://docs.codegra.de/running.html). CodeGra.de can be run in both development mode and production mode, both are explained in the documentation.
 
-```bash
-sudo apt-get install postgresql postgresql-contrib
-```
+### CodeGra.de filesystem
+The CodeGra.de filesystem (or _CodeGra.fs_) can be used to mount a local CodeGra.de instance on your computer to browse the assignments and files on the server. The filesystem can be used for students to locally work on the CodeGra.de mount and thus automatically _hand in_ the assignment with each save. For teachers the filesystem can be used to grade work without any overhead locally using a preferred editor.
 
-Set a password for the postgres user:
-```bash
-sudo passwd postgres
-```
+More information on installing and using the CodeGra.de filesystem can be found on <https://github.com/CodeGra-de/CodeGra.fs>.
 
-Change to the postgres user to setup the server and database (only when using
-Arch):
-```bash
-sudo -u postgres initdb -D "/var/lib/postgres/data"
-```
+#### CodeGra.de editor plugins
+Accompanying the CodeGra.de filesystem are the editor plugins. These plugins allow for easy and intuitive grading of work locally in your favourite editor. By using the combination of the filesystem and an editor plugin, overhead during grading can be reduced to a bare minimum and all focus can be on the actual grading of the work.
 
-Startup postgres server:
-```bash
-sudo systemctl enable postgresql.service
-sudo systemctl start postgresql.serive
-```
+As of writing, there are editor plugins for the following editors:
+* [Vim (CodeGra.vim)](https://github.com/CodeGra-de/CodeGra.vim)
+* [Atom (CodeGra.atom)](https://github.com/CodeGra-de/CodeGra.atom)
+* [Emacs (CodeGra.el)](https://github.com/CodeGra-de/CodeGra.el)
 
-Change to the postgres user again and execute the psql shell (replace $USERNAME
-with your username):
-```bash
-sudo -u postgres -i 
-createuser -s $USERNAME
-exit
-sudo -u postgres psql
-```
+## Technologies used
+* [Vue.js](https://github.com/vuejs/vue) - A front-end JavaScript UI framework used to create CodeGra.de's front-end.
+* [Flask](https://github.com/pallets/flask) - A python back-end WSGI framework used to create CodeGra.de's back-end.
+* [PostgreSQL](https://github.com/postgres/postgres) - The database used for CodeGra.de.
+* [Celery](https://github.com/celery/celery) - Celery is used to provide a non blocking background queue.
 
-Create the database:
-```sql
-create database codegrade_dev;
-\q
-```
+## Contributing
+By contributing to this product you agree that all code you write will be released under the AGPL license, version 3. See `LICENSE` for details.
 
-### Installing dependencies
+Please conduct `CONTRIBUTING.md` for further details on contributing to CodeGra.de.
 
-```bash
-make install_deps
-```
+## Authors
+CodeGra.de is currently maintained and actively developed by __Devin Hillenius__, __Olmo Kramer__, __Thomas Schaper__ and __Youri Voet__.
 
-### Starting dev server
+Please feel free to contact us at <info@codegra.de> for more information or commercial support.
 
-And later to start the dev server do
-```bash
-make start_dev_server
-# and in another terminal
-make start_dev_npm
-```
+### History
+CodeGra.de originated as project in the Project Software Engineering course at the University of Amsterdam. The project emerged from our own frustrations as both students and teaching assistants in computer science at the UvA. As students we lacked meaningful feedback to give us insight in our grade for programming assignments. And as teaching assistants the amount of overhead required to actually grade programming assignments in the traditional way, in addition to the lack of providing useful feedback in a counter-intuitive environment made the work very frustrating at times. This still drives us to create a product that can revolutionise programming education to this date.
+### Acknowledgements
+The initial version of CodeGra.de was created for a course at the University of Amsterdam and was developed by _Leon Bartelsman_, _Ewoud Bouman_, _Harm van Eekeren_, _Wicher Heldring_, _Devin Hillenius_, _Niek Kabel_, _Erik Kooistra_, _Olmo Kramer_, _Sebastian Melzer_, _Thomas Schaper_, _Bram Snijders_ and _Youri Voet_.
 
-### Resetting database
+Furthermore, we want to thank the University of Amsterdam for their support of this project during it's first year of development.
 
-Sometimes just migrating is not enough and this will fail with a bunch of errors.
-In this case we need to remove and add the database again:
+## Full Documentation
+The full documentation of CodeGra.de can be found on our website: <https://docs.codegra.de/>.
 
-```bash
-make reset_db
-```
-
-However you should never remove the `migrations` folder. If you added a field to
-the database you should do `make migrate` and edit the migration file as needed
-and include it in your commit.
+## License
+CodeGra.de is licensed under the [GNU Affero General Public License v3.0](https://www.gnu.org/licenses/agpl-3.0.html).

@@ -7,6 +7,7 @@ const getters = {
     id: state => state.id,
     snippets: state => state.snippets,
     name: state => state.name,
+    username: state => state.username,
     canSeeHidden: state => state.canSeeHidden,
 };
 
@@ -22,7 +23,7 @@ const actions = {
                 if (err.response) {
                     reject(err.response.data);
                 } else {
-                    reject(null);
+                    reject(new Error('Login failed for a unknown reason!'));
                 }
             });
         });
@@ -46,10 +47,10 @@ const actions = {
         });
     },
     logout({ commit }) {
-        return new Promise((resolve) => {
-            commit(types.LOGOUT);
-            resolve();
-        });
+        return Promise.all([
+            commit(`courses/${types.CLEAR_COURSES}`, null, { root: true }),
+            commit(types.LOGOUT),
+        ]);
     },
     verifyLogin({ commit, state }) {
         return new Promise((resolve, reject) => {
@@ -66,7 +67,9 @@ const actions = {
             });
         });
     },
-    updateUserInfo({ commit }, { name, email, oldPw, newPw }) {
+    updateUserInfo({ commit }, {
+        name, email, oldPw, newPw,
+    }) {
         return axios.patch('/api/v1/login', {
             name,
             email,
@@ -74,6 +77,13 @@ const actions = {
             new_password: newPw,
         }).then(() => {
             commit(types.UPDATE_USER_INFO, { name, email });
+        });
+    },
+
+
+    updateAccessToken({ dispatch, commit }, newToken) {
+        return dispatch('logout').then(() => {
+            commit(types.SET_ACCESS_TOKEN, newToken);
         });
     },
 };
@@ -87,7 +97,7 @@ const mutations = {
         state.email = userdata.email;
         state.name = userdata.name;
         state.canSeeHidden = userdata.hidden;
-        state.usernmae = userdata.username;
+        state.username = userdata.username;
     },
     [types.SNIPPETS](state, snippets) {
         state.snippets = snippets;
@@ -99,10 +109,15 @@ const mutations = {
         state.snippets = null;
         state.canSeeHidden = false;
         state.jwtToken = null;
+        state.username = null;
         Vue.prototype.$clearPermissions();
     },
     [types.NEW_SNIPPET](state, { key, value }) {
-        state.snippets[key] = { value };
+        if (typeof value === 'string') {
+            state.snippets[key] = { value };
+        } else {
+            state.snippets[key] = value;
+        }
     },
     [types.REMOVE_SNIPPET](state, key) {
         delete state.snippets[key];
@@ -111,9 +126,8 @@ const mutations = {
         state.name = name;
         state.email = email;
     },
-    [types.UPDATE_ACCESS_TOKEN](state, data) {
-        mutations[types.LOGOUT](state);
-        state.jwtToken = data.access_token;
+    [types.SET_ACCESS_TOKEN](state, accessToken) {
+        state.jwtToken = accessToken;
     },
     [types.CLEAR_CACHE](state) {
         state.snippets = {};

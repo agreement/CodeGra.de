@@ -1,27 +1,31 @@
 <template>
     <b-card class="feedback-area non-editable" v-if="(done && !editing)">
-        <div v-on:click="changeFeedback()" :style="{'min-height': '1em'}">
+        <div @click="changeFeedback($event)" :style="{'min-height': '1em'}">
             <div v-html="newlines($htmlEscape(serverFeedback))"></div>
         </div>
     </b-card>
-    <div class="feedback-area" v-else>
+    <div class="feedback-area edit" v-else
+         @click="$event.stopPropagation()">
         <b-collapse class="collapsep"
                     v-if="canUseSnippets"
                     ref="snippetDialog"
-                    :id="`collapse${line}`">
-            <b-input-group>
-                <input class="input form-control"
-                       v-model="snippetKey"
-                       @keydown.ctrl.enter="addSnippet"/>
-                <b-input-group-button>
-                    <submit-button ref="addSnippetButton"
-                                   class="add-snippet-btn"
-                                   label=""
-                                   @click="addSnippet">
-                        <icon :scale="1" name="check"/>
-                    </submit-button>
-                </b-input-group-button>
-            </b-input-group>
+                    :id="`collapse${line}`"
+                    style="margin: 0">
+            <div>
+                <b-input-group class="input-snippet-group">
+                    <input class="input form-control"
+                           v-model="snippetKey"
+                           @keydown.ctrl.enter="addSnippet"/>
+                    <b-input-group-append>
+                        <submit-button ref="addSnippetButton"
+                                    class="add-snippet-btn"
+                                    label=""
+                                    @click="addSnippet">
+                            <icon :scale="1" name="check"/>
+                        </submit-button>
+                    </b-input-group-append>
+                </b-input-group>
+            </div>
         </b-collapse>
         <b-input-group class="editable-area">
             <textarea ref="field"
@@ -31,24 +35,29 @@
                       @keydown.tab="expandSnippet"
                       @keydown.ctrl.enter="submitFeedback"
                       @keydown.esc="revertFeedback"/>
-            <b-input-group-button class="minor-buttons">
+            <div class="minor-buttons btn-group-vertical">
                 <b-btn v-b-toggle="`collapse${line}`"
+                       class="snippet-btn"
                        variant="secondary"
                        v-if="canUseSnippets"
-                       v-on:click="findSnippet">
+                       @click="findSnippet">
                     <icon name="plus" aria-hidden="true"></icon>
                 </b-btn>
-                <b-button variant="danger" @click="cancelFeedback">
-                    <icon name="refresh" spin v-if="deletingFeedback"></icon>
-                    <icon name="times" aria-hidden="true" v-else></icon>
-                </b-button>
-            </b-input-group-button>
-            <b-input-group-button class="submit-feedback">
-                <b-button variant="primary" @click="submitFeedback">
-                    <icon name="refresh" spin v-if="submittingFeedback"></icon>
-                    <icon name="check" aria-hidden="true" v-else></icon>
-                </b-button>
-            </b-input-group-button>
+                <submit-button @click="cancelFeedback"
+                               ref="deleteFeedbackButton"
+                               default="danger"
+                               show-inline
+                               :label="false">
+                    <icon name="times" aria-hidden="true"/>
+                </submit-button>
+            </div>
+            <b-input-group-append class="submit-feedback">
+                <submit-button @click="submitFeedback"
+                               ref="addFeedbackButton"
+                               :label="false">
+                    <icon name="check" aria-hidden="true"/>
+                </submit-button>
+            </b-input-group-append>
         </b-input-group>
     </div>
 </template>
@@ -73,12 +82,7 @@ export default {
             internalFeedback: this.feedback,
             serverFeedback: this.feedback,
             done: true,
-            error: '',
             snippetKey: '',
-            pending: false,
-            snippetDone: false,
-            deletingFeedback: false,
-            submittingFeedback: false,
         };
     },
 
@@ -89,33 +93,47 @@ export default {
             }
         });
     },
+
     methods: {
-        changeFeedback() {
+        changeFeedback(e) {
             if (this.editable) {
                 this.done = false;
                 this.$nextTick(() => this.$refs.field.focus());
                 this.internalFeedback = this.serverFeedback;
+                e.stopPropagation();
             }
         },
+
+        focusInput() {
+            this.$nextTick(() => {
+                if (this.$refs.field) this.$refs.field.focus();
+            });
+        },
+
         submitFeedback() {
-            if (this.internalFeedback === '') {
+            if (this.internalFeedback === '' || this.internalFeedback == null) {
                 this.cancelFeedback();
                 return;
             }
+
             const submitted = this.internalFeedback;
-            this.submittingFeedback = true;
-            this.$http.put(`/api/v1/code/${this.fileId}/comments/${this.line}`,
+
+            const req = this.$http.put(
+                `/api/v1/code/${this.fileId}/comments/${this.line}`,
                 {
                     comment: submitted,
                 },
             ).then(() => {
-                this.$emit('feedbackChange', this.internalFeedback);
+                this.internalFeedback = submitted;
                 this.serverFeedback = submitted;
                 this.snippetKey = '';
-                this.$emit('feedbackChange', this.internalFeedback);
-                this.submittingFeedback = false;
                 this.done = true;
+                this.$emit('feedbackChange', submitted);
+            }, (err) => {
+                throw err.response.data.message;
             });
+
+            this.$refs.addFeedbackButton.submit(req);
         },
         newlines(value) {
             return value.replace(/\n/g, '<br>');
@@ -131,14 +149,24 @@ export default {
         cancelFeedback(val) {
             this.snippetKey = '';
             if (this.feedback !== '') {
-                this.deletingFeedback = true;
                 const done = () => {
-                    this.deletingFeedback = true;
                     this.$emit('cancel', this.line, val);
                 };
-                this.$http
-                    .delete(`/api/v1/code/${this.fileId}/comments/${this.line}`)
-                    .then(done, done);
+                const req = this.$http.delete(
+                    `/api/v1/code/${this.fileId}/comments/${this.line}`,
+                ).then(
+                    done,
+                    (err) => {
+                        // Don't error for a 404 as the comment was deleted.
+                        if (err.response.status === 404) {
+                            done();
+                        } else {
+                            throw err.response.data.message;
+                        }
+                    },
+                );
+
+                this.$refs.deleteFeedbackButton.submit(req);
             } else {
                 this.$emit('cancel', this.line, val);
             }
@@ -150,16 +178,16 @@ export default {
                 return;
             }
 
-            const field = this.$refs.field;
-            const end = field.selectionEnd;
-            if (field.selectionStart === end) {
-                const val = this.internalFeedback.slice(0, end);
+            const { selectionStart, selectionEnd } = this.$refs.field;
+
+            if (selectionStart === selectionEnd) {
+                const val = this.internalFeedback.slice(0, selectionEnd);
                 const start = Math.max(val.lastIndexOf(' '), val.lastIndexOf('\n')) + 1;
-                const res = this.snippets()[val.slice(start, end)];
+                const res = this.snippets()[val.slice(start, selectionEnd)];
                 if (res !== undefined) {
-                    this.snippetKey = val.slice(start, end);
+                    this.snippetKey = val.slice(start, selectionEnd);
                     this.internalFeedback = val.slice(0, start) + res.value +
-                        this.internalFeedback.slice(end);
+                        this.internalFeedback.slice(selectionEnd);
                 }
                 this.refreshSnippets();
             }
@@ -225,6 +253,17 @@ export default {
 <style lang="less" scoped>
 @import '~mixins.less';
 
+.feedback-area {
+    .default-text-colors;
+    &.edit {
+        padding-top: @line-spacing;
+    }
+}
+
+.card-body {
+    padding: 0.5rem;
+}
+
 .non-editable {
     white-space: pre-wrap;
     word-break: break-word;
@@ -240,6 +279,13 @@ button {
     &:hover {
         box-shadow: none;
     }
+    button, .submit-button {
+        flex: 1;
+        &:first-child {
+            border-top-right-radius: 0px;
+            border-top-left-radius: 0px;
+        }
+    }
     min-height: 7em;
 }
 
@@ -249,29 +295,39 @@ button {
 }
 
 textarea {
-    border: 0;
+    #app.dark & {
+        border: 0;
+    }
     min-height: 7em;
 }
 
-input {
-    margin: 0;
-    border: 0;
+#app:not(.dark) .snippet-btn {
+    border-top-width: 1px;
+    border-top-style: solid;
 }
 
 .editable-area {
-    border: 1px solid @color-primary;
     #app.dark & {
-        border: 1px solid @color-secondary;
+        border: .5px solid @color-secondary;
     }
     padding: 0;
-    margin: 0.5em 0;
     border-radius: 0.25rem;
+}
+
+.input.snippet {
+    margin: 0;
+}
+
+.input-snippet-group {
+    padding-top: 0;
 }
 </style>
 
 <style lang="less">
-.add-snippet-btn button {
-    margin: 0;
-    border: 0;
+.feedback-area .minor-buttons .submit-button.btn:last-child {
+    border-bottom-right-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-top-right-radius: 0px;
+    border-top-left-radius: 0px;
 }
 </style>

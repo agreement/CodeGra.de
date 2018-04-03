@@ -5,18 +5,13 @@ the APIs in this module are mostly used to manipulate
 
 :license: AGPLv3, see LICENSE for details.
 """
-import os
 import typing as t
 import numbers
 import datetime
-import threading
-from random import shuffle
 from collections import defaultdict
 
-import flask
-import dateutil
 import sqlalchemy.sql as sql
-from flask import request, send_file, after_this_request
+from flask import request
 from sqlalchemy.orm import undefer, joinedload
 from werkzeug.datastructures import FileStorage
 
@@ -37,7 +32,6 @@ from psef.helpers import (
     make_empty_response
 )
 
-from . import linters as linters_routes
 from . import api
 
 
@@ -152,11 +146,11 @@ def get_assignments_feedback(
             # This call should be cached in auth.py
             auth.ensure_can_see_grade(sub)
 
-            users, linters = sub.get_all_feedback()
+            user_feedback, linter_feedback = sub.get_all_feedback()
             item = {
                 'general': sub.comment or '',
-                'user': list(users),
-                'linter': list(linters),
+                'user': list(user_feedback),
+                'linter': list(linter_feedback),
             }
         except auth.PermissionException:
             item = {'user': [], 'linter': [], 'general': ''}
@@ -376,15 +370,20 @@ def add_assignment_rubric(assignment_id: int
 
     .. :quickref: Assignment; Add a rubric to an assignment.
 
+    :>json array rows: An array of rows. Each row should be an object that
+        should contain a ``header`` mapping to a string, a ``description`` key
+        mapping to a string, an ``items`` key mapping to an array and it may
+        contain an ``id`` key mapping to the current id of this row. The items
+        array should contain objects with a ``description`` (string),
+        ``header`` (string) and ``points`` (number) and optionally an ``id`` if
+        you are modifying an existing item in an existing row.
+    :>json number max_points: Optionally override the maximum amount of points
+        you can get for this rubric. By passing ``null`` you reset this value,
+        by not passing it you keep its current value. (OPTIONAL)
+
     :param int assignment_id: The id of the assignment
     :returns: An empty response with return code 204
 
-    :raises APIException: If no assignment with given id exists.
-                          (OBJECT_ID_NOT_FOUND)
-    :raises APIException: If there is no `rows` (list) item in the provided
-                          content. (INVALID_PARAM)
-    :raises APIException: If a `row` does not contain `header`, `description`
-                          or `items` (list).(INVALID_PARAM)
     :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
     :raises PermissionException: If the user is not allowed to manage rubrics.
                                 (INCORRECT_PERMISSION)
@@ -394,73 +393,101 @@ def add_assignment_rubric(assignment_id: int
     auth.ensure_permission('manage_rubrics', assig.course_id)
     content = ensure_json_dict(request.get_json())
 
-    helpers.ensure_keys_in_dict(content, [('rows', list)])
-    rows = t.cast(list, content['rows'])
-
-    row: JSONType
-    with db.session.begin_nested():
-        seen = set()
-        wrong_rows = []
-        for row in rows:
-            # Check for object of form:
-            # {
-            #   'description': str,
-            #   'header': str,
-            #   'items': list
-            # }
-            row = ensure_json_dict(row)
-            ensure_keys_in_dict(
-                row, [('description', str),
-                      ('header', str),
-                      ('items', list)]
-            )
-            header = t.cast(str, row['header'])
-            description = t.cast(str, row['description'])
-            items = t.cast(list, row['items'])
-
-            if 'id' in row:
-                seen.add(row['id'])
-                n = patch_rubric_row(
-                    assig, header, description, row['id'], items
-                )
-            else:
-                n = add_new_rubric_row(assig, header, description, items)
-
-            if n == 0:
-                wrong_rows.append(header)
-
-        if wrong_rows:
-            single = len(wrong_rows) == 1
-            raise APIException(
-                'The row{s} {rows} do{es} not contain at least one item.'.
-                format(
-                    rows=', and '.join(wrong_rows),
-                    s='' if single else 's',
-                    es='es' if single else '',
-                ), 'Not all rows contain at least one '
-                'item after updating the rubric.', APICodes.INVALID_STATE, 400
-            )
-
-        assig.rubric_rows = list(
-            filter(
-                lambda row: row is None or row.id in seen,
-                assig.rubric_rows,
-            )
+    if 'max_points' in content:
+        helpers.ensure_keys_in_dict(
+            content, [('max_points',
+                       (type(None), int, float))]
         )
-
-        db.session.flush()
-        max_points = assig.max_rubric_points
-
-        if max_points is None or max_points <= 0:
+        max_points = t.cast(t.Optional[float], content['max_points'])
+        if max_points is not None and max_points <= 0:
             raise APIException(
                 'The max amount of points you can '
                 'score should be higher than 0',
                 f'The max amount of points was {max_points} which is <= 0',
                 APICodes.INVALID_STATE, 400
             )
+        assig.fixed_max_rubric_points = max_points
+
+    if 'rows' in content:
+        with db.session.begin_nested():
+            helpers.ensure_keys_in_dict(content, [('rows', list)])
+            rows = t.cast(list, content['rows'])
+
+            id_wrong = [process_rubric_row(assig, row) for row in rows]
+            seen = set(
+                item_id for item_id, _ in id_wrong if item_id is not None
+            )
+            wrong_rows = set(err for _, err in id_wrong if err is not None)
+
+            if wrong_rows:
+                single = len(wrong_rows) == 1
+                raise APIException(
+                    'The row{s} {rows} do{es} not contain at least one item.'.
+                    format(
+                        rows=', and '.join(wrong_rows),
+                        s='' if single else 's',
+                        es='es' if single else '',
+                    ), 'Not all rows contain at least one '
+                    'item after updating the rubric.', APICodes.INVALID_STATE,
+                    400
+                )
+
+            assig.rubric_rows = [
+                row for row in assig.rubric_rows
+                if row is None or row.id in seen
+            ]
+
+            db.session.flush()
+            max_points = assig.max_rubric_points
+
+            if max_points is None or max_points <= 0:
+                raise APIException(
+                    'The max amount of points you can '
+                    'score should be higher than 0',
+                    f'The max amount of points was {max_points} which is <= 0',
+                    APICodes.INVALID_STATE, 400
+                )
 
     db.session.commit()
     return jsonify(assig.rubric_rows)
+
+
+def process_rubric_row(
+    assig: models.Assignment,
+    row: JSONType,
+) -> t.Tuple[t.Optional[int], t.Optional[str]]:
+    """Process a single rubric row updating or adding it.
+
+    This function works on the input json data. It makes sure that the input
+    has the correct format and dispatches it to the necessary functions.
+
+    :param assig: The assignment this rubric row should be added to.
+    :returns: A tuple with as the first element the id of the rubric row that
+        has been processed (this is ``None`` for a new row) and as second item
+        a string that describes were an error occurred if such an error did
+        occur.
+    """
+    row = ensure_json_dict(row)
+    ensure_keys_in_dict(
+        row, [('description', str),
+              ('header', str),
+              ('items', list)]
+    )
+    header = t.cast(str, row['header'])
+    description = t.cast(str, row['description'])
+    items = t.cast(list, row['items'])
+    row_id = None
+
+    if 'id' in row:
+        ensure_keys_in_dict(row, [('id', int)])
+        row_id = t.cast(int, row['id'])
+        row_amount = patch_rubric_row(header, description, row_id, items)
+    else:
+        row_amount = add_new_rubric_row(assig, header, description, items)
+
+    # No items were added which is wrong
+    err = header if row_amount == 0 else None
+    return row_id, err
 
 
 def add_new_rubric_row(
@@ -509,8 +536,10 @@ def add_new_rubric_row(
 
 
 def patch_rubric_row(
-    assig: models.Assignment, header: str, description: str,
-    rubric_row_id: t.Any, items: t.Sequence[JSONType]
+    header: str,
+    description: str,
+    rubric_row_id: int,
+    items: t.Sequence[JSONType],
 ) -> int:
     """Update a rubric row of the assignment.
 
@@ -519,7 +548,6 @@ def patch_rubric_row(
       All items not present in the given ``items`` array will be deleted from
       the rubric row.
 
-    :param models.Assignment assig: The assignment to add the rubric row to
     :param rubric_row_id: The id of the rubric row that should be updated.
     :param items: The items (:py:class:`models.RubricItem`) that should be
         added or updated. The format should be the same as in
@@ -590,17 +618,12 @@ def get_submission_files_from_request(
     res = []
 
     if (
-        check_size and
-        request.content_length and
+        check_size and request.content_length and
         request.content_length > app.config['MAX_UPLOAD_SIZE']
     ):
-        raise APIException(
-            'Uploaded files are too big.', 'Request is bigger than maximum '
-            f'upload size of {app.config["MAX_UPLOAD_SIZE"]}.',
-            APICodes.REQUEST_TOO_LARGE, 400
-        )
+        helpers.raise_file_too_big_exception()
 
-    if len(request.files) == 0:
+    if not request.files:
         raise APIException(
             "No file in HTTP request.",
             "There was no file in the HTTP request.",
@@ -634,73 +657,67 @@ def upload_work(assignment_id: int) -> JSONResponse[models.Work]:
 
     .. :quickref: Assignment; Create work by uploading a file.
 
-    An extra get parameter ``ignored_files`` can be given to determine how to
-    handle ignored files. The options are:
-
-    - ``ignore``, this the default, sipmly do nothing about ignored files.
-    - ``delete``, delete the ignored files.
-    - ``error``, raise an :py:class:`.APIException` when there are ignored
-      files in the archive.
+    :query ignored_files: How to handle ignored files. The options are:
+        ``ignore``: this the default, sipmly do nothing about ignored files,
+        ``delete``: delete the ignored files, ``error``: raise an
+        :py:class:`.APIException` when there are ignored files in the archive.
+    :query author: The username of the user that should be the author of this
+        new submission. Simply don't give this if you want to be the author.
 
     :param int assignment_id: The id of the assignment
     :returns: A JSON serialized work and with the status code 201.
 
     :raises APIException: If the request is bigger than the maximum upload
-                          size. (REQUEST_TOO_LARGE)
+        size. (REQUEST_TOO_LARGE)
     :raises APIException: If there was no file in the request.
-                          (MISSING_REQUIRED_PARAM)
+        (MISSING_REQUIRED_PARAM)
     :raises APIException: If some file was under the wrong key or some filename
-                          is empty. (INVALID_PARAM)
-    :raises APIException: If no assignment with given id exists.
-                          (OBJECT_ID_NOT_FOUND)
-    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)
-    :raises PermissionException: If the user is not allowed to upload for this
-                                 assignment. (INCORRECT_PERMISSION)
+        is empty. (INVALID_PARAM)
     """
     files = get_submission_files_from_request(check_size=True)
-    assignment = helpers.get_or_404(models.Assignment, assignment_id)
+    assig = helpers.get_or_404(models.Assignment, assignment_id)
+    given_author = request.args.get('author', None)
 
-    auth.ensure_permission('can_submit_own_work', assignment.course_id)
-    if not assignment.is_open:
-        auth.ensure_permission(
-            'can_upload_after_deadline', assignment.course_id
+    if given_author is None:
+        author = current_user
+    else:
+        author = helpers.filter_single_or_404(
+            models.User,
+            models.User.username == given_author,
         )
 
-    work = models.Work(assignment=assignment, user_id=current_user.id)
-    work.assigned_to = assignment.get_from_latest_submissions(
-        models.Work.assigned_to
-    ).filter(models.Work.user_id == current_user.id).limit(1).scalar()
+    auth.ensure_can_submit_work(assig, author)
 
-    if work.assigned_to is None:
-        missing, _ = assignment.get_divided_amount_missing()
-        if missing:
-            work.assigned_to = max(missing.keys(), key=lambda k: missing[k])
-            assignment.set_graders_to_not_done(
-                [work.assigned_to],
-                send_mail=True,
-                ignore_errors=True,
-            )
-
+    work = models.Work(assignment=assig, user_id=author.id)
+    work.divide_new_work()
     db.session.add(work)
 
-    raise_or_delete = psef.files.IgnoreHandling.keep
-    if request.args.get('ignored_files') == 'delete':
-        raise_or_delete = psef.files.IgnoreHandling.delete
-    if request.args.get('ignored_files') == 'error':
-        raise_or_delete = psef.files.IgnoreHandling.error
-
-    ignoretxt = assignment.cgignore or ''
+    try:
+        raise_or_delete = psef.files.IgnoreHandling[request.args.get(
+            'ignored_files',
+            'keep',
+        )]
+    except KeyError:  # The enum value does not exist
+        raise APIException(
+            'The given value for "ignored_files" is invalid',
+            (
+                f'The value "{request.args.get("ignored_files")}" is'
+                ' not in the `IgnoreHandling` enum'
+            ),
+            APICodes.INVALID_PARAM,
+            400,
+        )
 
     tree = psef.files.process_files(
         files,
         force_txt=False,
-        ignore_filter=IgnoreFilterManager(ignoretxt.split('\n')),
+        ignore_filter=IgnoreFilterManager(assig.cgignore),
         handle_ignore=raise_or_delete,
     )
     work.add_file_tree(db.session, tree)
     db.session.flush()
 
-    if assignment.is_lti:
+    if assig.is_lti:
         work.passback_grade(initial=True)
     db.session.commit()
 
@@ -827,11 +844,11 @@ def get_all_graders(
 
     result = assignment.get_all_graders(sort=True)
 
-    divided: t.MutableMapping[int, float] = defaultdict(lambda: 0)
-    for u in models.AssignmentAssignedGrader.query.filter_by(
+    divided: t.MutableMapping[int, float] = defaultdict(int)
+    for assigned_grader in models.AssignmentAssignedGrader.query.filter_by(
         assignment_id=assignment_id
     ):
-        divided[u.user_id] = u.weight
+        divided[assigned_grader.user_id] = assigned_grader.weight
 
     return jsonify(
         [
@@ -972,7 +989,7 @@ def set_grader_to_done(assignment_id: int, grader_id: int) -> EmptyResponse:
     return make_empty_response()
 
 
-WorkList = t.Sequence[models.Work]
+WorkList = t.Sequence[models.Work]  # pylint: disable=invalid-name
 
 
 @api.route('/assignments/<int:assignment_id>/submissions/', methods=['GET'])
@@ -1058,7 +1075,8 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
 
     try:
         submissions = psef.files.process_blackboard_zip(files[0])
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
+        # TODO: Narrow this exception down.
         submissions = []
 
     if not submissions:
@@ -1149,9 +1167,10 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
     db.session.bulk_save_objects(subs)
     db.session.flush()
 
-    for h in hists:
-        h.work_id = h.work.id
-        h.user_id = h.user.id
+    # TODO: This loop should be eliminated.
+    for hist in hists:
+        hist.work_id = hist.work.id
+        hist.user_id = hist.user.id
 
     db.session.bulk_save_objects(hists)
     db.session.commit()
@@ -1160,6 +1179,7 @@ def post_submissions(assignment_id: int) -> EmptyResponse:
 
 
 @api.route('/assignments/<int:assignment_id>/linters/', methods=['GET'])
+@helpers.feature_required('LINTERS')
 def get_linters(assignment_id: int
                 ) -> JSONResponse[t.Sequence[t.Mapping[str, t.Any]]]:
     """Get all linters for the given :class:`.models.Assignment`.
@@ -1227,6 +1247,7 @@ def get_linters(assignment_id: int
 
 
 @api.route('/assignments/<int:assignment_id>/linter', methods=['POST'])
+@helpers.feature_required('LINTERS')
 def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
     """Starts running a specific linter on all the latest submissions
     (:class:`.models.Work`) of the given :class:`.models.Assignment`.
@@ -1297,7 +1318,3 @@ def start_linting(assignment_id: int) -> JSONResponse[models.AssignmentLinter]:
         db.session.commit()
 
     return jsonify(res)
-
-
-if t.TYPE_CHECKING:  # pragma: no cover
-    from werkzeug.datastructures import FileStorage  # noqa

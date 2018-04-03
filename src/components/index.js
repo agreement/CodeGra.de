@@ -1,79 +1,39 @@
-import CodeViewer from './CodeViewer';
-import DiffViewer from './DiffViewer';
-import FeedbackArea from './FeedbackArea';
-import LinterFeedbackArea from './LinterFeedbackArea';
-import Linters from './Linters';
-import Linter from './Linter';
-import ManageAssignment from './ManageAssignment';
-import ManageCourse from './ManageCourse';
-import FileTree from './FileTree';
-import FooterBar from './FooterBar';
-import GradeViewer from './GradeViewer';
-import ImageViewer from './ImageViewer';
-import GradeHistory from './GradeHistory';
-import Loader from './Loader';
-import Login from './Login';
-import NavBar from './NavBar';
-import UserInfo from './UserInfo';
-import AssignmentList from './AssignmentList';
-import SubmissionList from './SubmissionList';
-import DivideSubmissions from './DivideSubmissions';
-import UsersManager from './UsersManager';
-import PermissionsManager from './PermissionsManager';
-import SubmissionsExporter from './SubmissionsExporter';
-import SnippetManager from './SnippetManager';
-import PdfViewer from './PdfViewer';
-import SubmissionNavBar from './SubmissionNavBar';
-import NewCourse from './NewCourse';
-import CourseList from './CourseList';
-import RubricEditor from './RubricEditor';
-import SubmitButton from './SubmitButton';
-import PrivacyNote from './PrivacyNote';
-import PreferenceManager from './PreferenceManager';
-import Toggle from './Toggle';
-import CGIgnoreFile from './CGIgnoreFile';
-import Notifications from './Notifications';
-import DescriptionPopover from './DescriptionPopover';
-import AssignmentState from './AssignmentState';
-import FinishedGraderToggles from './FinishedGraderToggles';
-
-export {
-    Linters,
-    Linter,
-    CodeViewer,
-    DiffViewer,
-    LinterFeedbackArea,
-    ManageAssignment,
-    ManageCourse,
-    FeedbackArea,
-    FileTree,
-    FooterBar,
-    GradeViewer,
-    ImageViewer,
-    GradeHistory,
-    Loader,
-    Login,
-    NavBar,
-    UserInfo,
-    AssignmentList,
-    SubmissionList,
-    DivideSubmissions,
-    SubmissionsExporter,
-    UsersManager,
-    PermissionsManager,
-    SnippetManager,
-    PdfViewer,
-    SubmissionNavBar,
-    NewCourse,
-    CourseList,
-    RubricEditor,
-    SubmitButton,
-    PrivacyNote,
-    PreferenceManager,
-    Toggle,
-    CGIgnoreFile,
-    Notifications,
-    DescriptionPopover,
-    AssignmentState,
-    FinishedGraderToggles,
-};
+export { default as AssignmentState } from './AssignmentState';
+export { default as CGIgnoreFile } from './CGIgnoreFile';
+export { default as CodeViewer } from './CodeViewer';
+export { default as DescriptionPopover } from './DescriptionPopover';
+export { default as DiffViewer } from './DiffViewer';
+export { default as DivideSubmissions } from './DivideSubmissions';
+export { default as FeedbackArea } from './FeedbackArea';
+export { default as FileTree } from './FileTree';
+export { default as FinishedGraderToggles } from './FinishedGraderToggles';
+export { default as FooterBar } from './FooterBar';
+export { default as GeneralFeedbackArea } from './GeneralFeedbackArea';
+export { default as GradeHistory } from './GradeHistory';
+export { default as GradeViewer } from './GradeViewer';
+export { default as ImageViewer } from './ImageViewer';
+export { default as Linter } from './Linter';
+export { default as LinterFeedbackArea } from './LinterFeedbackArea';
+export { default as Linters } from './Linters';
+export { default as Loader } from './Loader';
+export { default as LocalHeader } from './LocalHeader';
+export { default as Login } from './Login';
+export { default as Notifications } from './Notifications';
+export { default as PasswordInput } from './PasswordInput';
+export { default as PdfViewer } from './PdfViewer';
+export { default as PermissionsManager } from './PermissionsManager';
+export { default as PreferenceManager } from './PreferenceManager';
+export { default as PrivacyNote } from './PrivacyNote';
+export { default as RubricEditor } from './RubricEditor';
+export { default as Sidebar } from './Sidebar';
+export { default as SnippetManager } from './SnippetManager';
+export { default as SubmissionList } from './SubmissionList';
+export { default as SubmissionNavBar } from './SubmissionNavBar';
+export { default as SubmissionsExporter } from './SubmissionsExporter';
+export { default as SubmitButton } from './SubmitButton';
+export { default as Toggle } from './Toggle';
+export { default as UserInfo } from './UserInfo';
+export { default as UsersManager } from './UsersManager';
+export { default as FileUploader } from './FileUploader';
+export { default as OverviewMode } from './OverviewMode';
+export { default as SubmissionUploader } from './SubmissionUploader';

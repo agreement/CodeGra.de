@@ -2,6 +2,8 @@
 This module defines all API routes with the main directory "snippet" or
 "snippets. These APIs can be used to add, modify, delete and retrieve the
 snippets of the current user.
+
+:license: AGPLv3, see LICENSE for details.
 """
 import typing as t
 
@@ -14,7 +16,7 @@ from psef import current_user
 from psef.errors import APICodes, APIException
 from psef.models import db
 from psef.helpers import (
-    JSONType, JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
+    JSONResponse, EmptyResponse, jsonify, ensure_json_dict,
     ensure_keys_in_dict, make_empty_response
 )
 

@@ -1,5 +1,7 @@
-#!/usr/bin/env python3
+"""This module manages all json encoding for the backend.
 
+:license: AGPLv3, see LICENSE for details.
+"""
 import typing as t
 from json import JSONEncoder
 
@@ -12,7 +14,8 @@ class CustomJSONEncoder(JSONEncoder):
     method.
     """
 
-    def default(self, obj: t.Any) -> t.Any:
+    # These are false positives by pylint.
+    def default(self, obj: t.Any) -> t.Any:  # pylint: disable=E0202,arguments-differ
         """A way to serialize arbitrary methods to JSON.
 
         Classes can use this method by implementing a `__to_json__` method that
@@ -22,7 +25,7 @@ class CustomJSONEncoder(JSONEncoder):
         """
         try:
             return obj.__to_json__()
-        except AttributeError as e:  # pragma: no cover
+        except AttributeError:  # pragma: no cover
             return super().default(obj)
 
 
@@ -49,7 +52,8 @@ def get_extended_encoder_class(
         one.
         """
 
-        def default(self, obj: t.Any) -> t.Any:
+        # These are false positives by pylint.
+        def default(self, obj: t.Any) -> t.Any:  # pylint: disable=E0202,arguments-differ
             """A way to serialize arbitrary methods to JSON.
 
             Classes can use this method by implementing a `__to_json__` method

@@ -1,25 +1,8 @@
-import Assignments from './Assignments';
-import Courses from './Courses';
-import Home from './Home';
-import Login from './Login';
-import ManageCourse from './ManageCourse';
-import User from './User';
-import Submission from './Submission';
-import Submissions from './Submissions';
-import LTILaunch from './LTILaunch';
-import ResetPassword from './ResetPassword';
-import Registration from './Registration';
-
-export {
-    Assignments,
-    Courses,
-    Home,
-    Login,
-    ManageCourse,
-    User,
-    Submission,
-    Submissions,
-    LTILaunch,
-    ResetPassword,
-    Registration,
-};
+export { default as Home } from './Home';
+export { default as ManageCourse } from './ManageCourse';
+export { default as ManageAssignment } from './ManageAssignment';
+export { default as Submission } from './Submission';
+export { default as Submissions } from './Submissions';
+export { default as LTILaunch } from './LTILaunch';
+export { default as ResetPassword } from './ResetPassword';
+export { default as Admin } from './Admin';

@@ -243,7 +243,7 @@ def test_lti_no_course_roles(
 ])
 def test_lti_grade_passback(
     test_client, app, logged_in, ta_user, filename, monkeypatch, patch,
-    monkeypatch_celery
+    monkeypatch_celery, error_template, session
 ):
     due_at = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 
@@ -252,11 +252,13 @@ def test_lti_grade_passback(
             self.called = False
             self.args = []
             self.kwargs = {}
+            self.dirty = None
 
         def __call__(self, *args, **kwargs):
             self.called = True
             self.args = args
             self.kwargs = kwargs
+            self.dirty = session.dirty
 
     patch_delete = Patch()
     patch_replace = Patch()
@@ -273,13 +275,14 @@ def test_lti_grade_passback(
         username='A the A-er',
         lti_id='USER_ID',
         source_id='NON_EXISTING2!',
-        published='false'
+        published='false',
+        canvas_id='MY_COURSE_ID_100',
     ):
         with app.app_context():
             data = {
                 'custom_canvas_course_name': 'NEW_COURSE',
-                'custom_canvas_course_id': 'MY_COURSE_ID_100',
-                'custom_canvas_assignment_id': 'MY_ASSIG_ID_100',
+                'custom_canvas_course_id': canvas_id,
+                'custom_canvas_assignment_id': f'{canvas_id}_ASSIG_1',
                 'custom_canvas_assignment_title': 'MY_ASSIG_TITLE',
                 'roles': 'administrator,instructor',
                 'custom_canvas_user_login_id': username,
@@ -339,8 +342,10 @@ def test_lti_grade_passback(
             'patch',
             f'/api/v1/submissions/{work_id}',
             200,
-            data={'grade': grade,
-                  'feedback': 'feedback'},
+            data={
+                'grade': grade,
+                'feedback': 'feedback'
+            },
             headers={'Authorization': f'Bearer {token}'},
         )
 
@@ -398,15 +403,42 @@ def test_lti_grade_passback(
     set_grade(token, 6, work['id'])
     assert patch_replace.called
     assert not patch_delete.called
+    assert not patch_replace.dirty
     assert patch_replace.args[0] == '0.6'
     assert patch_replace.kwargs['result_data'] is None
     patch_delete.called = False
     patch_replace.called = False
+    patch_replace.dirty = None
 
     set_grade(token, None, work['id'])
 
     assert not patch_replace.called
     assert patch_delete.called
+    patch_delete.called = False
+    patch_replace.called = False
+
+    assig, token = do_lti_launch(
+        username='NEW_USERNAME',
+        lti_id='NEW_ID',
+        source_id=False,
+        canvas_id='NEW_CANVAS_ID',
+    )
+    full_filename = (
+        f'{os.path.dirname(__file__)}/'
+        f'../test_data/test_blackboard/{filename}'
+    )
+    with app.app_context():
+        test_client.req(
+            'post',
+            f'/api/v1/assignments/{assig["id"]}/submission',
+            400,
+            real_data={'file': (full_filename, 'bb.tar.gz')},
+            headers={'Authorization': f'Bearer {token}'},
+            result=error_template
+        )
+
+    assert not patch_replace.called
+    assert not patch_delete.called
 
 
 def test_lti_assignment_create(

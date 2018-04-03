@@ -1,55 +1,46 @@
 <template>
-    <div class="login">
-        <h4 class="text-center">
-            {{ showForgot ? 'Reset password' : 'Login' }}
-        </h4>
+<div class="login">
+    <div @keyup.enter="submit">
+        <b-form-fieldset>
+            <input type="text"
+                   class="form-control"
+                   placeholder="Username"
+                   v-model="username"
+                   ref="username"/>
+        </b-form-fieldset>
 
-        <small v-if="showForgot">
-            We will send you a link to reset your password to your email. You
-            can use this link for a limited period of time. Please check you spam
-            folder if you not receive the email shortly after requesting it.
-        </small>
-
-        <div @keyup.enter="submit">
-            <b-form-fieldset>
-                <input type="text"
-                       class="form-control"
-                       placeholder="Username"
-                       v-model="username"
-                       ref="username"/>
-            </b-form-fieldset>
-
-            <b-form-fieldset v-if="!showForgot">
-                <input type="password"
-                       class="form-control"
-                       placeholder="Password"
-                       v-model="password"/>
-            </b-form-fieldset>
-        </div>
-
-        <b-form-fieldset class="text-center">
-            <submit-button ref="submit"
-                           @click.native="submit"
-                           :label="showForgot ? 'Request email' : 'Login'"
-                           :show-empty="false"/>
-            <div class="login-links">
-                <div class="left-box">
-                    <router-link class="login"
-                                :to="{ hash: showForgot ? 'login' : 'forgot', }"
-                                @click="reset">
-                        {{ showForgot ? 'Login' : 'Forgot password' }}</router-link>
-                </div>
-                <div class="right-box">
-                    <router-link class="login" to="register">Register</router-link>
-                </div>
-            </div>
+        <b-form-fieldset v-if="!showForgot">
+            <password-input v-model="password"
+                            placeholder="Password"/>
         </b-form-fieldset>
     </div>
+
+    <p v-if="showForgot">
+        We will send you a link to reset your password to your email. You
+        can use this link for a limited period of time. Please check you spam
+        folder if you not receive the email shortly after requesting it.
+    </p>
+
+    <b-form-fieldset class="text-center">
+        <submit-button ref="submit"
+                       @click.native="submit"
+                       :label="showForgot ? 'Request email' : 'Login'"
+                       :show-empty="false"/>
+        <div class="login-links">
+            <a class="login"
+               :href="showForgot ? '#login' : '#forgot'"
+               @click="reset">
+                {{ showForgot ? 'Login' : 'Forgot password' }}
+            </a>
+        </div>
+    </b-form-fieldset>
+</div>
 </template>
 
 <script>
 import { mapActions } from 'vuex';
 
+import PasswordInput from './PasswordInput';
 import SubmitButton from './SubmitButton';
 
 export default {
@@ -62,6 +53,7 @@ export default {
     },
 
     components: {
+        PasswordInput,
         SubmitButton,
     },
 
@@ -78,9 +70,11 @@ export default {
     },
 
     mounted() {
-        if (this.$refs.username) {
-            this.$refs.username.focus();
-        }
+        this.$nextTick(() => {
+            if (this.$refs.username) {
+                this.$refs.username.focus();
+            }
+        });
     },
 
     methods: {
@@ -109,13 +103,11 @@ export default {
                 return;
             }
 
-            this.$refs.submit.submit(
-                this.$http.patch('/api/v1/login?type=reset_email', {
-                    username: this.username,
-                }).catch((err) => {
-                    throw err.response.data.message;
-                }),
-            );
+            this.$refs.submit.submit(this.$http.patch('/api/v1/login?type=reset_email', {
+                username: this.username,
+            }).catch((err) => {
+                throw err.response.data.message;
+            }));
         },
 
         login(event) {
@@ -125,16 +117,15 @@ export default {
                 return;
             }
 
-            this.$refs.submit.submit(
-                this.tryLogin({
-                    username: this.username,
-                    password: this.password,
-                }).then(() => {
-                    this.$router.replace({ name: 'assignments' });
-                }, (reason) => {
-                    throw reason ? reason.message : '';
-                }),
-            );
+            this.$refs.submit.submit(this.tryLogin({
+                username: this.username,
+                password: this.password,
+            }).then(() => {
+                this.$router.replace({ name: 'home' });
+                this.$emit('login');
+            }, (reason) => {
+                throw reason ? reason.message : '';
+            }));
         },
         ...mapActions({
             tryLogin: 'user/login',
@@ -145,43 +136,9 @@ export default {
 
 <style lang="less" scoped>
 @link-margin: 2em;
-
-h4 {
-    margin-bottom: 15px;
-}
-
-.alert {
-    margin-top: 2px;
-}
-
-small {
-    margin: -10px 0 15px;
-    display: block;
-    color: #868686;
-}
-
 .login-links {
-    display: flex;
     margin-top: 15px;
-
-    .left-box, .right-box {
-        width: 100%;
-    }
-
-
-    .left-box {
-        text-align: right;
-        a.login {
-            margin-right: @link-margin;
-        }
-    }
-
-    .right-box {
-        text-align: left;
-        a.login {
-            margin-left: @link-margin;
-        }
-    }
+    text-align: center;
 
     a.login {
         text-decoration: underline !important;

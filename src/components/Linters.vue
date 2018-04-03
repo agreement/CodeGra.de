@@ -1,30 +1,22 @@
 <template>
-    <!-- TODO: Fix issues with iterations by relying on order !-->
-    <div class="row justify-content-md-center" v-if="loading">
-        <loader/>
-    </div>
-    <div v-else>
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>State</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                <linter v-for="linter in linters"
-                    :name="linter.name"
+<!-- TODO: Fix issues with iterations by relying on order !-->
+<div class="row justify-content-md-center linters" v-if="loading">
+    <loader/>
+</div>
+<div v-else class="linters">
+    <b-tabs no-fade>
+        <b-tab :title="linter.name"
+               :key="linter.id"
+               v-for="linter in linters">
+            <linter :name="linter.name"
                     :options="linter.opts"
-                    :description="linter.desc"
+                    :server-description="linter.desc"
                     :initialId="linter.id"
                     :initialState="linter.state"
-                    :key="linter.id"
                     :assignment="assignment"/>
-            </tbody>
-        </table>
-    </div>
+        </b-tab>
+    </b-tabs>
+</div>
 </template>
 
 <script>
@@ -73,3 +65,20 @@ export default {
     },
 };
 </script>
+
+
+<style lang="less">
+@import "~mixins.less";
+
+.linters .tab-content {
+    #app.dark & {
+        border-color: @color-primary-darker;
+    }
+    border: 1px solid #dee2e6;
+    border-top: 0;
+    border-bottom-right-radius: 0.25rem;
+    border-bottom-left-radius: 0.25rem;
+    padding: 1em;
+    padding-bottom: 0;
+}
+</style>

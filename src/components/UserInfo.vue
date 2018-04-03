@@ -1,20 +1,22 @@
 <template>
 <div class="userinfo">
-    <loader class="col-md-12 text-center" v-if="loading"></loader>
+    <loader class="col-md-12 text-center" v-if="loading"/>
     <div @keyup.enter="submit" @keydown.capture="error = ''" v-else>
         <b-form-fieldset>
-            <b-input-group left="Username">
-                <b-popover placement="top" triggers="hover" content="You cannot change your username" style="width: 100%;">
+            <b-input-group prepend="Username">
+                <div v-b-popover.top.hover="'You cannot change your username'"
+                     style="flex: 1;">
                     <input type="text"
                            v-model="username"
-                           :disabled="true"
+                           disabled
                            style="border-top-left-radius: 0; border-bottom-left-radius: 0; width: 100%"
                            class="form-control"/>
-                </b-popover>
+                </div>
             </b-input-group>
         </b-form-fieldset>
+
         <b-form-fieldset>
-            <b-input-group left="Full name">
+            <b-input-group prepend="Full name">
                 <input :disabled="!canEditInfo"
                        class="form-control"
                        type="text"
@@ -23,7 +25,7 @@
         </b-form-fieldset>
 
         <b-form-fieldset>
-            <b-input-group left="Email">
+            <b-input-group prepend="Email">
                 <input :disabled="!canEditInfo"
                        type="text"
                        class="form-control"
@@ -31,107 +33,59 @@
             </b-input-group>
         </b-form-fieldset>
 
-        <b-form-fieldset v-if="canEditPw || canEditInfo">
-            <b-input-group>
-                <span class="input-group-addon" style="display: inline-block;" slot="left">
-                    Old Password
-                    <description-popover hug-text
-                                         placement="right"
-                                         triggers="click">
-                        <p slot="description"
-                           style="text-align: left; margin-bottom: 0;">
-                            If your account was created by using your LMS
-                            (Canvas, blackboard or another) it can happen
-                            that you don't know this password. In this case
-                            you should use the
-                            <router-link :to="{name: 'login',
-                                              hash: '#forgot'}">
-                                reset password
-                            </router-link> page.<br><br>
+        <password-input v-model="oldPw"
+                        v-if="canEditPw || canEditInfo">
+            <b-input-group-prepend is-text slot="prepend">
+                Old Password
+                <description-popover hug-text
+                                     placement="right"
+                                     triggers="click"
+                                     title="What is my current password?">
+                    <p slot="description"
+                       style="text-align: left; margin-bottom: 0;">
+                        If your account was created by using your LMS
+                        (Canvas, blackboard or another) it can happen
+                        that you don't know this password. In this case
+                        you should use the
+                        <router-link :to="{
+                                          name: 'login',
+                                          hash: '#forgot'
+                                          }">
+                            reset password</router-link> page.<br><br>
 
-                            However this does require
-                            that your email is correct. If this is not the
-                            case you can force CodeGra.de to copy the email
-                            that your LMS gives us the next time you use
-                            CodeGra.de within your LMS. To do this please
-                            press <submit-button
-                                      label="here"
-                                      id="resetOnLtiButton-fixPopover"
-                                      size="sm"
-                                      ref="resetOnLtiButton"
-                                      @click="resetEmailOnLti"
-                                      style="display: inline;"/>
-                            <!-- The id for the submit button is needed as vue
-                                 reuses elements and if that is done here the
-                                 popover will not show correctly. -->
-                        </p>
-                    </description-popover>
-                </span>
-                <input v-if="oldPwVisible"
-                       type="text"
-                       v-model="oldPw"
-                       class="form-control"/>
-                    <input v-else
-                           type="password"
-                           v-model="oldPw"
-                           class="form-control"/>
-                    <b-input-group-button slot="right">
-                        <b-button @click="oldPwVisible = !oldPwVisible" >
-                            <icon v-if="!oldPwVisible" name="eye"/>
-                            <icon v-else name="eye-slash"/>
-                        </b-button>
-                    </b-input-group-button>
-                </b-input-group>
-            </b-form-fieldset>
+                        However this does require
+                        that your email is correct. If this is not the
+                        case you can force CodeGra.de to copy the email
+                        that your LMS gives us the next time you use
+                        CodeGra.de within your LMS. To do this please
+                        press <submit-button
+                                  label="here"
+                                  id="resetOnLtiButton-fixPopover"
+                                  size="sm"
+                                  ref="resetOnLtiButton"
+                                  @click="resetEmailOnLti"
+                                  style="display: inline;"/>
+                        <!-- The id for the submit button is needed as vue
+                             reuses elements and if that is done here the
+                             popover will not show correctly. -->
+                    </p>
+                </description-popover>
+            </b-input-group-prepend>
+        </password-input>
 
-            <b-form-fieldset v-if="canEditPw">
-                <b-input-group left="New Password">
-                  <input v-if="newPwVisible"
-                         type="text"
-                         v-model="newPw"
-                         class="form-control"/>
-                  <input v-else
-                         type="password"
-                         v-model="newPw"
-                         class="form-control"/>
-                    <b-input-group-button slot="right">
-                        <b-button @click="newPwVisible = !newPwVisible" >
-                            <icon v-if="!newPwVisible" name="eye"></icon>
-                            <icon v-else name="eye-slash"></icon>
-                        </b-button>
-                    </b-input-group-button>
-                </b-input-group>
-            </b-form-fieldset>
+        <password-input v-model="newPw" label="New password" v-if="canEditPw"/>
+        <password-input v-model="confirmPw" label="Confirm password" v-if="canEditPw"/>
 
-            <b-form-fieldset v-if="canEditPw">
-                <b-input-group left="Confirm Password">
-                  <input v-if="confirmPwVisible"
-                         type="text"
-                         v-model="confirmPw"
-                         class="form-control"/>
-                  <input v-else
-                         type="password"
-                         v-model="confirmPw"
-                         class="form-control"/>
-                    <b-input-group-button slot="right">
-                        <b-button @click="confirmPwVisible = !confirmPwVisible" >
-                            <icon v-if="!confirmPwVisible" name="eye"></icon>
-                            <icon v-else name="eye-slash"></icon>
-                        </b-button>
-                    </b-input-group-button>
-                </b-input-group>
-            </b-form-fieldset>
+        <b-alert variant="danger" :show="true" v-if="error">
+            {{ error }}
+        </b-alert>
 
-            <b-alert variant="danger" :show="true" v-if="error">
-                {{ error }}
-            </b-alert>
-
-            <b-button-toolbar justify v-if="canEditInfo || canEditPw">
-                <b-button variant="danger" @click="reset">Reset</b-button>
-                <submit-button @click="submit" ref="submitButton" :showError="false"/>
-            </b-button-toolbar>
-        </div>
+        <b-button-toolbar justify v-if="canEditInfo || canEditPw">
+            <b-button variant="danger" @click="reset">Reset</b-button>
+            <submit-button @click="submit" ref="submitButton" :showError="false"/>
+        </b-button-toolbar>
     </div>
+</div>
 </template>
 
 <script>
@@ -147,9 +101,10 @@ import 'vue-awesome/icons/times';
 import Loader from './Loader';
 import DescriptionPopover from './DescriptionPopover';
 import SubmitButton from './SubmitButton';
+import PasswordInput from './PasswordInput';
 
 export default {
-    name: 'userinfo',
+    name: 'user-info',
 
     data() {
         return {
@@ -162,19 +117,9 @@ export default {
             loading: false,
             canEditInfo: false,
             canEditPw: false,
-            oldPwVisible: false,
-            newPwVisible: false,
-            confirmPwVisible: false,
             error: '',
             validator,
         };
-    },
-
-    components: {
-        Icon,
-        Loader,
-        DescriptionPopover,
-        SubmitButton,
     },
 
     mounted() {
@@ -201,6 +146,7 @@ export default {
                 throw err.response.data.message;
             }));
         },
+
         reset() {
             this.name = this.$store.state.user.name;
             this.email = this.$store.state.user.email;
@@ -235,6 +181,14 @@ export default {
             });
             this.$refs.submitButton.submit(req);
         },
+    },
+
+    components: {
+        Icon,
+        Loader,
+        DescriptionPopover,
+        SubmitButton,
+        PasswordInput,
     },
 };
 </script>
