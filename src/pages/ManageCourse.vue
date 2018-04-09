@@ -57,7 +57,7 @@ export default {
         },
 
         courseId() {
-            return this.$route.params.courseId;
+            return Number(this.$route.params.courseId);
         },
     },
 

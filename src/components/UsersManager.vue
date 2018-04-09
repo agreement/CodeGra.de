@@ -97,7 +97,6 @@ export default {
     data() {
         return {
             roles: [],
-            courseId: this.$route.params.courseId,
             users: [],
             loading: true,
             updating: {},
@@ -121,6 +120,10 @@ export default {
         ...mapGetters('user', {
             userName: 'name',
         }),
+
+        courseId() {
+            return this.course.id;
+        },
     },
 
     watch: {

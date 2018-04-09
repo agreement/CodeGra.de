@@ -120,7 +120,19 @@ export default {
         };
     },
 
+    watch: {
+        courseId() {
+            this.loadData();
+        },
+    },
+
     methods: {
+        async loadData() {
+            this.loading = true;
+            await this.getAllPermissions();
+            this.loading = false;
+        },
+
         getAllPermissions() {
             return this.$http.get(this.getRetrieveUrl(this.courseId)).then(({ data }) => {
                 const fields = [{
@@ -221,9 +233,7 @@ export default {
     },
 
     mounted() {
-        this.getAllPermissions().then(() => {
-            this.loading = false;
-        });
+        this.loadData();
     },
 
     components: {
