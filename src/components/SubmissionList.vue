@@ -5,16 +5,16 @@
             <input v-model="filter"
                    class="form-control"
                    placeholder="Type to Search"
-                   @keyup.enter="$nextTick(submit)"/>
+                   @keyup="submit"/>
 
             <b-input-group-append v-if="latest.length !== submissions.length" is-text>
-                <b-form-checkbox v-model="latestOnly" @change="$nextTick(submit)">
+                <b-form-checkbox v-model="latestOnly" @change="submit">
                     Latest only
                 </b-form-checkbox>
             </b-input-group-append>
 
             <b-input-group-append v-if="assigneeFilter" is-text>
-                <b-form-checkbox v-model="mineOnly" @change="$nextTick(submit)">
+                <b-form-checkbox v-model="mineOnly" @change="submit">
                     Assigned to me
                 </b-form-checkbox>
             </b-input-group-append>
@@ -260,8 +260,6 @@ export default {
         },
 
         gotoSubmission(submission) {
-            this.submit();
-
             this.$router.push({
                 name: 'submission',
                 params: { submissionId: submission.id },
@@ -278,14 +276,21 @@ export default {
         },
 
         submit() {
-            const query = {
-                latest: this.latestOnly,
-                mine: this.mineOnly,
-            };
-            query.q = this.filter || undefined;
-            this.$router.replace({
-                query: Object.assign({}, this.$route.query, query),
-            });
+            if (this.submitTimeout != null) {
+                clearTimeout(this.submitTimeout);
+            }
+
+            this.submitTimeout = setTimeout(() => {
+                this.submitTimeout = null;
+
+                this.$router.replace({
+                    query: Object.assign({}, this.$route.query, {
+                        latest: this.latestOnly,
+                        mine: this.mineOnly,
+                        q: this.filter || undefined,
+                    }),
+                });
+            }, 200);
         },
 
         isEmptyObject(obj) {
