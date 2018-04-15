@@ -1,8 +1,9 @@
-Codegrade API documentation
+CodeGra.de API
 =================================
 
-This is the API documentation for API verion 1 of the codebuil.de
-website.
+This is the API documentation for API v1.0 of CodeGra.de. The general
+API guidelines are firstly specified to subsequently provide a detailed
+documentation of the API of CodeGra.de.
 
 General API rules
 -------------------
@@ -121,15 +122,15 @@ API documentation
 Every API end point for every http method should be documented. The
 headline structure should follow that of the URL but in reverse. So the
 API end ``/api/v1/schools/3/teachers`` should be documented under the
-title Teachers, ander **under** teachers there should be a subsection
-*schools*. Furthermore every API call should have input object, with
+title Teachers, and **under** teachers there should be a subsection
+*schools*. Furthermore every API call should have an input object, with
 types for every key and description, and an example output object. Last
 every API call should have a higher level description of the use and
 working.
 
 
 
-API documentation of PSEF
+CodeGra.de API Documentation
 -----------------------------
 
 .. qrefflask:: psef:create_app()

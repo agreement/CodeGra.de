@@ -1,115 +1,113 @@
-psef package
-============
+:mod:`PSEF Package`
+===================
 
-Module contents
----------------
+:mod:`psef module`
+------------------
 
 .. automodule:: psef
     :members:
     :undoc-members:
     :show-inheritance:
 
-Submodules
-----------
 
-psef\.auth module
------------------
+:mod:`psef\.auth module`
+------------------------
 
 .. automodule:: psef.auth
     :members:
     :undoc-members:
     :show-inheritance:
 
-psef\.blackboard module
------------------------
+:mod:`psef\.blackboard module`
+------------------------------
 
 .. automodule:: psef.blackboard
     :members:
     :undoc-members:
     :show-inheritance:
 
-psef\.errors module
--------------------
+:mod:`psef\.errors module`
+--------------------------
 
 .. automodule:: psef.errors
     :members:
     :undoc-members:
     :show-inheritance:
 
-psef\.files module
-------------------
+:mod:`psef\.files module`
+-------------------------
 
 .. automodule:: psef.files
     :members:
     :undoc-members:
     :show-inheritance:
 
-psef\.helpers module
---------------------
+:mod:`psef\.helpers module`
+---------------------------
 
 .. automodule:: psef.helpers
     :members:
     :undoc-members:
     :show-inheritance:
 
-psef\.ignore module
---------------------
+:mod:`psef\.ignore module`
+--------------------------
 
 .. automodule:: psef.ignore
     :members:
     :undoc-members:
     :show-inheritance:
 
-psef\.json module
------------------
+:mod:`psef\.json module`
+------------------------
 
 .. automodule:: psef.json
     :members:
     :undoc-members:
     :show-inheritance:
 
-psef\.linters module
---------------------
+:mod:`psef\.linters module`
+---------------------------
 
 .. automodule:: psef.linters
     :members:
     :undoc-members:
     :show-inheritance:
 
-psef\.lti module
-----------------
+:mod:`psef\.lti module`
+-----------------------
 
 .. automodule:: psef.lti
     :members:
     :undoc-members:
     :show-inheritance:
 
-psef\.mail module
------------------
+:mod:`psef\.mail module`
+------------------------
 
 .. automodule:: psef.mail
     :members:
     :show-inheritance:
     :special-members:
 
-psef\.models module
--------------------
+:mod:`psef\.models module`
+--------------------------
 
 .. automodule:: psef.models
     :members:
     :show-inheritance:
     :special-members:
 
-psef\.parsers module
---------------------
+:mod:`psef\.parsers module`
+---------------------------
 
 .. automodule:: psef.parsers
     :members:
     :show-inheritance:
     :special-members:
 
-psef\.tasks module
--------------------
+:mod:`psef\.tasks module`
+--------------------------
 
 .. automodule:: psef.tasks
     :members:

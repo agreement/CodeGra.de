@@ -3,8 +3,69 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to CodeGra.de's documentation!
+Welcome to CodeGra.de
 ======================================
+CodeGra.de is a blended learning application designed especially for programming
+education. It makes grading and handing in programming exercises more insightful
+and effective for students and more efficient for teachers.
+Where programming exercises are currently reviewed in a classical and
+counter-intuitive way, resulting in only little and vague feedback, CodeGra.de
+creates the missing intuitive environment for reviewing programming exercises.
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 5459d9c41f5c965ecb8b7837fbcbfcecb51fdf47
+
+This is achieved using some of the key-features CodeGra.de provides:
+- Line by line feedback making it possible to specifically write feedback for a
+specific part of the code.
+- CodeGra.de Filesystem enabling both students and teachers to access and hand
+in files on the CodeGra.de system locally without any overhead.
+- CodeGra.de editor plugins allowing the teacher to locally review programming
+assignments and fill in rubrics using the editor of choice.
+
+The code of CodeGra.de, the Filesystem and the numerous editor plugins is
+<<<<<<< HEAD
+open-source and available on `Github <https://github.com/CodeGra-de>`_.
+
+The documentation of CodeGra.de consists of a developer documentation and a user
+documentation:
+
+.. _user-docs:
+=======
+open-source and available on `github <https://github.com/CodeGra-de>`_.
+
+>>>>>>> 5459d9c41f5c965ecb8b7837fbcbfcecb51fdf47
+
+.. toctree::
+   :maxdepth: 2
+   :caption: User Documentation
+
+   running
+<<<<<<< HEAD
+   manual
+
+.. _dev-docs:
+
+.. toctree::
+  :maxdepth: 2
+  :caption: Developer Documentation
+
+  api
+  code
+=======
+
+This is achieved using some of the key-features CodeGra.de provides:
+- Line by line feedback making it possible to specifically write feedback for a
+specific part of the code.
+- CodeGra.de Filesystem enabling both students and teachers to access and hand
+in files on the CodeGra.de system locally without any overhead.
+- CodeGra.de editor plugins allowing the teacher to locally review programming
+assignments and fill in rubrics using the editor of choice.
+
+The code of CodeGra.de, the Filesystem and the numerous editor plugins is
+open-source and available on `github <https://github.com/CodeGra-de>`_.
+
 
 .. toctree::
    :maxdepth: 2
@@ -12,46 +73,6 @@ Welcome to CodeGra.de's documentation!
    manual
    code
    running
-
-About Codegrade
----------------
-
-This project started out as a university project for the course Software
-Engineering at the the UvA (University of Amsterdam). Current grading
-tools focus on classic writing assignments. As computer science students
-(and teaching assistants) we noticed that a good piece of software for
-grading code, and recieving feedback, was lacking. Welcome CodeGrade. With
-CodeGrade one can grade code line by line, apply linters over the code,
-add feedback shortcuts, and much more all in an intuitive interface.
-CodeGrade is the first grading tool that started with code in mind.
-CodeGrade is also integrated with LTI in online learning environments
-such as Canvas or Blackboard.
-
-Key Features
-------------
-
-
--  Line by line (inline) feedback |image0|
--  Linters
-
-   .. raw:: html
-
-      <video src="_images/linter.ogv" loop autoplay muted></video>
-      <video src="_images/linters.webm" loop autoplay muted style="width: 80%;"></video>
--  Integration with LTI (Canvas/Blackboard)
--  Feedback snippets
-
-   .. raw:: html
-
-      <video src="./_static/_images/snippet.webm" loop autoplay muted style="width: 80%;"></video>
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
-.. |image0| image:: https://i.imgur.com/3yPRL3u.gif
+>>>>>>> 5459d9c41f5c965ecb8b7837fbcbfcecb51fdf47
+=======
+>>>>>>> 5459d9c41f5c965ecb8b7837fbcbfcecb51fdf47
