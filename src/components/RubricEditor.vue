@@ -505,16 +505,24 @@ ${arrayToSentence(wrongCategories)}.`);
 <style lang="less" scoped>
 @import "~mixins.less";
 
+@rubric-items-per-row: 4;
+@rubric-items-fixed-offset: @rubric-items-per-row + 1;
+@rubric-item-min-width: 100% / @rubric-items-per-row;
+
 .rubric-editor {
     margin-bottom: 0;
 
     .card.rubric-item {
-        min-width: 20%;
+        min-width: @rubric-item-min-width;
         padding: .5rem;
         border-bottom: 0;
         border-top: 0;
         border-left: 0;
         border-radius: 0;
+
+        &:nth-child(n + @{rubric-items-fixed-offset}) {
+            flex: 0 0 @rubric-item-min-width;
+        }
 
         &:last-child {
             border-right: 0;
