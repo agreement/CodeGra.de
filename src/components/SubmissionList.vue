@@ -5,7 +5,8 @@
             <input v-model="filter"
                    class="form-control"
                    placeholder="Type to Search"
-                   @keyup="submit"/>
+                   @keyup.enter="submit"
+                   @keyup="submitDelayed"/>
 
             <b-input-group-append v-if="latest.length !== submissions.length" is-text>
                 <b-form-checkbox v-model="latestOnly" @change="submit">
@@ -260,6 +261,8 @@ export default {
         },
 
         gotoSubmission(submission) {
+            this.submit();
+
             this.$router.push({
                 name: 'submission',
                 params: { submissionId: submission.id },
@@ -275,22 +278,25 @@ export default {
             });
         },
 
-        submit() {
+        submitDelayed() {
             if (this.submitTimeout != null) {
                 clearTimeout(this.submitTimeout);
             }
 
             this.submitTimeout = setTimeout(() => {
                 this.submitTimeout = null;
-
-                this.$router.replace({
-                    query: Object.assign({}, this.$route.query, {
-                        latest: this.latestOnly,
-                        mine: this.mineOnly,
-                        q: this.filter || undefined,
-                    }),
-                });
+                this.submit();
             }, 200);
+        },
+
+        submit() {
+            this.$router.replace({
+                query: Object.assign({}, this.$route.query, {
+                    latest: this.latestOnly,
+                    mine: this.mineOnly,
+                    q: this.filter || undefined,
+                }),
+            });
         },
 
         isEmptyObject(obj) {
