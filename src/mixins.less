@@ -236,7 +236,8 @@
 }
 
 .default-card-colors {
-    #app:not(.lti) #global-sidebar &, #app.dark & {
+    #app:not(.lti) #global-sidebar &,
+    #app.dark & {
         background-color: @color-primary;
         border-color: @color-primary-darker;
         .card-header {
@@ -248,28 +249,21 @@
 }
 
 .tab-colors {
-    #app:not(.lti) #global-sidebar &, #app.dark & {
-        border-color: @color-primary-darkest;
+    #app:not(.lti) #global-sidebar &,
+    #app.dark & {
+        border-color: @color-primary-darker;
 
         li.nav-item > .nav-link {
-            border-color: @color-primary-darker;
+            color: @text-color-dark;
 
             &.active {
                 background-color: @color-primary;
-                border-color: @color-primary-darkest;
-
-                &,
-                &:hover {
-                    border-bottom-color: transparent;
-                }
+                border-color: @color-primary-darker;
             }
 
             &:hover {
-                border-color: @color-primary-darkest;
-                color: darken(@text-color-dark, 20%);
+                border-color: @color-primary-darker;
             }
-
-            color: @text-color-dark;
         }
     }
 }

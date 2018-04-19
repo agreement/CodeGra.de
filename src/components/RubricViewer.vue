@@ -306,10 +306,10 @@ export default {
     }
 
     &.selected {
-        background: @active-color;
+        background-color: @active-color;
 
         #app.dark & {
-            background: @color-primary-darkest;
+            background-color: @color-primary-darkest;
         }
     }
 
@@ -317,10 +317,10 @@ export default {
         cursor: pointer;
 
         &:hover {
-            background: @active-color;
+            background-color: @active-color;
 
             #app.dark & {
-                background: @color-primary-darkest;
+                background-color: @color-primary-darkest;
             }
         }
     }
@@ -333,15 +333,35 @@ export default {
         display: block;
         max-height: 5rem;
         margin: .5rem 0 0;
-        padding: 0 .5rem .5rem 0;
+        padding-right: .5rem;
         overflow: auto;
         font-size: smaller;
+
+        &::after {
+            content: "";
+            display: block;
+            height: .5rem;
+        }
     }
 
     &-icon {
         position: absolute;
         top: 10px;
         right: 15px;
+    }
+}
+</style>
+
+<style lang="less">
+@import "~mixins.less";
+
+.rubric-viewer .nav-tabs li.nav-item > .nav-link.active {
+    background-color: #f7f7f7;
+    border-bottom-color: #f7f7f7;
+    font-weight: bold;
+
+    #app.dark & {
+        background-color: @color-primary-darker;
     }
 }
 </style>
