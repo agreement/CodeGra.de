@@ -80,6 +80,7 @@
                            @show="beforeShowPopover"
                            placement="bottom">
                     <general-feedback-area style="width: 35em;"
+                                           @updated="(val) => { submission.comment = val; }"
                                            :submission="submission"
                                            :editable="editable"/>
                 </b-popover>
@@ -468,7 +469,7 @@ export default {
     methods: {
         setRevision(val) {
             this.$router.push({
-                name: 'submission_file',
+                name: this.$route.params.fileId ? 'submission_file' : 'submission',
                 params: this.$route.params,
                 query: Object.assign(
                     {},

@@ -88,7 +88,9 @@ export default {
             return this.$refs.submitButton.submit(req).then(() => {
                 if (!stopped) {
                     this.$emit('clear');
-                    this.$refs.formFile.reset();
+                    if (this.$refs.formFile) {
+                        this.$refs.formFile.reset();
+                    }
                 }
             }, (err) => {
                 if (err !== SubmitButtonCancelled) {

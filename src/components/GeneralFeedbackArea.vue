@@ -43,7 +43,7 @@ export default {
     },
 
     watch: {
-        sumbmission() {
+        submission() {
             this.feedback = this.submission.comment || '';
         },
     },
@@ -55,7 +55,9 @@ export default {
             const req = this.$http.patch(
                 `/api/v1/submissions/${this.submission.id}`,
                 data,
-            ).catch((err) => {
+            ).then(() => {
+                this.$emit('updated', data.feedback);
+            }, (err) => {
                 throw err.response.data.message;
             });
             this.$refs.submitButton.submit(req);

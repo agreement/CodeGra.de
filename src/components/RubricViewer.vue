@@ -4,47 +4,45 @@
     <b-tabs no-fade>
         <b-tab class="rubric"
                :head-html="getHeadHtml(rubric)"
-               :title="rubric.header"
                v-for="(rubric, i) in rubrics"
                :key="`rubric-${rubric.id}`">
-            <b-card no-block
-                    style="border-top: 0;">
-                <div class="card-header rubric-header">
-                    <span class="title">
-                        {{ rubric.description }}
-                    </span>
-                </div>
+            <b-card class="rubric-category"
+                    :header="rubric.description"
+                    body-class="rubric-items">
                 <b-card-group>
                     <b-card class="rubric-item"
                             v-for="item in rubric.items"
                             :key="`rubric-${rubric.id}-${item.id}`"
-                            @click="selectOrUnselect(rubric, item)"
-                            :class="{ selected: selected[item.id] }">
-                        <div class="rubric-item-wrapper row">
-                            <div style="position: relative;">
-                                <b>{{ item.points }} - {{ item.header }}</b>
-                                <div v-if="itemStates[item.id] === '__LOADING__' || selected[item.id]"
-                                     class="rubric-icon">
-                                    <loader :scale="1" v-if="itemStates[item.id] === '__LOADING__'"/>
-                                    <icon name="check" v-else/>
-                                </div>
-                                <div v-else-if="itemStates[item.id]"
-                                     class="rubric-icon">
-                                    <b-popover show
-                                               :target="`rubric-error-icon-${rubric.id}-${item.id}`"
-                                               :content="itemStates[item.id]"
-                                               placement="top">
-                                    </b-popover>
-                                    <icon name="times"
-                                          :scale="1"
-                                          :id="`rubric-error-icon-${rubric.id}-${item.id}`"
-                                          style="color: red;"/>
-                                </div>
-                                <p class="item-description">
-                                    {{ item.description }}
-                                </p>
-                            </div>
+                            @click="toggleItem(rubric, item)"
+                            :class="{ selected: selected[item.id] }"
+                            :title="`${item.points} - ${item.header}`"
+                            title-tag="b"
+                            body-class="rubric-item-body">
+
+                        <div v-if="itemStates[item.id] === '__LOADING__'"
+                             class="rubric-item-icon">
+                            <loader :scale="1"/>
                         </div>
+                        <div v-else-if="selected[item.id]"
+                             class="rubric-item-icon">
+                            <icon name="check"/>
+                        </div>
+                        <div v-else-if="itemStates[item.id]"
+                             class="rubric-item-icon">
+                            <b-popover show
+                                       :target="`rubric-error-icon-${rubric.id}-${item.id}`"
+                                       :content="itemStates[item.id]"
+                                       placement="top">
+                            </b-popover>
+                            <icon name="times"
+                                  :scale="1"
+                                  :id="`rubric-error-icon-${rubric.id}-${item.id}`"
+                                  class="text-danger"/>
+                        </div>
+
+                        <p class="rubric-item-description">
+                            {{ item.description }}
+                        </p>
                     </b-card>
                 </b-card-group>
             </b-card>
@@ -123,18 +121,18 @@ export default {
         getHeadHtml(rubric) {
             const selected = this.selectedRows[rubric.id];
             const maxPoints = this.$htmlEscape(Math.max(...rubric.items.map(i => i.points)));
-            const header = this.$htmlEscape(`${rubric.header}`);
+            const header = this.$htmlEscape(`${rubric.header}`) || '<span class="unnamed">Unnamed category</span>';
 
             const getFraction = (upper, lower) => `<sup>${upper}</sup>&frasl;<sub>${lower}</sub>`;
             let res;
 
             if (selected) {
                 const selectedPoints = this.$htmlEscape(selected.points);
-                res = `<span>${header}</span>-<span>${getFraction(selectedPoints, maxPoints)}</span>`;
+                res = `<span>${header}</span> - <span>${getFraction(selectedPoints, maxPoints)}</span>`;
             } else if (this.editable) {
                 res = header;
             } else {
-                res = `<span>${header}</span>-<span>${getFraction('Nothing', maxPoints)}<span>`;
+                res = `<span>${header}</span> - <span>${getFraction('Nothing', maxPoints)}<span>`;
             }
 
             return `<div class="tab-header">${res}</div>`;
@@ -212,7 +210,7 @@ export default {
             });
         },
 
-        selectOrUnselect(row, item) {
+        toggleItem(row, item) {
             if (!this.editable) return;
             this.$set(this.itemStates, item.id, '__LOADING__');
 
@@ -285,171 +283,91 @@ export default {
 
 @active-color: #e6e6e6;
 
-.outer-container {
-    overflow: hidden;
-    padding: 0;
-}
+.rubric-category {
+    border-top-width: 0;
 
-.tab-container {
-    .card {
-        border-top: 0px;
-        cursor: pointer;
-        border-bottom-left-radius: 0;
-        border-bottom-right-radius: 0;
-        border-top-right-radius: 0;
-    }
-
-    .card-body {
-        padding: .5rem .75rem;
-    }
-
-    .card:nth-child(5n), .card:first-child {
-        border-left: 0;
-    }
-    .card:nth-child(5n + 4) {
-        border-right: 0;
-    }
-    .card:hover, .card.active {
-        background: @active-color;
-        #app.dark & {
-            background: @color-primary-darkest;
-        }
-    }
-}
-
-.inner-container {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    transition: transform 500ms;
-}
-
-.rubric {
-    flex: 1 1 0;
-    .card {
+    &,
+    .card-header {
         border-top-left-radius: 0;
         border-top-right-radius: 0;
     }
 }
 
-.rubric-header {
-    display: flex;
-    border-top: 0;
-    flex-direction: row;
-    flex-grow: 1;
-
-    .title {
-        flex: 1 1 0;
-        word-break: break-all;
-    }
-
-    .index {
-        flex: 0 0 auto;
-        margin-left: 1em;
-    }
-}
-
-.inner-container > .rubric {
-    height: 100%;
-
-    & > .card {
-        justify-content: space-between;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
+.rubric-items {
+    padding: 0;
 }
 
 .rubric-item {
     border-width: 0;
-    border-bottom: 0;
-
-    &:first-child {
-        border-top-left-radius: 0;
-    }
-    &:last-child {
-        border-top-right-radius: 0;
-    }
 
     &:not(:last-child) {
         border-right-width: 1px;
+    }
+
+    &.selected {
+        background-color: @active-color;
+
+        #app.dark & {
+            background-color: @color-primary-darkest;
+        }
     }
 
     .editable & {
         cursor: pointer;
 
         &:hover {
-            background: @active-color;
+            background-color: @active-color;
+
             #app.dark & {
-                background: @color-primary-darkest;
+                background-color: @color-primary-darkest;
             }
         }
     }
 
-    &.selected {
-        background: @active-color;
-        #app.dark & {
-            background: @color-primary-darkest;
+    &-body {
+        padding: .5rem 0 0 .75rem;
+    }
+
+    &-description {
+        display: block;
+        max-height: 5rem;
+        margin: .5rem 0 0;
+        padding-right: .5rem;
+        overflow: auto;
+        font-size: smaller;
+
+        &::after {
+            content: "";
+            display: block;
+            height: .5rem;
         }
     }
-}
 
-.item-state {
-    float: right;
-}
-
-.rubric-icon {
-    position: absolute;
-    top: 0;
-    right: 15px;
-}
-
-.item-description {
-    margin: 0;
-    max-height: 5em;
-    overflow-y: auto;
-    padding-bottom: .5em;
-    margin-top: 0.5em;
-    padding-right: 0.5em;
-}
-
-.rubric {
-    .card-body {
-        padding: 0;
+    &-icon {
+        position: absolute;
+        top: 10px;
+        right: 15px;
     }
-}
-
-.card-header {
-    background-color: unset;
-}
-
-.card-header,
-.card.rubric-item,
-.card-block {
-    .card-body {
-        padding: .5rem .75rem;
-    }
-
-    .rubric-item-wrapper {
-        margin: -0.5em;
-        padding: 0.5em;
-        align-items: center;
-    }
-}
-
-.card.rubric-item .card-body {
-    padding-right: 0;
-    padding-bottom: 0;
 }
 </style>
 
 <style lang="less">
-.rubric-viewer .tab-header {
-    span:first-child {
-        margin-right: .5em;
+@import "~mixins.less";
+
+.rubric-viewer .nav-tabs li.nav-item > .nav-link {
+
+    &.active {
+        background-color: #f7f7f7;
+        border-bottom-color: #f7f7f7;
+        font-weight: bold;
+
+        #app.dark & {
+            background-color: @color-primary-darker;
+        }
     }
-    span:last-child {
-        margin-left: .5em;
+
+    .unnamed {
+        color: @color-light-gray;
     }
 }
 </style>

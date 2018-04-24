@@ -10,8 +10,9 @@
 
         <b-tab class="rubric"
                v-for="(rubric, i) in rubrics"
-               :title="rubric.header"
+               :title="rubricCategoryTitle(rubric)"
                :key="`rubric-${rubric.id}-${i}`">
+
             <b-card no-block>
                 <div class="card-header rubric-header">
                     <b-input-group style="margin-bottom: 1em;"
@@ -20,7 +21,7 @@
                             Category name
                         </b-input-group-prepend>
                         <input class="form-control"
-                               placeholder="Name"
+                               placeholder="Category name"
                                v-model="rubric.header"/>
                         <b-input-group-append>
                             <b-btn size="sm" variant="danger" class="float-right" @click="(e)=>deleteRow(i, e)">
@@ -39,7 +40,7 @@
                     <b-card class="rubric-item"
                             v-for="(item, j) in rubric.items"
                             :key="`rubric-item-${item.id}-${j}-${i}`">
-                        <b-input-group>
+                        <b-input-group class="item-header-row">
                             <input v-if="editable"
                                    type="number"
                                    class="form-control item-points"
@@ -51,7 +52,7 @@
                                    @keydown.native.ctrl.enter="editable && submit()"
                                    v-model="item.points"/>
                             <span v-else
-                                  class="form-control item-points input disabled">
+                                  class="item-points input disabled">
                                 {{ item.points }}
                             </span>
                             <input type="text"
@@ -62,7 +63,7 @@
                                    @keydown="editable && addItem(i, j)"
                                    @keydown.ctrl.enter="editable && submit()"
                                    v-model="item.header"/>
-                            <span v-else class="form-control input item-header disabled">
+                            <span v-else class="input item-header disabled">
                                 {{ item.header }}
                             </span>
                             <div class="item-info-button"
@@ -281,7 +282,7 @@ export default {
 
         getEmptyRow() {
             return {
-                header: 'New category',
+                header: '',
                 description: '',
                 items: [this.getEmptyItem()],
             };
@@ -361,6 +362,7 @@ export default {
         getCheckedRubricRows() {
             const wrongCategories = [];
             const wrongItems = [];
+            let hasUnnamedCategories = false;
 
             const rows = [];
             for (let i = 0, len = this.rubrics.length; i < len; i += 1) {
@@ -372,6 +374,10 @@ export default {
                     items: [],
                 };
 
+                if (res.header.length === 0) {
+                    hasUnnamedCategories = true;
+                }
+
                 for (let j = 0, len2 = row.items.length - 1; j < len2; j += 1) {
                     if (Number.isNaN(parseFloat(row.items[j].points))) {
                         wrongItems.push(`'${row.header || '[No name]'} - ${row.items[j].header || '[No name]'}'`);
@@ -380,6 +386,7 @@ export default {
 
                     res.items.push(row.items[j]);
                 }
+
                 if (res.items.length === 0) {
                     wrongCategories.push(row.header || '[No name]');
                 }
@@ -387,6 +394,11 @@ export default {
                 if (row.id !== undefined) res.id = row.id;
 
                 rows.push(res);
+            }
+
+            if (hasUnnamedCategories) {
+                this.$refs.submitButton.fail('There are unnamed categories!');
+                return undefined;
             }
 
             if (wrongItems.length > 0) {
@@ -491,6 +503,10 @@ ${arrayToSentence(wrongCategories)}.`);
             e.preventDefault();
             e.stopPropagation();
         },
+
+        rubricCategoryTitle(category) {
+            return category.header || '<span class="unnamed">Unnamed category</span>';
+        },
     },
 
     components: {
@@ -505,16 +521,24 @@ ${arrayToSentence(wrongCategories)}.`);
 <style lang="less" scoped>
 @import "~mixins.less";
 
+@rubric-items-per-row: 4;
+@rubric-items-fixed-offset: @rubric-items-per-row + 1;
+@rubric-item-min-width: 100% / @rubric-items-per-row;
+
 .rubric-editor {
     margin-bottom: 0;
 
     .card.rubric-item {
-        min-width: 20%;
+        min-width: @rubric-item-min-width;
         padding: .5rem;
         border-bottom: 0;
         border-top: 0;
         border-left: 0;
         border-radius: 0;
+
+        &:nth-child(n + @{rubric-items-fixed-offset}) {
+            flex: 0 0 @rubric-item-min-width;
+        }
 
         &:last-child {
             border-right: 0;
@@ -580,14 +604,15 @@ ${arrayToSentence(wrongCategories)}.`);
             #app.dark & {
                 color: @text-color-dark !important;
             }
-            cursor: text !important;
+
             &.item-description {
                 height: 10em;
             }
         }
 
-        .rubric-items-container input, .rubric-items-container span.input {
-            cursor: pointer;
+        .rubric-items-container input,
+        .rubric-items-container span.input {
+            font-weight: bold;
             background: transparent;
 
             border: 1px solid transparent !important;
@@ -596,47 +621,41 @@ ${arrayToSentence(wrongCategories)}.`);
             &:hover:not(.disabled) {
                 border-bottom: 1px solid @color-primary-darkest !important;
             }
-            &:not(:focus) {
-                border-radius: 0 !important;
-            }
+
             &:focus:not(.disabled) {
                 border-color: #5cb3fd !important;
                 cursor: text;
             }
 
-            &.row-header,
-            &.row-description {
-                width: 100%;
-            }
-
-            &.row-header {
-                font-weight: bold;
+            &.item-points,
+            &.item-header {
+                min-width: 0;
+                padding: .375rem .1rem;
             }
 
             &.item-points {
-                font-weight: bold;
-                max-width: 25%;
-                text-align: left;
-                float: left;
+                flex: 0 0 4rem;
                 margin-right: .2rem;
+                text-align: left;
+
+                &:not(:focus) {
+                    border-radius: 0;
+                }
+
                 &.disabled {
-                    max-width: 10%;
+                    flex-basis: auto;
                     padding-left: 10px;
                 }
             }
 
-            &.item-points,
             &.item-header {
-                padding: .375rem .1rem;
-            }
-
-            &.item-header {
-                font-weight: bold;
-                text-align: left;
+                flex: 1 1 auto;
                 margin-left: 0.1rem;
-                float: left;
-                border-top-right-radius: 0.25rem;
-                border-bottom-right-radius: 0.25rem;
+
+                &:focus {
+                    border-top-right-radius: 0.25rem;
+                    border-bottom-right-radius: 0.25rem;
+                }
             }
         }
     }
@@ -644,17 +663,14 @@ ${arrayToSentence(wrongCategories)}.`);
     .item-delete-button,
     .item-info-button {
         color: @color-border-gray;
-        padding: 0 0.5rem;
+        padding: 0.5rem;
     }
-    .row-delete-button, .row-info-button {
-        top: 0;
-        right: 0;
-        margin: 0.4rem;
-    }
+
     .item-delete-button:hover {
         .default-text-colors;
         cursor: pointer;
     }
+
     .item-info-button:hover {
         .default-text-colors;
         cursor: help;
@@ -736,6 +752,10 @@ ${arrayToSentence(wrongCategories)}.`);
     .nav-tabs {
         .nav-link {
             border-bottom: 0;
+
+            .unnamed {
+                color: @color-light-gray;
+            }
         }
     }
 
