@@ -10,8 +10,9 @@
 
         <b-tab class="rubric"
                v-for="(rubric, i) in rubrics"
-               :title="rubric.header"
+               :title="rubricCategoryTitle(rubric)"
                :key="`rubric-${rubric.id}-${i}`">
+
             <b-card no-block>
                 <div class="card-header rubric-header">
                     <b-input-group style="margin-bottom: 1em;"
@@ -20,7 +21,7 @@
                             Category name
                         </b-input-group-prepend>
                         <input class="form-control"
-                               placeholder="Name"
+                               placeholder="Category name"
                                v-model="rubric.header"/>
                         <b-input-group-append>
                             <b-btn size="sm" variant="danger" class="float-right" @click="(e)=>deleteRow(i, e)">
@@ -281,7 +282,7 @@ export default {
 
         getEmptyRow() {
             return {
-                header: 'New category',
+                header: '',
                 description: '',
                 items: [this.getEmptyItem()],
             };
@@ -361,6 +362,7 @@ export default {
         getCheckedRubricRows() {
             const wrongCategories = [];
             const wrongItems = [];
+            let hasUnnamedCategories = false;
 
             const rows = [];
             for (let i = 0, len = this.rubrics.length; i < len; i += 1) {
@@ -372,6 +374,10 @@ export default {
                     items: [],
                 };
 
+                if (res.header.length === 0) {
+                    hasUnnamedCategories = true;
+                }
+
                 for (let j = 0, len2 = row.items.length - 1; j < len2; j += 1) {
                     if (Number.isNaN(parseFloat(row.items[j].points))) {
                         wrongItems.push(`'${row.header || '[No name]'} - ${row.items[j].header || '[No name]'}'`);
@@ -380,6 +386,7 @@ export default {
 
                     res.items.push(row.items[j]);
                 }
+
                 if (res.items.length === 0) {
                     wrongCategories.push(row.header || '[No name]');
                 }
@@ -387,6 +394,11 @@ export default {
                 if (row.id !== undefined) res.id = row.id;
 
                 rows.push(res);
+            }
+
+            if (hasUnnamedCategories) {
+                this.$refs.submitButton.fail('There are unnamed categories!');
+                return undefined;
             }
 
             if (wrongItems.length > 0) {
@@ -490,6 +502,10 @@ ${arrayToSentence(wrongCategories)}.`);
             this.rubrics.splice(i, 1);
             e.preventDefault();
             e.stopPropagation();
+        },
+
+        rubricCategoryTitle(category) {
+            return category.header || '<span class="unnamed">Unnamed category</span>';
         },
     },
 
@@ -736,6 +752,10 @@ ${arrayToSentence(wrongCategories)}.`);
     .nav-tabs {
         .nav-link {
             border-bottom: 0;
+
+            .unnamed {
+                color: @color-light-gray;
+            }
         }
     }
 

@@ -4,7 +4,6 @@
     <b-tabs no-fade>
         <b-tab class="rubric"
                :head-html="getHeadHtml(rubric)"
-               :title="rubric.header"
                v-for="(rubric, i) in rubrics"
                :key="`rubric-${rubric.id}`">
             <b-card class="rubric-category"
@@ -122,7 +121,7 @@ export default {
         getHeadHtml(rubric) {
             const selected = this.selectedRows[rubric.id];
             const maxPoints = this.$htmlEscape(Math.max(...rubric.items.map(i => i.points)));
-            const header = this.$htmlEscape(`${rubric.header}`);
+            const header = this.$htmlEscape(`${rubric.header}`) || '<span class="unnamed">Unnamed category</span>';
 
             const getFraction = (upper, lower) => `<sup>${upper}</sup>&frasl;<sub>${lower}</sub>`;
             let res;
@@ -355,13 +354,20 @@ export default {
 <style lang="less">
 @import "~mixins.less";
 
-.rubric-viewer .nav-tabs li.nav-item > .nav-link.active {
-    background-color: #f7f7f7;
-    border-bottom-color: #f7f7f7;
-    font-weight: bold;
+.rubric-viewer .nav-tabs li.nav-item > .nav-link {
 
-    #app.dark & {
-        background-color: @color-primary-darker;
+    &.active {
+        background-color: #f7f7f7;
+        border-bottom-color: #f7f7f7;
+        font-weight: bold;
+
+        #app.dark & {
+            background-color: @color-primary-darker;
+        }
+    }
+
+    .unnamed {
+        color: @color-light-gray;
     }
 }
 </style>
