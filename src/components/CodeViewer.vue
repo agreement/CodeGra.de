@@ -11,7 +11,8 @@
                     fontSize: `${fontSize}px`,
                 }"
                 class="hljs"
-                @click="editable && addFeedback($event)">
+                @click="editable && addFeedback($event)"
+                :data-char-column="charColumn">
 
                 <li v-for="(line, i) in codeLines"
                     :key="i"
@@ -135,6 +136,7 @@ export default {
             selectedLanguage: 'Default',
             languages,
             canUseSnippets: false,
+            charColumn: Array(81).join('.'),
         };
     },
 
@@ -349,6 +351,22 @@ ol {
         background: @color-primary-darkest;
         color: @color-secondary-text-lighter;
     }
+
+    &::before {
+        content: attr(data-char-column);
+        display: block;
+        z-index: 10;
+        height: 100%;
+        margin-left: .8em;
+        pointer-events: none;
+        border-right: 1px solid @color-diff-removed-light;
+        position: absolute;
+        color: transparent;
+
+        #app.dark & {
+            border-right: 1px solid fade(@color-diff-removed-dark, 80%);
+        }
+    }
 }
 
 li {
@@ -375,6 +393,7 @@ li {
 
 code {
     border-bottom: 1px solid transparent;
+    font-size: 100%;
     color: @color-secondary-text;
     white-space: pre-wrap;
 
