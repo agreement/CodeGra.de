@@ -63,6 +63,7 @@
          v-if="subMenus.length">
         <div class="submenus">
             <div v-for="subMenu, i in subMenus"
+                 v-show="i + 1 == subMenus.length"
                  class="submenu"
                  :id="`submenu-${i}`"
                  :style="subMenuStyle(subMenu)">
