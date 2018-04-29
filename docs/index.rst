@@ -32,7 +32,6 @@ documentation:
    :maxdepth: 2
    :caption: User Documentation
 
-   running
    manual
 
 .. _dev-docs:
@@ -40,7 +39,9 @@ documentation:
 .. toctree::
   :maxdepth: 2
   :caption: Developer Documentation
-
+  
+  building
+  running
   api
   code
 

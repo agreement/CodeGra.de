@@ -1,7 +1,7 @@
 Privacy Notice
 ===============
 This privacy notice discloses the privacy practices for CodeGra.de. This privacy
- notice applies solely to information collected by this website. It will notify
+notice applies solely to information collected by this website. It will notify
 you of the following:
 
 What personally identifiable information is collected from you through the
@@ -28,8 +28,8 @@ You may change any data you submit. You can do the following at any time by
 contacting us via the email address on our website:
 
 * See what data we have about you, if any.
-*Change/correct any data we have about you.
-*Express any concern you have about our use of your data.
+* Change/correct any data we have about you.
+* Express any concern you have about our use of your data.
 
 We will however not change or delete any content related to your work but not
 created by you, such as but not limited to grades and feedback. Nor will we

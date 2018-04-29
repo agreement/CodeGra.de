@@ -1,5 +1,5 @@
 CodeGra.de Team
-===========
+================
 
 CodeGra.de is currently maintained and actively developed by:
 
