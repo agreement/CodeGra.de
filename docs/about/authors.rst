@@ -1,12 +1,12 @@
-The Team
+CodeGra.de Team
 ===========
 
 CodeGra.de is currently maintained and actively developed by:
 
-* Devin Hillenius
-* Olmo Kramer
-* Thomas Schaper
-* Youri Voet
+* **Devin Hillenius**
+* **Olmo Kramer**
+* **Thomas Schaper**
+* **Youri Voet**
 
 Acknowledgements
 -----------------
@@ -15,5 +15,5 @@ of Amsterdam and was developed by Leon Bartelsman, Ewoud Bouman, Harm van
 Eekeren, Wicher Heldring, Devin Hillenius, Niek Kabel, Erik Kooistra, Olmo
 Kramer, Sebastian Melzer, Thomas Schaper, Bram Snijders and Youri Voet.
 
-Furthermore, we want to thank the University of Amsterdam for their support of
+Furthermore, we want to thank the **University of Amsterdam** for their support of
 this project during it's first year of development.

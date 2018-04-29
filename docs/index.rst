@@ -54,4 +54,5 @@ documentation:
     about/authors
     about/technologies
     about/contributing
+    about/privacy
     about/contact
