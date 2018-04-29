@@ -137,7 +137,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [(master_doc, 'CodeGrade.tex', 'CodeGra.de Documentation',
-                    'Thomas Schaper', 'manual'), ]
+                    author, 'manual'), ]
 
 # -- Options for manual page output ---------------------------------------
 
@@ -165,3 +165,5 @@ intersphinx_mapping = {
     'http://flask.pocoo.org/docs/latest/': None,
     'http://sqlalchemy-utils.readthedocs.io/en/latest': None,
 }
+
+html_favicon = '../static/favicon/favicon.ico'
