@@ -7,7 +7,10 @@ Welcome to CodeGra.de
 ======================================
 CodeGra.de is a blended learning application designed especially for programming
 education. It makes grading and handing in programming exercises more insightful
-and effective for students and more efficient for teachers.
+and effective for students and more efficient for teachers. By providing an
+online environment carefully designed to specifically suit the needs of modern
+programming education.
+
 Where programming exercises are currently reviewed in a classical and
 counter-intuitive way, resulting in only little and vague feedback, CodeGra.de
 creates the missing intuitive environment for reviewing programming exercises.
@@ -15,16 +18,33 @@ creates the missing intuitive environment for reviewing programming exercises.
 This is achieved using some of the key-features CodeGra.de provides:
 - Line by line feedback making it possible to specifically write feedback for a
 specific part of the code.
+- Easy to use rubrics to aid consistent and prompt grading of assignments.
 - CodeGra.de Filesystem enabling both students and teachers to access and hand
 in files on the CodeGra.de system locally without any overhead.
 - CodeGra.de editor plugins allowing the teacher to locally review programming
 assignments and fill in rubrics using the editor of choice.
+- An online environment carefully designed to suit the needs of modern programming
+education, with a wide variety of useful features.
 
 The code of CodeGra.de, the Filesystem and the numerous editor plugins is
 open-source and available on `Github <https://github.com/CodeGra-de>`_.
 
 The documentation of CodeGra.de consists of a developer documentation and a user
 documentation:
+
+.. _about:
+
+.. toctree::
+    :maxdepth: 2
+    :caption: About CodeGra.de
+
+    about/whatis
+    about/history
+    about/authors
+    about/technologies
+    about/contributing
+    about/privacy
+    about/contact
 
 .. _user-docs:
 
@@ -39,21 +59,8 @@ documentation:
 .. toctree::
   :maxdepth: 2
   :caption: Developer Documentation
-  
+
   building
   running
   api
   code
-
-.. _about:
-
-.. toctree::
-    :maxdepth: 2
-    :caption: About CodeGra.de
-
-    about/history
-    about/authors
-    about/technologies
-    about/contributing
-    about/privacy
-    about/contact

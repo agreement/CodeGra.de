@@ -1,4 +1,4 @@
-CodeGra.de's History
+CodeGra.de History
 ===========================
 
 CodeGra.de originated as project in the Project Software Engineering course at
