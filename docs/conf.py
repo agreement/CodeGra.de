@@ -77,7 +77,7 @@ release = '0.23.7 - (GodfriedMetDenBaard)'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -167,3 +167,7 @@ intersphinx_mapping = {
 }
 
 html_favicon = '../static/favicon/favicon.ico'
+html_logo = '../static/img/logo.svg'
+html_theme_options = {
+    'logo_only': True,
+}
