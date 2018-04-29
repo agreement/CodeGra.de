@@ -2,7 +2,7 @@ What is CodeGra.de?
 ====================
 CodeGra.de is a blended learning application designed especially for programming
 education. It makes grading and handing in programming exercises more insightful
-and effective for students and more efficient for teachers. By providing an
+and effective for students and more efficient for teachers, by providing an
 online environment carefully designed to specifically suit the needs of modern
 programming education.
 
