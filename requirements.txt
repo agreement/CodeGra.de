@@ -24,7 +24,7 @@ python-editor==1.0.3
 six==1.11.0
 SQLAlchemy==1.2.7
 SQLAlchemy-Utils==0.33.3
-Werkzeug==0.13
+Werkzeug==0.14.1
 python-archive==0.2
 flake8==3.5.0
 pylint==1.8.3
