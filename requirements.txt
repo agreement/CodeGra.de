@@ -27,7 +27,7 @@ SQLAlchemy-Utils==0.33.3
 Werkzeug==0.14.1
 python-archive==0.2
 flake8==3.5.0
-pylint==1.8.3
+pylint==1.8.4
 git+https://github.com/i-kiwamu/python3-oauth2.git
 click==6.7
 lxml==4.2.1
