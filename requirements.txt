@@ -17,7 +17,7 @@ passlib==1.7.1
 patool==1.12
 psycopg2-binary==2.7.4
 py==1.5.3
-pytest==3.5.0
+pytest==3.5.1
 pytest-cov==2.5.1
 python-dateutil==2.7.1
 python-editor==1.0.3
