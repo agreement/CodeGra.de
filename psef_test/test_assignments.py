@@ -992,8 +992,11 @@ def test_upload_files(
                 },
                 result=error_template
             )
-            assert res['message'
-                       ].startswith('The filename should not be empty')
+            assert res['message'].startswith(
+                'The filename should not be empty'
+                # This second part is to maintain compatibility with werkzeug
+                # >=0.14
+            ) or res['message'].startswith('No file in HTTP')
 
             if assignment.is_open or named_user.has_permission(
                 'can_upload_after_deadline', assignment.course_id
