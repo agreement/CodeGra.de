@@ -15,7 +15,7 @@
                 </tr>
                 <tr v-if="showLanguage">
                     <td>Language
-                        <loader :scale="1" :center="true" v-if="langLoading"/>
+                        <loader v-if="langLoading" :scale="1" center/>
                     </td>
                     <td>
                         <multiselect v-model="selectedLanguage"
@@ -42,7 +42,10 @@
                     </td>
                 </tr>
                 <tr v-if="showCharColumn">
-                    <td>Line at col.</td>
+                    <td>
+                        Line at col.
+                        <loader v-show="charColumnLoading" :scale="1" center/>
+                    </td>
                     <td>
                         <b-input-group>
                             <b-input-group-prepend is-text
@@ -112,7 +115,13 @@ export default {
     },
 
     computed: {
-        ...mapGetters('pref', { storeFontSize: 'fontSize', storeContextAmount: 'contextAmount' }),
+        ...mapGetters('pref', {
+            storeDarkMode: 'darkMode',
+            storeFontSize: 'fontSize',
+            storeContextAmount: 'contextAmount',
+            storeCharColumn: 'charColumn',
+            storeCharColumnOffset: 'charColumnOffset',
+        }),
     },
 
     props: {
@@ -164,9 +173,15 @@ export default {
         loadValues() {
             this.loading = true;
             let promise = Promise.resolve();
-            if (this.showTheme) this.darkMode = this.$store.getters['pref/darkMode'];
+            if (this.showTheme) this.darkMode = this.storeDarkMode;
             if (this.showFontSize) this.fontSize = this.storeFontSize;
             if (this.showContextAmount) this.contextAmount = this.storeContextAmount;
+
+            if (this.showCharColumn) {
+                this.charColumn = this.storeCharColumn;
+                this.charColumnOffset = this.storeCharColumnOffset;
+            }
+
             if (this.showWhitespace) {
                 promise = promise
                     .then(() =>
@@ -210,6 +225,7 @@ export default {
             selectedRevision: this.revision || 'student',
             charColumn: false,
             charColumnOffset: 80,
+            charColumnLoading: false,
             revisionOptions: [
                 {
                     text: 'Student',
@@ -259,6 +275,23 @@ export default {
             cont.then(() => {
                 this.contextAmountLoading = false;
                 this.$emit('context-amount', amount);
+            });
+        },
+
+        charColumn(val) {
+            this.charColumnLoading = true;
+            this.$store.dispatch('pref/setCharColumn', val).then(() => {
+                this.charColumnLoading = false;
+                this.$emit('charcolumn', val ? this.charColumnOffset : null);
+            });
+        },
+
+        charColumnOffset(val) {
+            this.charColumnLoading = true;
+            const offset = Math.max(val, 0);
+            this.$store.dispatch('pref/setCharColumnOffset', offset).then(() => {
+                this.charColumnLoading = false;
+                this.$emit('charcolumn', this.charColumn ? offset : null);
             });
         },
 
@@ -319,16 +352,6 @@ export default {
 
         selectedRevision(val) {
             this.$emit('revision', val);
-        },
-
-        charColumn(val) {
-            this.$emit('charcolumn', val ? Number(this.charColumnOffset) : -1);
-        },
-
-        charColumnOffset(val) {
-            if (this.charColumn) {
-                this.$emit('charcolumn', Number(val));
-            }
         },
     },
 };

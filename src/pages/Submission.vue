@@ -735,11 +735,7 @@ export default {
         },
 
         charColumnChanged(val) {
-            if (val != null) {
-                this.charColumn = Array(val + 1).join('.');
-            } else {
-                this.charColumn = null;
-            }
+            this.charColumn = val == null ? null : Array(val + 1).join('.');
         },
 
         selectFileTree() {
