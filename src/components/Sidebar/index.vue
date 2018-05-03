@@ -63,7 +63,6 @@
          v-if="subMenus.length">
         <div class="submenus">
             <div v-for="subMenu, i in subMenus"
-                 v-show="i + 1 == subMenus.length"
                  class="submenu"
                  :id="`submenu-${i}`"
                  :style="subMenuStyle(subMenu)">
@@ -638,6 +637,10 @@ export default {
 
         &:first-child {
             box-shadow: 0 0 10px rgba(0, 0, 0, .75);
+        }
+
+        &:not(:last-child) {
+            display: none;
         }
     }
 }
