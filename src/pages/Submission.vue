@@ -56,13 +56,15 @@
                                             :show-loader="false"
                                             :show-revision="canSeeRevision && !overviewMode"
                                             :show-language="!(diffMode || overviewMode)"
+                                            :show-char-column="true"
                                             :show-context-amount="overviewMode"
                                             :revision="selectedRevision"
                                             @context-amount="contextAmountChanged"
                                             @whitespace="whitespaceChanged"
                                             @language="languageChanged"
                                             @font-size="fontSizeChanged"
-                                            @revision="revisionChanged"/>
+                                            @revision="revisionChanged"
+                                            @charcolumn="charColumnChanged"/>
                     </div>
                 </b-popover>
             </b-input-group-append>
@@ -165,6 +167,7 @@
                            :context="contextAmount"
                            :teacher-tree="teacherTree"
                            :font-size="fontSize"
+                           :char-column="charColumn"
                            :show-whitespace="showWhitespace"/>
             <pdf-viewer :id="currentFile.id"
                         v-else-if="currentFile.extension === 'pdf'"/>
@@ -174,6 +177,7 @@
             <diff-viewer v-else-if="selectedRevision === 'diff' && currentFile.ids[0] !== currentFile.ids[1]"
                          :file="currentFile"
                          :font-size="fontSize"
+                         :char-column="charColumn"
                          :show-whitespace="showWhitespace"/>
             <code-viewer v-else
                          :assignment="assignment"
@@ -182,6 +186,7 @@
                          :editable="editable && studentMode"
                          :tree="fileTree"
                          :font-size="fontSize"
+                         :char-column="charColumn"
                          :show-whitespace="showWhitespace"
                          @new-lang="languageChanged"
                          :language="selectedLanguage"/>
@@ -273,6 +278,7 @@ export default {
             canSeeRevision: false,
             showWhitespace: true,
             fontSize: 12,
+            charColumn: null,
             contextAmount: 3,
             selectedLanguage: 'Default',
             gradeHistory: true,
@@ -726,6 +732,14 @@ export default {
         revisionChanged(val) {
             this.setRevision(val);
             this.selectFileTree();
+        },
+
+        charColumnChanged(val) {
+            if (val != null) {
+                this.charColumn = Array(val + 1).join('.');
+            } else {
+                this.charColumn = null;
+            }
         },
 
         selectFileTree() {

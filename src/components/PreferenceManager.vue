@@ -26,14 +26,14 @@
                     </td>
                 </tr>
                 <tr v-if="showFontSize">
-                    <td style="text-align: left;">
+                    <td>
                         Code font size
                         <loader v-show="fontSizeLoading" :scale="1" center/>
                     </td>
                     <td>
-                        <b-input-group right="px">
+                        <b-input-group append="px">
                             <input v-model="fontSize"
-                                   class="form-control fontsize-select"
+                                   class="form-control"
                                    style="z-index: 0;"
                                    type="number"
                                    step="1"
@@ -41,17 +41,35 @@
                         </b-input-group>
                     </td>
                 </tr>
+                <tr v-if="showCharColumn">
+                    <td>Line at col.</td>
+                    <td>
+                        <b-input-group>
+                            <b-input-group-prepend is-text
+                                                   class="char-column-checkbox">
+                                <b-form-checkbox v-model="charColumn"/>
+                            </b-input-group-prepend>
+                            <input v-model="charColumnOffset"
+                                   class="form-control char-column-input"
+                                   :disabled="!charColumn"
+                                   type="number"
+                                   step="1"
+                                   min="0"/>
+                        </b-input-group>
+                    </td>
+                </tr>
                 <tr v-if="showContextAmount">
-                   <td style="text-align: left;">
+                   <td>
                        Amount of context
                        <loader v-show="contextAmountLoading" :scale="1" center/>
                    </td>
                    <td>
-                       <b-input-group right="px">
+                       <b-input-group append="lines">
                            <input v-model="contextAmount"
-                                  class="form-control fontsize-select"
+                                  class="form-control"
                                   style="z-index: 0;"
                                   type="number"
+                                  step="1"
                                   min="0"/>
                        </b-input-group>
                    </td>
@@ -135,6 +153,11 @@ export default {
             type: Boolean,
             default: true,
         },
+
+        showCharColumn: {
+            type: Boolean,
+            default: false,
+        },
     },
 
     methods: {
@@ -185,6 +208,8 @@ export default {
             initialFont: true,
             selectedLanguage: -1,
             selectedRevision: this.revision || 'student',
+            charColumn: false,
+            charColumnOffset: 80,
             revisionOptions: [
                 {
                     text: 'Student',
@@ -295,6 +320,16 @@ export default {
         selectedRevision(val) {
             this.$emit('revision', val);
         },
+
+        charColumn(val) {
+            this.$emit('charcolumn', val ? Number(this.charColumnOffset) : -1);
+        },
+
+        charColumnOffset(val) {
+            if (this.charColumn) {
+                this.$emit('charcolumn', Number(val));
+            }
+        },
     },
 };
 </script>
@@ -349,6 +384,16 @@ export default {
 
         &:first-child {
             width: 10em;
+        }
+    }
+
+    .char-column-checkbox {
+        .input-group-text {
+            background-color: transparent;
+        }
+
+        .custom-checkbox {
+            padding-left: 1rem;
         }
     }
 }

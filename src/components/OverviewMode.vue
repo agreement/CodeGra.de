@@ -25,21 +25,27 @@
                     <div v-for="(part, i) in getParts(id)"
                          :key="`file-${id}-line-${part[0]}`">
                         <hr v-if="i !== 0">
-                        <ol :class="{ 'lint-whitespace': assignment.whitespace_linter, 'show-whitespace': showWhitespace }"
+                        <ol :class="{
+                                'lint-whitespace': assignment.whitespace_linter,
+                                'show-whitespace': showWhitespace,
+                                'show-char-column': charColumn,
+                            }"
                             :start="part[0] + 1"
                             :style="{
-                                    paddingLeft: `${3 + Math.log10(part[1]) * 2/3}em`,
-                                    fontSize: `${fontSize}px`,
-                                    }"
+                                paddingLeft: `${3 + Math.log10(part[1]) * 2/3}em`,
+                                fontSize: `${fontSize}px`,
+                            }"
                             class="hljs code-part">
                             <li v-for="line in range(part[0], part[1])"
                                 :key="line"
                                 class="line"
                                 :class="{
-                                        'linter-feedback-outer': UserConfig.features.linters &&
-                                        feedback.linter[id] &&
-                                        feedback.linter[id][line] != null,
-                                        'feedback-outer': feedback.user[id][line] }">
+                                    'linter-feedback-outer': UserConfig.features.linters &&
+                                    feedback.linter[id] &&
+                                    feedback.linter[id][line] != null,
+                                    'feedback-outer': feedback.user[id][line]
+                                }"
+                                :data-char-column="charColumn">
                                 <linter-feedback-area :feedback="feedback.linter[id][line]"
                                                       v-if="UserConfig.features.linters &&
                                                             feedback.linter[id] &&
@@ -76,6 +82,7 @@
                 </h4>
                 <diff-viewer :file="f"
                              :font-size="fontSize"
+                             :char-column="charColumn"
                              :show-whitespace="showWhitespace"
                              diff-only
                              :context="context"/>
@@ -171,6 +178,10 @@ export default {
         fontSize: {
             type: Number,
             default: 12,
+        },
+        charColumn: {
+            type: String,
+            default: null,
         },
         showWhitespace: {
             type: Boolean,
@@ -478,8 +489,26 @@ export default {
     }
 }
 
+.code .show-char-column li::before {
+    content: attr(data-char-column);
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    display: block;
+    margin-left: .75em;
+    pointer-events: none;
+    border-right: 1px solid @color-diff-removed-light;
+    color: transparent;
+
+    #app.dark & {
+        border-right: 1px solid fade(@color-diff-removed-dark, 80%);
+    }
+}
+
 .code code {
     border-bottom: 1px solid transparent;
+    font-size: 100%;
     color: @color-secondary-text;
     white-space: pre-wrap;
 
@@ -547,33 +576,40 @@ export default {
         flex-shrink: 1;
         position: relative;
     }
+
     .nav-tabs {
         border-color: @color-border-gray-lighter;
         .default-background;
     }
+
     .tab-wrapper {
         flex: 1 0 auto;
         border-color: @color-border-gray-lighter;
         border-color: transparent;
+
         .nav-link {
             &:hover {
                 color: inherit !important;
             }
+
             &:not(.active):not(:hover) {
                 border-color: transparent !important;
             }
+
             &.active {
                 border-color: @color-border-gray-lighter;
                 background-color: rgb(247, 247, 247);
                 border-bottom-color: rgb(247, 247, 247);
-        }
+            }
         }
     }
+
     .tab-content {
         border: 1px solid @color-border-gray-lighter;
         #app.dark & {
             border-color: @color-primary-darker;
         }
+
         border-top: 0;
         overflow: auto;
 
@@ -582,6 +618,7 @@ export default {
         border-top-left-radius: 0;
 
         margin-bottom: 2px;
+
         .tab-pane {
             will-change: transform;
             height: 100%;

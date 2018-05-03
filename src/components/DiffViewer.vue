@@ -7,31 +7,39 @@
     <div v-for="(part, i) in changedParts"
          :key="`part-${i}-line-${part[0]}`">
         <hr v-if="i !== 0">
-        <ol :class="{ 'show-whitespace': showWhitespace }"
+        <ol :class="{
+                'show-whitespace': showWhitespace,
+                'show-char-column': charColumn,
+            }"
             class="diff-part"
             :start="part[0] + 1"
             :style="{
-                    paddingLeft: `${3 + Math.log10(part[1]) * 2/3}em`,
-                    fontSize: `${fontSize}px`,
-                    }">
+                paddingLeft: `${3 + Math.log10(part[1]) * 2/3}em`,
+                fontSize: `${fontSize}px`,
+            }">
             <li v-for="line in range(part[0], part[1])"
                 :key="line"
-                :class="lines[line].cls">
+                :class="lines[line].cls"
+                :data-char-column="charColumn">
                 <code v-html="lines[line].txt"/>
             </li>
         </ol>
     </div>
 </div>
 <div class="diff-viewer form-control" v-else>
-    <ol :class="{ 'show-whitespace': showWhitespace }"
+    <ol :class="{
+            'show-whitespace': showWhitespace,
+            'show-char-column': charColumn,
+        }"
         class="scroller"
         :style="{
-                paddingLeft: `${3 + Math.log10(lines.length) * 2/3}em`,
-                fontSize: `${fontSize}px`,
-                }">
+            paddingLeft: `${3 + Math.log10(lines.length) * 2/3}em`,
+            fontSize: `${fontSize}px`,
+        }">
         <li v-for="(line, i) in lines"
             :key="i"
-            :class="line.cls">
+            :class="line.cls"
+            :data-char-column="charColumn">
             <code v-html="line.txt"/>
         </li>
     </ol>
@@ -66,6 +74,10 @@ export default {
         fontSize: {
             type: Number,
             default: 12,
+        },
+        charColumn: {
+            type: String,
+            default: null,
         },
         showWhitespace: {
             type: Boolean,
@@ -257,10 +269,28 @@ li {
         background: @color-primary-darker;
         border-left: 1px solid darken(@color-primary-darkest, 5%);
     }
+
+    .show-char-column &::before {
+        content: attr(data-char-column);
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        display: block;
+        margin-left: .75em;
+        pointer-events: none;
+        border-right: 1px solid @color-diff-removed-light;
+        color: transparent;
+
+        #app.dark & {
+            border-right: 1px solid fade(@color-diff-removed-dark, 80%);
+        }
+    }
 }
 
 code {
     color: @color-secondary-text;
+    font-size: 100%;
     background: transparent;
     white-space: pre-wrap;
 

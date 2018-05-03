@@ -5,14 +5,18 @@
     <loader class="text-center" v-else-if="loading"></loader>
     <div class="code-viewer form-control" v-else>
         <div class="scroller">
-            <ol :class="{ editable, 'lint-whitespace': assignment.whitespace_linter, 'show-whitespace': showWhitespace }"
+            <ol :class="{
+                    editable,
+                    'lint-whitespace': assignment.whitespace_linter,
+                    'show-whitespace': showWhitespace,
+                    'show-char-column': charColumn,
+                }"
                 :style="{
                     paddingLeft: `${3 + Math.log10(codeLines.length) * 2/3}em`,
                     fontSize: `${fontSize}px`,
                 }"
                 class="hljs"
-                @click="editable && addFeedback($event)"
-                :data-char-column="charColumn">
+                @click="editable && addFeedback($event)">
 
                 <li v-for="(line, i) in codeLines"
                     :key="i"
@@ -22,7 +26,8 @@
                                                  linterFeedback[i] &&
                                                  !diffMode,
                         'feedback-outer': feedback[i] != null && !diffMode }"
-                    :data-line="i">
+                    :data-line="i"
+                    :data-char-column="charColumn">
 
                     <linter-feedback-area :feedback="linterFeedback[i]"
                                           v-if="UserConfig.features.linters &&
@@ -96,6 +101,10 @@ export default {
             type: Number,
             default: 12,
         },
+        charColumn: {
+            type: String,
+            default: null,
+        },
         showWhitespace: {
             type: Boolean,
             default: true,
@@ -136,7 +145,6 @@ export default {
             selectedLanguage: 'Default',
             languages,
             canUseSnippets: false,
-            charColumn: Array(81).join('.'),
         };
     },
 
@@ -351,22 +359,6 @@ ol {
         background: @color-primary-darkest;
         color: @color-secondary-text-lighter;
     }
-
-    &::before {
-        content: attr(data-char-column);
-        display: block;
-        z-index: 10;
-        height: 100%;
-        margin-left: .8em;
-        pointer-events: none;
-        border-right: 1px solid @color-diff-removed-light;
-        position: absolute;
-        color: transparent;
-
-        #app.dark & {
-            border-right: 1px solid fade(@color-diff-removed-dark, 80%);
-        }
-    }
 }
 
 li {
@@ -388,6 +380,23 @@ li {
 
     .editable &:hover {
         cursor: pointer;
+    }
+
+    .show-char-column &::before {
+        content: attr(data-char-column);
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        display: block;
+        margin-left: .75em;
+        pointer-events: none;
+        border-right: 1px solid @color-diff-removed-light;
+        color: transparent;
+
+        #app.dark & {
+            border-right: 1px solid fade(@color-diff-removed-dark, 80%);
+        }
     }
 }
 
