@@ -314,7 +314,8 @@ export default {
             if (this.submission) {
                 this.$nextTick(this.updateTitle);
             }
-            if (this.assignment.state === assignmentState.DONE) {
+            if (this.assignment.state === assignmentState.DONE &&
+                !Object.hasOwnProperty.call(this.$route.query, 'overview')) {
                 this.toggleOverviewMode(true);
             }
         },
