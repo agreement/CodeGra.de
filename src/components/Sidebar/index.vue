@@ -638,6 +638,10 @@ export default {
         &:first-child {
             box-shadow: 0 0 10px rgba(0, 0, 0, .75);
         }
+
+        &:not(:last-child) {
+            display: none;
+        }
     }
 }
 
