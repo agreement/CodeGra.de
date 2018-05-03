@@ -471,21 +471,8 @@ export default {
         color: @color-secondary-text-lighter;
     }
 
-    &.show-char-column::before {
-        content: attr(data-char-column);
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        z-index: 10;
-        display: block;
-        margin-left: .75em;
-        pointer-events: none;
-        border-right: 1px solid @color-diff-removed-light;
-        color: transparent;
-
-        #app.dark & {
-            border-right: 1px solid fade(@color-diff-removed-dark, 80%);
-        }
+    &.show-char-column {
+        .code-viewer-char-column;
     }
 }
 
