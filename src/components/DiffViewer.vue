@@ -16,11 +16,11 @@
             :style="{
                 paddingLeft: `${3 + Math.log10(part[1]) * 2/3}em`,
                 fontSize: `${fontSize}px`,
-            }">
+            }"
+            :data-char-column="charColumn">
             <li v-for="line in range(part[0], part[1])"
                 :key="line"
-                :class="lines[line].cls"
-                :data-char-column="charColumn">
+                :class="lines[line].cls">
                 <code v-html="lines[line].txt"/>
             </li>
         </ol>
@@ -35,11 +35,11 @@
         :style="{
             paddingLeft: `${3 + Math.log10(lines.length) * 2/3}em`,
             fontSize: `${fontSize}px`,
-        }">
+        }"
+        :data-char-column="charColumn">
         <li v-for="(line, i) in lines"
             :key="i"
-            :class="line.cls"
-            :data-char-column="charColumn">
+            :class="line.cls">
             <code v-html="line.txt"/>
         </li>
     </ol>
@@ -236,6 +236,23 @@ ol {
         background: @color-primary-darkest;
         color: @color-secondary-text-lighter;
     }
+
+    &.show-char-column::before {
+        content: attr(data-char-column);
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        z-index: 10;
+        display: block;
+        margin-left: .75em;
+        pointer-events: none;
+        border-right: 1px solid @color-diff-removed-light;
+        color: transparent;
+
+        #app.dark & {
+            border-right: 1px solid fade(@color-diff-removed-dark, 80%);
+        }
+    }
 }
 
 li {
@@ -268,23 +285,6 @@ li {
     #app.dark & {
         background: @color-primary-darker;
         border-left: 1px solid darken(@color-primary-darkest, 5%);
-    }
-
-    .show-char-column &::before {
-        content: attr(data-char-column);
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        display: block;
-        margin-left: .75em;
-        pointer-events: none;
-        border-right: 1px solid @color-diff-removed-light;
-        color: transparent;
-
-        #app.dark & {
-            border-right: 1px solid fade(@color-diff-removed-dark, 80%);
-        }
     }
 }
 

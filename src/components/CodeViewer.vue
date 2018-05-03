@@ -16,7 +16,8 @@
                     fontSize: `${fontSize}px`,
                 }"
                 class="hljs"
-                @click="editable && addFeedback($event)">
+                @click="editable && addFeedback($event)"
+                :data-char-column="charColumn">
 
                 <li v-for="(line, i) in codeLines"
                     :key="i"
@@ -26,8 +27,7 @@
                                                  linterFeedback[i] &&
                                                  !diffMode,
                         'feedback-outer': feedback[i] != null && !diffMode }"
-                    :data-line="i"
-                    :data-char-column="charColumn">
+                    :data-line="i">
 
                     <linter-feedback-area :feedback="linterFeedback[i]"
                                           v-if="UserConfig.features.linters &&
@@ -359,6 +359,23 @@ ol {
         background: @color-primary-darkest;
         color: @color-secondary-text-lighter;
     }
+
+    &.show-char-column::before {
+        content: attr(data-char-column);
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        z-index: 10;
+        display: block;
+        margin-left: .75em;
+        pointer-events: none;
+        border-right: 1px solid @color-diff-removed-light;
+        color: transparent;
+
+        #app.dark & {
+            border-right: 1px solid fade(@color-diff-removed-dark, 80%);
+        }
+    }
 }
 
 li {
@@ -380,23 +397,6 @@ li {
 
     .editable &:hover {
         cursor: pointer;
-    }
-
-    .show-char-column &::before {
-        content: attr(data-char-column);
-        position: absolute;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        display: block;
-        margin-left: .75em;
-        pointer-events: none;
-        border-right: 1px solid @color-diff-removed-light;
-        color: transparent;
-
-        #app.dark & {
-            border-right: 1px solid fade(@color-diff-removed-dark, 80%);
-        }
     }
 }
 
@@ -439,6 +439,11 @@ code {
 .loader {
     margin-top: 2.5em;
     margin-bottom: 3em;
+}
+
+.feedback-area {
+    position: relative;
+    z-index: 20;
 }
 </style>
 

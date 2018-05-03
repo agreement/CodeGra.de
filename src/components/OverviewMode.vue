@@ -35,7 +35,8 @@
                                 paddingLeft: `${3 + Math.log10(part[1]) * 2/3}em`,
                                 fontSize: `${fontSize}px`,
                             }"
-                            class="hljs code-part">
+                            class="hljs code-part"
+                            :data-char-column="charColumn">
                             <li v-for="line in range(part[0], part[1])"
                                 :key="line"
                                 class="line"
@@ -44,8 +45,7 @@
                                     feedback.linter[id] &&
                                     feedback.linter[id][line] != null,
                                     'feedback-outer': feedback.user[id][line]
-                                }"
-                                :data-char-column="charColumn">
+                                }">
                                 <linter-feedback-area :feedback="feedback.linter[id][line]"
                                                       v-if="UserConfig.features.linters &&
                                                             feedback.linter[id] &&
@@ -457,6 +457,7 @@ export default {
 }
 
 .code ol {
+    position: relative;
     min-height: 5em;
     margin: 0;
     padding: 0;
@@ -468,6 +469,23 @@ export default {
     #app.dark & {
         background: @color-primary-darkest;
         color: @color-secondary-text-lighter;
+    }
+
+    &.show-char-column::before {
+        content: attr(data-char-column);
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        z-index: 10;
+        display: block;
+        margin-left: .75em;
+        pointer-events: none;
+        border-right: 1px solid @color-diff-removed-light;
+        color: transparent;
+
+        #app.dark & {
+            border-right: 1px solid fade(@color-diff-removed-dark, 80%);
+        }
     }
 }
 
@@ -486,23 +504,6 @@ export default {
 
     &:hover {
         cursor: text;
-    }
-}
-
-.code .show-char-column li::before {
-    content: attr(data-char-column);
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    display: block;
-    margin-left: .75em;
-    pointer-events: none;
-    border-right: 1px solid @color-diff-removed-light;
-    color: transparent;
-
-    #app.dark & {
-        border-right: 1px solid fade(@color-diff-removed-dark, 80%);
     }
 }
 
@@ -560,6 +561,11 @@ export default {
 
 .added-deleted-files a {
     .default-text-colors;
+}
+
+.feedback-area {
+    position: relative;
+    z-index: 20;
 }
 </style>
 
