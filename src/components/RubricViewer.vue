@@ -233,7 +233,11 @@ export default {
                 req = this.$http.delete(`/api/v1/submissions/${this.submission.id}/rubricitems/${item.id}`);
             }
 
-            waitAtLeast(500, req).then(() => {
+            if (doRequest) {
+                req = waitAtLeast(500, req);
+            }
+
+            req.then(() => {
                 row.items.forEach(({ id, points }) => {
                     if (this.selected[id]) {
                         this.selectedPoints -= points;

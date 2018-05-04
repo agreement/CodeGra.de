@@ -212,7 +212,7 @@ export default {
             req.then(({ data }) => {
                 if (data.grade !== undefined) {
                     this.grade = formatGrade(data.grade) || null;
-                    this.gradeUpdated(data.grade);
+                    this.gradeUpdated();
                 }
             });
             this.$refs.deleteButton.submit(req.catch((err) => {
@@ -243,8 +243,8 @@ export default {
             ).then(() => {
                 if (overrideGrade) {
                     this.grade = grade;
-                    this.gradeUpdated(grade);
                 }
+                this.gradeUpdated();
             });
             this.$refs.submitButton.submit(Promise.all([req, viewerReq]).catch((err) => {
                 throw err.response.data.message;
