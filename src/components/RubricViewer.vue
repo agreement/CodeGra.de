@@ -15,29 +15,29 @@
                             :key="`rubric-${rubric.id}-${item.id}`"
                             @click="toggleItem(rubric, item)"
                             :class="{ selected: selected[item.id] }"
-                            :title="`${item.points} - ${item.header}`"
-                            title-tag="b"
                             body-class="rubric-item-body">
-
-                        <div v-if="itemStates[item.id] === '__LOADING__'"
-                             class="rubric-item-icon">
-                            <loader :scale="1"/>
-                        </div>
-                        <div v-else-if="selected[item.id]"
-                             class="rubric-item-icon">
-                            <icon name="check"/>
-                        </div>
-                        <div v-else-if="itemStates[item.id]"
-                             class="rubric-item-icon">
-                            <b-popover show
-                                       :target="`rubric-error-icon-${rubric.id}-${item.id}`"
-                                       :content="itemStates[item.id]"
-                                       placement="top">
-                            </b-popover>
-                            <icon name="times"
-                                  :scale="1"
-                                  :id="`rubric-error-icon-${rubric.id}-${item.id}`"
-                                  class="text-danger"/>
+                        <div slot="header" class="header">
+                            <b class="header-title">{{ item.points }} - {{ item.header }}</b>
+                            <div v-if="itemStates[item.id] === '__LOADING__'"
+                                class="rubric-item-icon">
+                                <loader :scale="1"/>
+                            </div>
+                            <div v-else-if="selected[item.id]"
+                                class="rubric-item-icon">
+                                <icon name="check"/>
+                            </div>
+                            <div v-else-if="itemStates[item.id]"
+                                class="rubric-item-icon">
+                                <b-popover show
+                                        :target="`rubric-error-icon-${rubric.id}-${item.id}`"
+                                        :content="itemStates[item.id]"
+                                        placement="top">
+                                </b-popover>
+                                <icon name="times"
+                                    :scale="1"
+                                    :id="`rubric-error-icon-${rubric.id}-${item.id}`"
+                                    class="text-danger"/>
+                            </div>
                         </div>
 
                         <p class="rubric-item-description">
@@ -83,13 +83,13 @@ export default {
     data() {
         return {
             rubrics: [],
-            outOfSync: {},
             selected: {},
             selectedPoints: 0,
             selectedRows: {},
             current: 0,
             maxPoints: 0,
             itemStates: {},
+            origSelected: [],
         };
     },
 
@@ -102,6 +102,18 @@ export default {
     computed: {
         hasSelectedItems() {
             return Object.keys(this.selected).length !== 0;
+        },
+
+        outOfSync() {
+            const origSet = new Set(this.origSelected);
+            Object.keys(this.selected).forEach((item) => {
+                if (origSet.has(item)) {
+                    origSet.delete(item);
+                } else {
+                    origSet.add(item);
+                }
+            });
+            return origSet;
         },
 
         grade() {
@@ -155,32 +167,35 @@ export default {
                 return this.$http.patch(`/api/v1/submissions/${this.submission.id}/rubricitems/`, {
                     items: [],
                 }).then(clear);
+            } else {
+                clear();
+                return Promise.resolve({ data: {} });
             }
-
-            this.outOfSync = this.selected;
-            clear();
-            return Promise.resolve({ data: {} });
         },
 
         submitAllItems() {
             if (Object.keys(this.outOfSync).length === 0) {
                 return Promise.resolve();
             }
+            const items = Object.keys(this.selected);
+
             return this.$http.patch(`/api/v1/submissions/${this.submission.id}/rubricitems/`, {
-                items: Object.keys(this.selected),
+                items,
             }).then(() => {
-                this.outOfSync = {};
+                this.origSelected = items;
             });
         },
 
         rubricUpdated({ rubrics, selected, points }, initial = false) {
             this.rubrics = this.sortRubricItems(rubrics);
+            this.origSelected = [];
 
             if (selected) {
                 this.selected = selected.reduce((res, item) => {
                     res[item.id] = item;
                     return res;
                 }, {});
+                this.origSelected = Object.keys(this.selected);
                 this.selectedPoints = selected.reduce(
                     (res, item) => res + item.points,
                     0,
@@ -220,12 +235,6 @@ export default {
 
             if (!doRequest) {
                 req = Promise.resolve().then(() => {
-                    if (this.outOfSync[item.id]) {
-                        this.$set(this.outOfSync, item.id, false);
-                        delete this.outOfSync[item.id];
-                    } else {
-                        this.$set(this.outOfSync, item.id, true);
-                    }
                 });
             } else if (selectItem) {
                 req = this.$http.patch(`/api/v1/submissions/${this.submission.id}/rubricitems/${item.id}`);
@@ -287,7 +296,7 @@ export default {
 
 @active-color: #e6e6e6;
 
-.rubric-category {
+.rubric-viewer .rubric-category {
     border-top-width: 0;
 
     &,
@@ -347,10 +356,29 @@ export default {
         }
     }
 
-    &-icon {
-        position: absolute;
-        top: 10px;
-        right: 15px;
+    .rubric-item-body {
+        padding-top: 0;
+    }
+
+    .card-header {
+        background: inherit !important;
+        border-bottom: 0;
+        padding-bottom: 0;
+
+        .header {
+            display: flex;
+            background: initial;
+
+            .header-title {
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                flex: 1 1 auto;
+            }
+            .rubric-item-icon {
+                margin-left: 2px;
+            }
+        }
     }
 }
 </style>

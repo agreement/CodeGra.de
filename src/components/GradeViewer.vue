@@ -10,7 +10,7 @@
             :rubric="rubric"
             ref="rubricViewer"/>
     </b-collapse>
-    <b-alert :class="{closed: Object.keys($refs.rubricViewer.outOfSync).length === 0,
+    <b-alert :class="{closed: $refs.rubricViewer.outOfSync.size === 0,
                      'out-of-sync-alert': true,}"
              show
              v-if="showRubric && $refs.rubricViewer"
