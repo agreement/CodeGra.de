@@ -10,7 +10,7 @@
             :rubric="rubric"
             ref="rubricViewer"/>
     </b-collapse>
-    <b-alert :class="{closed: Object.keys($refs.rubricViewer.outOfSync).length === 0,
+    <b-alert :class="{closed: $refs.rubricViewer.outOfSync.size === 0,
                      'out-of-sync-alert': true,}"
              show
              v-if="showRubric && $refs.rubricViewer"
@@ -212,7 +212,7 @@ export default {
             req.then(({ data }) => {
                 if (data.grade !== undefined) {
                     this.grade = formatGrade(data.grade) || null;
-                    this.gradeUpdated(data.grade);
+                    this.gradeUpdated();
                 }
             });
             this.$refs.deleteButton.submit(req.catch((err) => {
@@ -243,8 +243,8 @@ export default {
             ).then(() => {
                 if (overrideGrade) {
                     this.grade = grade;
-                    this.gradeUpdated(grade);
                 }
+                this.gradeUpdated();
             });
             this.$refs.submitButton.submit(Promise.all([req, viewerReq]).catch((err) => {
                 throw err.response.data.message;

@@ -638,7 +638,8 @@ def get_submission_files_from_request(
                 APICodes.INVALID_PARAM, 400
             )
 
-        if not file.filename:
+        # This will not be used on werkzeug >=0.14.0
+        if not file.filename:  # pragma: no cover
             raise APIException(
                 'The filename should not be empty.',
                 'Got an empty filename for key {}'.format(key),

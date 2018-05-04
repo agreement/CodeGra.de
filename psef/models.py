@@ -2864,7 +2864,7 @@ class RubricItem(Base):
     points: float = db.Column('points', db.Float)
 
     # This variable is generated from the backref from RubricRow
-    rubricrow: RubricRow
+    rubricrow: RubricRow = None
 
     def __to_json__(self) -> t.Mapping[str, t.Any]:
         """Creates a JSON serializable representation of this object.
