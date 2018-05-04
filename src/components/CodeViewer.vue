@@ -9,7 +9,8 @@
                     editable,
                     'lint-whitespace': assignment.whitespace_linter,
                     'show-whitespace': showWhitespace,
-                    'show-char-column': charColumn,
+                    'show-char-column': charColumn.visible,
+                    'char-column-wide': charColumn.wide,
                 }"
                 :style="{
                     paddingLeft: `${3 + Math.log10(codeLines.length) * 2/3}em`,
@@ -17,7 +18,7 @@
                 }"
                 class="hljs"
                 @click="editable && addFeedback($event)"
-                :data-char-column="charColumn">
+                :data-char-column="charColumn.text">
 
                 <li v-for="(line, i) in codeLines"
                     :key="i"
@@ -102,7 +103,7 @@ export default {
             default: 12,
         },
         charColumn: {
-            type: String,
+            type: Object,
             default: null,
         },
         showWhitespace: {

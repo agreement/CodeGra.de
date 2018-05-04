@@ -43,21 +43,27 @@
                 </tr>
                 <tr v-if="showCharColumn">
                     <td>
-                        Line at col.
+                        Line at column
                         <loader v-show="charColumnLoading" :scale="1" center/>
                     </td>
                     <td>
                         <b-input-group>
                             <b-input-group-prepend is-text
                                                    class="char-column-checkbox">
-                                <b-form-checkbox v-model="charColumn"/>
+                                <b-form-checkbox v-model="charColumnVisible"/>
                             </b-input-group-prepend>
                             <input v-model="charColumnOffset"
-                                   class="form-control char-column-input"
-                                   :disabled="!charColumn"
+                                   class="form-control"
+                                   :disabled="!charColumnVisible"
+                                   placeholder="Offset"
                                    type="number"
                                    step="1"
                                    min="0"/>
+                            <toggle v-model="charColumnWide"
+                                    label-on="wide"
+                                    label-off="narrow"
+                                    :disabled="!charColumnVisible"
+                                    class="form-control char-column-toggle"/>
                         </b-input-group>
                     </td>
                 </tr>
@@ -122,6 +128,16 @@ export default {
             storeCharColumn: 'charColumn',
             storeCharColumnOffset: 'charColumnOffset',
         }),
+
+        charColumn() {
+            const res = {
+                visible: this.charColumnVisible,
+                offset: Number(this.charColumnOffset),
+                wide: this.charColumnWide,
+            };
+            res.text = Array(res.offset + 1).join('.');
+            return res;
+        },
     },
 
     props: {
@@ -178,8 +194,9 @@ export default {
             if (this.showContextAmount) this.contextAmount = this.storeContextAmount;
 
             if (this.showCharColumn) {
-                this.charColumn = this.storeCharColumn;
-                this.charColumnOffset = this.storeCharColumnOffset;
+                this.charColumnVisible = this.storeCharColumn.visible;
+                this.charColumnOffset = this.storeCharColumn.offset;
+                this.charColumnWidth = this.storeCharColumn.width;
             }
 
             if (this.showWhitespace) {
@@ -223,8 +240,9 @@ export default {
             initialFont: true,
             selectedLanguage: -1,
             selectedRevision: this.revision || 'student',
-            charColumn: false,
+            charColumnVisible: false,
             charColumnOffset: 80,
+            charColumnWide: true,
             charColumnLoading: false,
             revisionOptions: [
                 {
@@ -278,20 +296,27 @@ export default {
             });
         },
 
-        charColumn(val) {
+        charColumnVisible() {
             this.charColumnLoading = true;
-            this.$store.dispatch('pref/setCharColumn', val).then(() => {
+            this.$store.dispatch('pref/setCharColumn', this.charColumn).then(() => {
                 this.charColumnLoading = false;
-                this.$emit('charcolumn', val ? this.charColumnOffset : null);
+                this.$emit('charcolumn', this.charColumn);
             });
         },
 
-        charColumnOffset(val) {
+        charColumnOffset() {
             this.charColumnLoading = true;
-            const offset = Math.max(val, 0);
-            this.$store.dispatch('pref/setCharColumnOffset', offset).then(() => {
+            this.$store.dispatch('pref/setCharColumn', this.charColumn).then(() => {
                 this.charColumnLoading = false;
-                this.$emit('charcolumn', this.charColumn ? offset : null);
+                this.$emit('charcolumn', this.charColumn);
+            });
+        },
+
+        charColumnWide() {
+            this.charColumnLoading = true;
+            this.$store.dispatch('pref/setCharColumn', this.charColumn).then(() => {
+                this.charColumnLoading = false;
+                this.$emit('charcolumn', this.charColumn);
             });
         },
 
@@ -417,6 +442,14 @@ export default {
 
         .custom-checkbox {
             padding-left: 1rem;
+        }
+    }
+
+    .char-column-toggle {
+        text-align: center;
+
+        &.disabled {
+            background-color: #e9ecef;
         }
     }
 }

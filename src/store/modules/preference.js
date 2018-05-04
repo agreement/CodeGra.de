@@ -5,7 +5,6 @@ const getters = {
     darkMode: state => state.darkMode,
     contextAmount: state => state.contextAmount,
     charColumn: state => state.charColumn,
-    charColumnOffset: state => state.charColumnOffset,
 };
 
 const actions = {
@@ -20,9 +19,6 @@ const actions = {
     },
     setCharColumn({ commit }, charColumn) {
         commit(types.UPDATE_CHAR_COLUMN, charColumn);
-    },
-    setCharColumnOffset({ commit }, charColumnOffset) {
-        commit(types.UPDATE_CHAR_COLUMN_OFFSET, charColumnOffset);
     },
 };
 
@@ -39,9 +35,6 @@ const mutations = {
     [types.UPDATE_CHAR_COLUMN](state, charColumn) {
         state.charColumn = charColumn;
     },
-    [types.UPDATE_CHAR_COLUMN_OFFSET](state, charColumnOffset) {
-        state.charColumnOffset = charColumnOffset;
-    },
 };
 
 export default {
@@ -50,8 +43,11 @@ export default {
         fontSize: 12,
         darkMode: false,
         contextAmount: 3,
-        charColumn: false,
-        charColumnOffset: 80,
+        charColumn: {
+            visible: false,
+            offset: 80,
+            wide: true,
+        },
     },
     getters,
     actions,

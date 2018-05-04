@@ -28,7 +28,8 @@
                         <ol :class="{
                                 'lint-whitespace': assignment.whitespace_linter,
                                 'show-whitespace': showWhitespace,
-                                'show-char-column': charColumn,
+                                'show-char-column': charColumn.visible,
+                                'char-column-wide': charColumn.wide,
                             }"
                             :start="part[0] + 1"
                             :style="{
@@ -36,7 +37,7 @@
                                 fontSize: `${fontSize}px`,
                             }"
                             class="hljs code-part"
-                            :data-char-column="charColumn">
+                            :data-char-column="charColumn.text">
                             <li v-for="line in range(part[0], part[1])"
                                 :key="line"
                                 class="line"

@@ -539,11 +539,16 @@
         display: block;
         margin-left: .75em;
         pointer-events: none;
-        border-right: 1px solid @color-diff-removed-light;
+        border-right: 2px solid fade(@color-diff-removed-light, 50%);
         color: transparent;
+        transition: border-width 300ms;
 
         #app.dark & {
-            border-right: 1px solid fade(@color-diff-removed-dark, 80%);
+            border-right-color: fade(@color-diff-removed-dark, 50%);
         }
+    }
+
+    &.char-column-wide::before {
+        border-right-width: .66em;
     }
 }

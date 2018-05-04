@@ -735,7 +735,7 @@ export default {
         },
 
         charColumnChanged(val) {
-            this.charColumn = val == null ? null : Array(val + 1).join('.');
+            this.charColumn = val;
         },
 
         selectFileTree() {

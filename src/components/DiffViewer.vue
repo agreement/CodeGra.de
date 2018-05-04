@@ -9,7 +9,8 @@
         <hr v-if="i !== 0">
         <ol :class="{
                 'show-whitespace': showWhitespace,
-                'show-char-column': charColumn,
+                'show-char-column': charColumn.visible,
+                'char-column-wide': charColumn.wide,
             }"
             class="diff-part"
             :start="part[0] + 1"
@@ -17,7 +18,7 @@
                 paddingLeft: `${3 + Math.log10(part[1]) * 2/3}em`,
                 fontSize: `${fontSize}px`,
             }"
-            :data-char-column="charColumn">
+            :data-char-column="charColumn.text">
             <li v-for="line in range(part[0], part[1])"
                 :key="line"
                 :class="lines[line].cls">
@@ -29,14 +30,15 @@
 <div class="diff-viewer form-control" v-else>
     <ol :class="{
             'show-whitespace': showWhitespace,
-            'show-char-column': charColumn,
+            'show-char-column': charColumn.visible,
+            'char-column-wide': charColumn.wide,
         }"
         class="scroller"
         :style="{
             paddingLeft: `${3 + Math.log10(lines.length) * 2/3}em`,
             fontSize: `${fontSize}px`,
         }"
-        :data-char-column="charColumn">
+        :data-char-column="charColumn.text">
         <li v-for="(line, i) in lines"
             :key="i"
             :class="line.cls">
