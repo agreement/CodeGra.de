@@ -104,7 +104,7 @@ export default {
         },
         charColumn: {
             type: Object,
-            default: null,
+            default: {},
         },
         showWhitespace: {
             type: Boolean,

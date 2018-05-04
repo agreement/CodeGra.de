@@ -278,7 +278,7 @@ export default {
             canSeeRevision: false,
             showWhitespace: true,
             fontSize: 12,
-            charColumn: null,
+            charColumn: {},
             contextAmount: 3,
             selectedLanguage: 'Default',
             gradeHistory: true,

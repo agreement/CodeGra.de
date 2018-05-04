@@ -181,8 +181,8 @@ export default {
             default: 12,
         },
         charColumn: {
-            type: String,
-            default: null,
+            type: Object,
+            default: {},
         },
         showWhitespace: {
             type: Boolean,
