@@ -8,10 +8,8 @@
               @keydown.ctrl.enter="putFeedback"
               @keydown.native.tab.capture="expandSnippet"
               v-if="editable"/>
-    <p class="feedback-field"
-       v-else>
-        {{ feedback || 'No feedback given :(' }}
-    </p>
+    <pre class="feedback-field"
+         v-else>{{ feedback || 'No feedback given :(' }}</pre>
     <submit-button ref="submitButton"
                    @click="putFeedback"
                    v-if="editable"
@@ -92,14 +90,11 @@ export default {
 @import "~mixins.less";
 
 .feedback-field {
-    display: block;
-    width: 100%;
-    padding: 0.375rem 0.75rem;
-    font-size: 1rem;
-    line-height: 1.5;
-    text-align: left;
-    color: #495057;
-    .default-text-colors;
+    max-height: 80vh;
     margin-bottom: 0;
+    padding: 0.375rem 0.75rem;
+    white-space: pre-wrap;
+    text-align: left;
+    .default-text-colors;
 }
 </style>
