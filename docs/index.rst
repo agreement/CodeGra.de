@@ -51,8 +51,14 @@ documentation:
 .. toctree::
    :maxdepth: 2
    :caption: User Documentation
-
-   manual
+   
+   manual.rst
+   user/codeviewer.rst
+   user/filesystem.rst
+   user/management.rst
+   user/permissions.rst
+   user/lms.rst
+   user/faq.rst
 
 .. _dev-docs:
 
