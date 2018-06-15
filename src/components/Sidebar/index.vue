@@ -635,7 +635,7 @@ export default {
             color: @color-primary;
         }
 
-        &:first-child {
+        &:last-child {
             box-shadow: 0 0 10px rgba(0, 0, 0, .75);
         }
 
