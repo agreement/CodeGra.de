@@ -12,6 +12,11 @@ import {
     Admin,
 } from '@/pages';
 
+import {
+    PlagiarismOverview,
+    PlagiarismDetail,
+} from '@/components';
+
 import { resetPageTitle } from '@/pages/title';
 
 Vue.use(Router);
@@ -64,6 +69,16 @@ const router = new Router({
             path: '/courses/:courseId/assignments/:assignmentId',
             name: 'manage_assignment',
             component: ManageAssignment,
+        },
+        {
+            path: '/courses/:courseId/assignments/:assignmentId/plagiarism/',
+            name: 'plagiarism_overview',
+            component: PlagiarismOverview,
+        },
+        {
+            path: '/courses/:courseId/assignments/:assignmentId/plagiarism/:userId1/other/:userId2',
+            name: 'plagiarism_detail',
+            component: PlagiarismDetail,
         },
     ],
 });

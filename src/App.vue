@@ -13,8 +13,7 @@
                 the most out of CodeGra.de!
             </b-alert>
             <router-view class="page col-lg-12"/>
-            <footer-bar v-if="$route.name !== 'submission'
-                              && $route.name !== 'submission_file'"/>
+            <footer-bar v-if="showFooter"/>
         </main>
     </div>
 </div>
@@ -33,6 +32,12 @@ export default {
 
         showSidebar() {
             return this.$route.name !== 'lti-launch';
+        },
+
+        showFooter() {
+            return this.$route.name !== 'submission' &&
+                this.$route.name !== 'submission_file' &&
+                this.$route.name !== 'plagiarism_detail';
         },
 
         // Detect if browser is Internet Explorer,
