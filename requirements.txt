@@ -2,7 +2,7 @@ alembic==1.0.0
 celery==4.2.1
 coverage==4.5.1
 Flask==1.0.2
-Flask-JWT-Extended==3.8.1
+Flask-JWT-Extended==3.12.1
 Flask-Mail==0.9.1
 Flask-Migrate==2.1.1
 Flask-Script==2.0.6
