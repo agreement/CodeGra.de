@@ -1,0 +1,376 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>psef.v1.snippets &mdash; CodeGra.de 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link href="../../../_static/style.css" rel="stylesheet" type="text/css">
+
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> CodeGra.de
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">User Manual CodeGra.de</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Code documentation of psef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../running.html">How to run CodeGra.de</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CodeGra.de</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../psef.html">psef</a> &raquo;</li>
+        
+          <li><a href="../v1.html">psef.v1</a> &raquo;</li>
+        
+      <li>psef.v1.snippets</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for psef.v1.snippets</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module defines all API routes with the main directory &quot;snippet&quot; or</span>
+<span class="sd">&quot;snippets. These APIs can be used to add, modify, delete and retrieve the</span>
+<span class="sd">snippets of the current user.</span>
+
+<span class="sd">:license: AGPLv3, see LICENSE for details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
+
+<span class="kn">from</span> <span class="nn">flask</span> <span class="k">import</span> <span class="n">request</span>
+
+<span class="kn">import</span> <span class="nn">psef.auth</span> <span class="k">as</span> <span class="nn">auth</span>
+<span class="kn">import</span> <span class="nn">psef.models</span> <span class="k">as</span> <span class="nn">models</span>
+<span class="kn">import</span> <span class="nn">psef.helpers</span> <span class="k">as</span> <span class="nn">helpers</span>
+<span class="kn">from</span> <span class="nn">psef</span> <span class="k">import</span> <span class="n">current_user</span>
+<span class="kn">from</span> <span class="nn">psef.errors</span> <span class="k">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span>
+<span class="kn">from</span> <span class="nn">psef.models</span> <span class="k">import</span> <span class="n">db</span>
+<span class="kn">from</span> <span class="nn">psef.helpers</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">JSONResponse</span><span class="p">,</span> <span class="n">EmptyResponse</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">ensure_json_dict</span><span class="p">,</span>
+    <span class="n">ensure_keys_in_dict</span><span class="p">,</span> <span class="n">make_empty_response</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">api</span>
+
+
+<div class="viewcode-block" id="add_snippet"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.snippets.add_snippet">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/snippet&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PUT&#39;</span><span class="p">])</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">permission_required</span><span class="p">(</span><span class="s1">&#39;can_use_snippets&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">add_snippet</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">Snippet</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Add or modify a :class:`.models.Snippet` by key.</span>
+
+<span class="sd">    .. :quickref: Snippet; Add or modify a snippet.</span>
+
+<span class="sd">    :returns: A response containing the JSON serialized snippet and return</span>
+<span class="sd">              code 201.</span>
+<span class="sd">    :&lt;json str value: The new value of the snippet.</span>
+<span class="sd">    :&lt;json str key: The key of the new or existing snippet.</span>
+
+<span class="sd">    :raises APIException: If the parameters &quot;key&quot; and/or &quot;value&quot; were not in</span>
+<span class="sd">                          the request. (MISSING_REQUIRED_PARAM)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not user snippets</span>
+<span class="sd">                                 (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+
+    <span class="n">snippet</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Snippet</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Snippet</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+        <span class="n">user_id</span><span class="o">=</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">]</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">snippet</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">snippet</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Snippet</span><span class="p">(</span>
+            <span class="n">key</span><span class="o">=</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">],</span> <span class="n">value</span><span class="o">=</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">],</span> <span class="n">user</span><span class="o">=</span><span class="n">current_user</span>
+        <span class="p">)</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">snippet</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">snippet</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">snippet</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">201</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_snippets"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.snippets.get_snippets">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/snippets/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">permission_required</span><span class="p">(</span><span class="s1">&#39;can_use_snippets&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_snippets</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">Snippet</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Get all snippets (:class:`.models.Snippet`) of the curren</span>
+<span class="sd">    :class:`.models.User`.</span>
+
+<span class="sd">    .. :quickref: Snippet; Get all snippets for the currently logged in user.</span>
+
+<span class="sd">    :returns: The an array containing all snippets for the currently logged in</span>
+<span class="sd">        user.</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not user snippets.</span>
+<span class="sd">        (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Snippet</span><span class="o">.</span><span class="n">get_all_snippets</span><span class="p">(</span><span class="n">current_user</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="patch_snippet"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.snippets.patch_snippet">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/snippets/&lt;int:snippet_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PATCH&#39;</span><span class="p">])</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">permission_required</span><span class="p">(</span><span class="s1">&#39;can_use_snippets&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">patch_snippet</span><span class="p">(</span><span class="n">snippet_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Modify the :class:`.models.Snippet` with the given id.</span>
+
+<span class="sd">    .. :quickref: Snippet; Change a snippets key and value.</span>
+
+<span class="sd">    :param int snippet_id: The id of the snippet to change.</span>
+<span class="sd">    :returns: An empty response with return code 204.</span>
+
+<span class="sd">    :&lt;json str key: The new key of the snippet.</span>
+<span class="sd">    :&lt;json str value: The new value of the snippet.</span>
+
+<span class="sd">    :raises APIException: If the parameters &quot;key&quot; and/or &quot;value&quot; were not in</span>
+<span class="sd">                          the request. (MISSING_REQUIRED_PARAM)</span>
+<span class="sd">    :raises APIException: If the snippet does not belong to the current user.</span>
+<span class="sd">                          (INCORRECT_PERMISSION)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not use snippets.</span>
+<span class="sd">                                 (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">])</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+
+    <span class="n">snip</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Snippet</span><span class="p">,</span> <span class="n">snippet_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">snip</span><span class="o">.</span><span class="n">user_id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;The given snippet is not your snippet&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The snippet &quot;</span><span class="si">{}</span><span class="s1">&quot; does not belong to user &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">snip</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span>
+            <span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span> <span class="mi">403</span>
+        <span class="p">)</span>
+
+    <span class="n">snip</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span>
+    <span class="n">snip</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="delete_snippets"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.snippets.delete_snippets">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/snippets/&lt;int:snippet_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;DELETE&#39;</span><span class="p">])</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">permission_required</span><span class="p">(</span><span class="s1">&#39;can_use_snippets&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">delete_snippets</span><span class="p">(</span><span class="n">snippet_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Delete the :class:`.models.Snippet` with the given id.</span>
+
+<span class="sd">    .. :quickref: Snippet; Delete a snippet.</span>
+
+<span class="sd">    :param int snippet_id: The id of the snippet</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+
+<span class="sd">    :raises APIException: If the snippet with the given id does not exist.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: If the snippet does not belong the current user.</span>
+<span class="sd">                          (INCORRECT_PERMISSION)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not use snippets.</span>
+<span class="sd">                                 (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">snip</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Snippet</span><span class="p">,</span> <span class="n">snippet_id</span><span class="p">)</span>
+    <span class="n">snip</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Snippet</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">snippet_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">snip</span><span class="o">.</span><span class="n">user_id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;The given snippet is not your snippet&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The snippet &quot;</span><span class="si">{}</span><span class="s1">&quot; does not belong to user &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">snip</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span>
+            <span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span> <span class="mi">403</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">snip</span><span class="p">)</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Schaper.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'1.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

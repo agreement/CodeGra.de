@@ -1,0 +1,405 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>psef &mdash; CodeGra.de 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link href="../_static/style.css" rel="stylesheet" type="text/css">
+
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> CodeGra.de
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../manual.html">User Manual CodeGra.de</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../code.html">Code documentation of psef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../running.html">How to run CodeGra.de</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CodeGra.de</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">Module code</a> &raquo;</li>
+        
+      <li>psef</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for psef</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This package implements the backend for codegrade. Because of historic reasons</span>
+<span class="sd">this backend is named ``psef``.</span>
+
+<span class="sd">:license: AGPLv3, see LICENSE for details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">json</span> <span class="k">as</span> <span class="nn">system_json</span>
+<span class="kn">import</span> <span class="nn">types</span>
+<span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+
+<span class="kn">import</span> <span class="nn">flask</span>  <span class="c1"># pylint: disable=unused-import</span>
+<span class="kn">import</span> <span class="nn">flask_jwt_extended</span> <span class="k">as</span> <span class="nn">flask_jwt</span>
+<span class="kn">from</span> <span class="nn">flask</span> <span class="k">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">current_app</span>
+<span class="kn">from</span> <span class="nn">flask_limiter</span> <span class="k">import</span> <span class="n">Limiter</span><span class="p">,</span> <span class="n">RateLimitExceeded</span>
+
+<span class="kn">import</span> <span class="nn">config</span> <span class="k">as</span> <span class="nn">global_config</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">current_app</span>  <span class="c1"># pylint: disable=invalid-name</span>
+
+<span class="n">LTI_ROLE_LOOKUPS</span> <span class="o">=</span> <span class="p">{</span>
+<span class="p">}</span>  <span class="c1"># type: t.Mapping[str, t.Mapping[str, t.Union[str, bool]]]</span>
+<span class="sd">&quot;&quot;&quot;A LTI role to psef role lookup dictionary.</span>
+
+<span class="sd">.. note::</span>
+<span class="sd">    The roles are both course and user roles.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">_seed_lti_lookups</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Seed the lti lookups.</span>
+
+<span class="sd">    This is done by reading the ``lti_lookups.json`` file and setting its</span>
+<span class="sd">    result in ``LTI_ROLE_LOOKUPS``. You should not call this function from</span>
+<span class="sd">    application code, this code is only for the first initialization.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Global is necessary here as we cannot set the variable otherwise</span>
+    <span class="k">global</span> <span class="n">LTI_ROLE_LOOKUPS</span>  <span class="c1"># pylint: disable=global-statement</span>
+    <span class="n">_seed_data_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)),</span> <span class="s1">&#39;..&#39;</span><span class="p">,</span> <span class="s1">&#39;seed_data&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;lti_lookups.json&#39;</span>
+    <span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">_seed_data_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="c1"># We freeze this map as changing it is probably never correct.</span>
+        <span class="n">LTI_ROLE_LOOKUPS</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">MappingProxyType</span><span class="p">(</span><span class="n">system_json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+
+
+<span class="n">_seed_lti_lookups</span><span class="p">()</span>
+
+<span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+    <span class="kn">import</span> <span class="nn">psef.models</span>  <span class="c1"># pylint: disable=unused-import</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="s1">&#39;psef.models.User&#39;</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">current_user</span> <span class="o">=</span> <span class="n">flask_jwt</span><span class="o">.</span><span class="n">current_user</span>  <span class="c1"># pylint: disable=invalid-name</span>
+
+
+<div class="viewcode-block" id="limiter_key_func"><a class="viewcode-back" href="../psef_api/psef.html#psef.limiter_key_func">[docs]</a><span class="k">def</span> <span class="nf">limiter_key_func</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+    <span class="sd">&quot;&quot;&quot;This is the default key function for the limiter.</span>
+
+<span class="sd">    The key function should be set locally at every place the limiter is used</span>
+<span class="sd">    so this function always raises a :py:exc:`ValueError`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Key function should be overridden&#39;</span><span class="p">)</span></div>
+
+
+<span class="n">limiter</span> <span class="o">=</span> <span class="n">Limiter</span><span class="p">(</span><span class="n">key_func</span><span class="o">=</span><span class="n">limiter_key_func</span><span class="p">)</span>  <span class="c1"># pylint: disable=invalid-name</span>
+
+
+<div class="viewcode-block" id="create_app"><a class="viewcode-back" href="../psef_api/psef.html#psef.create_app">[docs]</a><span class="k">def</span> <span class="nf">create_app</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">skip_celery</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Create a new psef app.</span>
+
+<span class="sd">    :param config: The config mapping that can be used to override config.</span>
+<span class="sd">    :param skip_celery: Set to true to disable sanity checks for celery.</span>
+<span class="sd">    :returns: A new psef app object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">resulting_app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+    <span class="nd">@resulting_app</span><span class="o">.</span><span class="n">before_request</span>
+    <span class="k">def</span> <span class="nf">__set_request_start_time</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pylint: disable=unused-variable</span>
+        <span class="n">g</span><span class="o">.</span><span class="n">request_start_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+
+    <span class="nd">@resulting_app</span><span class="o">.</span><span class="n">before_request</span>
+    <span class="nd">@flask_jwt</span><span class="o">.</span><span class="n">jwt_optional</span>
+    <span class="k">def</span> <span class="nf">__set_current_user</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pylint: disable=unused-variable</span>
+        <span class="c1"># This code is necessary to make `flask_jwt_extended` understand that</span>
+        <span class="c1"># we always want to try to load the given JWT token. The function body</span>
+        <span class="c1"># SHOULD be empty here.</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@resulting_app</span><span class="o">.</span><span class="n">teardown_request</span>
+    <span class="k">def</span> <span class="nf">__teardown_request</span><span class="p">(</span><span class="n">exception</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="ne">Exception</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pylint: disable=unused-variable</span>
+        <span class="k">if</span> <span class="n">exception</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">expire_all</span><span class="p">()</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+
+    <span class="c1"># Configurations</span>
+    <span class="n">resulting_app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">global_config</span><span class="o">.</span><span class="n">CONFIG</span><span class="p">)</span>
+    <span class="n">resulting_app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;SQLALCHEMY_TRACK_MODIFICATIONS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="n">resulting_app</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+
+    <span class="nd">@resulting_app</span><span class="o">.</span><span class="n">errorhandler</span><span class="p">(</span><span class="n">RateLimitExceeded</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">__handle_error</span><span class="p">(</span><span class="n">_</span><span class="p">:</span> <span class="n">RateLimitExceeded</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;flask.Response&#39;</span><span class="p">:</span>  <span class="c1"># pylint: disable=unused-variable</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">jsonify</span><span class="p">(</span>
+            <span class="n">errors</span><span class="o">.</span><span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;Rate limit exceeded, slow down!&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;Rate limit is exceeded&#39;</span><span class="p">,</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">APICodes</span><span class="o">.</span><span class="n">RATE_LIMIT_EXCEEDED</span><span class="p">,</span>
+                <span class="mi">429</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">429</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="n">limiter</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">resulting_app</span><span class="p">)</span>
+
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">auth</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">resulting_app</span><span class="p">)</span>
+
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">parsers</span>
+    <span class="n">parsers</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">resulting_app</span><span class="p">)</span>
+
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">models</span>
+    <span class="n">models</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">resulting_app</span><span class="p">)</span>
+
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">mail</span>
+    <span class="n">mail</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">resulting_app</span><span class="p">)</span>
+
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">errors</span>
+    <span class="n">errors</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">resulting_app</span><span class="p">)</span>
+
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">tasks</span>
+    <span class="n">tasks</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">resulting_app</span><span class="p">)</span>
+
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">json</span>  <span class="c1"># pylint: disable=reimported</span>
+    <span class="n">json</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">resulting_app</span><span class="p">)</span>
+
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">files</span>
+    <span class="n">files</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">resulting_app</span><span class="p">)</span>
+
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">lti</span>
+    <span class="n">lti</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">resulting_app</span><span class="p">)</span>
+
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">helpers</span>
+    <span class="n">helpers</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">resulting_app</span><span class="p">)</span>
+
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">linters</span>
+    <span class="n">linters</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">resulting_app</span><span class="p">)</span>
+
+    <span class="c1"># Register blueprint(s)</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">v1</span> <span class="k">as</span> <span class="n">api_v1</span>
+    <span class="n">api_v1</span><span class="o">.</span><span class="n">init_app</span><span class="p">(</span><span class="n">resulting_app</span><span class="p">)</span>
+
+    <span class="c1"># Make sure celery is working</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_celery</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">tasks</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="nb">print</span><span class="p">(</span>  <span class="c1"># pylint: disable=bad-builtin</span>
+                <span class="s1">&#39;Celery is not responding! Please check your config&#39;</span><span class="p">,</span>
+                <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span>
+            <span class="p">)</span>
+            <span class="k">raise</span>
+
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span>
+        <span class="n">resulting_app</span><span class="p">,</span> <span class="s1">&#39;debug&#39;</span>
+    <span class="p">)</span> <span class="ow">and</span> <span class="n">resulting_app</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="kn">import</span> <span class="nn">flask_sqlalchemy</span>
+        <span class="n">typ</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;typ&#39;</span><span class="p">)</span>
+
+        <span class="nd">@resulting_app</span><span class="o">.</span><span class="n">after_request</span>
+        <span class="k">def</span> <span class="nf">__print_queries</span><span class="p">(</span><span class="n">res</span><span class="p">:</span> <span class="n">typ</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typ</span><span class="p">:</span>  <span class="c1"># pylint: disable=unused-variable</span>
+            <span class="n">queries</span> <span class="o">=</span> <span class="n">flask_sqlalchemy</span><span class="o">.</span><span class="n">get_debug_queries</span><span class="p">()</span>
+            <span class="nb">print</span><span class="p">(</span>  <span class="c1"># pylint: disable=bad-builtin</span>
+                <span class="p">(</span>
+                    <span class="s1">&#39;</span><span class="se">\n</span><span class="si">{}</span><span class="s1"> - - made </span><span class="si">{}</span><span class="s1"> amount of queries totaling &#39;</span>
+                    <span class="s1">&#39;</span><span class="si">{:.4f}</span><span class="s1"> seconds. The longest took </span><span class="si">{:.4f}</span><span class="s1"> seconds.&#39;</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">flask</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+                    <span class="nb">len</span><span class="p">(</span><span class="n">queries</span><span class="p">),</span>
+                    <span class="nb">sum</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">duration</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">queries</span><span class="p">)</span> <span class="k">if</span> <span class="n">queries</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="nb">max</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">duration</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">queries</span><span class="p">)</span> <span class="k">if</span> <span class="n">queries</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">return</span> <span class="n">resulting_app</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Schaper.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'1.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

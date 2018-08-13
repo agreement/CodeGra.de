@@ -1,0 +1,1540 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>psef.v1.assignments &mdash; CodeGra.de 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link href="../../../_static/style.css" rel="stylesheet" type="text/css">
+
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> CodeGra.de
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">User Manual CodeGra.de</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Code documentation of psef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../running.html">How to run CodeGra.de</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CodeGra.de</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../psef.html">psef</a> &raquo;</li>
+        
+          <li><a href="../v1.html">psef.v1</a> &raquo;</li>
+        
+      <li>psef.v1.assignments</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for psef.v1.assignments</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module defines all API routes with the main directory &quot;assignments&quot;. Thus</span>
+<span class="sd">the APIs in this module are mostly used to manipulate</span>
+<span class="sd">:class:`.models.Assignment` objects and their relations.</span>
+
+<span class="sd">:license: AGPLv3, see LICENSE for details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
+<span class="kn">import</span> <span class="nn">numbers</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
+
+<span class="kn">import</span> <span class="nn">sqlalchemy.sql</span> <span class="k">as</span> <span class="nn">sql</span>
+<span class="kn">from</span> <span class="nn">flask</span> <span class="k">import</span> <span class="n">request</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">undefer</span><span class="p">,</span> <span class="n">joinedload</span>
+<span class="kn">from</span> <span class="nn">werkzeug.datastructures</span> <span class="k">import</span> <span class="n">FileStorage</span>
+
+<span class="kn">import</span> <span class="nn">psef</span>
+<span class="kn">import</span> <span class="nn">psef.auth</span> <span class="k">as</span> <span class="nn">auth</span>
+<span class="kn">import</span> <span class="nn">psef.files</span>
+<span class="kn">import</span> <span class="nn">psef.models</span> <span class="k">as</span> <span class="nn">models</span>
+<span class="kn">import</span> <span class="nn">psef.helpers</span> <span class="k">as</span> <span class="nn">helpers</span>
+<span class="kn">import</span> <span class="nn">psef.linters</span> <span class="k">as</span> <span class="nn">linters</span>
+<span class="kn">import</span> <span class="nn">psef.parsers</span> <span class="k">as</span> <span class="nn">parsers</span>
+<span class="kn">from</span> <span class="nn">psef</span> <span class="k">import</span> <span class="n">app</span><span class="p">,</span> <span class="n">current_user</span>
+<span class="kn">from</span> <span class="nn">psef.errors</span> <span class="k">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIWarnings</span><span class="p">,</span> <span class="n">APIException</span><span class="p">,</span> <span class="n">make_warning</span>
+<span class="kn">from</span> <span class="nn">psef.ignore</span> <span class="k">import</span> <span class="n">IgnoreFilterManager</span>
+<span class="kn">from</span> <span class="nn">psef.models</span> <span class="k">import</span> <span class="n">db</span>
+<span class="kn">from</span> <span class="nn">psef.helpers</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">JSONType</span><span class="p">,</span> <span class="n">JSONResponse</span><span class="p">,</span> <span class="n">EmptyResponse</span><span class="p">,</span> <span class="n">ExtendedJSONResponse</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span>
+    <span class="n">ensure_json_dict</span><span class="p">,</span> <span class="n">extended_jsonify</span><span class="p">,</span> <span class="n">ensure_keys_in_dict</span><span class="p">,</span>
+    <span class="n">make_empty_response</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">api</span>
+
+
+<div class="viewcode-block" id="get_all_assignments"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.get_all_assignments">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/assignments/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">login_required</span>
+<span class="k">def</span> <span class="nf">get_all_assignments</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Get all the :class:`.models.Assignment` objects that the current user</span>
+<span class="sd">    can see.</span>
+
+<span class="sd">    .. :quickref: Assignment; Get all assignments.</span>
+
+<span class="sd">    :returns: An array of :py:class:`.models.Assignment` items encoded in JSON.</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">perm_can_see</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Permission</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Permission</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;can_see_assignments&#39;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="n">courses</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">course_role</span> <span class="ow">in</span> <span class="n">current_user</span><span class="o">.</span><span class="n">courses</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">course_role</span><span class="o">.</span><span class="n">has_permission</span><span class="p">(</span><span class="n">perm_can_see</span><span class="p">):</span>
+            <span class="n">courses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">course_role</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="n">courses</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">assignment</span><span class="p">,</span> <span class="n">has_linter</span> <span class="ow">in</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">DbColumn</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                   <span class="n">models</span><span class="o">.</span><span class="n">AssignmentLinter</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">isnot</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+                <span class="n">models</span><span class="o">.</span><span class="n">DbColumn</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+                <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">,</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">courses</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">AssignmentLinter</span><span class="p">,</span>
+            <span class="n">sql</span><span class="o">.</span><span class="n">expression</span><span class="o">.</span><span class="n">and_</span><span class="p">(</span>
+                <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">models</span><span class="o">.</span><span class="n">AssignmentLinter</span><span class="o">.</span><span class="n">assignment_id</span><span class="p">,</span>
+                <span class="n">models</span><span class="o">.</span><span class="n">AssignmentLinter</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;MixedWhitespace&#39;</span>
+            <span class="p">),</span>
+            <span class="n">isouter</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="n">has_perm</span> <span class="o">=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">has_permission</span><span class="p">(</span>
+                <span class="s1">&#39;can_see_hidden_assignments&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span>
+            <span class="p">)</span>
+            <span class="n">assignment</span><span class="o">.</span><span class="n">whitespace_linter_exists</span> <span class="o">=</span> <span class="n">has_linter</span>
+            <span class="k">if</span> <span class="p">((</span><span class="ow">not</span> <span class="n">assignment</span><span class="o">.</span><span class="n">is_hidden</span><span class="p">)</span> <span class="ow">or</span> <span class="n">has_perm</span><span class="p">):</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">assignment</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_assignment"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.get_assignment">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/assignments/&lt;int:assignment_id&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">get_assignment</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Return the given :class:`.models.Assignment`.</span>
+
+<span class="sd">    .. :quickref: Assignment; Get a single assignment by id.</span>
+
+<span class="sd">    :param int assignment_id: The id of the assignment</span>
+<span class="sd">    :returns: A response containing the JSON serialized assignment</span>
+
+<span class="sd">    :raises APIException: If no assignment with given id exists.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user is not allowed to view this</span>
+<span class="sd">                                 assignment. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">assignment</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span> <span class="n">assignment_id</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_see_assignments&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">assignment</span><span class="o">.</span><span class="n">is_hidden</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span>
+            <span class="s1">&#39;can_see_hidden_assignments&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">assignment</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_assignments_feedback"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.get_assignments_feedback">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/assignments/&lt;int:assignment_id&gt;/feedbacks/&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">login_required</span>
+<span class="k">def</span> <span class="nf">get_assignments_feedback</span><span class="p">(</span>
+    <span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">]]]</span>
+                  <span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Get all feedbacks for all latest submissions for a given assignment.</span>
+
+<span class="sd">    .. :quickref: Assignment; Get feedback for all submissions in a assignment.</span>
+
+<span class="sd">    :param int assignment_id: The assignment to query for.</span>
+<span class="sd">    :returns: A mapping between the id of the submission and a object contain</span>
+<span class="sd">        three keys: ``general`` for general feedback as a string, ``user`` for</span>
+<span class="sd">        user feedback as a list of strings and ``linter`` for linter feedback</span>
+<span class="sd">        as a list of strings. If a user cannot see others work only submissions</span>
+<span class="sd">        by the current users are returned.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">assignment</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span> <span class="n">assignment_id</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_enrolled</span><span class="p">(</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">latest_subs</span> <span class="o">=</span> <span class="n">assignment</span><span class="o">.</span><span class="n">get_all_latest_submissions</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_see_others_work&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">auth</span><span class="o">.</span><span class="n">PermissionException</span><span class="p">:</span>
+        <span class="n">latest_subs</span> <span class="o">=</span> <span class="n">latest_subs</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">latest_subs</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># This call should be cached in auth.py</span>
+            <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_see_grade</span><span class="p">(</span><span class="n">sub</span><span class="p">)</span>
+
+            <span class="n">user_feedback</span><span class="p">,</span> <span class="n">linter_feedback</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">get_all_feedback</span><span class="p">()</span>
+            <span class="n">item</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;general&#39;</span><span class="p">:</span> <span class="n">sub</span><span class="o">.</span><span class="n">comment</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">user_feedback</span><span class="p">),</span>
+                <span class="s1">&#39;linter&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">linter_feedback</span><span class="p">),</span>
+            <span class="p">}</span>
+        <span class="k">except</span> <span class="n">auth</span><span class="o">.</span><span class="n">PermissionException</span><span class="p">:</span>
+            <span class="n">item</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;linter&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;general&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">}</span>
+
+        <span class="n">res</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">sub</span><span class="o">.</span><span class="n">id</span><span class="p">)]</span> <span class="o">=</span> <span class="n">item</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="set_reminder"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.set_reminder">[docs]</a><span class="k">def</span> <span class="nf">set_reminder</span><span class="p">(</span>
+    <span class="n">assig</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span>
+    <span class="n">content</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">helpers</span><span class="o">.</span><span class="n">JSONType</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">psef</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">HttpWarning</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Set the reminder of an assignment from a JSON dict.</span>
+
+<span class="sd">    :param assig: The assignment to set the reminder for.</span>
+<span class="sd">    :param content: The json input.</span>
+<span class="sd">    :returns: A warning if it should be returned to the user.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;done_type&#39;</span><span class="p">,</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="nb">str</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;done_email&#39;</span><span class="p">,</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="nb">str</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;reminder_time&#39;</span><span class="p">,</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="nb">str</span><span class="p">)),</span>
+    <span class="p">])</span>  <span class="c1"># yapf: disable</span>
+
+    <span class="n">done_type</span> <span class="o">=</span> <span class="n">parsers</span><span class="o">.</span><span class="n">parse_enum</span><span class="p">(</span>
+        <span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;done_type&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">AssignmentDoneType</span><span class="p">,</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">option_name</span><span class="o">=</span><span class="s1">&#39;done type&#39;</span>
+    <span class="p">)</span>
+    <span class="n">reminder_time</span> <span class="o">=</span> <span class="n">parsers</span><span class="o">.</span><span class="n">parse_datetime</span><span class="p">(</span>
+        <span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;reminder_time&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">done_email</span> <span class="o">=</span> <span class="n">parsers</span><span class="o">.</span><span class="n">try_parse_email_list</span><span class="p">(</span>
+        <span class="n">content</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;done_email&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="n">allow_none</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">reminder_time</span> <span class="ow">and</span> <span class="p">(</span><span class="n">reminder_time</span> <span class="o">-</span>
+                          <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">())</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">60</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="s1">&#39;The given date is not far enough from the current time, &#39;</span>
+                <span class="s1">&#39;it should be at least 60 seconds in the future.&#39;</span>
+            <span class="p">),</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{reminder_time}</span><span class="s1"> is not atleast 60 seconds in the future&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+
+    <span class="n">assig</span><span class="o">.</span><span class="n">change_notifications</span><span class="p">(</span><span class="n">done_type</span><span class="p">,</span> <span class="n">reminder_time</span><span class="p">,</span> <span class="n">done_email</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">done_email</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">assig</span><span class="o">.</span><span class="n">graders_are_done</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">make_warning</span><span class="p">(</span>
+            <span class="s1">&#39;Grading is already done, no email will be sent!&#39;</span><span class="p">,</span>
+            <span class="n">APIWarnings</span><span class="o">.</span><span class="n">CONDITION_ALREADY_MET</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="update_assignment"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.update_assignment">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/assignments/&lt;int:assignment_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PATCH&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">update_assignment</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Update the given :class:`.models.Assignment` with new values.</span>
+
+<span class="sd">    :py:func:`psef.helpers.JSONResponse`</span>
+
+<span class="sd">    .. :quickref: Assignment; Update assignment information.</span>
+
+<span class="sd">    :&lt;json str state: The new state of the assignment, can be `hidden`, `open`</span>
+<span class="sd">        or `done`. (OPTIONAL)</span>
+<span class="sd">    :&lt;json str name: The new name of the assignment, this string should not be</span>
+<span class="sd">        empty. (OPTIONAL)</span>
+<span class="sd">    :&lt;json str deadline: The new deadline of the assignment. This should be a</span>
+<span class="sd">        ISO 8061 date without timezone information. (OPTIONAL)</span>
+<span class="sd">    :&lt;json str done_type: The type to determine if a assignment is done. This</span>
+<span class="sd">        can be any value of :class:`.models.AssignmentDoneType` or</span>
+<span class="sd">        ``null``. (OPTIONAL)</span>
+<span class="sd">    :&lt;json str done_email: The emails to send an email to if the assignment is</span>
+<span class="sd">        done. Can be ``null`` to disable these emails. (OPTIONAL)</span>
+<span class="sd">    :&lt;json str reminder_time: The time on which graders which are causing the</span>
+<span class="sd">        grading to be not should be reminded they have to grade. Can be</span>
+<span class="sd">        ``null`` to disable these emails. (OPTIONAL)</span>
+
+<span class="sd">    If any of ``done_type``, ``done_email`` or ``reminder_time`` is given all</span>
+<span class="sd">    the other values should be given too.</span>
+
+<span class="sd">    :param int assignment_id: The id of the assignment</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+<span class="sd">    :raises APIException: If an invalid value is submitted. (INVALID_PARAM)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">warning</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">assig</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span> <span class="n">assignment_id</span><span class="p">)</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="s1">&#39;state&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_edit_assignment_info&#39;</span><span class="p">,</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;state&#39;</span><span class="p">])</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">assig</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;The selected state is not valid&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;The state </span><span class="si">{}</span><span class="s1"> is not a valid state&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">state</span><span class="p">),</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;name&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_edit_assignment_info&#39;</span><span class="p">,</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;The name of an assignment should be at least 1 char&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;len(</span><span class="si">{}</span><span class="s1">) == 0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]),</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span>
+                <span class="mi">400</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">assig</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+    <span class="k">if</span> <span class="s1">&#39;deadline&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_edit_assignment_info&#39;</span><span class="p">,</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;deadline&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+        <span class="n">deadline</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;deadline&#39;</span><span class="p">])</span>
+        <span class="n">assig</span><span class="o">.</span><span class="n">deadline</span> <span class="o">=</span> <span class="n">parsers</span><span class="o">.</span><span class="n">parse_datetime</span><span class="p">(</span><span class="n">deadline</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;ignore&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_edit_cgignore&#39;</span><span class="p">,</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+        <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+        <span class="n">assig</span><span class="o">.</span><span class="n">cgignore</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;ignore&#39;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">t</span> <span class="ow">in</span> <span class="n">content</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;done_type&#39;</span><span class="p">,</span> <span class="s1">&#39;reminder_time&#39;</span><span class="p">,</span> <span class="s1">&#39;done_email&#39;</span><span class="p">]):</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span>
+            <span class="s1">&#39;can_update_course_notifications&#39;</span><span class="p">,</span>
+            <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">warning</span> <span class="o">=</span> <span class="n">set_reminder</span><span class="p">(</span><span class="n">assig</span><span class="p">,</span> <span class="n">content</span><span class="p">)</span> <span class="ow">or</span> <span class="n">warning</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">(</span><span class="n">warning</span><span class="o">=</span><span class="n">warning</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_assignment_rubric"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.get_assignment_rubric">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/assignments/&lt;int:assignment_id&gt;/rubrics/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="nd">@helpers</span><span class="o">.</span><span class="n">feature_required</span><span class="p">(</span><span class="s1">&#39;RUBRICS&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_assignment_rubric</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span>
+                          <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">RubricRow</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Return the rubric corresponding to the given `assignment_id`.</span>
+
+<span class="sd">    .. :quickref: Assignment; Get the rubric of an assignment.</span>
+
+<span class="sd">    :param int assignment_id: The id of the assignment</span>
+<span class="sd">    :returns: A list of JSON of :class:`.models.RubricRows` items</span>
+
+<span class="sd">    :raises APIException: If no assignment with given id exists.</span>
+<span class="sd">        (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: If the assignment has no rubric.</span>
+<span class="sd">        (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user is not allowed to see this is</span>
+<span class="sd">                                 assignment. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">assig</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span> <span class="n">assignment_id</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_see_assignments&#39;</span><span class="p">,</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">assig</span><span class="o">.</span><span class="n">rubric_rows</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;Assignment has no rubric&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The assignment with id &quot;</span><span class="si">{}</span><span class="s1">&quot; has no rubric&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">assig</span><span class="o">.</span><span class="n">rubric_rows</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="delete_rubric"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.delete_rubric">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/assignments/&lt;int:assignment_id&gt;/rubrics/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;DELETE&#39;</span><span class="p">])</span>
+<span class="nd">@helpers</span><span class="o">.</span><span class="n">feature_required</span><span class="p">(</span><span class="s1">&#39;RUBRICS&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">delete_rubric</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Delete the rubric for the given assignment.</span>
+
+<span class="sd">    .. :quickref: Assignment; Delete the rubric of an assignment.</span>
+
+<span class="sd">    :param assignment_id: The id of the :class:`.models.Assignment` whose</span>
+<span class="sd">        rubric should be deleted.</span>
+<span class="sd">    :returns: Nothing.</span>
+
+<span class="sd">    :raises PermissionException: If the user does not have the</span>
+<span class="sd">        ``manage_rubrics`` permission (INCORRECT_PERMISSION).</span>
+<span class="sd">    :raises APIException: If the assignment has no rubric.</span>
+<span class="sd">        (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">assig</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span> <span class="n">assignment_id</span><span class="p">)</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;manage_rubrics&#39;</span><span class="p">,</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">assig</span><span class="o">.</span><span class="n">rubric_rows</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;Assignment has no rubric&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The assignment with id &quot;</span><span class="si">{}</span><span class="s1">&quot; has no rubric&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span>
+        <span class="p">)</span>
+
+    <span class="n">assig</span><span class="o">.</span><span class="n">rubric_rows</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="add_assignment_rubric"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.add_assignment_rubric">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/assignments/&lt;int:assignment_id&gt;/rubrics/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PUT&#39;</span><span class="p">])</span>
+<span class="nd">@helpers</span><span class="o">.</span><span class="n">feature_required</span><span class="p">(</span><span class="s1">&#39;RUBRICS&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">add_assignment_rubric</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span>
+                          <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">RubricRow</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Add or update rubric of an assignment.</span>
+
+<span class="sd">    .. :quickref: Assignment; Add a rubric to an assignment.</span>
+
+<span class="sd">    :&gt;json array rows: An array of rows. Each row should be an object that</span>
+<span class="sd">        should contain a ``header`` mapping to a string, a ``description`` key</span>
+<span class="sd">        mapping to a string, an ``items`` key mapping to an array and it may</span>
+<span class="sd">        contain an ``id`` key mapping to the current id of this row. The items</span>
+<span class="sd">        array should contain objects with a ``description`` (string),</span>
+<span class="sd">        ``header`` (string) and ``points`` (number) and optionally an ``id`` if</span>
+<span class="sd">        you are modifying an existing item in an existing row.</span>
+<span class="sd">    :&gt;json number max_points: Optionally override the maximum amount of points</span>
+<span class="sd">        you can get for this rubric. By passing ``null`` you reset this value,</span>
+<span class="sd">        by not passing it you keep its current value. (OPTIONAL)</span>
+
+<span class="sd">    :param int assignment_id: The id of the assignment</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user is not allowed to manage rubrics.</span>
+<span class="sd">                                (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">assig</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span> <span class="n">assignment_id</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;manage_rubrics&#39;</span><span class="p">,</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="s1">&#39;max_points&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+        <span class="n">helpers</span><span class="o">.</span><span class="n">ensure_keys_in_dict</span><span class="p">(</span>
+            <span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;max_points&#39;</span><span class="p">,</span>
+                       <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))]</span>
+        <span class="p">)</span>
+        <span class="n">max_points</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;max_points&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">max_points</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">max_points</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;The max amount of points you can &#39;</span>
+                <span class="s1">&#39;score should be higher than 0&#39;</span><span class="p">,</span>
+                <span class="n">f</span><span class="s1">&#39;The max amount of points was </span><span class="si">{max_points}</span><span class="s1"> which is &lt;= 0&#39;</span><span class="p">,</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">400</span>
+            <span class="p">)</span>
+        <span class="n">assig</span><span class="o">.</span><span class="n">fixed_max_rubric_points</span> <span class="o">=</span> <span class="n">max_points</span>
+
+    <span class="k">if</span> <span class="s1">&#39;rows&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">begin_nested</span><span class="p">():</span>
+            <span class="n">helpers</span><span class="o">.</span><span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;rows&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">)])</span>
+            <span class="n">rows</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;rows&#39;</span><span class="p">])</span>
+
+            <span class="n">id_wrong</span> <span class="o">=</span> <span class="p">[</span><span class="n">process_rubric_row</span><span class="p">(</span><span class="n">assig</span><span class="p">,</span> <span class="n">row</span><span class="p">)</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">]</span>
+            <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
+                <span class="n">item_id</span> <span class="k">for</span> <span class="n">item_id</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">id_wrong</span> <span class="k">if</span> <span class="n">item_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="p">)</span>
+            <span class="n">wrong_rows</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">err</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">id_wrong</span> <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">wrong_rows</span><span class="p">:</span>
+                <span class="n">single</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">wrong_rows</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+                <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                    <span class="s1">&#39;The row</span><span class="si">{s}</span><span class="s1"> </span><span class="si">{rows}</span><span class="s1"> do</span><span class="si">{es}</span><span class="s1"> not contain at least one item.&#39;</span><span class="o">.</span>
+                    <span class="nb">format</span><span class="p">(</span>
+                        <span class="n">rows</span><span class="o">=</span><span class="s1">&#39;, and &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">wrong_rows</span><span class="p">),</span>
+                        <span class="n">s</span><span class="o">=</span><span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">single</span> <span class="k">else</span> <span class="s1">&#39;s&#39;</span><span class="p">,</span>
+                        <span class="n">es</span><span class="o">=</span><span class="s1">&#39;es&#39;</span> <span class="k">if</span> <span class="n">single</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                    <span class="p">),</span> <span class="s1">&#39;Not all rows contain at least one &#39;</span>
+                    <span class="s1">&#39;item after updating the rubric.&#39;</span><span class="p">,</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span>
+                    <span class="mi">400</span>
+                <span class="p">)</span>
+
+            <span class="n">assig</span><span class="o">.</span><span class="n">rubric_rows</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">row</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">assig</span><span class="o">.</span><span class="n">rubric_rows</span>
+                <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">row</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="n">seen</span>
+            <span class="p">]</span>
+
+            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="n">max_points</span> <span class="o">=</span> <span class="n">assig</span><span class="o">.</span><span class="n">max_rubric_points</span>
+
+            <span class="k">if</span> <span class="n">max_points</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">max_points</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                    <span class="s1">&#39;The max amount of points you can &#39;</span>
+                    <span class="s1">&#39;score should be higher than 0&#39;</span><span class="p">,</span>
+                    <span class="n">f</span><span class="s1">&#39;The max amount of points was </span><span class="si">{max_points}</span><span class="s1"> which is &lt;= 0&#39;</span><span class="p">,</span>
+                    <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">400</span>
+                <span class="p">)</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">assig</span><span class="o">.</span><span class="n">rubric_rows</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="process_rubric_row"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.process_rubric_row">[docs]</a><span class="k">def</span> <span class="nf">process_rubric_row</span><span class="p">(</span>
+    <span class="n">assig</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span>
+    <span class="n">row</span><span class="p">:</span> <span class="n">JSONType</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Process a single rubric row updating or adding it.</span>
+
+<span class="sd">    This function works on the input json data. It makes sure that the input</span>
+<span class="sd">    has the correct format and dispatches it to the necessary functions.</span>
+
+<span class="sd">    :param assig: The assignment this rubric row should be added to.</span>
+<span class="sd">    :returns: A tuple with as the first element the id of the rubric row that</span>
+<span class="sd">        has been processed (this is ``None`` for a new row) and as second item</span>
+<span class="sd">        a string that describes were an error occurred if such an error did</span>
+<span class="sd">        occur.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">row</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span>
+        <span class="n">row</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+              <span class="p">(</span><span class="s1">&#39;header&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+              <span class="p">(</span><span class="s1">&#39;items&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">)]</span>
+    <span class="p">)</span>
+    <span class="n">header</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">])</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;description&#39;</span><span class="p">])</span>
+    <span class="n">items</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;items&#39;</span><span class="p">])</span>
+    <span class="n">row_id</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="s1">&#39;id&#39;</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+        <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)])</span>
+        <span class="n">row_id</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
+        <span class="n">row_amount</span> <span class="o">=</span> <span class="n">patch_rubric_row</span><span class="p">(</span><span class="n">header</span><span class="p">,</span> <span class="n">description</span><span class="p">,</span> <span class="n">row_id</span><span class="p">,</span> <span class="n">items</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">row_amount</span> <span class="o">=</span> <span class="n">add_new_rubric_row</span><span class="p">(</span><span class="n">assig</span><span class="p">,</span> <span class="n">header</span><span class="p">,</span> <span class="n">description</span><span class="p">,</span> <span class="n">items</span><span class="p">)</span>
+
+    <span class="c1"># No items were added which is wrong</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="n">header</span> <span class="k">if</span> <span class="n">row_amount</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">row_id</span><span class="p">,</span> <span class="n">err</span></div>
+
+
+<div class="viewcode-block" id="add_new_rubric_row"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.add_new_rubric_row">[docs]</a><span class="k">def</span> <span class="nf">add_new_rubric_row</span><span class="p">(</span>
+    <span class="n">assig</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span> <span class="n">header</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">items</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">JSONType</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Add new rubric row to the assignment.</span>
+
+<span class="sd">    :param assig: The assignment to add the rubric row to</span>
+<span class="sd">    :param header: The name of the new rubric row.</span>
+<span class="sd">    :param description: The description of the new rubric row.</span>
+<span class="sd">    :param items: The items (:py:class:`.models.RubricItem`) that should be</span>
+<span class="sd">        added to the new rubric row, the JSONType should be a dictionary with</span>
+<span class="sd">        the keys ``description`` (:py:class:`str`), ``header``</span>
+<span class="sd">        (:py:class:`str`) and ``points`` (:py:class:`float`).</span>
+<span class="sd">    :returns: The amount of items in this row.</span>
+
+<span class="sd">    :raises APIException: If `description` or `points` fields are not in</span>
+<span class="sd">        `item`. (INVALID_PARAM)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rubric_row</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">RubricRow</span><span class="p">(</span>
+        <span class="n">assignment_id</span><span class="o">=</span><span class="n">assig</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="n">header</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="n">description</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+        <span class="n">item</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="n">ensure_keys_in_dict</span><span class="p">(</span>
+            <span class="n">item</span><span class="p">,</span>
+            <span class="p">[(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+             <span class="p">(</span><span class="s1">&#39;header&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+             <span class="p">(</span><span class="s1">&#39;points&#39;</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">)]</span>
+        <span class="p">)</span>
+        <span class="n">description</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;description&#39;</span><span class="p">])</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">])</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;points&#39;</span><span class="p">])</span>
+        <span class="n">rubric_item</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">RubricItem</span><span class="p">(</span>
+            <span class="n">rubricrow_id</span><span class="o">=</span><span class="n">rubric_row</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">header</span><span class="o">=</span><span class="n">header</span><span class="p">,</span>
+            <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span>
+            <span class="n">points</span><span class="o">=</span><span class="n">points</span>
+        <span class="p">)</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">rubric_item</span><span class="p">)</span>
+        <span class="n">rubric_row</span><span class="o">.</span><span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rubric_item</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">rubric_row</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="patch_rubric_row"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.patch_rubric_row">[docs]</a><span class="k">def</span> <span class="nf">patch_rubric_row</span><span class="p">(</span>
+    <span class="n">header</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">rubric_row_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">items</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">JSONType</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Update a rubric row of the assignment.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">      All items not present in the given ``items`` array will be deleted from</span>
+<span class="sd">      the rubric row.</span>
+
+<span class="sd">    :param rubric_row_id: The id of the rubric row that should be updated.</span>
+<span class="sd">    :param items: The items (:py:class:`models.RubricItem`) that should be</span>
+<span class="sd">        added or updated. The format should be the same as in</span>
+<span class="sd">        :py:func:`add_new_rubric_row` with the addition that if ``id`` is in</span>
+<span class="sd">        the item the item will be updated instead of added.</span>
+<span class="sd">    :returns: The amount of items in the resulting row.</span>
+
+<span class="sd">    :raises APIException: If `description` or `points` fields are not in</span>
+<span class="sd">        `item`. (INVALID_PARAM)</span>
+<span class="sd">    :raises APIException: If no rubric item with given id exists.</span>
+<span class="sd">        (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rubric_row</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">RubricRow</span><span class="p">,</span> <span class="n">rubric_row_id</span><span class="p">)</span>
+
+    <span class="n">rubric_row</span><span class="o">.</span><span class="n">header</span> <span class="o">=</span> <span class="n">header</span>
+    <span class="n">rubric_row</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">description</span>
+
+    <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+        <span class="n">item</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="n">ensure_keys_in_dict</span><span class="p">(</span>
+            <span class="n">item</span><span class="p">,</span>
+            <span class="p">[(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+             <span class="p">(</span><span class="s1">&#39;points&#39;</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">),</span>
+             <span class="p">(</span><span class="s1">&#39;header&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)]</span>
+        <span class="p">)</span>
+        <span class="n">description</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;description&#39;</span><span class="p">])</span>
+        <span class="n">header</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">])</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;points&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="s1">&#39;id&#39;</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
+            <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
+            <span class="n">rubric_item</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">RubricItem</span><span class="p">,</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
+
+            <span class="n">rubric_item</span><span class="o">.</span><span class="n">header</span> <span class="o">=</span> <span class="n">header</span>
+            <span class="n">rubric_item</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">description</span>
+            <span class="n">rubric_item</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rubric_item</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">RubricItem</span><span class="p">(</span>
+                <span class="n">rubricrow_id</span><span class="o">=</span><span class="n">rubric_row</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span>
+                <span class="n">header</span><span class="o">=</span><span class="n">header</span><span class="p">,</span>
+                <span class="n">points</span><span class="o">=</span><span class="n">points</span>
+            <span class="p">)</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">rubric_item</span><span class="p">)</span>
+            <span class="n">rubric_row</span><span class="o">.</span><span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rubric_item</span><span class="p">)</span>
+
+    <span class="n">rubric_row</span><span class="o">.</span><span class="n">items</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">rubric_row</span><span class="o">.</span><span class="n">items</span> <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">item</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="n">seen</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">rubric_row</span><span class="o">.</span><span class="n">items</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_submission_files_from_request"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.get_submission_files_from_request">[docs]</a><span class="k">def</span> <span class="nf">get_submission_files_from_request</span><span class="p">(</span>
+    <span class="n">check_size</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">MutableSequence</span><span class="p">[</span><span class="n">FileStorage</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Get all the submitted files in the current request.</span>
+
+<span class="sd">    This function also checks if the files are in the correct format and are</span>
+<span class="sd">    lot too large.</span>
+
+<span class="sd">    :returns: The files in the current request. The length of this list is</span>
+<span class="sd">        always at least one.</span>
+<span class="sd">    :raises APIException: When a given files is not correct.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">check_size</span> <span class="ow">and</span> <span class="n">request</span><span class="o">.</span><span class="n">content_length</span> <span class="ow">and</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">content_length</span> <span class="o">&gt;</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;MAX_UPLOAD_SIZE&#39;</span><span class="p">]</span>
+    <span class="p">):</span>
+        <span class="n">helpers</span><span class="o">.</span><span class="n">raise_file_too_big_exception</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s2">&quot;No file in HTTP request.&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;There was no file in the HTTP request.&quot;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">MISSING_REQUIRED_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;file&#39;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;The parameter name should start with &quot;file&quot;.&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;Expected ^file.*$ got </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">),</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+            <span class="p">)</span>
+
+        <span class="c1"># This will not be used on werkzeug &gt;=0.14.0</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">file</span><span class="o">.</span><span class="n">filename</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;The filename should not be empty.&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;Got an empty filename for key </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">),</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+            <span class="p">)</span>
+
+        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="upload_work"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.upload_work">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/assignments/&lt;int:assignment_id&gt;/submission&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">upload_work</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Upload one or more files as :class:`.models.Work` to the given</span>
+<span class="sd">    :class:`.models.Assignment`.</span>
+
+<span class="sd">    .. :quickref: Assignment; Create work by uploading a file.</span>
+
+<span class="sd">    :query ignored_files: How to handle ignored files. The options are:</span>
+<span class="sd">        ``ignore``: this the default, sipmly do nothing about ignored files,</span>
+<span class="sd">        ``delete``: delete the ignored files, ``error``: raise an</span>
+<span class="sd">        :py:class:`.APIException` when there are ignored files in the archive.</span>
+<span class="sd">    :query author: The username of the user that should be the author of this</span>
+<span class="sd">        new submission. Simply don&#39;t give this if you want to be the author.</span>
+
+<span class="sd">    :param int assignment_id: The id of the assignment</span>
+<span class="sd">    :returns: A JSON serialized work and with the status code 201.</span>
+
+<span class="sd">    :raises APIException: If the request is bigger than the maximum upload</span>
+<span class="sd">        size. (REQUEST_TOO_LARGE)</span>
+<span class="sd">    :raises APIException: If there was no file in the request.</span>
+<span class="sd">        (MISSING_REQUIRED_PARAM)</span>
+<span class="sd">    :raises APIException: If some file was under the wrong key or some filename</span>
+<span class="sd">        is empty. (INVALID_PARAM)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="n">get_submission_files_from_request</span><span class="p">(</span><span class="n">check_size</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">assig</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span> <span class="n">assignment_id</span><span class="p">)</span>
+    <span class="n">given_author</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;author&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">given_author</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">author</span> <span class="o">=</span> <span class="n">current_user</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">author</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">username</span> <span class="o">==</span> <span class="n">given_author</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_submit_work</span><span class="p">(</span><span class="n">assig</span><span class="p">,</span> <span class="n">author</span><span class="p">)</span>
+
+    <span class="n">work</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">(</span><span class="n">assignment</span><span class="o">=</span><span class="n">assig</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="n">author</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="n">work</span><span class="o">.</span><span class="n">divide_new_work</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">work</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">raise_or_delete</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">IgnoreHandling</span><span class="p">[</span><span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s1">&#39;ignored_files&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;keep&#39;</span><span class="p">,</span>
+        <span class="p">)]</span>
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>  <span class="c1"># The enum value does not exist</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;The given value for &quot;ignored_files&quot; is invalid&#39;</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="n">f</span><span class="s1">&#39;The value &quot;{request.args.get(&quot;ignored_files&quot;)}&quot; is&#39;</span>
+                <span class="s1">&#39; not in the `IgnoreHandling` enum&#39;</span>
+            <span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span>
+            <span class="mi">400</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">tree</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">process_files</span><span class="p">(</span>
+        <span class="n">files</span><span class="p">,</span>
+        <span class="n">force_txt</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">ignore_filter</span><span class="o">=</span><span class="n">IgnoreFilterManager</span><span class="p">(</span><span class="n">assig</span><span class="o">.</span><span class="n">cgignore</span><span class="p">),</span>
+        <span class="n">handle_ignore</span><span class="o">=</span><span class="n">raise_or_delete</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">work</span><span class="o">.</span><span class="n">add_file_tree</span><span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="n">tree</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">assig</span><span class="o">.</span><span class="n">is_lti</span><span class="p">:</span>
+        <span class="n">work</span><span class="o">.</span><span class="n">passback_grade</span><span class="p">(</span><span class="n">initial</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="n">work</span><span class="o">.</span><span class="n">run_linter</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">work</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">201</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="divide_assignments"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.divide_assignments">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/assignments/&lt;int:assignment_id&gt;/divide&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PATCH&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">divide_assignments</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Assign graders to all the latest :class:`.models.Work` objects of</span>
+<span class="sd">    the given :class:`.models.Assignment`.</span>
+
+<span class="sd">    .. :quickref: Assignment; Divide a submission among given TA&#39;s.</span>
+
+<span class="sd">    The redivide tries to minimize shuffles. This means that calling it twice</span>
+<span class="sd">    with the same data is effectively a noop. If the relative weight (so the</span>
+<span class="sd">    percentage of work) of a user doesn&#39;t change it will not lose or gain any</span>
+<span class="sd">    submissions.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        If a user was marked as done grading and gets assigned new submissions</span>
+<span class="sd">        this user is marked as not done and gets a notification email!</span>
+
+<span class="sd">    :&lt;json dict graders: A mapping that maps user ids (strings) and the new</span>
+<span class="sd">        weight they should get (numbers).</span>
+<span class="sd">    :param int assignment_id: The id of the assignment</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+
+<span class="sd">    :raises APIException: If no assignment with given id exists or the</span>
+<span class="sd">                          assignment has no submissions. (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: If there was no grader in the request.</span>
+<span class="sd">                          (MISSING_REQUIRED_PARAM)</span>
+<span class="sd">    :raises APIException: If some grader id is invalid or some grader does not</span>
+<span class="sd">                          have the permission to grade the assignment.</span>
+<span class="sd">                          (INVALID_PARAM)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user is not allowed to divide</span>
+<span class="sd">                                 submissions for this assignment.</span>
+<span class="sd">                                 (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">assignment</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span> <span class="n">assignment_id</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_assign_graders&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">content</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;graders&#39;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)])</span>
+    <span class="n">graders</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;graders&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">user_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">))):</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;Given graders weight or id is invalid&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;Both key and value in graders object should be integers&#39;</span><span class="p">,</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+            <span class="p">)</span>
+        <span class="n">graders</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">user_id</span><span class="p">)]</span> <span class="o">=</span> <span class="n">weight</span>
+
+    <span class="k">if</span> <span class="n">graders</span><span class="p">:</span>
+        <span class="n">users</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_all_or_404</span><span class="p">(</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">graders</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>  <span class="c1"># type: ignore</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">assignment_id</span><span class="o">=</span><span class="n">assignment</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s1">&#39;assigned_to&#39;</span><span class="p">:</span> <span class="kc">None</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+        <span class="n">assignment</span><span class="o">.</span><span class="n">assigned_graders</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">users</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">graders</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;Invalid grader id given&#39;</span><span class="p">,</span> <span class="s1">&#39;Invalid grader (=user) id given&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+
+    <span class="n">can_grade_work</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">Permission</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">Permission</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;can_grade_work&#39;</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="n">users</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="o">.</span><span class="n">has_permission</span><span class="p">(</span><span class="n">can_grade_work</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;Selected grader has no permission to grade&#39;</span><span class="p">,</span>
+                <span class="n">f</span><span class="s1">&#39;The grader </span><span class="si">{user.id}</span><span class="s1"> has no permission to grade&#39;</span><span class="p">,</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+            <span class="p">)</span>
+
+    <span class="n">assignment</span><span class="o">.</span><span class="n">divide_submissions</span><span class="p">([(</span><span class="n">user</span><span class="p">,</span> <span class="n">graders</span><span class="p">[</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">])</span> <span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="n">users</span><span class="p">])</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="get_all_graders"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.get_all_graders">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/assignments/&lt;int:assignment_id&gt;/graders/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">get_all_graders</span><span class="p">(</span>
+    <span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]]]:</span>
+    <span class="sd">&quot;&quot;&quot;Gets a list of all :class:`.models.User` objects who can grade the given</span>
+<span class="sd">    :class:`.models.Assignment`.</span>
+
+<span class="sd">    .. :quickref: Assignment; Get all graders for an assignment.</span>
+
+<span class="sd">    :param int assignment_id: The id of the assignment</span>
+<span class="sd">    :returns: A response containing the JSON serialized graders.</span>
+
+<span class="sd">    :&gt;jsonarr string name: The name of the grader.</span>
+<span class="sd">    :&gt;jsonarr int id: The user id of this grader.</span>
+<span class="sd">    :&gt;jsonarr bool divided: Is this user assigned to any submission for this</span>
+<span class="sd">        assignment.</span>
+<span class="sd">    :&gt;jsonarr bool done: Is this user done grading?</span>
+
+<span class="sd">    :raises APIException: If no assignment with given id exists.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user is not allowed to view graders of</span>
+<span class="sd">                                 this assignment. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">assignment</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span> <span class="n">assignment_id</span><span class="p">)</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_see_assignee&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">assignment</span><span class="o">.</span><span class="n">get_all_graders</span><span class="p">(</span><span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">divided</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">MutableMapping</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">assigned_grader</span> <span class="ow">in</span> <span class="n">models</span><span class="o">.</span><span class="n">AssignmentAssignedGrader</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+        <span class="n">assignment_id</span><span class="o">=</span><span class="n">assignment_id</span>
+    <span class="p">):</span>
+        <span class="n">divided</span><span class="p">[</span><span class="n">assigned_grader</span><span class="o">.</span><span class="n">user_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">assigned_grader</span><span class="o">.</span><span class="n">weight</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">res</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">res</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="s1">&#39;weight&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">divided</span><span class="p">[</span><span class="n">res</span><span class="p">[</span><span class="mi">1</span><span class="p">]]),</span>
+                <span class="s1">&#39;done&#39;</span><span class="p">:</span> <span class="n">res</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+            <span class="p">}</span> <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">result</span>
+        <span class="p">]</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="set_grader_to_not_done"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.set_grader_to_not_done">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span>
+    <span class="s1">&#39;/assignments/&lt;int:assignment_id&gt;/graders/&lt;int:grader_id&gt;/done&#39;</span><span class="p">,</span>
+    <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;DELETE&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">login_required</span>
+<span class="k">def</span> <span class="nf">set_grader_to_not_done</span><span class="p">(</span>
+    <span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">grader_id</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Indicate that the given grader is not yet done grading the given</span>
+<span class="sd">    `:class:.models.Assignment`.</span>
+
+<span class="sd">    .. :quickref: Assignment; Set the grader status to &#39;not done&#39;.</span>
+
+<span class="sd">    :param assignment_id: The id of the assignment the grader is not yet done</span>
+<span class="sd">        grading.</span>
+<span class="sd">    :param grader_id: The id of the `:class:.models.User` that is not yet done</span>
+<span class="sd">        grading.</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+
+<span class="sd">    :raises APIException: If the given grader was not indicated as done before</span>
+<span class="sd">        calling this endpoint. (INVALID_STATE)</span>
+<span class="sd">    :raises PermissionException: If the current user wants to change a status</span>
+<span class="sd">        of somebody else but the user does not have the</span>
+<span class="sd">        `can_update_grader_status` permission. (INCORRECT_PERMISSION)</span>
+<span class="sd">    :raises PermissionException: If the current user wants to change its own</span>
+<span class="sd">        status but does not have the `can_update_grader_status` or the</span>
+<span class="sd">        `can_grade_work` permission. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">assig</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span> <span class="n">assignment_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">grader_id</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_update_grader_status&#39;</span><span class="p">,</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">send_mail</span> <span class="o">=</span> <span class="n">grader_id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span>
+        <span class="n">assig</span><span class="o">.</span><span class="n">set_graders_to_not_done</span><span class="p">([</span><span class="n">grader_id</span><span class="p">],</span> <span class="n">send_mail</span><span class="o">=</span><span class="n">send_mail</span><span class="p">)</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;The grader is not finished!&#39;</span><span class="p">,</span>
+            <span class="n">f</span><span class="s1">&#39;The grader </span><span class="si">{grader_id}</span><span class="s1"> is not done.&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span>
+            <span class="mi">400</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="set_grader_to_done"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.set_grader_to_done">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span>
+    <span class="s1">&#39;/assignments/&lt;int:assignment_id&gt;/graders/&lt;int:grader_id&gt;/done&#39;</span><span class="p">,</span>
+    <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">login_required</span>
+<span class="k">def</span> <span class="nf">set_grader_to_done</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">grader_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Indicate that the given grader is done grading the given</span>
+<span class="sd">    `:class:.models.Assignment`.</span>
+
+<span class="sd">    .. :quickref: Assignment; Set the grader status to &#39;done&#39;.</span>
+
+<span class="sd">    :param assignment_id: The id of the assignment the grader is done grading.</span>
+<span class="sd">    :param grader_id: The id of the `:class:.models.User` that is done grading.</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+
+<span class="sd">    :raises APIException: If the given grader was indicated as done before</span>
+<span class="sd">        calling this endpoint. (INVALID_STATE)</span>
+<span class="sd">    :raises PermissionException: If the current user wants to change a status</span>
+<span class="sd">        of somebody else but the user does not have the</span>
+<span class="sd">        `can_update_grader_status` permission. (INCORRECT_PERMISSION)</span>
+<span class="sd">    :raises PermissionException: If the current user wants to change its own</span>
+<span class="sd">        status but does not have the `can_update_grader_status` or the</span>
+<span class="sd">        `can_grade_work` permission. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">assig</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span>
+        <span class="n">assignment_id</span><span class="p">,</span>
+        <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="n">joinedload</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">finished_graders</span><span class="p">)],</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">grader_id</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_update_grader_status&#39;</span><span class="p">,</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">grader</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">grader_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">grader</span><span class="o">.</span><span class="n">has_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;The given user is not a grader in this course&#39;</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="n">f</span><span class="s1">&#39;The user with id &quot;</span><span class="si">{grader_id}</span><span class="s1">&quot; is not a grader &#39;</span>
+                <span class="n">f</span><span class="s1">&#39;in the course &quot;</span><span class="si">{assig.course_id}</span><span class="s1">&quot;&#39;</span>
+            <span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span>
+            <span class="mi">400</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">user_id</span> <span class="o">==</span> <span class="n">grader_id</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">assig</span><span class="o">.</span><span class="n">finished_graders</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;The grader is already finished!&#39;</span><span class="p">,</span>
+            <span class="n">f</span><span class="s1">&#39;The grader </span><span class="si">{grader_id}</span><span class="s1"> is already done.&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span>
+            <span class="mi">400</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="n">done_before</span> <span class="o">=</span> <span class="n">assig</span><span class="o">.</span><span class="n">graders_are_done</span><span class="p">()</span>
+
+    <span class="n">grader_done</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">AssignmentGraderDone</span><span class="p">(</span>
+        <span class="n">user_id</span><span class="o">=</span><span class="n">grader_id</span><span class="p">,</span>
+        <span class="n">assignment</span><span class="o">=</span><span class="n">assig</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">grader_done</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">done_before</span> <span class="ow">and</span> <span class="n">assig</span><span class="o">.</span><span class="n">graders_are_done</span><span class="p">():</span>
+        <span class="n">psef</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">send_done_mail</span><span class="p">(</span><span class="n">assig</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">assig</span><span class="o">.</span><span class="n">has_non_graded_submissions</span><span class="p">(</span><span class="n">grader_id</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">(</span>
+            <span class="n">make_warning</span><span class="p">(</span>
+                <span class="s1">&#39;You have non graded work!&#39;</span><span class="p">,</span>
+                <span class="n">APIWarnings</span><span class="o">.</span><span class="n">GRADER_NOT_DONE</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<span class="n">WorkList</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">]</span>  <span class="c1"># pylint: disable=invalid-name</span>
+
+
+<div class="viewcode-block" id="get_all_works_for_assignment"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.get_all_works_for_assignment">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/assignments/&lt;int:assignment_id&gt;/submissions/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">get_all_works_for_assignment</span><span class="p">(</span>
+    <span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">JSONResponse</span><span class="p">[</span><span class="n">WorkList</span><span class="p">],</span> <span class="n">ExtendedJSONResponse</span><span class="p">[</span><span class="n">WorkList</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Return all :class:`.models.Work` objects for the given</span>
+<span class="sd">    :class:`.models.Assignment`.</span>
+
+<span class="sd">    .. :quickref: Assignment; Get all works for an assignment.</span>
+
+<span class="sd">    :qparam boolean extended: Whether to get extended or normal</span>
+<span class="sd">        :class:`.models.Work` objects. The default value is ``false``, you can</span>
+<span class="sd">        enable extended by passing ``true``, ``1`` or an empty string.</span>
+
+<span class="sd">    :param int assignment_id: The id of the assignment</span>
+<span class="sd">    :returns: A response containing the JSON serialized submissions.</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the assignment is hidden and the user is</span>
+<span class="sd">                                 not allowed to view it. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">assignment</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span> <span class="n">assignment_id</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_see_assignments&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">assignment</span><span class="o">.</span><span class="n">is_hidden</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span>
+            <span class="s1">&#39;can_see_hidden_assignments&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span>
+        <span class="p">)</span>
+
+    <span class="n">obj</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+        <span class="n">assignment_id</span><span class="o">=</span><span class="n">assignment_id</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">joinedload</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">selected_items</span><span class="p">,</span>
+    <span class="p">))</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">created_at</span><span class="p">)</span><span class="o">.</span><span class="n">desc</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">current_user</span><span class="o">.</span><span class="n">has_permission</span><span class="p">(</span>
+        <span class="s1">&#39;can_see_others_work&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="o">=</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span>
+    <span class="p">):</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">user_id</span><span class="o">=</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+    <span class="n">extended</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;extended&#39;</span><span class="p">,</span> <span class="s1">&#39;false&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">extended</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;true&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">}:</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">undefer</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="o">.</span><span class="n">comment</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">extended_jsonify</span><span class="p">(</span>
+            <span class="n">obj</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span>
+            <span class="n">use_extended</span><span class="o">=</span><span class="k">lambda</span> <span class="n">obj</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">),</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">all</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="post_submissions"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.post_submissions">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/assignments/&lt;int:assignment_id&gt;/submissions/&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="nd">@helpers</span><span class="o">.</span><span class="n">feature_required</span><span class="p">(</span><span class="s1">&#39;BLACKBOARD_ZIP_UPLOAD&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">post_submissions</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Add submissions to the  given:class:`.models.Assignment` from a</span>
+<span class="sd">    blackboard zip file as :class:`.models.Work` objects.</span>
+
+<span class="sd">    .. :quickref: Assignment; Create works from a blackboard zip.</span>
+
+<span class="sd">    You should upload a file as multiform post request. The key should start</span>
+<span class="sd">    with &#39;file&#39;. Multiple blackboard zips are not supported and result in one</span>
+<span class="sd">    zip being chosen at (psuedo) random.</span>
+
+<span class="sd">    :param int assignment_id: The id of the assignment</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+
+<span class="sd">    :raises APIException: If no assignment with given id exists.</span>
+<span class="sd">        (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: If there was no file in the request.</span>
+<span class="sd">        (MISSING_REQUIRED_PARAM)</span>
+<span class="sd">    :raises APIException: If the file parameter name is incorrect or if the</span>
+<span class="sd">        given file does not contain any valid submissions. (INVALID_PARAM)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user is not allowed to manage the</span>
+<span class="sd">        course attached to the assignment. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">assignment</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span> <span class="n">assignment_id</span><span class="p">)</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_upload_bb_zip&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="n">get_submission_files_from_request</span><span class="p">(</span><span class="n">check_size</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">submissions</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">process_blackboard_zip</span><span class="p">(</span><span class="n">files</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># pylint: disable=broad-except</span>
+        <span class="c1"># TODO: Narrow this exception down.</span>
+        <span class="n">submissions</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">submissions</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s2">&quot;The blackboard zip could not imported or it was empty.&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;The blackboard zip could not&#39;</span>
+            <span class="s1">&#39; be parsed or it did not contain any valid submissions.&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+
+    <span class="n">missing</span><span class="p">,</span> <span class="n">recalc_missing</span> <span class="o">=</span> <span class="n">assignment</span><span class="o">.</span><span class="n">get_divided_amount_missing</span><span class="p">()</span>
+    <span class="n">sub_lookup</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">assignment</span><span class="o">.</span><span class="n">get_all_latest_submissions</span><span class="p">():</span>
+        <span class="n">sub_lookup</span><span class="p">[</span><span class="n">sub</span><span class="o">.</span><span class="n">user_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">sub</span>
+
+    <span class="n">student_course_role</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Student&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="o">=</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="n">global_role</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Role</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;Student&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+    <span class="n">subs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">hists</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">found_users</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">u</span><span class="o">.</span><span class="n">username</span><span class="p">:</span> <span class="n">u</span>
+        <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+                <span class="n">models</span><span class="o">.</span><span class="n">DbColumn</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">username</span><span class="p">,</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">in_</span><span class="p">([</span><span class="n">si</span><span class="o">.</span><span class="n">student_id</span> <span class="k">for</span> <span class="n">si</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">submissions</span><span class="p">])</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">joinedload</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">courses</span><span class="p">))</span>
+    <span class="p">}</span>
+
+    <span class="n">newly_assigned</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Set</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">submission_info</span><span class="p">,</span> <span class="n">submission_tree</span> <span class="ow">in</span> <span class="n">submissions</span><span class="p">:</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">found_users</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">submission_info</span><span class="o">.</span><span class="n">student_id</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># TODO: Check if this role still exists</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">submission_info</span><span class="o">.</span><span class="n">student_name</span><span class="p">,</span>
+                <span class="n">username</span><span class="o">=</span><span class="n">submission_info</span><span class="o">.</span><span class="n">student_id</span><span class="p">,</span>
+                <span class="n">courses</span><span class="o">=</span><span class="p">{</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">:</span> <span class="n">student_course_role</span><span class="p">},</span>
+                <span class="n">email</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">role</span><span class="o">=</span><span class="n">global_role</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">found_users</span><span class="p">[</span><span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="p">]</span> <span class="o">=</span> <span class="n">user</span>
+            <span class="c1"># We don&#39;t need to track the users to insert as we are already</span>
+            <span class="c1"># tracking the submissions of them and they are coupled.</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">courses</span><span class="p">[</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">student_course_role</span>
+
+        <span class="n">work</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">(</span>
+            <span class="n">assignment</span><span class="o">=</span><span class="n">assignment</span><span class="p">,</span>
+            <span class="n">user</span><span class="o">=</span><span class="n">user</span><span class="p">,</span>
+            <span class="n">created_at</span><span class="o">=</span><span class="n">submission_info</span><span class="o">.</span><span class="n">created_at</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">subs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">work</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="n">sub_lookup</span><span class="p">:</span>
+            <span class="n">work</span><span class="o">.</span><span class="n">assigned_to</span> <span class="o">=</span> <span class="n">sub_lookup</span><span class="p">[</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">]</span><span class="o">.</span><span class="n">assigned_to</span>
+
+        <span class="k">if</span> <span class="n">work</span><span class="o">.</span><span class="n">assigned_to</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+                <span class="n">work</span><span class="o">.</span><span class="n">assigned_to</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                    <span class="n">missing</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">missing</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">missing</span> <span class="o">=</span> <span class="n">recalc_missing</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">assigned_to</span><span class="p">)</span>
+                <span class="n">sub_lookup</span><span class="p">[</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">work</span>
+
+        <span class="n">hists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">work</span><span class="o">.</span><span class="n">set_grade</span><span class="p">(</span>
+                <span class="n">submission_info</span><span class="o">.</span><span class="n">grade</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">add_to_session</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">work</span><span class="o">.</span><span class="n">add_file_tree</span><span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="p">,</span> <span class="n">submission_tree</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">work</span><span class="o">.</span><span class="n">assigned_to</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">newly_assigned</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">assigned_to</span><span class="p">)</span>
+
+    <span class="n">assignment</span><span class="o">.</span><span class="n">set_graders_to_not_done</span><span class="p">(</span>
+        <span class="nb">list</span><span class="p">(</span><span class="n">newly_assigned</span><span class="p">),</span>
+        <span class="n">send_mail</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">bulk_save_objects</span><span class="p">(</span><span class="n">subs</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+    <span class="c1"># TODO: This loop should be eliminated.</span>
+    <span class="k">for</span> <span class="n">hist</span> <span class="ow">in</span> <span class="n">hists</span><span class="p">:</span>
+        <span class="n">hist</span><span class="o">.</span><span class="n">work_id</span> <span class="o">=</span> <span class="n">hist</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">id</span>
+        <span class="n">hist</span><span class="o">.</span><span class="n">user_id</span> <span class="o">=</span> <span class="n">hist</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">id</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">bulk_save_objects</span><span class="p">(</span><span class="n">hists</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="get_linters"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.get_linters">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/assignments/&lt;int:assignment_id&gt;/linters/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="nd">@helpers</span><span class="o">.</span><span class="n">feature_required</span><span class="p">(</span><span class="s1">&#39;LINTERS&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_linters</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span>
+                <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]]]:</span>
+    <span class="sd">&quot;&quot;&quot;Get all linters for the given :class:`.models.Assignment`.</span>
+
+<span class="sd">    .. :quickref: Assignment; Get all linters for a assignment.</span>
+
+<span class="sd">    :param int assignment_id: The id of the assignment</span>
+<span class="sd">    :returns: A response containing the JSON serialized linters which is sorted</span>
+<span class="sd">        by the name of the linter.</span>
+<span class="sd">    :rtype: flask.Response</span>
+
+<span class="sd">    :&gt;jsonarr str state: The state of the linter, which can be ``new``, or any</span>
+<span class="sd">        state from :py:class:`.models.LinterState`.</span>
+<span class="sd">    :&gt;jsonarr str name: The name of this linter.</span>
+<span class="sd">    :&gt;jsonarr str id: The id of the linter, this will only be present when</span>
+<span class="sd">        ``state`` is not ``new``.</span>
+<span class="sd">    :&gt;jsonarr ``*rest``: All items as described in</span>
+<span class="sd">        :py:func:`.linters.get_all_linters`</span>
+
+<span class="sd">    :raises APIException: If no assignment with given id exists.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not user linters in this</span>
+<span class="sd">                                 course. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">assignment</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span> <span class="n">assignment_id</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_use_linter&#39;</span><span class="p">,</span> <span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">opts</span> <span class="ow">in</span> <span class="n">linters</span><span class="o">.</span><span class="n">get_all_linters</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">linter</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">AssignmentLinter</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+            <span class="n">assignment_id</span><span class="o">=</span><span class="n">assignment_id</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">linter</span><span class="p">:</span>
+            <span class="n">running</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                <span class="n">models</span><span class="o">.</span><span class="n">LinterInstance</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                    <span class="n">models</span><span class="o">.</span><span class="n">LinterInstance</span><span class="o">.</span><span class="n">tester_id</span> <span class="o">==</span> <span class="n">linter</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                    <span class="n">models</span><span class="o">.</span><span class="n">LinterInstance</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">models</span><span class="o">.</span><span class="n">LinterState</span><span class="o">.</span><span class="n">running</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">scalar</span><span class="p">()</span>
+            <span class="n">crashed</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                <span class="n">models</span><span class="o">.</span><span class="n">LinterInstance</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                    <span class="n">models</span><span class="o">.</span><span class="n">LinterInstance</span><span class="o">.</span><span class="n">tester_id</span> <span class="o">==</span> <span class="n">linter</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                    <span class="n">models</span><span class="o">.</span><span class="n">LinterInstance</span><span class="o">.</span><span class="n">state</span> <span class="o">==</span> <span class="n">models</span><span class="o">.</span><span class="n">LinterState</span><span class="o">.</span><span class="n">crashed</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">scalar</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">running</span><span class="p">:</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">LinterState</span><span class="o">.</span><span class="n">running</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">elif</span> <span class="n">crashed</span><span class="p">:</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">LinterState</span><span class="o">.</span><span class="n">crashed</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">state</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">LinterState</span><span class="o">.</span><span class="n">done</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">opts</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">linter</span><span class="o">.</span><span class="n">id</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="s1">&#39;new&#39;</span>
+
+        <span class="n">opts</span><span class="p">[</span><span class="s1">&#39;state&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span>
+        <span class="n">opts</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+
+        <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]))</span></div>
+
+
+<div class="viewcode-block" id="start_linting"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.assignments.start_linting">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/assignments/&lt;int:assignment_id&gt;/linter&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="nd">@helpers</span><span class="o">.</span><span class="n">feature_required</span><span class="p">(</span><span class="s1">&#39;LINTERS&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">start_linting</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">AssignmentLinter</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Starts running a specific linter on all the latest submissions</span>
+<span class="sd">    (:class:`.models.Work`) of the given :class:`.models.Assignment`.</span>
+
+<span class="sd">    .. :quickref: Assignment; Start linting an assignment with a given linter.</span>
+
+<span class="sd">    :param int assignment_id: The id of the assignment</span>
+<span class="sd">    :returns: A response containing the serialized linter that is started by</span>
+<span class="sd">              the request</span>
+
+<span class="sd">    :raises APIException: If a required parameter is missing.</span>
+<span class="sd">                          (MISSING_REQUIRED_PARAM)</span>
+<span class="sd">    :raises APIException: If a linter of the same name is already running on</span>
+<span class="sd">                          the assignment. (INVALID_STATE)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not user linters in this</span>
+<span class="sd">                                 course. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+
+    <span class="n">assig</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">,</span> <span class="n">assignment_id</span><span class="p">)</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_use_linter&#39;</span><span class="p">,</span> <span class="n">assig</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;cfg&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;cfg&#39;</span><span class="p">])</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">LinterInstance</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">AssignmentLinter</span><span class="o">.</span><span class="n">assignment_id</span> <span class="o">==</span> <span class="n">assignment_id</span><span class="p">,</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">AssignmentLinter</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">scalar</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;There is still a linter instance running&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;There is a linter named &quot;</span><span class="si">{}</span><span class="s1">&quot; running for assignment </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">content</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">],</span> <span class="n">assignment_id</span>
+            <span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">409</span>
+        <span class="p">)</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">AssignmentLinter</span><span class="o">.</span><span class="n">create_linter</span><span class="p">(</span><span class="n">assignment_id</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">cfg</span><span class="p">)</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">linter_cls</span> <span class="o">=</span> <span class="n">linters</span><span class="o">.</span><span class="n">get_linter_by_name</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="n">f</span><span class="s1">&#39;No linter named &quot;</span><span class="si">{name}</span><span class="s1">&quot; was found&#39;</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="n">f</span><span class="s1">&#39;There is no subclass of the &quot;Linter&quot;&#39;</span>
+                <span class="n">f</span><span class="s1">&#39;class with the name &quot;</span><span class="si">{name}</span><span class="s1">&quot;&#39;</span>
+            <span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_NOT_FOUND</span><span class="p">,</span>
+            <span class="mi">404</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">linter_cls</span><span class="o">.</span><span class="n">RUN_LINTER</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">tests</span><span class="p">),</span> <span class="mi">10</span><span class="p">):</span>
+            <span class="n">psef</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">lint_instances</span><span class="p">(</span>
+                <span class="n">name</span><span class="p">,</span>
+                <span class="n">cfg</span><span class="p">,</span>
+                <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">tests</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">10</span><span class="p">]],</span>
+            <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">linter_inst</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">tests</span><span class="p">:</span>
+            <span class="n">linter_inst</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">LinterState</span><span class="o">.</span><span class="n">done</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Schaper.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'1.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

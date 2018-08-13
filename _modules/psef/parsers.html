@@ -1,0 +1,354 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>psef.parsers &mdash; CodeGra.de 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link href="../../_static/style.css" rel="stylesheet" type="text/css">
+
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> CodeGra.de
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">User Manual CodeGra.de</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code.html">Code documentation of psef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../running.html">How to run CodeGra.de</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CodeGra.de</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../psef.html">psef</a> &raquo;</li>
+        
+      <li>psef.parsers</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for psef.parsers</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module implements parsers that raise a `APIException` when they fail.</span>
+
+<span class="sd">:license: AGPLv3, see LICENSE for details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">email.utils</span>
+
+<span class="kn">import</span> <span class="nn">dateutil</span>
+<span class="kn">from</span> <span class="nn">validate_email</span> <span class="k">import</span> <span class="n">validate_email</span>
+
+<span class="kn">from</span> <span class="nn">psef.errors</span> <span class="k">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span>
+
+<span class="n">T</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;T&#39;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">init_app</span><span class="p">(</span><span class="n">_</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">pass</span>
+
+
+<div class="viewcode-block" id="parse_datetime"><a class="viewcode-back" href="../../psef_api/psef.html#psef.parsers.parse_datetime">[docs]</a><span class="k">def</span> <span class="nf">parse_datetime</span><span class="p">(</span>
+    <span class="n">to_parse</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
+    <span class="n">allow_none</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Parse a datetime string using dateutil.</span>
+
+<span class="sd">    :param to_parse: The object to parse, if this is not a string the parsing</span>
+<span class="sd">        will always fail.</span>
+<span class="sd">    :param allow_none: Allow ``None`` to be passed without raising a</span>
+<span class="sd">        exception. if ``to_parse`` is ``None`` and this option is ``True`` the</span>
+<span class="sd">        result will be ``None``.</span>
+<span class="sd">    :returns: The parsed datetime object.</span>
+<span class="sd">    :raises APIException: If the parsing fails for whatever reason.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">to_parse</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">allow_none</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">to_parse</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">dateutil</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">to_parse</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">OverflowError</span><span class="p">):</span>
+            <span class="k">pass</span>
+
+    <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+        <span class="s1">&#39;The given date is not valid!&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> cannot be parsed by dateutil.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">to_parse</span><span class="p">),</span>
+        <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_enum"><a class="viewcode-back" href="../../psef_api/psef.html#psef.parsers.parse_enum">[docs]</a><span class="k">def</span> <span class="nf">parse_enum</span><span class="p">(</span>
+    <span class="n">to_parse</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
+    <span class="n">parse_into_enum</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">T</span><span class="p">],</span>
+    <span class="n">allow_none</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">option_name</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Parse the given string to the given parse_into_enum.</span>
+
+<span class="sd">    :param to_parse: The object to parse. If this value is not a string or</span>
+<span class="sd">        ``None`` the function will always return a type error.</span>
+<span class="sd">    :param parse_into_enum: The enum to parse to.</span>
+<span class="sd">    :param allow_none: Allow ``None`` to be passed and return ``None`` if this</span>
+<span class="sd">        is the case. If this value is ``False`` and ``None`` is passed the</span>
+<span class="sd">        function will raise a :class:`.APIException`.</span>
+<span class="sd">    :param option_name: The name of the option, only used in error display.</span>
+<span class="sd">    :returns: A instance of the given enum.</span>
+<span class="sd">    :raises APIException: If the parsing fails in some way.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">allow_none</span> <span class="ow">and</span> <span class="n">to_parse</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">to_parse</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">parse_into_enum</span><span class="p">[</span><span class="n">to_parse</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+    <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+        <span class="n">f</span><span class="s1">&#39;The given {option_name or &quot;option&quot;} is not a valid option&#39;</span><span class="p">,</span>
+        <span class="n">f</span><span class="s1">&#39;</span><span class="si">{to_parse}</span><span class="s1"> is not a member from </span><span class="si">{parse_into_enum.__name__}</span><span class="s1">.&#39;</span><span class="p">,</span>
+        <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_email_list"><a class="viewcode-back" href="../../psef_api/psef.html#psef.parsers.parse_email_list">[docs]</a><span class="k">def</span> <span class="nf">parse_email_list</span><span class="p">(</span>
+    <span class="n">to_parse</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
+    <span class="n">allow_none</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]:</span>
+    <span class="sd">&quot;&quot;&quot;Parse email list into a list of emails.</span>
+
+<span class="sd">    This list should be in the form of a ``address-list`` as specified in</span>
+<span class="sd">    RFC2822.</span>
+
+<span class="sd">    :param to_parse: The object to parse, it should be a :class:`str` if you</span>
+<span class="sd">        want it to succeed.</span>
+<span class="sd">    :param allow_none: If ``True`` we will not error if ``to_parse`` is</span>
+<span class="sd">        ``None``.</span>
+<span class="sd">    :returns: A list of addresses or ``None`` if ``to_parse`` is ``None`` and</span>
+<span class="sd">        ``allow_none`` is ``True``.</span>
+<span class="sd">    :raises APIException: If the parsing fails in some way.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">allow_none</span> <span class="ow">and</span> <span class="n">to_parse</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">to_parse</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">addresses</span> <span class="o">=</span> <span class="n">email</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">getaddresses</span><span class="p">([</span><span class="n">to_parse</span><span class="o">.</span><span class="n">strip</span><span class="p">()])</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">validate_email</span><span class="p">(</span><span class="n">email</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">email</span> <span class="ow">in</span> <span class="n">addresses</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">addresses</span>
+
+    <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+        <span class="n">f</span><span class="s1">&#39;The given string of emails contains invalid items&#39;</span><span class="p">,</span>
+        <span class="n">f</span><span class="s1">&#39;The string &quot;</span><span class="si">{to_parse}</span><span class="s1">&quot; contains invalid items.&#39;</span><span class="p">,</span>
+        <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="try_parse_email_list"><a class="viewcode-back" href="../../psef_api/psef.html#psef.parsers.try_parse_email_list">[docs]</a><span class="k">def</span> <span class="nf">try_parse_email_list</span><span class="p">(</span>
+    <span class="n">to_parse</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
+    <span class="n">allow_none</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Try parsing an email list.</span>
+
+<span class="sd">    This function is basically the same as :func:`.parse_email_list` but</span>
+<span class="sd">    this function returns ``to_parse`` stripped of unnecessary whitespaces if</span>
+<span class="sd">    the parsing succeeded.</span>
+
+<span class="sd">    :param to_parse: See :func:`.parse_email_list` for what it does.</span>
+<span class="sd">    :param allow_none: See :func:`.parse_email_list` for what it does.</span>
+<span class="sd">    :returns: Its input stripped of spaces if parsing succeeded.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># parse_email will always throw when to_parse is not `(type(None), str)`</span>
+    <span class="k">if</span> <span class="n">parse_email_list</span><span class="p">(</span><span class="n">to_parse</span><span class="p">,</span> <span class="n">allow_none</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">to_parse</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Schaper.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'1.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

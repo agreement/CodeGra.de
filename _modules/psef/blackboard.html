@@ -1,0 +1,343 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>psef.blackboard &mdash; CodeGra.de 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link href="../../_static/style.css" rel="stylesheet" type="text/css">
+
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> CodeGra.de
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">User Manual CodeGra.de</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code.html">Code documentation of psef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../running.html">How to run CodeGra.de</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CodeGra.de</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../psef.html">psef</a> &raquo;</li>
+        
+      <li>psef.blackboard</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for psef.blackboard</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module implements the parsing of blackboard gradebook info files.</span>
+
+<span class="sd">:license: AGPLv3, see LICENSE for details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">mmap</span>
+<span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+
+<span class="kn">from</span> <span class="nn">dateutil</span> <span class="k">import</span> <span class="n">parser</span> <span class="k">as</span> <span class="n">dateparser</span>
+<span class="kn">from</span> <span class="nn">dateutil.tz</span> <span class="k">import</span> <span class="n">gettz</span>
+
+<span class="n">_TXT_FMT</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s2">&quot;Name: (?P&lt;name&gt;.+) \((?P&lt;id&gt;[^\n]*)\)\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;Assignment: (?P&lt;assignment&gt;.+)\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;Date Submitted: (?P&lt;datetime&gt;.+)\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;Current Grade: *(?P&lt;grade&gt;([0-9.]*|[^\n]*))\n+&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;(Override Grade:.*?\n\n)?&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;Submission Field:\n(?P&lt;text&gt;(.*\n)+)\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;Comments:\n(?P&lt;comment&gt;(.*\n)+)\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;Files:\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;((?P&lt;files&gt;(.+\n.+\n+)+)|No files were attached to this submission.\n*)&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">_TXT_FILES_FMT</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s2">&quot;\tOriginal filename: (.+)\n&quot;</span>
+    <span class="sa">r</span><span class="s2">&quot;\tFilename: (.+)\n&quot;</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="FileInfo"><a class="viewcode-back" href="../../psef_api/psef.html#psef.blackboard.FileInfo">[docs]</a><span class="k">class</span> <span class="nc">FileInfo</span><span class="p">(</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">NamedTuple</span><span class="p">(</span><span class="s1">&#39;FileInfo&#39;</span><span class="p">,</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;original_name&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+    <span class="p">])</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A NamedTuple holding information about a specific file.</span>
+
+<span class="sd">    :param original_name: The name provided by the user.</span>
+<span class="sd">    :param name: The name as stored in the blackboard gradebook.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="SubmissionInfo"><a class="viewcode-back" href="../../psef_api/psef.html#psef.blackboard.SubmissionInfo">[docs]</a><span class="k">class</span> <span class="nc">SubmissionInfo</span><span class="p">(</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">NamedTuple</span><span class="p">(</span>
+        <span class="s1">&#39;SubmissionInfo&#39;</span><span class="p">,</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s1">&#39;student_name&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;student_id&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;assignment_name&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;created_at&#39;</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;grade&#39;</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s1">&#39;text&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;comment&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+            <span class="p">(</span>
+                <span class="s1">&#39;files&#39;</span><span class="p">,</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">MutableSequence</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">FileInfo</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">]]]</span>
+            <span class="p">),</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+<span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A NamedTuple holding information about a submission from a blackboard</span>
+<span class="sd">    zip.</span>
+
+<span class="sd">    :param student_name: The name of the student.</span>
+<span class="sd">    :param student_id: The id of the student in the system of the university.</span>
+<span class="sd">    :param assignment_name: Name of the assignment.</span>
+<span class="sd">    :param created_at: The datetime when the submission was made.</span>
+<span class="sd">    :param grade: The current grade of the submission.</span>
+<span class="sd">    :param text: The html text submission of the student.</span>
+<span class="sd">    :param comment: Comment included by student.</span>
+<span class="sd">    :param files: The files submitted by the user.</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="parse_info_file"><a class="viewcode-back" href="../../psef_api/psef.html#psef.blackboard.parse_info_file">[docs]</a><span class="k">def</span> <span class="nf">parse_info_file</span><span class="p">(</span><span class="n">file</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SubmissionInfo</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Parses a blackboard gradebook .txt file.</span>
+
+<span class="sd">    :param file: Path to the file</span>
+<span class="sd">    :returns: The parsed information</span>
+<span class="sd">    :rtype: SubmissionInfo</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># _TXT_FMT is a object gotten from `re.compile`</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="s1">&#39;r+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">mmap</span><span class="o">.</span><span class="n">mmap</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">fileno</span><span class="p">(),</span> <span class="mi">0</span><span class="p">)</span> <span class="k">as</span> <span class="n">data</span><span class="p">:</span>
+            <span class="c1"># casting here is wrong, however see</span>
+            <span class="c1"># https://github.com/python/typeshed/issues/1467</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">_TXT_FMT</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">bytes</span><span class="p">,</span> <span class="n">data</span><span class="p">))</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">grade</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;grade&#39;</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="n">grade</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="n">bb_files</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;files&#39;</span><span class="p">)</span>
+            <span class="n">files</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">],</span> <span class="n">FileInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">if</span> <span class="n">bb_files</span><span class="p">:</span>
+                <span class="n">files</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">FileInfo</span><span class="p">(</span><span class="n">org</span><span class="p">,</span> <span class="n">cur</span><span class="p">)</span> <span class="k">for</span> <span class="n">org</span><span class="p">,</span> <span class="n">cur</span> <span class="ow">in</span>
+                    <span class="n">_TXT_FILES_FMT</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">bb_files</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+                <span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="sa">b</span><span class="s1">&#39;No files were uploaded! The&#39;</span>
+                    <span class="sa">b</span><span class="s1">&#39;comments for this submission were:</span><span class="se">\n</span><span class="s1">&quot;&quot;&quot;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span>
+                    <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;comment&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">+</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&quot;&quot;&quot;&#39;</span>
+                <span class="p">)</span>
+                <span class="n">files</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;Comment&#39;</span><span class="p">,</span> <span class="n">content</span><span class="p">)]</span>
+
+            <span class="n">info</span> <span class="o">=</span> <span class="n">SubmissionInfo</span><span class="p">(</span>
+                <span class="n">student_name</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">),</span>
+                <span class="n">student_id</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">),</span>
+                <span class="n">assignment_name</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;assignment&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">),</span>
+                <span class="n">created_at</span><span class="o">=</span><span class="n">dateparser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span>
+                    <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;datetime&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+                    <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; o&#39;clock&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+                    <span class="n">tzinfos</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;CET&#39;</span><span class="p">:</span> <span class="n">gettz</span><span class="p">(</span><span class="s1">&#39;Europe/Amsterdam&#39;</span><span class="p">)}</span>
+                <span class="p">),</span>
+                <span class="n">grade</span><span class="o">=</span><span class="n">grade</span><span class="p">,</span>
+                <span class="n">text</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;text&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(),</span>
+                <span class="n">comment</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;comment&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(),</span>
+                <span class="n">files</span><span class="o">=</span><span class="n">files</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">info</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Schaper.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'1.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

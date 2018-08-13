@@ -1,0 +1,1178 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>psef.lti &mdash; CodeGra.de 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link href="../../_static/style.css" rel="stylesheet" type="text/css">
+
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> CodeGra.de
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">User Manual CodeGra.de</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code.html">Code documentation of psef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../running.html">How to run CodeGra.de</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CodeGra.de</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../psef.html">psef</a> &raquo;</li>
+        
+      <li>psef.lti</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for psef.lti</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;This module contains the code used for all LTI functionality.</span>
+
+<span class="sd">:license: AGPLv3, see LICENSE for details. This does not include code copied</span>
+<span class="sd">    from https://github.com/ucfopen/lti-template-flask-oauth-tokens</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># This file contains large pieces of code from this github repository:</span>
+<span class="c1"># https://github.com/ucfopen/lti-template-flask-oauth-tokens</span>
+
+<span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+
+<span class="kn">import</span> <span class="nn">flask</span>
+<span class="kn">import</span> <span class="nn">oauth2</span>
+<span class="kn">import</span> <span class="nn">dateutil</span>
+<span class="kn">import</span> <span class="nn">flask_jwt_extended</span> <span class="k">as</span> <span class="nn">flask_jwt</span>
+<span class="kn">from</span> <span class="nn">lxml</span> <span class="k">import</span> <span class="n">etree</span><span class="p">,</span> <span class="n">objectify</span>
+
+<span class="kn">import</span> <span class="nn">psef</span>
+<span class="kn">import</span> <span class="nn">psef.auth</span> <span class="k">as</span> <span class="nn">auth</span>
+<span class="kn">import</span> <span class="nn">psef.models</span> <span class="k">as</span> <span class="nn">models</span>
+<span class="kn">import</span> <span class="nn">psef.helpers</span> <span class="k">as</span> <span class="nn">helpers</span>
+<span class="kn">from</span> <span class="nn">psef</span> <span class="k">import</span> <span class="n">LTI_ROLE_LOOKUPS</span><span class="p">,</span> <span class="n">app</span><span class="p">,</span> <span class="n">current_user</span>
+<span class="kn">from</span> <span class="nn">psef.auth</span> <span class="k">import</span> <span class="n">_user_active</span>
+<span class="kn">from</span> <span class="nn">psef.errors</span> <span class="k">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span>
+<span class="kn">from</span> <span class="nn">psef.models</span> <span class="k">import</span> <span class="n">db</span>
+
+
+<div class="viewcode-block" id="init_app"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.init_app">[docs]</a><span class="k">def</span> <span class="nf">init_app</span><span class="p">(</span><span class="n">_</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">pass</span></div>
+
+
+<span class="c1"># TODO: This class has so many public methods as they are properties. A lot of</span>
+<span class="c1"># them can be converted to private properties which should be done.</span>
+<div class="viewcode-block" id="LTI"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.LTI">[docs]</a><span class="k">class</span> <span class="nc">LTI</span><span class="p">:</span>  <span class="c1"># pylint: disable=too-many-public-methods</span>
+    <span class="sd">&quot;&quot;&quot;The base LTI class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">params</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+        <span class="n">lti_provider</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">LTIProvider</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span> <span class="o">=</span> <span class="n">params</span>
+
+        <span class="k">if</span> <span class="n">lti_provider</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lti_provider</span> <span class="o">=</span> <span class="n">lti_provider</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lti_id</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s1">&#39;lti_provider_id&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lti_provider</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span>
+                <span class="n">models</span><span class="o">.</span><span class="n">LTIProvider</span><span class="p">,</span>
+                <span class="n">lti_id</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lti_provider</span><span class="o">.</span><span class="n">key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">secret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lti_provider</span><span class="o">.</span><span class="n">secret</span>
+
+    <span class="c1"># TODO support more than just flask</span>
+<div class="viewcode-block" id="LTI.create_from_request"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.LTI.create_from_request">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">create_from_request</span><span class="p">(</span><span class="bp">cls</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="s1">&#39;LTI&#39;</span><span class="p">],</span> <span class="n">req</span><span class="p">:</span> <span class="n">flask</span><span class="o">.</span><span class="n">Request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;LTI&#39;</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Create an instance from a flask request.</span>
+
+<span class="sd">        The request should have a ``form`` variable that has all the right</span>
+<span class="sd">        parameters. So this request should be from an LTI launch.</span>
+
+<span class="sd">        :param req: The request to create the LTI instance from.</span>
+<span class="sd">        :returns: A fresh LTI instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">req</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="n">lti_provider</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">LTIProvider</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+            <span class="n">key</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;oauth_consumer_key&#39;</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">lti_provider</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lti_provider</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">LTIProvider</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">params</span><span class="p">[</span><span class="s1">&#39;oauth_consumer_key&#39;</span><span class="p">])</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">lti_provider</span><span class="p">)</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="n">params</span><span class="p">[</span><span class="s1">&#39;lti_provider_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lti_provider</span><span class="o">.</span><span class="n">id</span>
+
+        <span class="c1"># This is semi sensitive information so it should not end up in the JWT</span>
+        <span class="c1"># token.</span>
+        <span class="n">launch_params</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;oauth&#39;</span><span class="p">):</span>
+                <span class="n">launch_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="bp">self</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">launch_params</span><span class="p">,</span> <span class="n">lti_provider</span><span class="p">)</span>
+
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_valid_oauth</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">secret</span><span class="p">,</span> <span class="n">req</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">user_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The unique id of the current LTI user.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;user_id&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">user_email</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The email of the current LTI user.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;lis_person_contact_email_primary&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">full_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The name of the current LTI user.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;lis_person_name_full&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">username</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="sd">&quot;&quot;&quot;The username of the current LTI user.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;user_id&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">course_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="sd">&quot;&quot;&quot;The course id of the current LTI course.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;context_id&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">course_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="sd">&quot;&quot;&quot;The name of the current LTI course.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;context_title&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">assignment_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="sd">&quot;&quot;&quot;The id of the current LTI assignment.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">assignment_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="sd">&quot;&quot;&quot;The name of the current LTI assignment.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">outcome_service_url</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="sd">&quot;&quot;&quot;The url used to passback grades to Canvas.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">result_sourcedid</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="sd">&quot;&quot;&quot;The sourcedid of the current user for the current assignment.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">assignment_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">models</span><span class="o">.</span><span class="n">_AssignmentStateEnum</span><span class="p">:</span>  <span class="c1"># pylint: disable=protected-access</span>
+        <span class="sd">&quot;&quot;&quot;The state of the current LTI assignment.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>  <span class="c1"># pragma: no cover</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">roles</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="sd">&quot;&quot;&quot;The normalized roles of the current LTI user.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+<div class="viewcode-block" id="LTI.get_assignment_deadline"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.LTI.get_assignment_deadline">[docs]</a>    <span class="k">def</span> <span class="nf">get_assignment_deadline</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="sd">&quot;&quot;&quot;Get the deadline of the current LTI assignment.</span>
+
+<span class="sd">        :param default: The value to be returned of the assignment has no</span>
+<span class="sd">            deadline. If ``default.__bool__`` is ``False`` the current date</span>
+<span class="sd">            plus 365 days is used.</span>
+<span class="sd">        :returns: The deadline of the assignment as a datetime.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="LTI.ensure_lti_user"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.LTI.ensure_lti_user">[docs]</a>    <span class="k">def</span> <span class="nf">ensure_lti_user</span><span class="p">(</span>
+        <span class="bp">self</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Make sure the current LTI user is logged in as a psef user.</span>
+
+<span class="sd">        This is done by first checking if we know a user with the current LTI</span>
+<span class="sd">        user_id, if this is the case this is the user we log in and return.</span>
+
+<span class="sd">        Otherwise we check if a user is logged in and this user has no LTI</span>
+<span class="sd">        user_id, if this is the case we link the current LTI user_id to the</span>
+<span class="sd">        current logged in user and return this user.</span>
+
+<span class="sd">        Otherwise we create a new user and link this user to current LTI</span>
+<span class="sd">        user_id.</span>
+
+<span class="sd">        :returns: A tuple containing the items in order: the user found as</span>
+<span class="sd">            described above, optionally a new token for the user to login with,</span>
+<span class="sd">            optionally the updated email of the user as a string, this is</span>
+<span class="sd">            ``None`` if the email was not updated.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">is_logged_in</span> <span class="o">=</span> <span class="n">_user_active</span><span class="p">()</span>
+        <span class="n">token</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">lti_user</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">lti_user_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user_id</span>
+                                               <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">is_logged_in</span> <span class="ow">and</span> <span class="n">current_user</span><span class="o">.</span><span class="n">lti_user_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_id</span><span class="p">:</span>
+            <span class="c1"># The currently logged in user is now using LTI</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="n">current_user</span>
+
+        <span class="k">elif</span> <span class="n">lti_user</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># LTI users are used before the current logged user.</span>
+            <span class="n">token</span> <span class="o">=</span> <span class="n">flask_jwt</span><span class="o">.</span><span class="n">create_access_token</span><span class="p">(</span>
+                <span class="n">identity</span><span class="o">=</span><span class="n">lti_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="n">fresh</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="n">lti_user</span>
+        <span class="k">elif</span> <span class="n">is_logged_in</span> <span class="ow">and</span> <span class="n">current_user</span><span class="o">.</span><span class="n">lti_user_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># TODO show some sort of screen if this linking is wanted</span>
+            <span class="n">current_user</span><span class="o">.</span><span class="n">lti_user_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_id</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="n">current_user</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># New LTI user id is found and no user is logged in or the current</span>
+            <span class="c1"># user has a different LTI user id. A new user is created and</span>
+            <span class="c1"># logged in.</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="k">def</span> <span class="nf">_get_username</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">username</span> <span class="o">+</span> <span class="p">(</span><span class="n">f</span><span class="s1">&#39; (</span><span class="si">{i}</span><span class="s1">)&#39;</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+            <span class="k">while</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="n">_get_username</span><span class="p">())</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">scalar</span><span class="p">():</span>  <span class="c1"># pragma: no cover</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="n">user</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">(</span>
+                <span class="n">lti_user_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user_id</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">full_name</span><span class="p">,</span>
+                <span class="n">email</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user_email</span><span class="p">,</span>
+                <span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">password</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">username</span><span class="o">=</span><span class="n">_get_username</span><span class="p">(),</span>
+            <span class="p">)</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+            <span class="n">token</span> <span class="o">=</span> <span class="n">flask_jwt</span><span class="o">.</span><span class="n">create_access_token</span><span class="p">(</span>
+                <span class="n">identity</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="n">fresh</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">updated_email</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">reset_email_on_lti</span><span class="p">:</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_email</span>
+            <span class="n">updated_email</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_email</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">reset_email_on_lti</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="n">user</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">updated_email</span></div>
+
+<div class="viewcode-block" id="LTI.get_course"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.LTI.get_course">[docs]</a>    <span class="k">def</span> <span class="nf">get_course</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get the current LTI course as a psef course.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">course</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">lti_course_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">course_id</span>
+                                               <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">course</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">course</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">course_name</span><span class="p">,</span> <span class="n">lti_course_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">course_id</span>
+            <span class="p">)</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">course</span><span class="p">)</span>
+
+        <span class="n">course</span><span class="o">.</span><span class="n">lti_provider</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lti_provider</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">course</span></div>
+
+<div class="viewcode-block" id="LTI.get_assignment"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.LTI.get_assignment">[docs]</a>    <span class="k">def</span> <span class="nf">get_assignment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get the current LTI assignment as a psef assignment.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">assignment</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+            <span class="n">lti_assignment_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">assignment_id</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">assignment</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">course</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_course</span><span class="p">()</span>
+            <span class="n">assignment</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">assignment_name</span><span class="p">,</span>
+                <span class="n">state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">assignment_state</span><span class="p">,</span>
+                <span class="n">course_id</span><span class="o">=</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="n">deadline</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_assignment_deadline</span><span class="p">(),</span>
+                <span class="n">lti_assignment_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">assignment_id</span><span class="p">,</span>
+                <span class="n">description</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+            <span class="p">)</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">assignment</span><span class="p">)</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_result_sourcedid</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">assignment</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">assignment_results</span><span class="p">:</span>
+                <span class="n">user</span><span class="o">.</span><span class="n">assignment_results</span><span class="p">[</span><span class="n">assignment</span><span class="o">.</span><span class="n">id</span>
+                                        <span class="p">]</span><span class="o">.</span><span class="n">sourcedid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">result_sourcedid</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">assig_res</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">AssignmentResult</span><span class="p">(</span>
+                    <span class="n">sourcedid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">result_sourcedid</span><span class="p">,</span>
+                    <span class="n">user_id</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                    <span class="n">assignment_id</span><span class="o">=</span><span class="n">assignment</span><span class="o">.</span><span class="n">id</span>
+                <span class="p">)</span>
+                <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">assig_res</span><span class="p">)</span>
+
+        <span class="n">assignment</span><span class="o">.</span><span class="n">lti_outcome_service_url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">outcome_service_url</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">assignment</span><span class="o">.</span><span class="n">is_done</span><span class="p">:</span>
+            <span class="n">assignment</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">assignment_state</span>
+
+        <span class="n">assignment</span><span class="o">.</span><span class="n">deadline</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_assignment_deadline</span><span class="p">(</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">assignment</span><span class="o">.</span><span class="n">deadline</span>
+        <span class="p">)</span>
+
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">assignment</span></div>
+
+<div class="viewcode-block" id="LTI.set_user_role"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.LTI.set_user_role">[docs]</a>    <span class="k">def</span> <span class="nf">set_user_role</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Set the role of the given user if the user has no role.</span>
+
+<span class="sd">        The role is determined according to :py:data:`.LTI_ROLE_LOOKUPS`.</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">            If the role could not be matched the ``DEFAULT_ROLE`` configured</span>
+<span class="sd">            in the config of the app is used.</span>
+
+<span class="sd">        :param models.User user: The user to set the role for.</span>
+<span class="sd">        :returns: Nothing</span>
+<span class="sd">        :rtype: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">role</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">role</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">roles</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">LTI_ROLE_LOOKUPS</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">role_lookup</span> <span class="o">=</span> <span class="n">LTI_ROLE_LOOKUPS</span><span class="p">[</span><span class="n">role</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">role_lookup</span><span class="p">[</span><span class="s1">&#39;course_role&#39;</span><span class="p">]:</span>  <span class="c1"># This is a course role</span>
+                    <span class="k">continue</span>
+                <span class="n">user</span><span class="o">.</span><span class="n">role</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Role</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="n">role_lookup</span><span class="p">[</span><span class="s1">&#39;role&#39;</span><span class="p">]</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">one</span><span class="p">()</span>
+                <span class="k">return</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">role</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Role</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;DEFAULT_ROLE&#39;</span><span class="p">]</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">one</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="LTI.set_user_course_role"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.LTI.set_user_course_role">[docs]</a>    <span class="k">def</span> <span class="nf">set_user_course_role</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span>
+                             <span class="n">course</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Set the course role for the given course and user if there is no</span>
+<span class="sd">        such role just yet.</span>
+
+<span class="sd">        The mapping is done using :py:data:`.LTI_ROLE_LOOKUPS`. If no role</span>
+<span class="sd">        could be found a new role is created with the default permissions.</span>
+
+<span class="sd">        :param models.User user: The user to set the course role  for.</span>
+<span class="sd">        :param models.Course course: The course to connect to user to.</span>
+<span class="sd">        :returns: True if a new role was created.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">course</span><span class="o">.</span><span class="n">id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">courses</span><span class="p">:</span>
+            <span class="n">unkown_roles</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">role</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">roles</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">LTI_ROLE_LOOKUPS</span><span class="p">:</span>
+                    <span class="n">unkown_roles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">role</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="n">role_lookup</span> <span class="o">=</span> <span class="n">LTI_ROLE_LOOKUPS</span><span class="p">[</span><span class="n">role</span><span class="p">]</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">role_lookup</span><span class="p">[</span><span class="s1">&#39;course_role&#39;</span><span class="p">]:</span>  <span class="c1"># This is not a course role</span>
+                    <span class="k">continue</span>
+
+                <span class="n">crole</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+                    <span class="n">course_id</span><span class="o">=</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">role_lookup</span><span class="p">[</span><span class="s1">&#39;role&#39;</span><span class="p">]</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">one</span><span class="p">()</span>
+                <span class="n">user</span><span class="o">.</span><span class="n">courses</span><span class="p">[</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">crole</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">psef</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;FEATURES&#39;</span><span class="p">][</span><span class="s1">&#39;AUTOMATIC_LTI_ROLE&#39;</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                    <span class="s1">&#39;The given LTI role was not valid found, please &#39;</span>
+                    <span class="s1">&#39;ask your instructor or site admin.&#39;</span><span class="p">,</span>
+                    <span class="n">f</span><span class="s1">&#39;No role in &quot;{list(self.roles)}&quot; is a known LTI role&#39;</span><span class="p">,</span>
+                    <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">400</span>
+                <span class="p">)</span>
+
+            <span class="c1"># Add a new course role</span>
+            <span class="n">new_created</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">new_role</span> <span class="o">=</span> <span class="p">(</span><span class="n">unkown_roles</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;New LTI Role&#39;</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">existing_role</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+                <span class="n">course_id</span><span class="o">=</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">new_role</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">existing_role</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">existing_role</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">(</span><span class="n">course</span><span class="o">=</span><span class="n">course</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">new_role</span><span class="p">)</span>
+                <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">existing_role</span><span class="p">)</span>
+                <span class="n">new_created</span> <span class="o">=</span> <span class="n">new_role</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">courses</span><span class="p">[</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">existing_role</span>
+            <span class="k">return</span> <span class="n">new_created</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="LTI.has_result_sourcedid"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.LTI.has_result_sourcedid">[docs]</a>    <span class="k">def</span> <span class="nf">has_result_sourcedid</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="sd">&quot;&quot;&quot;Check if the current LTI request has a ``sourcedid`` field.</span>
+
+<span class="sd">        :returns: A boolean indicating if a ``sourcedid`` field was found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="LTI.generate_xml"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.LTI.generate_xml">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">generate_xml</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="sd">&quot;&quot;&quot;Generate a config XML for this LTI consumer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="LTI.passback_grade"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.LTI.passback_grade">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">passback_grade</span><span class="p">(</span>
+        <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">secret</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">grade</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+        <span class="n">service_url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">sourcedid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;OutcomeResponse&#39;</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Do a LTI grade passback.</span>
+
+<span class="sd">        :param key: The oauth key to use.</span>
+<span class="sd">        :param secret: The oauth secret to use.</span>
+<span class="sd">        :param grade: The grade to pass back, between 0 and</span>
+<span class="sd">            10. If it is `None` the grade will be deleted, if it is a ``bool``</span>
+<span class="sd">            no grade information will be send.</span>
+<span class="sd">        :param service_url: The url used for grade passback.</span>
+<span class="sd">        :param sourcedid: The ``sourcedid`` used in the grade passback.</span>
+<span class="sd">        :param url: The url used as general feedback to the student which will</span>
+<span class="sd">            probably be clickable.</span>
+<span class="sd">        :returns: The response of the LTI consumer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">req</span> <span class="o">=</span> <span class="n">OutcomeRequest</span><span class="p">(</span>
+            <span class="n">consumer_key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span>
+            <span class="n">consumer_secret</span><span class="o">=</span><span class="n">secret</span><span class="p">,</span>
+            <span class="n">lis_outcome_service_url</span><span class="o">=</span><span class="n">service_url</span><span class="p">,</span>
+            <span class="n">lis_result_sourcedid</span><span class="o">=</span><span class="n">sourcedid</span>
+        <span class="p">)</span>
+        <span class="n">opts</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">url</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">opts</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">url</span><span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">grade</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">req</span><span class="o">.</span><span class="n">post_delete_result</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">grade</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+                <span class="n">grade</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">grade</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">grade</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">grade</span> <span class="o">/</span> <span class="mi">10</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">req</span><span class="o">.</span><span class="n">post_replace_result</span><span class="p">(</span><span class="n">grade</span><span class="p">,</span> <span class="n">result_data</span><span class="o">=</span><span class="n">opts</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="CanvasLTI"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.CanvasLTI">[docs]</a><span class="k">class</span> <span class="nc">CanvasLTI</span><span class="p">(</span><span class="n">LTI</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The LTI class used for the Canvas LMS.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">username</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;custom_canvas_user_login_id&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">course_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;custom_canvas_course_name&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">course_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;custom_canvas_course_id&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">assignment_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;custom_canvas_assignment_id&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">assignment_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;custom_canvas_assignment_title&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">outcome_service_url</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;lis_outcome_service_url&#39;</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">result_sourcedid</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;lis_result_sourcedid&#39;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="CanvasLTI.has_result_sourcedid"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.CanvasLTI.has_result_sourcedid">[docs]</a>    <span class="k">def</span> <span class="nf">has_result_sourcedid</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;lis_result_sourcedid&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span></div>
+
+<div class="viewcode-block" id="CanvasLTI.generate_xml"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.CanvasLTI.generate_xml">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">generate_xml</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="sd">&quot;&quot;&quot;Generate a config XML for this LTI consumer.</span>
+
+<span class="sd">        .. todo:: Implement this function</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">assignment_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">models</span><span class="o">.</span><span class="n">_AssignmentStateEnum</span><span class="p">:</span>
+        <span class="c1"># pylint: disable=protected-access</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;custom_canvas_assignment_published&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;true&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">models</span><span class="o">.</span><span class="n">_AssignmentStateEnum</span><span class="o">.</span><span class="n">open</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">models</span><span class="o">.</span><span class="n">_AssignmentStateEnum</span><span class="o">.</span><span class="n">hidden</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">roles</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">role</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;roles&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">role</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+<div class="viewcode-block" id="CanvasLTI.get_assignment_deadline"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.CanvasLTI.get_assignment_deadline">[docs]</a>    <span class="k">def</span> <span class="nf">get_assignment_deadline</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">deadline</span> <span class="o">=</span> <span class="n">dateutil</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">launch_params</span><span class="p">[</span><span class="s1">&#39;custom_canvas_assignment_due_at&#39;</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">deadline</span> <span class="o">=</span> <span class="n">deadline</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">deadline</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">OverflowError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span> <span class="o">+</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">365</span><span class="p">)</span>
+                    <span class="p">)</span> <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">default</span></div></div>
+
+
+<span class="c1"># This part is largely copied from https://github.com/tophatmonocle/ims_lti_py</span>
+
+<span class="n">REPLACE_REQUEST</span> <span class="o">=</span> <span class="s1">&#39;replaceResult&#39;</span>
+<span class="n">DELETE_REQUEST</span> <span class="o">=</span> <span class="s1">&#39;deleteResult&#39;</span>
+<span class="n">READ_REQUEST</span> <span class="o">=</span> <span class="s1">&#39;readResult&#39;</span>
+
+
+<span class="c1"># TODO: Actually cover this in some way using unit tests</span>
+<div class="viewcode-block" id="OutcomeRequest"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeRequest">[docs]</a><span class="k">class</span> <span class="nc">OutcomeRequest</span><span class="p">:</span>  <span class="c1"># pragma: no cover, pylint: disable=protected-access,invalid-name,too-many-arguments,missing-docstring</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Class for consuming &amp; generating LTI Outcome Requests.</span>
+
+<span class="sd">    Outcome Request documentation:</span>
+<span class="sd">        http://www.imsglobal.org/LTI/v1p1/ltiIMGv1p1.html#_Toc319560472</span>
+
+<span class="sd">    This class can be used both by Tool Providers and Tool Consumers, though</span>
+<span class="sd">    they each use it differently. The TP will use it to POST an OAuth-signed</span>
+<span class="sd">    request to the TC. A TC will use it to parse such a request from a TP.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">operation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">score</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">result_data</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">message_identifier</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lis_outcome_service_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lis_result_sourcedid</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">consumer_key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">consumer_secret</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">post_request</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operation</span> <span class="o">=</span> <span class="n">operation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">=</span> <span class="n">score</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">result_data</span> <span class="o">=</span> <span class="n">result_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outcome_response</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># type: t.Optional[&#39;OutcomeResponse&#39;]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message_identifier</span> <span class="o">=</span> <span class="n">message_identifier</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lis_outcome_service_url</span> <span class="o">=</span> <span class="n">lis_outcome_service_url</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lis_result_sourcedid</span> <span class="o">=</span> <span class="n">lis_result_sourcedid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">consumer_key</span> <span class="o">=</span> <span class="n">consumer_key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">consumer_secret</span> <span class="o">=</span> <span class="n">consumer_secret</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">post_request</span> <span class="o">=</span> <span class="n">post_request</span>
+
+<div class="viewcode-block" id="OutcomeRequest.from_post_request"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeRequest.from_post_request">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">from_post_request</span><span class="p">(</span><span class="n">post_request</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;OutcomeRequest&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Convenience method for creating a new OutcomeRequest from a request</span>
+<span class="sd">        object.</span>
+
+<span class="sd">        post_request is assumed to be a Django HttpRequest object</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">OutcomeRequest</span><span class="p">()</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">post_request</span> <span class="o">=</span> <span class="n">post_request</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">process_xml</span><span class="p">(</span><span class="n">post_request</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">request</span></div>
+
+<div class="viewcode-block" id="OutcomeRequest.post_replace_result"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeRequest.post_replace_result">[docs]</a>    <span class="k">def</span> <span class="nf">post_replace_result</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">score</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">result_data</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;OutcomeResponse&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        POSTs the given score to the Tool Consumer with a replaceResult.</span>
+
+<span class="sd">        OPTIONAL:</span>
+<span class="sd">            result_data must be a dictionary</span>
+<span class="sd">            Note: ONLY ONE of these values can be in the dict at a time,</span>
+<span class="sd">            due to the Canvas specification.</span>
+
+<span class="sd">        :param str text: text</span>
+<span class="sd">        :param str url: url</span>
+<span class="sd">        :param str launchUrl: The lti launch url</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operation</span> <span class="o">=</span> <span class="n">REPLACE_REQUEST</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">=</span> <span class="n">score</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">result_data</span> <span class="o">=</span> <span class="n">result_data</span>
+        <span class="k">if</span> <span class="n">result_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">result_data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">error_msg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s1">&#39;Dictionary result_data can only have one entry. &#39;</span>
+                    <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1"> entries were found.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">result_data</span><span class="p">))</span>
+                <span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">a</span> <span class="ow">in</span> <span class="n">result_data</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;url&#39;</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">,</span> <span class="s1">&#39;launchUrl&#39;</span><span class="p">]):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_outcome_request</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">error_msg</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="s1">&#39;Dictionary result_data can only have the key &#39;</span>
+                    <span class="s1">&#39;&quot;text&quot; or the key &quot;url&quot;.&#39;</span>
+                <span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_outcome_request</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="OutcomeRequest.post_delete_result"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeRequest.post_delete_result">[docs]</a>    <span class="k">def</span> <span class="nf">post_delete_result</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;OutcomeResponse&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        POSTs a deleteRequest to the Tool Consumer.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operation</span> <span class="o">=</span> <span class="n">DELETE_REQUEST</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_outcome_request</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="OutcomeRequest.post_read_result"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeRequest.post_read_result">[docs]</a>    <span class="k">def</span> <span class="nf">post_read_result</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;OutcomeResponse&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        POSTS a readResult to the Tool Consumer.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operation</span> <span class="o">=</span> <span class="n">READ_REQUEST</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_outcome_request</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="OutcomeRequest.is_replace_request"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeRequest.is_replace_request">[docs]</a>    <span class="k">def</span> <span class="nf">is_replace_request</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Check whether this request is a replaceResult request.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">operation</span> <span class="o">==</span> <span class="n">REPLACE_REQUEST</span></div>
+
+<div class="viewcode-block" id="OutcomeRequest.is_delete_request"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeRequest.is_delete_request">[docs]</a>    <span class="k">def</span> <span class="nf">is_delete_request</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Check whether this request is a deleteResult request.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">operation</span> <span class="o">==</span> <span class="n">DELETE_REQUEST</span></div>
+
+<div class="viewcode-block" id="OutcomeRequest.is_read_request"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeRequest.is_read_request">[docs]</a>    <span class="k">def</span> <span class="nf">is_read_request</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Check whether this request is a readResult request.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">operation</span> <span class="o">==</span> <span class="n">READ_REQUEST</span></div>
+
+<div class="viewcode-block" id="OutcomeRequest.was_outcome_post_successful"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeRequest.was_outcome_post_successful">[docs]</a>    <span class="k">def</span> <span class="nf">was_outcome_post_successful</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">outcome_response</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">outcome_response</span><span class="o">.</span><span class="n">is_success</span><span class="p">()</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="OutcomeRequest.post_outcome_request"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeRequest.post_outcome_request">[docs]</a>    <span class="k">def</span> <span class="nf">post_outcome_request</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;OutcomeResponse&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        POST an OAuth signed request to the Tool Consumer.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_required_attributes</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;OutcomeRequest does not have all required attributes&#39;</span>
+            <span class="p">)</span>
+
+        <span class="n">consumer</span> <span class="o">=</span> <span class="n">oauth2</span><span class="o">.</span><span class="n">Consumer</span><span class="p">(</span>
+            <span class="n">key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">consumer_key</span><span class="p">,</span> <span class="n">secret</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">consumer_secret</span>
+        <span class="p">)</span>
+
+        <span class="n">client</span> <span class="o">=</span> <span class="n">oauth2</span><span class="o">.</span><span class="n">Client</span><span class="p">(</span><span class="n">consumer</span><span class="p">)</span>
+        <span class="c1"># monkey_patch_headers ensures that Authorization</span>
+        <span class="c1"># header is NOT lower cased</span>
+        <span class="n">monkey_patch_headers</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">monkey_patch_function</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">monkey_patch_headers</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">httplib2</span>
+            <span class="n">http</span> <span class="o">=</span> <span class="n">httplib2</span><span class="o">.</span><span class="n">Http</span>
+
+            <span class="n">normalize</span> <span class="o">=</span> <span class="n">http</span><span class="o">.</span><span class="n">_normalize_headers</span>
+
+            <span class="k">def</span> <span class="nf">__my_normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="n">headers</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">:</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s1">&#39;authorization&#39;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
+                    <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;Authorization&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;authorization&#39;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">ret</span>
+
+            <span class="n">http</span><span class="o">.</span><span class="n">_normalize_headers</span> <span class="o">=</span> <span class="n">__my_normalize</span>
+            <span class="n">monkey_patch_function</span> <span class="o">=</span> <span class="n">normalize</span>
+
+        <span class="n">response</span><span class="p">,</span> <span class="n">content</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lis_outcome_service_url</span><span class="p">,</span>
+            <span class="s1">&#39;POST&#39;</span><span class="p">,</span>
+            <span class="n">body</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">generate_request_xml</span><span class="p">(),</span>
+            <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/xml&#39;</span><span class="p">}</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">monkey_patch_headers</span> <span class="ow">and</span> <span class="n">monkey_patch_function</span><span class="p">:</span>
+            <span class="n">http</span> <span class="o">=</span> <span class="n">httplib2</span><span class="o">.</span><span class="n">Http</span>
+            <span class="n">http</span><span class="o">.</span><span class="n">_normalize_headers</span> <span class="o">=</span> <span class="n">monkey_patch_function</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">outcome_response</span> <span class="o">=</span> <span class="n">OutcomeResponse</span><span class="o">.</span><span class="n">from_post_response</span><span class="p">(</span>
+            <span class="n">response</span><span class="p">,</span> <span class="n">content</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">outcome_response</span></div>
+
+<div class="viewcode-block" id="OutcomeRequest.process_xml"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeRequest.process_xml">[docs]</a>    <span class="k">def</span> <span class="nf">process_xml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xml</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Parse Outcome Request data from XML.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">,</span> <span class="n">objectify</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">xml</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message_identifier</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span>
+            <span class="n">root</span><span class="p">[</span><span class="s1">&#39;imsx_POXHeader&#39;</span><span class="p">][</span><span class="s1">&#39;imsx_POXRequestHeaderInfo&#39;</span><span class="p">]</span>
+            <span class="p">[</span><span class="s1">&#39;imsx_messageIdentifier&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">root</span><span class="p">[</span><span class="s1">&#39;imsx_POXBody&#39;</span><span class="p">][</span><span class="s1">&#39;replaceResultRequest&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">operation</span> <span class="o">=</span> <span class="n">REPLACE_REQUEST</span>
+
+            <span class="c1"># Get result sourced id from resultRecord</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">resultRecord</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lis_result_sourcedid</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">sourcedGUID</span><span class="o">.</span><span class="n">sourcedId</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">resultRecord</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">resultScore</span><span class="o">.</span><span class="n">textString</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">):</span>
+            <span class="k">pass</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">root</span><span class="p">[</span><span class="s1">&#39;imsx_POXBody&#39;</span><span class="p">][</span><span class="s1">&#39;deleteResultRequest&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">operation</span> <span class="o">=</span> <span class="n">DELETE_REQUEST</span>
+            <span class="c1"># Get result sourced id from resultRecord</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lis_result_sourcedid</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;resultRecord&#39;</span><span class="p">][</span><span class="s1">&#39;sourcedGUID&#39;</span>
+                                                               <span class="p">][</span><span class="s1">&#39;sourcedId&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+            <span class="k">pass</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">root</span><span class="p">[</span><span class="s1">&#39;imsx_POXBody&#39;</span><span class="p">][</span><span class="s1">&#39;readResultRequest&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">operation</span> <span class="o">=</span> <span class="n">READ_REQUEST</span>
+            <span class="c1"># Get result sourced id from resultRecord</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lis_result_sourcedid</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;resultRecord&#39;</span><span class="p">][</span><span class="s1">&#39;sourcedGUID&#39;</span>
+                                                               <span class="p">][</span><span class="s1">&#39;sourcedId&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+            <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="OutcomeRequest.has_required_attributes"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeRequest.has_required_attributes">[docs]</a>    <span class="k">def</span> <span class="nf">has_required_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">consumer_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">consumer_secret</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lis_outcome_service_url</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lis_result_sourcedid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">operation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="OutcomeRequest.generate_request_xml"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeRequest.generate_request_xml">[docs]</a>    <span class="k">def</span> <span class="nf">generate_request_xml</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">bytes</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">Element</span><span class="p">(</span>
+            <span class="s1">&#39;imsx_POXEnvelopeRequest&#39;</span><span class="p">,</span>
+            <span class="n">xmlns</span><span class="o">=</span><span class="s1">&#39;http://www.imsglobal.org/services/ltiv1p1/xsd/imsoms_v1p0&#39;</span>
+        <span class="p">)</span>
+
+        <span class="n">header</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s1">&#39;imsx_POXHeader&#39;</span><span class="p">)</span>
+        <span class="n">header_info</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">header</span><span class="p">,</span> <span class="s1">&#39;imsx_POXRequestHeaderInfo&#39;</span><span class="p">)</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">header_info</span><span class="p">,</span> <span class="s1">&#39;imsx_version&#39;</span><span class="p">)</span>
+        <span class="n">version</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;V1.0&#39;</span>
+        <span class="n">message_identifier</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span>
+            <span class="n">header_info</span><span class="p">,</span> <span class="s1">&#39;imsx_messageIdentifier&#39;</span>
+        <span class="p">)</span>
+        <span class="n">message_identifier</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">message_identifier</span>
+        <span class="n">body</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s1">&#39;imsx_POXBody&#39;</span><span class="p">)</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{self.operation}</span><span class="s1">Request&#39;</span><span class="p">)</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="s1">&#39;resultRecord&#39;</span><span class="p">)</span>
+
+        <span class="n">guid</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="s1">&#39;sourcedGUID&#39;</span><span class="p">)</span>
+
+        <span class="n">sourcedid</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">guid</span><span class="p">,</span> <span class="s1">&#39;sourcedId&#39;</span><span class="p">)</span>
+        <span class="n">sourcedid</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lis_result_sourcedid</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">result_data</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">result_score</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="s1">&#39;resultScore&#39;</span><span class="p">)</span>
+            <span class="n">language</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">result_score</span><span class="p">,</span> <span class="s1">&#39;language&#39;</span><span class="p">)</span>
+            <span class="n">language</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;en&#39;</span>
+            <span class="n">text_string</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">result_score</span><span class="p">,</span> <span class="s1">&#39;textString&#39;</span><span class="p">)</span>
+            <span class="n">text_string</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="o">.</span><span class="fm">__str__</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">result_data</span><span class="p">:</span>
+            <span class="n">resultData</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="s1">&#39;resultData&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39;text&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">result_data</span><span class="p">:</span>
+                <span class="n">resultDataText</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">resultData</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">)</span>
+                <span class="n">resultDataText</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">result_data</span><span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="s1">&#39;url&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">result_data</span><span class="p">:</span>
+                <span class="n">resultDataURL</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">resultData</span><span class="p">,</span> <span class="s1">&#39;url&#39;</span><span class="p">)</span>
+                <span class="n">resultDataURL</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">result_data</span><span class="p">[</span><span class="s1">&#39;url&#39;</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="s1">&#39;launchUrl&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">result_data</span><span class="p">:</span>
+                <span class="n">resultDataLaunchURL</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span>
+                    <span class="n">resultData</span><span class="p">,</span> <span class="s1">&#39;ltiLaunchUrl&#39;</span>
+                <span class="p">)</span>
+                <span class="n">resultDataLaunchURL</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">result_data</span><span class="p">[</span><span class="s1">&#39;launchUrl&#39;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">etree</span><span class="o">.</span><span class="n">tostring</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">xml_declaration</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span></div></div>
+
+
+<span class="n">CODE_MAJOR_CODES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;success&#39;</span><span class="p">,</span> <span class="s1">&#39;processing&#39;</span><span class="p">,</span> <span class="s1">&#39;failure&#39;</span><span class="p">,</span> <span class="s1">&#39;unsupported&#39;</span><span class="p">]</span>
+
+<span class="n">SEVERITY_CODES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;warning&#39;</span><span class="p">,</span> <span class="s1">&#39;error&#39;</span><span class="p">]</span>
+
+
+<span class="c1"># TODO: Actually cover this in some way using unit tests</span>
+<div class="viewcode-block" id="OutcomeResponse"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeResponse">[docs]</a><span class="k">class</span> <span class="nc">OutcomeResponse</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    This class consumes &amp; generates LTI Outcome Responses.</span>
+
+<span class="sd">    Response documentation:</span>
+<span class="sd">        http://www.imsglobal.org/LTI/v1p1/ltiIMGv1p1.html#_Toc319560472</span>
+
+<span class="sd">    Error code documentation:</span>
+<span class="sd">        http://www.imsglobal.org/gws/gwsv1p0/imsgws_baseProfv1p0.html#1639667</span>
+
+<span class="sd">    This class can be used by both Tool Providers and Tool Consumers, though</span>
+<span class="sd">    each will use it differently. TPs will use it to partse the result of an</span>
+<span class="sd">    OutcomeRequest to the TC. A TC will use it to generate proper response XML</span>
+<span class="sd">    to send back to a TP.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-arguments</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">request_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">score</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">message_identifier</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">response_code</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">post_response</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">code_major</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">severity</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">operation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">message_ref_identifier</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">request_type</span> <span class="o">=</span> <span class="n">request_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">=</span> <span class="n">score</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message_identifier</span> <span class="o">=</span> <span class="n">message_identifier</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">response_code</span> <span class="o">=</span> <span class="n">response_code</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">post_response</span> <span class="o">=</span> <span class="n">post_response</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">code_major</span> <span class="o">=</span> <span class="n">code_major</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">severity</span> <span class="o">=</span> <span class="n">severity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">description</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operation</span> <span class="o">=</span> <span class="n">operation</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">message_ref_identifier</span> <span class="o">=</span> <span class="n">message_ref_identifier</span>
+
+<div class="viewcode-block" id="OutcomeResponse.from_post_response"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeResponse.from_post_response">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">from_post_response</span><span class="p">(</span>
+        <span class="n">post_response</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;OutcomeResponse&#39;</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Convenience method for creating a new OutcomeResponse from a response</span>
+<span class="sd">        object.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">OutcomeResponse</span><span class="p">()</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">post_response</span> <span class="o">=</span> <span class="n">post_response</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">response_code</span> <span class="o">=</span> <span class="n">post_response</span><span class="o">.</span><span class="n">status</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">process_xml</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">response</span></div>
+
+<div class="viewcode-block" id="OutcomeResponse.is_success"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeResponse.is_success">[docs]</a>    <span class="k">def</span> <span class="nf">is_success</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">code_major</span> <span class="o">==</span> <span class="s1">&#39;success&#39;</span></div>
+
+<div class="viewcode-block" id="OutcomeResponse.is_processing"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeResponse.is_processing">[docs]</a>    <span class="k">def</span> <span class="nf">is_processing</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">code_major</span> <span class="o">==</span> <span class="s1">&#39;processing&#39;</span></div>
+
+<div class="viewcode-block" id="OutcomeResponse.is_failure"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeResponse.is_failure">[docs]</a>    <span class="k">def</span> <span class="nf">is_failure</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">code_major</span> <span class="o">==</span> <span class="s1">&#39;failure&#39;</span></div>
+
+<div class="viewcode-block" id="OutcomeResponse.is_unsupported"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeResponse.is_unsupported">[docs]</a>    <span class="k">def</span> <span class="nf">is_unsupported</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">code_major</span> <span class="o">==</span> <span class="s1">&#39;unsupported&#39;</span></div>
+
+<div class="viewcode-block" id="OutcomeResponse.has_warning"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeResponse.has_warning">[docs]</a>    <span class="k">def</span> <span class="nf">has_warning</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">severity</span> <span class="o">==</span> <span class="s1">&#39;warning&#39;</span></div>
+
+<div class="viewcode-block" id="OutcomeResponse.has_error"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeResponse.has_error">[docs]</a>    <span class="k">def</span> <span class="nf">has_error</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">severity</span> <span class="o">==</span> <span class="s1">&#39;error&#39;</span></div>
+
+<div class="viewcode-block" id="OutcomeResponse.process_xml"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeResponse.process_xml">[docs]</a>    <span class="k">def</span> <span class="nf">process_xml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xml</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Parse OutcomeResponse data form XML.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">root</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">,</span> <span class="n">objectify</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">xml</span><span class="p">))</span>
+            <span class="c1"># Get message idenifier from header info</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">message_identifier</span> <span class="o">=</span> <span class="n">root</span><span class="p">[</span><span class="s1">&#39;imsx_POXHeader&#39;</span><span class="p">][</span>
+                <span class="s1">&#39;imsx_POXResponseHeaderInfo&#39;</span>
+            <span class="p">][</span><span class="s1">&#39;imsx_messageIdentifier&#39;</span><span class="p">]</span>
+
+            <span class="n">status_node</span> <span class="o">=</span> <span class="n">root</span><span class="p">[</span><span class="s1">&#39;imsx_POXHeader&#39;</span><span class="p">][</span><span class="s1">&#39;imsx_POXResponseHeaderInfo&#39;</span>
+                                                 <span class="p">][</span><span class="s1">&#39;imsx_statusInfo&#39;</span><span class="p">]</span>
+
+            <span class="c1"># Get status parameters from header info status</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">code_major</span> <span class="o">=</span> <span class="n">status_node</span><span class="o">.</span><span class="n">imsx_codeMajor</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">severity</span> <span class="o">=</span> <span class="n">status_node</span><span class="o">.</span><span class="n">imsx_severity</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">status_node</span><span class="o">.</span><span class="n">imsx_description</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">message_ref_identifier</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span>
+                <span class="n">status_node</span><span class="o">.</span><span class="n">imsx_messageRefIdentifier</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">operation</span> <span class="o">=</span> <span class="n">status_node</span><span class="o">.</span><span class="n">imsx_operationRefIdentifier</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Try to get the score</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">score</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span>
+                    <span class="n">root</span><span class="p">[</span><span class="s1">&#39;imsx_POXBody&#39;</span><span class="p">][</span><span class="s1">&#39;readResultResponse&#39;</span><span class="p">][</span><span class="s1">&#39;result&#39;</span><span class="p">]</span>
+                    <span class="p">[</span><span class="s1">&#39;resultScore.textString&#39;</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="c1"># Not a readResult, just ignore!</span>
+                <span class="k">pass</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># pylint: disable=broad-except</span>
+            <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="OutcomeResponse.generate_response_xml"><a class="viewcode-back" href="../../psef_api/psef.html#psef.lti.OutcomeResponse.generate_response_xml">[docs]</a>    <span class="k">def</span> <span class="nf">generate_response_xml</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Generate XML based on the current configuration.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">Element</span><span class="p">(</span>
+            <span class="s1">&#39;imsx_POXEnvelopeResponse&#39;</span><span class="p">,</span>
+            <span class="n">xmlns</span><span class="o">=</span><span class="s1">&#39;http://www.imsglobal.org/services/ltiv1p1/xsd/imsoms_v1p0&#39;</span>
+        <span class="p">)</span>
+
+        <span class="n">header</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s1">&#39;imsx_POXHeader&#39;</span><span class="p">)</span>
+        <span class="n">header_info</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">header</span><span class="p">,</span> <span class="s1">&#39;imsx_POXResponseHeaderInfo&#39;</span><span class="p">)</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">header_info</span><span class="p">,</span> <span class="s1">&#39;imsx_version&#39;</span><span class="p">)</span>
+        <span class="n">version</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;V1.0&#39;</span>
+        <span class="n">message_identifier</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span>
+            <span class="n">header_info</span><span class="p">,</span> <span class="s1">&#39;imsx_messageIdentifier&#39;</span>
+        <span class="p">)</span>
+        <span class="n">message_identifier</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">message_identifier</span><span class="p">)</span>
+        <span class="n">status_info</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">header_info</span><span class="p">,</span> <span class="s1">&#39;imsx_statusInfo&#39;</span><span class="p">)</span>
+        <span class="n">code_major</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">status_info</span><span class="p">,</span> <span class="s1">&#39;imsx_codeMajor&#39;</span><span class="p">)</span>
+        <span class="n">code_major</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">code_major</span><span class="p">)</span>
+        <span class="n">severity</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">status_info</span><span class="p">,</span> <span class="s1">&#39;imsx_severity&#39;</span><span class="p">)</span>
+        <span class="n">severity</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">severity</span><span class="p">)</span>
+        <span class="n">description</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">status_info</span><span class="p">,</span> <span class="s1">&#39;imsx_description&#39;</span><span class="p">)</span>
+        <span class="n">description</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">)</span>
+        <span class="n">message_ref_identifier</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span>
+            <span class="n">status_info</span><span class="p">,</span> <span class="s1">&#39;imsx_messageRefIdentifier&#39;</span>
+        <span class="p">)</span>
+        <span class="n">message_ref_identifier</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">message_ref_identifier</span><span class="p">)</span>
+        <span class="n">operation_ref_identifier</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span>
+            <span class="n">status_info</span><span class="p">,</span> <span class="s1">&#39;imsx_operationRefIdentifier&#39;</span>
+        <span class="p">)</span>
+        <span class="n">operation_ref_identifier</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">operation</span><span class="p">)</span>
+
+        <span class="n">body</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s1">&#39;imsx_POXBody&#39;</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span>
+            <span class="n">body</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">operation</span><span class="p">,</span> <span class="s1">&#39;Response&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="s1">&#39;result&#39;</span><span class="p">)</span>
+            <span class="n">result_score</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="s1">&#39;resultScore&#39;</span><span class="p">)</span>
+            <span class="n">language</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">result_score</span><span class="p">,</span> <span class="s1">&#39;language&#39;</span><span class="p">)</span>
+            <span class="n">language</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="s1">&#39;en&#39;</span>
+            <span class="n">text_string</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">SubElement</span><span class="p">(</span><span class="n">result_score</span><span class="p">,</span> <span class="s1">&#39;textString&#39;</span><span class="p">)</span>
+            <span class="n">text_string</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="s1">&#39;&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">etree</span><span class="o">.</span><span class="n">tostring</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Schaper.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'1.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

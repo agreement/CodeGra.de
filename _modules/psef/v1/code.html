@@ -1,0 +1,695 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>psef.v1.code &mdash; CodeGra.de 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link href="../../../_static/style.css" rel="stylesheet" type="text/css">
+
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> CodeGra.de
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">User Manual CodeGra.de</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Code documentation of psef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../running.html">How to run CodeGra.de</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CodeGra.de</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../psef.html">psef</a> &raquo;</li>
+        
+          <li><a href="../v1.html">psef.v1</a> &raquo;</li>
+        
+      <li>psef.v1.code</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for psef.v1.code</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module defines all API routes with the main directory &quot;code&quot;. Thus the</span>
+<span class="sd">APIs are used to manipulate student submitted code and the related feedback.</span>
+
+<span class="sd">:license: AGPLv3, see LICENSE for details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
+
+<span class="kn">import</span> <span class="nn">werkzeug</span>
+<span class="kn">import</span> <span class="nn">sqlalchemy.sql</span> <span class="k">as</span> <span class="nn">sql</span>
+<span class="kn">from</span> <span class="nn">flask</span> <span class="k">import</span> <span class="n">request</span><span class="p">,</span> <span class="n">make_response</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">make_transient</span>
+
+<span class="kn">import</span> <span class="nn">psef.auth</span> <span class="k">as</span> <span class="nn">auth</span>
+<span class="kn">import</span> <span class="nn">psef.files</span>
+<span class="kn">import</span> <span class="nn">psef.models</span> <span class="k">as</span> <span class="nn">models</span>
+<span class="kn">import</span> <span class="nn">psef.helpers</span> <span class="k">as</span> <span class="nn">helpers</span>
+<span class="kn">from</span> <span class="nn">psef</span> <span class="k">import</span> <span class="n">app</span><span class="p">,</span> <span class="n">current_user</span>
+<span class="kn">from</span> <span class="nn">psef.errors</span> <span class="k">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span>
+<span class="kn">from</span> <span class="nn">psef.models</span> <span class="k">import</span> <span class="n">FileOwner</span><span class="p">,</span> <span class="n">db</span>
+<span class="kn">from</span> <span class="nn">psef.helpers</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">JSONResponse</span><span class="p">,</span> <span class="n">EmptyResponse</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">ensure_json_dict</span><span class="p">,</span>
+    <span class="n">ensure_keys_in_dict</span><span class="p">,</span> <span class="n">make_empty_response</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">api</span>
+
+<span class="n">_HumanFeedback</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Comment</span>
+<span class="n">_LinterFeedback</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">MutableSequence</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">LinterComment</span><span class="p">]]</span>  <span class="c1"># pylint: disable=invalid-name</span>
+<span class="n">_FeedbackMapping</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">_HumanFeedback</span><span class="p">,</span> <span class="n">_LinterFeedback</span><span class="p">]]</span>  <span class="c1"># pylint: disable=invalid-name</span>
+
+
+<div class="viewcode-block" id="put_comment"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.code.put_comment">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/code/&lt;int:code_id&gt;/comments/&lt;int:line&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PUT&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">put_comment</span><span class="p">(</span><span class="n">code_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Create or change a single :class:`.models.Comment` of a code</span>
+<span class="sd">    :class:`.models.File`.</span>
+
+<span class="sd">    .. :quickref: Code; Add or change a comment.</span>
+
+<span class="sd">    :param int code_id: The id of the code file</span>
+<span class="sd">    :param int line: The line number of the comment</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+
+<span class="sd">    :&lt;json str comment: The comment to add to the given file on the given line.</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not can grade work in the</span>
+<span class="sd">                                 attached course. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">comment</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="o">.</span><span class="n">file_id</span> <span class="o">==</span> <span class="n">code_id</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="o">.</span><span class="n">line</span> <span class="o">==</span> <span class="n">line</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">one_or_none</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__get_comment</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+        <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;comment&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+        <span class="k">return</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;comment&#39;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">comment</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span>
+            <span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span> <span class="n">comment</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span>
+        <span class="p">)</span>
+
+        <span class="n">comment</span><span class="o">.</span><span class="n">comment</span> <span class="o">=</span> <span class="n">__get_comment</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">file</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> <span class="n">code_id</span><span class="p">)</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span>
+            <span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="p">(</span>
+                <span class="n">file_id</span><span class="o">=</span><span class="n">code_id</span><span class="p">,</span>
+                <span class="n">user_id</span><span class="o">=</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                <span class="n">line</span><span class="o">=</span><span class="n">line</span><span class="p">,</span>
+                <span class="n">comment</span><span class="o">=</span><span class="n">__get_comment</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="remove_comment"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.code.remove_comment">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/code/&lt;int:code_id&gt;/comments/&lt;int:line&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;DELETE&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">remove_comment</span><span class="p">(</span><span class="n">code_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Removes the given :class:`.models.Comment` in the given</span>
+<span class="sd">    :class:`.models.File`</span>
+
+<span class="sd">    .. :quickref: Code; Remove a comment.</span>
+
+<span class="sd">    :param int code_id: The id of the code file</span>
+<span class="sd">    :param int line: The line number of the comment</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+
+<span class="sd">    :raises APIException: If there is no comment at the given line number.</span>
+<span class="sd">                          (OBJECT_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not can grade work in the</span>
+<span class="sd">                                 attached course. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">comment</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="o">.</span><span class="n">file_id</span> <span class="o">==</span> <span class="n">code_id</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="o">.</span><span class="n">line</span> <span class="o">==</span> <span class="n">line</span>
+    <span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span>
+        <span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span> <span class="n">comment</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span>
+    <span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">comment</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="get_code"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.code.get_code">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/code/&lt;int:file_id&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">login_required</span>
+<span class="k">def</span> <span class="nf">get_code</span><span class="p">(</span><span class="n">file_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">werkzeug</span><span class="o">.</span><span class="n">wrappers</span><span class="o">.</span><span class="n">Response</span><span class="p">,</span> <span class="n">JSONResponse</span><span class="p">[</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> <span class="n">_FeedbackMapping</span><span class="p">]</span>
+<span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Get data from the :class:`.models.File` with the given id.</span>
+
+<span class="sd">    .. :quickref: Code; Get code or its metadata.</span>
+
+<span class="sd">    The are several options to change the data that is returned. Based on the</span>
+<span class="sd">    argument type in the request different functions are called.</span>
+
+<span class="sd">    - If ``type == &#39;metadata&#39;`` the JSON serialized :class:`.models.File` is</span>
+<span class="sd">      returned.</span>
+<span class="sd">    - If ``type == &#39;file-url&#39;`` or ``type == &#39;pdf&#39;`` (deprecated) an object</span>
+<span class="sd">      with a single key, `name`, with as value the return values of</span>
+<span class="sd">      :py:func:`.get_file_url`.</span>
+<span class="sd">    - If ``type == &#39;feedback&#39;`` or ``type == &#39;linter-feedback&#39;`` see</span>
+<span class="sd">      :py:func:`.code.get_feedback`</span>
+<span class="sd">    - Otherwise the content of the file is returned as plain text.</span>
+
+<span class="sd">    :param int file_id: The id of the file</span>
+<span class="sd">    :returns: A response containing a plain text file unless specified</span>
+<span class="sd">        otherwise.</span>
+
+<span class="sd">    :raises APIException: If there is not file with the given id.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the file does not belong to user and the</span>
+<span class="sd">                                 user can not view files in the attached</span>
+<span class="sd">                                 course. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">file</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">file_id</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_view_files</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="p">,</span> <span class="n">file</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">==</span> <span class="n">FileOwner</span><span class="o">.</span><span class="n">teacher</span><span class="p">)</span>
+    <span class="n">get_type</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">get_type</span> <span class="o">==</span> <span class="s1">&#39;metadata&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">get_type</span> <span class="o">==</span> <span class="s1">&#39;feedback&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">get_feedback</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">linter</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">get_type</span> <span class="o">==</span> <span class="s1">&#39;pdf&#39;</span> <span class="ow">or</span> <span class="n">get_type</span> <span class="o">==</span> <span class="s1">&#39;file-url&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">get_file_url</span><span class="p">(</span><span class="n">file</span><span class="p">)})</span>
+    <span class="k">elif</span> <span class="n">get_type</span> <span class="o">==</span> <span class="s1">&#39;linter-feedback&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">get_feedback</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">linter</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">contents</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">get_file_contents</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="n">res</span><span class="p">:</span> <span class="s1">&#39;werkzeug.wrappers.Response&#39;</span> <span class="o">=</span> <span class="n">make_response</span><span class="p">(</span><span class="n">contents</span><span class="p">)</span>
+        <span class="n">res</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;application/octet-stream&#39;</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="get_file_url"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.code.get_file_url">[docs]</a><span class="k">def</span> <span class="nf">get_file_url</span><span class="p">(</span><span class="n">file</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Copies the given file to the mirror uploads folder and returns its name.</span>
+
+<span class="sd">    To get this file, see the :func:`psef.v1.files.get_file` function.</span>
+
+<span class="sd">    :param file: The file object</span>
+<span class="sd">    :returns: The name of the newly created file (the copy).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">path</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">random_file_path</span><span class="p">(</span><span class="s1">&#39;MIRROR_UPLOAD_DIR&#39;</span><span class="p">)</span>
+    <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">get_diskname</span><span class="p">(),</span> <span class="n">path</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">name</span></div>
+
+
+<div class="viewcode-block" id="get_feedback"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.code.get_feedback">[docs]</a><span class="k">def</span> <span class="nf">get_feedback</span><span class="p">(</span><span class="n">file</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> <span class="n">linter</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_FeedbackMapping</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Returns the :class:`.models.Comment` objects attached to the given</span>
+<span class="sd">    :class:`.models.File` if the user can see them, else returns an empty dict.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        This function will check if the current user has permission to see</span>
+<span class="sd">        comments for this file.</span>
+
+<span class="sd">    :param models.File file: The file object</span>
+<span class="sd">    :param bool linter: If true returns linter comments instead</span>
+<span class="sd">    :returns: Feedback for the given file. If ``linter`` is true it will be</span>
+<span class="sd">        given in the form ``{line: [(linter_name, comment)]`` otherwise it is</span>
+<span class="sd">        in the form ``{line: comment}``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">res</span><span class="p">:</span> <span class="n">_FeedbackMapping</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">comments</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">LinterComment</span><span class="p">]]</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_see_grade</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">work</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">linter</span><span class="p">:</span>
+            <span class="n">helpers</span><span class="o">.</span><span class="n">ensure_feature</span><span class="p">(</span><span class="s1">&#39;LINTERS&#39;</span><span class="p">)</span>
+            <span class="n">comments</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                <span class="n">models</span><span class="o">.</span><span class="n">LinterComment</span><span class="p">,</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">file_id</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">linter_comment</span> <span class="ow">in</span> <span class="n">comments</span><span class="p">:</span>  <span class="c1"># type: models.LinterComment</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">linter_comment</span><span class="o">.</span><span class="n">line</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">line</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">res</span><span class="p">:</span>
+                    <span class="n">res</span><span class="p">[</span><span class="n">line</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">linter_comment</span><span class="o">.</span><span class="n">linter</span><span class="o">.</span><span class="n">tester</span><span class="o">.</span><span class="n">name</span>
+                <span class="n">res</span><span class="p">[</span><span class="n">line</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">linter_comment</span><span class="p">))</span>  <span class="c1"># type: ignore</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">comments</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="p">,</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">file_id</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">human_comment</span> <span class="ow">in</span> <span class="n">comments</span><span class="p">:</span>  <span class="c1"># type: models.Comment</span>
+                <span class="n">res</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">human_comment</span><span class="o">.</span><span class="n">line</span><span class="p">)]</span> <span class="o">=</span> <span class="n">human_comment</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">except</span> <span class="n">auth</span><span class="o">.</span><span class="n">PermissionException</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="delete_code"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.code.delete_code">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/code/&lt;int:file_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;DELETE&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">delete_code</span><span class="p">(</span><span class="n">file_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Delete the given file.</span>
+
+<span class="sd">    .. :quickref: Code; Delete the given file.</span>
+
+<span class="sd">    If a student does this request before the deadline, the file will be</span>
+<span class="sd">    completely deleted. If the request is done after the deadline the user</span>
+<span class="sd">    doing the delete will be removed from the ownership of the file and if</span>
+<span class="sd">    there are no owners left the file is deleted.</span>
+
+<span class="sd">    If the file owner of the given file is the same as that of the user doing</span>
+<span class="sd">    the request (so the file will be completely deleted) the given file should</span>
+<span class="sd">    not have any comments (Linter or normal) associated with it. If it still</span>
+<span class="sd">    has comments the request will fail with error code 400.</span>
+
+<span class="sd">    :returns: Nothing.</span>
+
+<span class="sd">    :raises APIException: If the request will result in wrong</span>
+<span class="sd">        state. (INVALID_STATE)</span>
+<span class="sd">    :raises APIException: If there is not file with the given id.</span>
+<span class="sd">        (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: If you do not have permission to delete the given</span>
+<span class="sd">        file. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">code</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> <span class="n">file_id</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_edit_work</span><span class="p">(</span><span class="n">code</span><span class="o">.</span><span class="n">work</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_raise_invalid</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;You cannot delete this file as you don</span><span class="se">\&#39;</span><span class="s1">t own it&#39;</span><span class="p">,</span>
+            <span class="n">f</span><span class="s1">&#39;File </span><span class="si">{file_id}</span><span class="s1"> is not owned by </span><span class="si">{current_user.id}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span> <span class="mi">403</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">code</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">user_id</span> <span class="o">==</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+        <span class="n">current</span><span class="p">,</span> <span class="n">other</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FileOwner</span><span class="o">.</span><span class="n">student</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">FileOwner</span><span class="o">.</span><span class="n">teacher</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">current</span><span class="p">,</span> <span class="n">other</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FileOwner</span><span class="o">.</span><span class="n">teacher</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">FileOwner</span><span class="o">.</span><span class="n">student</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">==</span> <span class="n">other</span> <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">code</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">all</span><span class="p">()):</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;You cannot delete this directory as it has children&#39;</span><span class="p">,</span>
+            <span class="n">f</span><span class="s1">&#39;The file &quot;</span><span class="si">{file_id}</span><span class="s1">&quot; has children with fileowner &quot;</span><span class="si">{current}</span><span class="s1">&quot;&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">code</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">==</span> <span class="n">other</span><span class="p">:</span>
+        <span class="n">_raise_invalid</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">code</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">==</span> <span class="n">current</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="n">sql</span><span class="o">.</span><span class="n">or_</span><span class="p">(</span>
+                <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">file_id</span><span class="o">=</span><span class="n">code</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">(),</span>
+                <span class="n">models</span><span class="o">.</span><span class="n">LinterComment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">file_id</span><span class="o">=</span><span class="n">code</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">scalar</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;You cannot delete this file as it has comments&#39;</span><span class="p">,</span>
+                <span class="n">f</span><span class="s1">&#39;The file &quot;</span><span class="si">{file_id}</span><span class="s1">&quot; has comments associated with it.&#39;</span><span class="p">,</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span>
+                <span class="mi">400</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">code</span><span class="o">.</span><span class="n">delete_from_disk</span><span class="p">()</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">code</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">==</span> <span class="n">models</span><span class="o">.</span><span class="n">FileOwner</span><span class="o">.</span><span class="n">both</span><span class="p">:</span>
+        <span class="n">code</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">=</span> <span class="n">other</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="split_code"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.code.split_code">[docs]</a><span class="k">def</span> <span class="nf">split_code</span><span class="p">(</span>
+    <span class="n">code</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">,</span>
+    <span class="n">new_owner</span><span class="p">:</span> <span class="n">FileOwner</span><span class="p">,</span>
+    <span class="n">old_owner</span><span class="p">:</span> <span class="n">FileOwner</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Split the given ``code`` into multiple code objects.</span>
+
+<span class="sd">    The old object in the database will be given a ``fileowner`` of</span>
+<span class="sd">    ``old_owner`` and the newly created object will be given ``new_owner``. If</span>
+<span class="sd">    ``code`` is a directory this directory is splitted (see</span>
+<span class="sd">    :py:func:`redistribute_directory`), if it is a file the original content of</span>
+<span class="sd">    the file is only copied if ``copy`` is ``True``.</span>
+
+<span class="sd">    :param code: The file to split.</span>
+<span class="sd">    :param new_owner: The new ``fileowner`` of the new file.</span>
+<span class="sd">    :param old_owner: The new ``fileowner`` of the old file.</span>
+<span class="sd">    :returns: The newly constructed file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">code</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">=</span> <span class="n">old_owner</span>
+    <span class="n">old_id</span> <span class="o">=</span> <span class="n">code</span><span class="o">.</span><span class="n">id</span>
+    <span class="n">old_diskname</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">code</span><span class="o">.</span><span class="n">is_directory</span> <span class="k">else</span> <span class="n">code</span><span class="o">.</span><span class="n">get_diskname</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">code</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">code</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">expunge</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
+    <span class="n">make_transient</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
+    <span class="n">code</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+    <span class="n">code</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">=</span> <span class="n">new_owner</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">code</span><span class="o">.</span><span class="n">is_directory</span><span class="p">:</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">code</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">random_file_path</span><span class="p">()</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">copyfile</span><span class="p">(</span><span class="n">old_diskname</span><span class="p">,</span> <span class="n">code</span><span class="o">.</span><span class="n">get_diskname</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">redistribute_directory</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">old_id</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">code</span></div>
+
+
+<div class="viewcode-block" id="redistribute_directory"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.code.redistribute_directory">[docs]</a><span class="k">def</span> <span class="nf">redistribute_directory</span><span class="p">(</span>
+    <span class="n">new_directory</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> <span class="n">old_directory</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Redistribute a given old directory between itself and a new directory.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        None of the given directories may be owned by ``both`` and they should</span>
+<span class="sd">        not have the same owner.</span>
+
+<span class="sd">    All files in the given ``old_directory`` are checked, if the file is owned</span>
+<span class="sd">    by ``both`` it is split up (see :py:func:`split_code`), if it is owned by</span>
+<span class="sd">    the owner of the ``new_directory`` its parent is changed and if it is owned</span>
+<span class="sd">    by the owner of ``old_directory`` nothing is changed.</span>
+
+<span class="sd">    :param new_directory: The directory files should be redistributed into.</span>
+<span class="sd">    :param old_directory: The directory files should be redistributed out of.</span>
+<span class="sd">    :returns: Nothing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">old_directory</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">!=</span> <span class="n">FileOwner</span><span class="o">.</span><span class="n">both</span>
+    <span class="k">assert</span> <span class="n">new_directory</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">!=</span> <span class="n">FileOwner</span><span class="o">.</span><span class="n">both</span>
+    <span class="k">assert</span> <span class="n">new_directory</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">!=</span> <span class="n">old_directory</span><span class="o">.</span><span class="n">fileowner</span>
+
+    <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">old_directory</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">child</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">==</span> <span class="n">new_directory</span><span class="o">.</span><span class="n">fileowner</span><span class="p">:</span>
+            <span class="n">child</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">new_directory</span>
+        <span class="k">elif</span> <span class="n">child</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">==</span> <span class="n">old_directory</span><span class="o">.</span><span class="n">fileowner</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">code</span> <span class="o">=</span> <span class="n">split_code</span><span class="p">(</span>
+                <span class="n">child</span><span class="p">,</span>
+                <span class="n">new_directory</span><span class="o">.</span><span class="n">fileowner</span><span class="p">,</span>
+                <span class="n">old_directory</span><span class="o">.</span><span class="n">fileowner</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">code</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">new_directory</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="update_code"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.code.update_code">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/code/&lt;int:file_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PATCH&#39;</span><span class="p">])</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">login_required</span>
+<span class="k">def</span> <span class="nf">update_code</span><span class="p">(</span><span class="n">file_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Update the content or name of the given file.</span>
+
+<span class="sd">    .. :quickref: Code; Update the content or name of the given file.</span>
+
+<span class="sd">    If a</span>
+<span class="sd">    student does this request before the deadline, the owner of the file will</span>
+<span class="sd">    be the student and the teacher (`both`), if the request is done after the</span>
+<span class="sd">    deadline the owner of the new file will be the one doing the request while</span>
+<span class="sd">    the old file will be removed or given to the other owner if the file was</span>
+<span class="sd">    owned by `both`. You can give a request parameter ``operation`` to</span>
+<span class="sd">    determine the operation:</span>
+
+<span class="sd">    - If ``operation`` is ``rename`` the request should also contain a new path</span>
+<span class="sd">      for the file under the key ``new_path``.</span>
+<span class="sd">    - If ``operation`` is ``content`` the body of the request should contain</span>
+<span class="sd">      the new content of the file. This operation is used if no or no valid</span>
+<span class="sd">      operation was given.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">      The id of the returned code object can change, but does not have to.</span>
+
+<span class="sd">    :returns: The created code object.</span>
+
+<span class="sd">    :raises APIException: If there is not file with the given id.</span>
+<span class="sd">        (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: If you do not have permission to change the given</span>
+<span class="sd">        file. (INCORRECT_PERMISSION)</span>
+<span class="sd">    :raises APIException: If the request is bigger than the maximum upload</span>
+<span class="sd">        size. (REQUEST_TOO_LARGE)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If the operation is rename it /can/ be a directory. If it is not a rename</span>
+    <span class="c1"># (so an update of the contents) the target can **not** be a directory.</span>
+    <span class="n">dir_filter</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;operation&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;rename&#39;</span> <span class="k">else</span> <span class="kc">True</span>
+    <span class="n">code</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">file_id</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">is_directory</span> <span class="o">!=</span> <span class="n">dir_filter</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_edit_work</span><span class="p">(</span><span class="n">code</span><span class="o">.</span><span class="n">work</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">content_length</span> <span class="ow">and</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">content_length</span> <span class="o">&gt;</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;MAX_UPLOAD_SIZE&#39;</span><span class="p">]</span>
+    <span class="p">):</span>
+        <span class="n">helpers</span><span class="o">.</span><span class="n">raise_file_too_big_exception</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_update_file</span><span class="p">(</span>
+        <span class="n">code</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">,</span>
+        <span class="n">other</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">FileOwner</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;operation&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;rename&#39;</span><span class="p">:</span>
+            <span class="n">code</span><span class="o">.</span><span class="n">rename_code</span><span class="p">(</span><span class="n">new_name</span><span class="p">,</span> <span class="n">new_parent</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="n">code</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">new_parent</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">code</span><span class="o">.</span><span class="n">get_diskname</span><span class="p">(),</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_data</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="n">code</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">is_open</span> <span class="ow">and</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">code</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">user_id</span><span class="p">:</span>
+        <span class="n">current</span><span class="p">,</span> <span class="n">other</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FileOwner</span><span class="o">.</span><span class="n">both</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">FileOwner</span><span class="o">.</span><span class="n">teacher</span>
+    <span class="k">elif</span> <span class="n">code</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">user_id</span> <span class="o">==</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+        <span class="n">current</span><span class="p">,</span> <span class="n">other</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FileOwner</span><span class="o">.</span><span class="n">student</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">FileOwner</span><span class="o">.</span><span class="n">teacher</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">current</span><span class="p">,</span> <span class="n">other</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FileOwner</span><span class="o">.</span><span class="n">teacher</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">FileOwner</span><span class="o">.</span><span class="n">student</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;operation&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;rename&#39;</span><span class="p">:</span>
+        <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;new_path&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+        <span class="n">new_path</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="s1">&#39;new_path&#39;</span><span class="p">])</span>
+        <span class="n">path_arr</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">split_path</span><span class="p">(</span><span class="n">new_path</span><span class="p">)</span>
+        <span class="n">new_name</span> <span class="o">=</span> <span class="n">path_arr</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">new_parent</span> <span class="o">=</span> <span class="n">code</span><span class="o">.</span><span class="n">work</span><span class="o">.</span><span class="n">search_file</span><span class="p">(</span>
+            <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path_arr</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">other</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">code</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">==</span> <span class="n">current</span><span class="p">:</span>
+        <span class="n">_update_file</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">code</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">!=</span> <span class="n">models</span><span class="o">.</span><span class="n">FileOwner</span><span class="o">.</span><span class="n">both</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;This file does not belong to you&#39;</span><span class="p">,</span>
+            <span class="n">f</span><span class="s1">&#39;The file </span><span class="si">{code.id}</span><span class="s1"> belongs to </span><span class="si">{code.fileowner.name}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">403</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">begin_nested</span><span class="p">():</span>
+            <span class="n">code</span> <span class="o">=</span> <span class="n">split_code</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">current</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+            <span class="n">_update_file</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">code</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Schaper.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'1.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

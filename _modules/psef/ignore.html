@@ -1,0 +1,520 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>psef.ignore &mdash; CodeGra.de 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link href="../../_static/style.css" rel="stylesheet" type="text/css">
+
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> CodeGra.de
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">User Manual CodeGra.de</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code.html">Code documentation of psef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../running.html">How to run CodeGra.de</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CodeGra.de</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../psef.html">psef</a> &raquo;</li>
+        
+      <li>psef.ignore</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for psef.ignore</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;gitignore files.</span>
+
+<span class="sd">For details for the matching rules, see https://git-scm.com/docs/gitignore.</span>
+
+<span class="sd">This code is almost copied verbatim from dulwich.</span>
+
+<span class="sd">:license: AGPLv3, see LICENSE for details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">tarfile</span>
+
+<span class="kn">import</span> <span class="nn">archive</span>
+
+
+<div class="viewcode-block" id="InvalidFile"><a class="viewcode-back" href="../../psef_api/psef.html#psef.ignore.InvalidFile">[docs]</a><span class="k">class</span> <span class="nc">InvalidFile</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<span class="k">def</span> <span class="nf">_translate_segment</span><span class="p">(</span><span class="n">segment</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Translate the given gitignore segment to regex segment.</span>
+
+<span class="sd">    :param segment: The segment to translate.</span>
+<span class="sd">    :returns: A valid regex string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">segment</span> <span class="o">==</span> <span class="s2">&quot;*&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;[^/]+&#39;</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">i</span><span class="p">,</span> <span class="n">segment_length</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">segment</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">segment_length</span><span class="p">:</span>
+        <span class="n">char</span> <span class="o">=</span> <span class="n">segment</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">char</span> <span class="o">==</span> <span class="s1">&#39;*&#39;</span><span class="p">:</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;[^/]*&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">char</span> <span class="o">==</span> <span class="s1">&#39;?&#39;</span><span class="p">:</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">char</span> <span class="o">==</span> <span class="s1">&#39;[&#39;</span><span class="p">:</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="k">if</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">segment_length</span> <span class="ow">and</span> <span class="n">segment</span><span class="p">[</span><span class="n">j</span><span class="p">:</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;!&#39;</span><span class="p">:</span>
+                <span class="n">j</span> <span class="o">=</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">segment_length</span> <span class="ow">and</span> <span class="n">segment</span><span class="p">[</span><span class="n">j</span><span class="p">:</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;]&#39;</span><span class="p">:</span>
+                <span class="n">j</span> <span class="o">=</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">while</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">segment_length</span> <span class="ow">and</span> <span class="n">segment</span><span class="p">[</span><span class="n">j</span><span class="p">:</span><span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;]&#39;</span><span class="p">:</span>
+                <span class="n">j</span> <span class="o">=</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">j</span> <span class="o">&gt;=</span> <span class="n">segment_length</span><span class="p">:</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">[&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">stuff</span> <span class="o">=</span> <span class="n">segment</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\\\\</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">stuff</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;!&#39;</span><span class="p">):</span>
+                    <span class="n">stuff</span> <span class="o">=</span> <span class="s1">&#39;^&#39;</span> <span class="o">+</span> <span class="n">stuff</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="n">stuff</span> <span class="o">+</span> <span class="s1">&#39;]&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">char</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="translate"><a class="viewcode-back" href="../../psef_api/psef.html#psef.ignore.translate">[docs]</a><span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="n">pat</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Translate a shell PATTERN to a regular expression.</span>
+
+<span class="sd">    There is no way to quote meta-characters.</span>
+
+<span class="sd">    Originally copied from fnmatch in Python 2.7, but modified for Dulwich</span>
+<span class="sd">    to cope with features in Git ignore patterns.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="s1">&#39;(?ms)&#39;</span>
+
+    <span class="k">if</span> <span class="s1">&#39;/&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">pat</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="c1"># If there&#39;s no slash, this is a filename-based match</span>
+        <span class="n">res</span> <span class="o">+=</span> <span class="s1">&#39;(.*/)?&#39;</span>
+
+    <span class="k">if</span> <span class="n">pat</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;**/&#39;</span><span class="p">):</span>
+        <span class="c1"># Leading **/</span>
+        <span class="n">pat</span> <span class="o">=</span> <span class="n">pat</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="n">res</span> <span class="o">+=</span> <span class="s1">&#39;(.*/)?&#39;</span>
+
+    <span class="k">if</span> <span class="n">pat</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">):</span>
+        <span class="n">pat</span> <span class="o">=</span> <span class="n">pat</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">segment</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">segment</span> <span class="o">==</span> <span class="s1">&#39;**&#39;</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">+=</span> <span class="s1">&#39;(/.*)?&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">+=</span> <span class="p">(</span>
+                <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+                 <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">_translate_segment</span><span class="p">(</span><span class="n">segment</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">pat</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">):</span>
+        <span class="n">res</span> <span class="o">+=</span> <span class="s1">&#39;/?&#39;</span>
+
+    <span class="k">return</span> <span class="n">res</span> <span class="o">+</span> <span class="sa">r</span><span class="s1">&#39;\Z&#39;</span></div>
+
+
+<div class="viewcode-block" id="read_ignore_patterns"><a class="viewcode-back" href="../../psef_api/psef.html#psef.ignore.read_ignore_patterns">[docs]</a><span class="k">def</span> <span class="nf">read_ignore_patterns</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Read a git ignore file.</span>
+
+<span class="sd">    :param f: Iterable to read from</span>
+<span class="sd">    :return: List of patterns</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">original_line</span> <span class="o">=</span> <span class="n">line</span>
+
+        <span class="c1"># Ignore blank lines, they&#39;re used for readability.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">):</span>
+            <span class="c1"># Comment</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Trailing spaces are ignored unless they are quoted with a backslash.</span>
+        <span class="k">while</span> <span class="n">line</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1"> &#39;</span><span class="p">):</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1"> &#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+
+        <span class="k">yield</span> <span class="n">line</span><span class="p">,</span> <span class="n">original_line</span></div>
+
+
+<div class="viewcode-block" id="Pattern"><a class="viewcode-back" href="../../psef_api/psef.html#psef.ignore.Pattern">[docs]</a><span class="k">class</span> <span class="nc">Pattern</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A single ignore pattern.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">orig_line</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="n">pattern</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_line</span> <span class="o">=</span> <span class="n">orig_line</span>
+        <span class="k">if</span> <span class="n">pattern</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;!&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_exclude</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">pattern</span> <span class="o">=</span> <span class="n">pattern</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pattern</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">:</span>
+                <span class="n">pattern</span> <span class="o">=</span> <span class="n">pattern</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_exclude</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">flags</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_re</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">translate</span><span class="p">(</span><span class="n">pattern</span><span class="p">),</span> <span class="n">flags</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Pattern.match"><a class="viewcode-back" href="../../psef_api/psef.html#psef.ignore.Pattern.match">[docs]</a>    <span class="k">def</span> <span class="nf">match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Try to match a path against this ignore pattern.</span>
+
+<span class="sd">        :param path: Path to match (relative to ignore location)</span>
+<span class="sd">        :return: boolean</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">path</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="IgnoreFilter"><a class="viewcode-back" href="../../psef_api/psef.html#psef.ignore.IgnoreFilter">[docs]</a><span class="k">class</span> <span class="nc">IgnoreFilter</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A ignore filter. This filter consists of multiple :class:`.Filter`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">patterns</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_patterns</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">Pattern</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">orig_line</span> <span class="ow">in</span> <span class="n">read_ignore_patterns</span><span class="p">(</span><span class="n">patterns</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">append_pattern</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">orig_line</span><span class="p">)</span>
+
+<div class="viewcode-block" id="IgnoreFilter.append_pattern"><a class="viewcode-back" href="../../psef_api/psef.html#psef.ignore.IgnoreFilter.append_pattern">[docs]</a>    <span class="k">def</span> <span class="nf">append_pattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">orig_line</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Add a pattern to the set.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_patterns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Pattern</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">orig_line</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="IgnoreFilter.find_matching"><a class="viewcode-back" href="../../psef_api/psef.html#psef.ignore.IgnoreFilter.find_matching">[docs]</a>    <span class="k">def</span> <span class="nf">find_matching</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">Pattern</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Yield all matching patterns for path.</span>
+
+<span class="sd">        :param path: Path to match</span>
+<span class="sd">        :return: Iterator over iterators</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patterns</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">pattern</span></div></div>
+
+
+<div class="viewcode-block" id="IgnoreFilterManager"><a class="viewcode-back" href="../../psef_api/psef.html#psef.ignore.IgnoreFilterManager">[docs]</a><span class="k">class</span> <span class="nc">IgnoreFilterManager</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Ignore file manager.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">global_filters</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">global_filters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">global_filters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">global_filters</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">global_filters</span> <span class="o">=</span> <span class="n">global_filters</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filter</span> <span class="o">=</span> <span class="n">IgnoreFilter</span><span class="p">(</span><span class="n">global_filters</span><span class="p">)</span>
+
+<div class="viewcode-block" id="IgnoreFilterManager.find_matching"><a class="viewcode-back" href="../../psef_api/psef.html#psef.ignore.IgnoreFilterManager.find_matching">[docs]</a>    <span class="k">def</span> <span class="nf">find_matching</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">Pattern</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Find matching patterns for path.</span>
+
+<span class="sd">        Stops after the first ignore file with matches.</span>
+
+<span class="sd">        :param path: Path to check</span>
+<span class="sd">        :return: Iterator over Pattern instances</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">InvalidFile</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;File &quot;</span><span class="si">{path}</span><span class="s1">&quot; is an absolute path&#39;</span><span class="p">)</span>
+
+        <span class="n">parts</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">relpath</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">[:</span><span class="n">i</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">):</span>
+                <span class="c1"># Paths leading up to the final part are all directories,</span>
+                <span class="c1"># so need a trailing slash.</span>
+                <span class="n">relpath</span> <span class="o">+=</span> <span class="s1">&#39;/&#39;</span>
+            <span class="n">matches</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filter</span><span class="o">.</span><span class="n">find_matching</span><span class="p">(</span><span class="n">relpath</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">matches</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="n">matches</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">([])</span></div>
+
+<div class="viewcode-block" id="IgnoreFilterManager.is_ignored"><a class="viewcode-back" href="../../psef_api/psef.html#psef.ignore.IgnoreFilterManager.is_ignored">[docs]</a>    <span class="k">def</span> <span class="nf">is_ignored</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                   <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Check whether a path is explicitly included or excluded in ignores.</span>
+
+<span class="sd">        :param path: Path to check</span>
+<span class="sd">        :return: None if the file is not mentioned, True if it is included,</span>
+<span class="sd">            False if it is explicitly excluded.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">matches</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">find_matching</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">matches</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">matches</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">is_exclude</span><span class="p">,</span> <span class="n">matches</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">original_line</span>
+
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="IgnoreFilterManager.delete_from_dir"><a class="viewcode-back" href="../../psef_api/psef.html#psef.ignore.IgnoreFilterManager.delete_from_dir">[docs]</a>    <span class="k">def</span> <span class="nf">delete_from_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">top</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Delete all files from the given archive.</span>
+
+<span class="sd">        .. warning::</span>
+
+<span class="sd">            This mutates the given directory.</span>
+
+<span class="sd">        :param top: The top directory of the archive to traverse and delete</span>
+<span class="sd">            files from.</span>
+<span class="sd">        :returns: Nothing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">dirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">top</span><span class="p">):</span>
+            <span class="n">new_root</span> <span class="o">=</span> <span class="n">root</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">top</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
+
+            <span class="k">for</span> <span class="n">sub_dir</span> <span class="ow">in</span> <span class="n">dirs</span><span class="p">:</span>
+                <span class="n">sub_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_root</span><span class="p">,</span> <span class="n">sub_dir</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">sub_dir</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_ignored</span><span class="p">(</span><span class="n">sub_dir</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="n">to_remove</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">sub_dir</span><span class="p">)</span>
+                    <span class="k">assert</span> <span class="n">to_remove</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">top</span><span class="p">)</span>
+                    <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">to_remove</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">sub_file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+                <span class="n">sub_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_root</span><span class="p">,</span> <span class="n">sub_file</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">sub_file</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_ignored</span><span class="p">(</span><span class="n">sub_file</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="n">to_remove</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">sub_file</span><span class="p">)</span>
+                    <span class="k">assert</span> <span class="n">to_remove</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">top</span><span class="p">)</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">to_remove</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="IgnoreFilterManager.get_ignored_files_in_archive"><a class="viewcode-back" href="../../psef_api/psef.html#psef.ignore.IgnoreFilterManager.get_ignored_files_in_archive">[docs]</a>    <span class="k">def</span> <span class="nf">get_ignored_files_in_archive</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">arch_wrapper</span><span class="p">:</span> <span class="n">archive</span><span class="o">.</span><span class="n">Archive</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Get all ignored files in the given archive.</span>
+
+<span class="sd">        :param arch: The archive to check for ignored files.</span>
+<span class="sd">        :returns: All files that should be ignored.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">arch</span> <span class="o">=</span> <span class="n">arch_wrapper</span><span class="o">.</span><span class="n">_archive</span>  <span class="c1"># pylint: disable=protected-access</span>
+
+        <span class="k">def</span> <span class="nf">__get_names</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arch</span><span class="p">,</span> <span class="n">archive</span><span class="o">.</span><span class="n">TarArchive</span><span class="p">):</span>
+                <span class="n">info</span><span class="p">:</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">TarInfo</span>
+                <span class="c1"># We need the protected access as this not publicly</span>
+                <span class="c1"># exposed. The version is pinned so this should be fine</span>
+                <span class="k">for</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">arch</span><span class="o">.</span><span class="n">_archive</span><span class="o">.</span><span class="n">getmembers</span><span class="p">():</span>  <span class="c1"># pylint: disable=protected-access</span>
+                    <span class="k">if</span> <span class="n">info</span><span class="o">.</span><span class="n">isdir</span><span class="p">():</span>
+                        <span class="k">yield</span> <span class="n">info</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">yield</span> <span class="n">info</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arch</span><span class="p">,</span> <span class="n">archive</span><span class="o">.</span><span class="n">ZipArchive</span><span class="p">):</span>
+                <span class="n">seen_dirs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">arch</span><span class="o">.</span><span class="n">filenames</span><span class="p">():</span>
+                    <span class="n">first</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">while</span> <span class="n">f</span> <span class="ow">and</span> <span class="n">f</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen_dirs</span><span class="p">:</span>
+                        <span class="n">f</span><span class="p">,</span> <span class="n">tail</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                        <span class="n">cur_path</span> <span class="o">=</span> <span class="p">(</span><span class="n">f</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="k">if</span> <span class="n">f</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">tail</span>
+                        <span class="c1"># We add p without trailing slash as this is easier to</span>
+                        <span class="c1"># search for</span>
+                        <span class="n">seen_dirs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">cur_path</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">first</span><span class="p">:</span>
+                            <span class="n">cur_path</span> <span class="o">+=</span> <span class="s1">&#39;/&#39;</span>
+                        <span class="k">yield</span> <span class="n">cur_path</span>
+
+                        <span class="n">first</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+                <span class="c1"># This else is not possible as our archive package only</span>
+                <span class="c1"># supports tar.gz and zip files. However it doesn&#39;t hurt to</span>
+                <span class="c1"># have it here.</span>
+                <span class="k">yield from</span> <span class="n">arch</span><span class="o">.</span><span class="n">filenames</span><span class="p">()</span>
+
+        <span class="n">wrong_files</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">__get_names</span><span class="p">():</span>
+            <span class="n">is_ignored</span><span class="p">,</span> <span class="n">line</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_ignored</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_ignored</span><span class="p">:</span>
+                <span class="n">wrong_files</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">name</span><span class="p">,</span> <span class="n">line</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">wrong_files</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Schaper.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'1.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

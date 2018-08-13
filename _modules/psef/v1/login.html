@@ -1,0 +1,525 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>psef.v1.login &mdash; CodeGra.de 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link href="../../../_static/style.css" rel="stylesheet" type="text/css">
+
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> CodeGra.de
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">User Manual CodeGra.de</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Code documentation of psef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../running.html">How to run CodeGra.de</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CodeGra.de</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../psef.html">psef</a> &raquo;</li>
+        
+          <li><a href="../v1.html">psef.v1</a> &raquo;</li>
+        
+      <li>psef.v1.login</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for psef.v1.login</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module defines all API routes with the main directory &quot;login&quot;. This APIs</span>
+<span class="sd">are used to handle starting and closing the user session and update the :class:</span>
+<span class="sd">User object of the logged in user.</span>
+
+<span class="sd">:license: AGPLv3, see LICENSE for details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
+
+<span class="kn">import</span> <span class="nn">flask_jwt_extended</span> <span class="k">as</span> <span class="nn">flask_jwt</span>
+<span class="kn">from</span> <span class="nn">flask</span> <span class="k">import</span> <span class="n">request</span>
+<span class="kn">from</span> <span class="nn">validate_email</span> <span class="k">import</span> <span class="n">validate_email</span>
+
+<span class="kn">import</span> <span class="nn">psef.auth</span> <span class="k">as</span> <span class="nn">auth</span>
+<span class="kn">import</span> <span class="nn">psef.mail</span> <span class="k">as</span> <span class="nn">mail</span>
+<span class="kn">import</span> <span class="nn">psef.models</span> <span class="k">as</span> <span class="nn">models</span>
+<span class="kn">import</span> <span class="nn">psef.helpers</span> <span class="k">as</span> <span class="nn">helpers</span>
+<span class="kn">from</span> <span class="nn">psef</span> <span class="k">import</span> <span class="n">current_user</span>
+<span class="kn">from</span> <span class="nn">psef.errors</span> <span class="k">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span>
+<span class="kn">from</span> <span class="nn">psef.models</span> <span class="k">import</span> <span class="n">db</span>
+<span class="kn">from</span> <span class="nn">psef.helpers</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">JSONResponse</span><span class="p">,</span> <span class="n">EmptyResponse</span><span class="p">,</span> <span class="n">ExtendedJSONResponse</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span>
+    <span class="n">ensure_json_dict</span><span class="p">,</span> <span class="n">extended_jsonify</span><span class="p">,</span> <span class="n">ensure_keys_in_dict</span><span class="p">,</span>
+    <span class="n">make_empty_response</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">api</span>
+
+
+<div class="viewcode-block" id="login"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.login.login">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/login&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">login</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">ExtendedJSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]:</span>
+    <span class="sd">&quot;&quot;&quot;Login a :class:`.models.User` if the request is valid.</span>
+
+<span class="sd">    .. :quickref: User; Login a given user.</span>
+
+<span class="sd">    :returns: A response containing the JSON serialized user</span>
+
+<span class="sd">    :&lt;json str email: The email of the user to log in.</span>
+<span class="sd">    :&lt;json str username: The password of the user to log in.</span>
+
+<span class="sd">    :&gt;json user: The user that was logged in.</span>
+<span class="sd">    :&gt;jsonobj user: :py:class:`~.models.User`</span>
+<span class="sd">    :&gt;json str access_token: A JWT token that can be used to send requests to</span>
+<span class="sd">        the server logged in as the given user.</span>
+
+<span class="sd">    :raises APIException: If the request does not contain email and/or password</span>
+<span class="sd">        parameter. (MISSING_REQUIRED_PARAM)</span>
+<span class="sd">    :raises APIException: If no user with email exists or the password is</span>
+<span class="sd">        wrong. (LOGIN_FAILURE)</span>
+<span class="sd">    :raises APIException: If the user with the given email and password is</span>
+<span class="sd">        inactive. (INACTIVE_USER)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;username&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;password&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">])</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;password&#39;</span><span class="p">])</span>
+
+    <span class="c1"># WARNING: Do not use the `helpers.filter_single_or_404` function here as</span>
+    <span class="c1"># we have to return the same error for a wrong email as for a wrong</span>
+    <span class="c1"># password!</span>
+    <span class="n">user</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">]</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">username</span> <span class="o">==</span> <span class="n">username</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">user</span><span class="o">.</span><span class="n">password</span> <span class="o">!=</span> <span class="n">password</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;The supplied email or password is wrong.&#39;</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s1">&#39;The user with username &quot;</span><span class="si">{}</span><span class="s1">&quot; does not exist &#39;</span> <span class="o">+</span>
+                <span class="s1">&#39;or has a different password&#39;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">username</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">LOGIN_FAILURE</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="o">.</span><span class="n">is_active</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;User is not active&#39;</span><span class="p">,</span>
+            <span class="p">(</span><span class="s1">&#39;The user with id &quot;</span><span class="si">{}</span><span class="s1">&quot; is not active any more&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INACTIVE_USER</span><span class="p">,</span> <span class="mi">403</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">extended_jsonify</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s1">&#39;user&#39;</span><span class="p">:</span>
+                <span class="n">user</span><span class="p">,</span>
+            <span class="s1">&#39;access_token&#39;</span><span class="p">:</span>
+                <span class="n">flask_jwt</span><span class="o">.</span><span class="n">create_access_token</span><span class="p">(</span>
+                    <span class="n">identity</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                    <span class="n">fresh</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="p">}</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="self_information"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.login.self_information">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/login&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;GET&quot;</span><span class="p">])</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">login_required</span>
+<span class="k">def</span> <span class="nf">self_information</span><span class="p">(</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]],</span>
+             <span class="n">ExtendedJSONResponse</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">],</span>
+             <span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Get the info of the currently logged in :class:`.models.User`.</span>
+
+<span class="sd">    .. :quickref: User; Get information about the currently logged in user.</span>
+
+<span class="sd">    :query type: If this is ``roles`` a mapping between course_id and role name</span>
+<span class="sd">        will be returned, if this is ``extended`` the result of</span>
+<span class="sd">        :py:meth:`.models.User.__extended_to_json__()` will be returned. If</span>
+<span class="sd">        this is something else or not present the result of</span>
+<span class="sd">        :py:meth:`.models.User.__to_json__()` will be returned.</span>
+<span class="sd">    :returns: A response containing the JSON serialized user</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;roles&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="n">role</span><span class="o">.</span><span class="n">course_id</span><span class="p">:</span> <span class="n">role</span><span class="o">.</span><span class="n">name</span>
+                <span class="k">for</span> <span class="n">role</span> <span class="ow">in</span> <span class="n">current_user</span><span class="o">.</span><span class="n">courses</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;extended&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">extended_jsonify</span><span class="p">(</span><span class="n">current_user</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">current_user</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_user_update"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.login.get_user_update">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/login&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PATCH&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">get_user_update</span><span class="p">(</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">EmptyResponse</span><span class="p">,</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]:</span>
+    <span class="sd">&quot;&quot;&quot;Change data of the current :class:`.models.User` and handle passsword</span>
+<span class="sd">        resets.</span>
+
+<span class="sd">    .. :quickref: User; Update the currently logged users information or reset</span>
+<span class="sd">        a password.</span>
+
+<span class="sd">    - If ``type`` is ``reset_password`` reset the password of the user with the</span>
+<span class="sd">      given user_id with the given token to the given ``new_password``.</span>
+<span class="sd">    - If ``type`` is ``reset_email`` send a email to the user with the given</span>
+<span class="sd">      username that enables this user to reset its password.</span>
+<span class="sd">    - if ``type`` is ``reset_on_lti`` the ``reset_email_on_lti`` attribute for</span>
+<span class="sd">      the current is set to ``True``.</span>
+<span class="sd">    - Otherwise change user info of the currently logged in user.</span>
+
+<span class="sd">    :returns: An empty response with return code 204 unless ``type`` is</span>
+<span class="sd">        ``reset_password``, in this case a mapping between ``access_token`` and</span>
+<span class="sd">        a jwt token is returned.</span>
+
+<span class="sd">    :&lt;json int user_id: The id of the user, only when type is reset_password.</span>
+<span class="sd">    :&lt;json str username: The username of the user, only when type is</span>
+<span class="sd">        reset_email.</span>
+<span class="sd">    :&lt;json str token: The reset password token. Only if type is</span>
+<span class="sd">        reset_password.</span>
+<span class="sd">    :&lt;json str email: The new email of the user.</span>
+<span class="sd">    :&lt;json str name: The new full name of the user.</span>
+<span class="sd">    :&lt;json str old_password: The old password of the user.</span>
+<span class="sd">    :&lt;json str new_password: The new password of the user.</span>
+
+<span class="sd">    :raises APIException: If not all required parameters (&#39;email&#39;,</span>
+<span class="sd">                          &#39;o_password&#39;, &#39;name&#39;, &#39;n_password&#39;) were in the</span>
+<span class="sd">                          request. (MISSING_REQUIRED_PARAM)</span>
+<span class="sd">    :raises APIException: If the old password was not correct.</span>
+<span class="sd">                          (INVALID_CREDENTIALS)</span>
+<span class="sd">    :raises APIException: If the new password or name is not valid.</span>
+<span class="sd">                          (INVALID_PARAM)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not edit his own info.</span>
+<span class="sd">                                 (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;reset_email&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">user_patch_handle_send_reset_email</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;reset_password&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">user_patch_handle_reset_password</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;reset_on_lti&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">user_patch_handle_reset_on_lti</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">user_patch_handle_change_user_data</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="user_patch_handle_send_reset_email"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.login.user_patch_handle_send_reset_email">[docs]</a><span class="k">def</span> <span class="nf">user_patch_handle_send_reset_email</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Handle the ``reset_email`` type for the PATCH login route.</span>
+
+<span class="sd">    :returns: An empty response.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;username&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+
+    <span class="n">mail</span><span class="o">.</span><span class="n">send_reset_password_email</span><span class="p">(</span>
+        <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">username</span> <span class="o">==</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="user_patch_handle_reset_password"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.login.user_patch_handle_reset_password">[docs]</a><span class="k">def</span> <span class="nf">user_patch_handle_reset_password</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Handle the ``reset_password`` type for the PATCH login route.</span>
+
+<span class="sd">    :returns: A response with a jsonified mapping between ``access_token`` and</span>
+<span class="sd">        a token which can be used to login. This is only key available.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span>
+        <span class="n">data</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;new_password&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+               <span class="p">(</span><span class="s1">&#39;token&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+               <span class="p">(</span><span class="s1">&#39;user_id&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)]</span>
+    <span class="p">)</span>
+
+    <span class="n">password</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;new_password&#39;</span><span class="p">])</span>
+    <span class="n">user_id</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;user_id&#39;</span><span class="p">])</span>
+    <span class="n">token</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;token&#39;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">password</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;Password should at least be 1 char&#39;</span><span class="p">,</span>
+            <span class="n">f</span><span class="s1">&#39;The password is {len(password)} chars long&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">user_id</span><span class="p">)</span>
+    <span class="n">user</span><span class="o">.</span><span class="n">reset_password</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s1">&#39;access_token&#39;</span><span class="p">:</span>
+                <span class="n">flask_jwt</span><span class="o">.</span><span class="n">create_access_token</span><span class="p">(</span>
+                    <span class="n">identity</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+                    <span class="n">fresh</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="p">}</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="user_patch_handle_reset_on_lti"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.login.user_patch_handle_reset_on_lti">[docs]</a><span class="k">def</span> <span class="nf">user_patch_handle_reset_on_lti</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Handle the ``reset_on_lti`` type for the PATCH login route.</span>
+
+<span class="sd">    :returns: An empty response.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_logged_in</span><span class="p">()</span>
+    <span class="n">current_user</span><span class="o">.</span><span class="n">reset_email_on_lti</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="user_patch_handle_change_user_data"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.login.user_patch_handle_change_user_data">[docs]</a><span class="k">def</span> <span class="nf">user_patch_handle_change_user_data</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Handle the PATCH login route when no ``type`` is given.</span>
+
+<span class="sd">    :returns: An empty response.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span>
+        <span class="n">data</span><span class="p">,</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s1">&#39;email&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;old_password&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+            <span class="p">(</span><span class="s1">&#39;new_password&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">email</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;email&#39;</span><span class="p">])</span>
+    <span class="n">old_password</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;old_password&#39;</span><span class="p">])</span>
+    <span class="n">new_password</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;new_password&#39;</span><span class="p">])</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">_ensure_password</span><span class="p">(</span>
+        <span class="n">changed</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">msg</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;To change your </span><span class="si">{}</span><span class="s1"> you need a correct old password.&#39;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">current_user</span><span class="o">.</span><span class="n">password</span> <span class="o">!=</span> <span class="n">old_password</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="n">msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">changed</span><span class="p">),</span> <span class="s1">&#39;The given old password was not correct&#39;</span><span class="p">,</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_CREDENTIALS</span><span class="p">,</span> <span class="mi">403</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">old_password</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+        <span class="n">_ensure_password</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;The given old password is wrong&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">current_user</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">name</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_edit_own_info&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;Your new name cannot be empty&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;The given new name was empty&#39;</span><span class="p">,</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+            <span class="p">)</span>
+        <span class="n">current_user</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+    <span class="k">if</span> <span class="n">current_user</span><span class="o">.</span><span class="n">email</span> <span class="o">!=</span> <span class="n">email</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_edit_own_info&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">validate_email</span><span class="p">(</span><span class="n">email</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;The given email is not valid.&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;The email &quot;</span><span class="si">{email}</span><span class="s1">&quot; is not valid.&#39;</span><span class="p">,</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span>
+                <span class="mi">400</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">_ensure_password</span><span class="p">(</span><span class="s1">&#39;email&#39;</span><span class="p">)</span>
+        <span class="n">current_user</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="n">email</span>
+
+    <span class="k">if</span> <span class="n">new_password</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+        <span class="n">_ensure_password</span><span class="p">(</span><span class="s1">&#39;password&#39;</span><span class="p">)</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_edit_own_password&#39;</span><span class="p">)</span>
+        <span class="n">current_user</span><span class="o">.</span><span class="n">password</span> <span class="o">=</span> <span class="n">new_password</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Schaper.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'1.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

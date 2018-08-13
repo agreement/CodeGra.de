@@ -1,0 +1,955 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>psef.v1.submissions &mdash; CodeGra.de 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link href="../../../_static/style.css" rel="stylesheet" type="text/css">
+
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> CodeGra.de
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">User Manual CodeGra.de</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Code documentation of psef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../running.html">How to run CodeGra.de</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CodeGra.de</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../psef.html">psef</a> &raquo;</li>
+        
+          <li><a href="../v1.html">psef.v1</a> &raquo;</li>
+        
+      <li>psef.v1.submissions</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for psef.v1.submissions</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module defines all API routes with the main directory &quot;submissions&quot;. The</span>
+<span class="sd">APIs allow the retrieving, and patching of :class: Work objects. Furthermore</span>
+<span class="sd">functions are defined to get related objects and information.</span>
+
+<span class="sd">:license: AGPLv3, see LICENSE for details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
+<span class="kn">import</span> <span class="nn">numbers</span>
+<span class="kn">import</span> <span class="nn">zipfile</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
+
+<span class="kn">from</span> <span class="nn">flask</span> <span class="k">import</span> <span class="n">request</span>
+<span class="kn">from</span> <span class="nn">mypy_extensions</span> <span class="k">import</span> <span class="n">TypedDict</span>
+
+<span class="kn">import</span> <span class="nn">psef.auth</span> <span class="k">as</span> <span class="nn">auth</span>
+<span class="kn">import</span> <span class="nn">psef.files</span>
+<span class="kn">import</span> <span class="nn">psef.models</span> <span class="k">as</span> <span class="nn">models</span>
+<span class="kn">import</span> <span class="nn">psef.helpers</span> <span class="k">as</span> <span class="nn">helpers</span>
+<span class="kn">from</span> <span class="nn">psef</span> <span class="k">import</span> <span class="n">app</span><span class="p">,</span> <span class="n">current_user</span>
+<span class="kn">from</span> <span class="nn">psef.errors</span> <span class="k">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span>
+<span class="kn">from</span> <span class="nn">psef.models</span> <span class="k">import</span> <span class="n">FileOwner</span><span class="p">,</span> <span class="n">db</span>
+<span class="kn">from</span> <span class="nn">psef.helpers</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">JSONResponse</span><span class="p">,</span> <span class="n">EmptyResponse</span><span class="p">,</span> <span class="n">ExtendedJSONResponse</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span>
+    <span class="n">ensure_json_dict</span><span class="p">,</span> <span class="n">extended_jsonify</span><span class="p">,</span> <span class="n">ensure_keys_in_dict</span><span class="p">,</span>
+    <span class="n">make_empty_response</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">api</span>
+<span class="kn">from</span> <span class="nn">..model_types</span> <span class="k">import</span> <span class="n">DbColumn</span>
+
+<span class="n">Feedback</span> <span class="o">=</span> <span class="n">TypedDict</span><span class="p">(</span>  <span class="c1"># pylint: disable=invalid-name</span>
+    <span class="s1">&#39;Feedback&#39;</span><span class="p">,</span> <span class="p">{</span>
+        <span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">MutableMapping</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">MutableMapping</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+        <span class="s1">&#39;linter&#39;</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">MutableMapping</span><span class="p">[</span>
+            <span class="nb">int</span><span class="p">,</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">MutableMapping</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">LinterComment</span><span class="p">]]],</span>
+        <span class="p">],</span>
+        <span class="s1">&#39;general&#39;</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_submission"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.submissions.get_submission">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/submissions/&lt;int:submission_id&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">login_required</span>
+<span class="k">def</span> <span class="nf">get_submission</span><span class="p">(</span>
+    <span class="n">submission_id</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExtendedJSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]:</span>
+    <span class="sd">&quot;&quot;&quot;Get the given submission (:class:`.models.Work`).</span>
+
+<span class="sd">    .. :quickref: Submission; Get a single submission.</span>
+
+<span class="sd">    This API has some options based on the &#39;type&#39; argument in the request</span>
+
+<span class="sd">    - If ``type == &#39;zip&#39;`` see :py:func:`.get_zip`</span>
+<span class="sd">    - If ``type == &#39;feedback&#39;`` see :py:func:`.submissions.get_feedback`</span>
+
+<span class="sd">    :param int submission_id: The id of the submission</span>
+<span class="sd">    :returns: A response with the JSON serialized submission as content unless</span>
+<span class="sd">              specified otherwise</span>
+<span class="sd">    :rtype: flask.Response</span>
+
+<span class="sd">    :query str owner: The type of files to list, if set to `teacher` only</span>
+<span class="sd">        teacher files will be listed, otherwise only student files will be</span>
+<span class="sd">        listed.</span>
+
+<span class="sd">    :raises APIException: If the submission with given id does not exist.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the submission does not belong to the</span>
+<span class="sd">                                 current user and the user can not see others</span>
+<span class="sd">                                 work in the attached course.</span>
+<span class="sd">                                 (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">work</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span> <span class="n">submission_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">work</span><span class="o">.</span><span class="n">user_id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span>
+            <span class="s1">&#39;can_see_others_work&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;zip&#39;</span><span class="p">:</span>
+        <span class="n">exclude_owner</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">get_exclude_owner</span><span class="p">(</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;owner&#39;</span><span class="p">),</span>
+            <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">extended_jsonify</span><span class="p">(</span><span class="n">get_zip</span><span class="p">(</span><span class="n">work</span><span class="p">,</span> <span class="n">exclude_owner</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;feedback&#39;</span><span class="p">:</span>
+        <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_see_grade</span><span class="p">(</span><span class="n">work</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">extended_jsonify</span><span class="p">(</span><span class="n">get_feedback</span><span class="p">(</span><span class="n">work</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">extended_jsonify</span><span class="p">(</span><span class="n">work</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_feedback"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.submissions.get_feedback">[docs]</a><span class="k">def</span> <span class="nf">get_feedback</span><span class="p">(</span><span class="n">work</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Get the feedback of :class:`.models.Work` as a plain text file.</span>
+
+<span class="sd">    :param work: The submission with the required feedback.</span>
+<span class="sd">    :returns: A object with two keys: ``name`` where the value is the name</span>
+<span class="sd">        which can be given to ``GET - /api/v1/files/&lt;name&gt;`` and</span>
+<span class="sd">        ``output_name`` which is the resulting file should be named.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">comments</span><span class="p">,</span> <span class="n">linter_comments</span> <span class="o">=</span> <span class="n">work</span><span class="o">.</span><span class="n">get_all_feedback</span><span class="p">()</span>
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{work.assignment.name}</span><span class="s1">-</span><span class="si">{work.user.name}</span><span class="s1">-feedback.txt&#39;</span>
+
+    <span class="n">path</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">random_file_path</span><span class="p">(</span><span class="s1">&#39;MIRROR_UPLOAD_DIR&#39;</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="s1">&#39;Assignment: </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="s1">&#39;Grade: </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="s1">&#39;General feedback:</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n\n</span><span class="s1">&#39;</span>
+            <span class="s1">&#39;Comments:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">grade</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">comment</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">comment</span> <span class="ow">in</span> <span class="n">comments</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;</span><span class="si">{comment}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">helpers</span><span class="o">.</span><span class="n">has_feature</span><span class="p">(</span><span class="s1">&#39;LINTERS&#39;</span><span class="p">):</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Linter comments:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">lcomment</span> <span class="ow">in</span> <span class="n">linter_comments</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;</span><span class="si">{lcomment}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span> <span class="s1">&#39;output_name&#39;</span><span class="p">:</span> <span class="n">filename</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="get_zip"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.submissions.get_zip">[docs]</a><span class="k">def</span> <span class="nf">get_zip</span><span class="p">(</span><span class="n">work</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span>
+            <span class="n">exclude_owner</span><span class="p">:</span> <span class="n">FileOwner</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Return a :class:`.models.Work` as a zip file.</span>
+
+<span class="sd">    :param work: The submission which should be returns as zip file.</span>
+<span class="sd">    :param exclude_owner: The owner to exclude from the files in the zip. So if</span>
+<span class="sd">        this is `teacher` only files owned by `student` and `both` will be in</span>
+<span class="sd">        the zip.</span>
+<span class="sd">    :returns: A object with two keys: ``name`` where the value is the name</span>
+<span class="sd">        which can be given to ``GET - /api/v1/files/&lt;name&gt;`` and</span>
+<span class="sd">        ``output_name`` which is the resulting file should be named.</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If submission does not belong to the current</span>
+<span class="sd">                                 user and the user can not view files in the</span>
+<span class="sd">                                 attached course. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_view_files</span><span class="p">(</span><span class="n">work</span><span class="p">,</span> <span class="n">exclude_owner</span> <span class="o">==</span> <span class="n">FileOwner</span><span class="o">.</span><span class="n">student</span><span class="p">)</span>
+
+    <span class="n">code</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">work_id</span> <span class="o">==</span> <span class="n">work</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">DbColumn</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">parent_id</span><span class="p">)</span><span class="o">.</span><span class="n">is_</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="n">path</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">random_file_path</span><span class="p">(</span><span class="s1">&#39;MIRROR_UPLOAD_DIR&#39;</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span>
+        <span class="n">path</span><span class="p">,</span>
+        <span class="s1">&#39;w+b&#39;</span><span class="p">,</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">,</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">(</span>
+        <span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;dir&#39;</span><span class="p">,</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">tmpdir</span><span class="p">,</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span>
+        <span class="n">f</span><span class="p">,</span>
+        <span class="s1">&#39;w&#39;</span><span class="p">,</span>
+        <span class="n">compression</span><span class="o">=</span><span class="n">zipfile</span><span class="o">.</span><span class="n">ZIP_DEFLATED</span><span class="p">,</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">zipf</span><span class="p">:</span>
+        <span class="c1"># Restore the files to tmpdir</span>
+        <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">restore_directory_structure</span><span class="p">(</span><span class="n">code</span><span class="p">,</span> <span class="n">tmpdir</span><span class="p">,</span> <span class="n">exclude_owner</span><span class="p">)</span>
+
+        <span class="n">zipf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="n">code</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">_dirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+                <span class="n">zipf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">path</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">):])</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+        <span class="s1">&#39;output_name&#39;</span><span class="p">:</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{work.assignment.name}</span><span class="s1">-</span><span class="si">{work.user.name}</span><span class="s1">-archive.zip&#39;</span>
+    <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="delete_submission"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.submissions.delete_submission">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/submissions/&lt;int:submission_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;DELETE&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">delete_submission</span><span class="p">(</span><span class="n">submission_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Delete a submission and all its files.</span>
+
+<span class="sd">    .. :quickref: Submission; Delete a submission and all its files.</span>
+
+<span class="sd">    .. warning::</span>
+
+<span class="sd">        This is irreversible, so make sure the user really wants this!</span>
+
+<span class="sd">    :param submission_id: The submission to delete.</span>
+<span class="sd">    :returns: Nothing</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">submission</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span> <span class="n">submission_id</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span>
+        <span class="s1">&#39;can_delete_submission&#39;</span><span class="p">,</span> <span class="n">submission</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span>
+    <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">sub_file</span> <span class="ow">in</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+        <span class="n">work_id</span><span class="o">=</span><span class="n">submission_id</span><span class="p">,</span> <span class="n">is_directory</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sub_file</span><span class="o">.</span><span class="n">delete_from_disk</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+            <span class="k">pass</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">submission</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="get_feedback_from_submission"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.submissions.get_feedback_from_submission">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/submissions/&lt;int:submission_id&gt;/feedbacks/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">get_feedback_from_submission</span><span class="p">(</span><span class="n">submission_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">Feedback</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Get all feedback for a submission</span>
+
+<span class="sd">    .. :quickref: Submission; Get all (linter, user and general) feedback.</span>
+
+<span class="sd">    :&gt;json general: The general feedback given on this submission.</span>
+<span class="sd">    :&gt;json user: A mapping between file id and a mapping that is between line</span>
+<span class="sd">        and feedback. So for example: ``{5: {0: &#39;Nice job!&#39;}}`` means that file</span>
+<span class="sd">        with ``id`` 5 has feedback on line 0.</span>
+<span class="sd">    :&gt;json linter: A mapping that is almost the same the user feedback mapping,</span>
+<span class="sd">        only the final key is not a string but a list of tuples where the first</span>
+<span class="sd">        item is the linter code and the second item is a</span>
+<span class="sd">        :class:`.models.LinterComment`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">work</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span> <span class="n">submission_id</span><span class="p">)</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_see_grade</span><span class="p">(</span><span class="n">work</span><span class="p">)</span>
+
+    <span class="n">res</span><span class="p">:</span> <span class="n">Feedback</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;general&#39;</span><span class="p">:</span> <span class="n">work</span><span class="o">.</span><span class="n">comment</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">),</span>
+        <span class="s1">&#39;linter&#39;</span><span class="p">:</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)),</span>
+    <span class="p">}</span>
+
+    <span class="n">comments</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">DbColumn</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">],</span> <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="o">.</span><span class="n">file</span><span class="p">)</span><span class="o">.</span><span class="n">has</span><span class="p">(</span><span class="n">work</span><span class="o">=</span><span class="n">work</span><span class="p">),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">DbColumn</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="o">.</span><span class="n">file_id</span><span class="p">)</span><span class="o">.</span><span class="n">asc</span><span class="p">(),</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">DbColumn</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">models</span><span class="o">.</span><span class="n">Comment</span><span class="o">.</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">asc</span><span class="p">(),</span>
+    <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">comment</span> <span class="ow">in</span> <span class="n">comments</span><span class="p">:</span>
+        <span class="n">res</span><span class="p">[</span><span class="s1">&#39;user&#39;</span><span class="p">][</span><span class="n">comment</span><span class="o">.</span><span class="n">file_id</span><span class="p">][</span><span class="n">comment</span><span class="o">.</span><span class="n">line</span><span class="p">]</span> <span class="o">=</span> <span class="n">comment</span><span class="o">.</span><span class="n">comment</span>
+
+    <span class="n">linter_comments</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">LinterComment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">DbColumn</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">],</span> <span class="n">models</span><span class="o">.</span><span class="n">LinterComment</span><span class="o">.</span><span class="n">file</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">has</span><span class="p">(</span><span class="n">work</span><span class="o">=</span><span class="n">work</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">DbColumn</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">models</span><span class="o">.</span><span class="n">LinterComment</span><span class="o">.</span><span class="n">file_id</span><span class="p">)</span><span class="o">.</span><span class="n">asc</span><span class="p">(),</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">DbColumn</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">models</span><span class="o">.</span><span class="n">LinterComment</span><span class="o">.</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">asc</span><span class="p">(),</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">helpers</span><span class="o">.</span><span class="n">has_feature</span><span class="p">(</span><span class="s1">&#39;LINTERS&#39;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">lcomment</span> <span class="ow">in</span> <span class="n">linter_comments</span><span class="p">:</span>
+            <span class="n">res</span><span class="p">[</span><span class="s1">&#39;linter&#39;</span><span class="p">][</span><span class="n">lcomment</span><span class="o">.</span><span class="n">file_id</span><span class="p">][</span><span class="n">lcomment</span><span class="o">.</span><span class="n">line</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">lcomment</span><span class="o">.</span><span class="n">linter_code</span><span class="p">,</span> <span class="n">lcomment</span><span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_rubric"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.submissions.get_rubric">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/submissions/&lt;int:submission_id&gt;/rubrics/&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="nd">@helpers</span><span class="o">.</span><span class="n">feature_required</span><span class="p">(</span><span class="s1">&#39;RUBRICS&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_rubric</span><span class="p">(</span><span class="n">submission_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Return full rubric of the :class:`.models.Assignment` of the given</span>
+<span class="sd">    submission (:class:`.models.Work`).</span>
+
+<span class="sd">    .. :quickref: Submission; Get a rubric and its selected items.</span>
+
+<span class="sd">    :param int submission_id: The id of the submission</span>
+<span class="sd">    :returns: A response containing the JSON serialized rubric as described in</span>
+<span class="sd">        :py:meth:`.Work.__rubric_to_json__`.</span>
+
+<span class="sd">    :raises APIException: If the submission with the given id does not exist.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not see the assignment of the</span>
+<span class="sd">                                 given submission. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">work</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span> <span class="n">submission_id</span><span class="p">)</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_see_assignments&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">work</span><span class="o">.</span><span class="n">__rubric_to_json__</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="select_rubric_items"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.submissions.select_rubric_items">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/submissions/&lt;int:submission_id&gt;/rubricitems/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PATCH&#39;</span><span class="p">])</span>
+<span class="nd">@helpers</span><span class="o">.</span><span class="n">feature_required</span><span class="p">(</span><span class="s1">&#39;RUBRICS&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">select_rubric_items</span><span class="p">(</span><span class="n">submission_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Select the given rubric items for the given submission.</span>
+
+<span class="sd">    .. :quickref: Submission; Select multiple rubric items.</span>
+
+<span class="sd">    :param submission_id: The submission to unselect the item for.</span>
+
+<span class="sd">    :&gt;json array items: The ids of the rubric items you want to select.</span>
+
+<span class="sd">    :returns: Nothing.</span>
+
+<span class="sd">    :raises APIException: If the assignment of a given item does not belong to</span>
+<span class="sd">        the assignment of the given submission. of the submission</span>
+<span class="sd">        (INVALID_PARAM).</span>
+<span class="sd">    :raises PermissionException: If the current user cannot grace work</span>
+<span class="sd">        (INCORRECT_PERMISSION).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">submission</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span> <span class="n">submission_id</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span> <span class="n">submission</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">content</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;items&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">)])</span>
+    <span class="n">item_ids</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;items&#39;</span><span class="p">])</span>
+
+    <span class="n">items</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">item_id</span> <span class="ow">in</span> <span class="n">item_ids</span><span class="p">:</span>
+        <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">RubricItem</span><span class="p">,</span> <span class="n">item_id</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
+        <span class="n">item</span><span class="o">.</span><span class="n">rubricrow</span><span class="o">.</span><span class="n">assignment_id</span> <span class="o">!=</span> <span class="n">submission</span><span class="o">.</span><span class="n">assignment_id</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;Selected rubric item is not coupled to the given submission&#39;</span><span class="p">,</span>
+            <span class="n">f</span><span class="s1">&#39;A given item of &quot;{&quot;, &quot;.join(str(i) for i in item_ids)}&quot;&#39;</span>
+            <span class="n">f</span><span class="s1">&#39; does not belong to assignment &quot;</span><span class="si">{submission.assignment_id}</span><span class="s1">&quot;&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+
+    <span class="n">submission</span><span class="o">.</span><span class="n">select_rubric_items</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="unselect_rubric_item"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.submissions.unselect_rubric_item">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span>
+    <span class="s1">&#39;/submissions/&lt;int:submission_id&gt;/rubricitems/&lt;int:rubric_item_id&gt;&#39;</span><span class="p">,</span>
+    <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;DELETE&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="nd">@helpers</span><span class="o">.</span><span class="n">feature_required</span><span class="p">(</span><span class="s1">&#39;RUBRICS&#39;</span><span class="p">)</span>
+<span class="nd">@helpers</span><span class="o">.</span><span class="n">feature_required</span><span class="p">(</span><span class="s1">&#39;INCREMENTAL_RUBRIC_SUBMISSION&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">unselect_rubric_item</span><span class="p">(</span>
+    <span class="n">submission_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">rubric_item_id</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Unselect the given rubric item for the given submission.</span>
+
+<span class="sd">    .. :quickref: Submission; Unselect the given rubric item.</span>
+
+<span class="sd">    :param submission_id: The submission to unselect the item for.</span>
+<span class="sd">    :param rubric_item_id: The rubric items id to unselect.</span>
+<span class="sd">    :returns: Nothing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">submission</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span> <span class="n">submission_id</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span> <span class="n">submission</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">new_items</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">submission</span><span class="o">.</span><span class="n">selected_items</span> <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="n">rubric_item_id</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_items</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">submission</span><span class="o">.</span><span class="n">selected_items</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;Selected rubric item was not selected for this submission&#39;</span><span class="p">,</span>
+            <span class="n">f</span><span class="s1">&#39;The item </span><span class="si">{rubric_item_id}</span><span class="s1"> is not selected for </span><span class="si">{submission_id}</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+
+    <span class="n">submission</span><span class="o">.</span><span class="n">selected_items</span> <span class="o">=</span> <span class="n">new_items</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="select_rubric_item"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.submissions.select_rubric_item">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span>
+    <span class="s2">&quot;/submissions/&lt;int:submission_id&gt;/rubricitems/&lt;int:rubricitem_id&gt;&quot;</span><span class="p">,</span>
+    <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PATCH&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="nd">@helpers</span><span class="o">.</span><span class="n">feature_required</span><span class="p">(</span><span class="s1">&#39;RUBRICS&#39;</span><span class="p">)</span>
+<span class="nd">@helpers</span><span class="o">.</span><span class="n">feature_required</span><span class="p">(</span><span class="s1">&#39;INCREMENTAL_RUBRIC_SUBMISSION&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">select_rubric_item</span><span class="p">(</span>
+    <span class="n">submission_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">rubricitem_id</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Select a rubric item of the given submission (:class:`.models.Work`).</span>
+
+<span class="sd">    .. :quickref: Submission; Select a rubric item.</span>
+
+<span class="sd">    :param int submission_id: The id of the submission</span>
+<span class="sd">    :param int rubricitem_id: The id of the rubric item</span>
+<span class="sd">    :returns: Nothing.</span>
+
+<span class="sd">    :raises APIException: If either the submission or rubric item with the</span>
+<span class="sd">                          given ids does not exist. (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: If the assignment of the rubric is not the assignment</span>
+<span class="sd">                          of the submission. (INVALID_PARAM)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not grade the given submission</span>
+<span class="sd">                                 (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">work</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span> <span class="n">submission_id</span><span class="p">)</span>
+    <span class="n">rubric_item</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">RubricItem</span><span class="p">,</span> <span class="n">rubricitem_id</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">rubric_item</span><span class="o">.</span><span class="n">rubricrow</span><span class="o">.</span><span class="n">assignment_id</span> <span class="o">!=</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment_id</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;Rubric item selected does not match assignment&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The rubric item with id </span><span class="si">{}</span><span class="s1"> does not match the assignment&#39;</span><span class="o">.</span>
+            <span class="nb">format</span><span class="p">(</span><span class="n">rubricitem_id</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+
+    <span class="n">work</span><span class="o">.</span><span class="n">remove_selected_rubric_item</span><span class="p">(</span><span class="n">rubric_item</span><span class="o">.</span><span class="n">rubricrow_id</span><span class="p">)</span>
+    <span class="n">work</span><span class="o">.</span><span class="n">select_rubric_items</span><span class="p">([</span><span class="n">rubric_item</span><span class="p">],</span> <span class="n">current_user</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="patch_submission"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.submissions.patch_submission">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/submissions/&lt;int:submission_id&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PATCH&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">patch_submission</span><span class="p">(</span><span class="n">submission_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Update the given submission (:class:`.models.Work`) if it already</span>
+<span class="sd">    exists.</span>
+
+<span class="sd">    .. :quickref: Submission; Update a submissions grade and feedback.</span>
+
+<span class="sd">    :param int submission_id: The id of the submission</span>
+<span class="sd">    :returns: Empty response with return code 204</span>
+
+<span class="sd">    :&gt;json float grade: The new grade, this can be null or float where null</span>
+<span class="sd">        resets the grade or clears it. This field is optional</span>
+<span class="sd">    :&gt;json str feedback: The feedback for the student. This field is optional.</span>
+
+<span class="sd">    :raise APIException: If the submission with the given id does not exist</span>
+<span class="sd">        (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raise APIException: If the value of the &quot;grade&quot; parameter is not a float</span>
+<span class="sd">        (INVALID_PARAM)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If user can not grade the submission with the</span>
+<span class="sd">        given id (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">work</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span> <span class="n">submission_id</span><span class="p">)</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="s1">&#39;feedback&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+        <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;feedback&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+        <span class="n">feedback</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;feedback&#39;</span><span class="p">])</span>
+
+        <span class="n">work</span><span class="o">.</span><span class="n">comment</span> <span class="o">=</span> <span class="n">feedback</span>
+
+    <span class="k">if</span> <span class="s1">&#39;grade&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+        <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;grade&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)))])</span>
+        <span class="n">grade</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;grade&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">grade</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="nb">float</span><span class="p">(</span><span class="n">grade</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">10</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;Grade submitted not between 0 and 10&#39;</span><span class="p">,</span>
+                <span class="n">f</span><span class="s1">&#39;Grade for work with id </span><span class="si">{submission_id}</span><span class="s1"> &#39;</span>
+                <span class="n">f</span><span class="s1">&#39;is </span><span class="si">{content[&quot;grade&quot;]}</span><span class="s1"> which is not between 0 and 10&#39;</span><span class="p">,</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+            <span class="p">)</span>
+
+        <span class="n">work</span><span class="o">.</span><span class="n">set_grade</span><span class="p">(</span><span class="n">grade</span><span class="p">,</span> <span class="n">current_user</span><span class="p">)</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">work</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="update_submission_grader"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.submissions.update_submission_grader">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/submissions/&lt;int:submission_id&gt;/grader&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PATCH&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">update_submission_grader</span><span class="p">(</span><span class="n">submission_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Change the assigned grader of the given submission.</span>
+
+<span class="sd">    .. :quickref: Submission; Update grader for the submission.</span>
+
+<span class="sd">    :returns: Empty response and a 204 status.</span>
+
+<span class="sd">    :&gt;json int user_id: Id of the new grader. This is a required parameter.</span>
+
+<span class="sd">    :raises PermissionException: If the logged in user cannot manage the</span>
+<span class="sd">        course of the submission. (INCORRECT_PERMISSION)</span>
+<span class="sd">    :raises APIException: If the new grader does not have the correct</span>
+<span class="sd">        permission to grade this submission. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">work</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span> <span class="n">submission_id</span><span class="p">)</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;user_id&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)])</span>
+    <span class="n">user_id</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;user_id&#39;</span><span class="p">])</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_assign_graders&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">grader</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">user_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">grader</span><span class="o">.</span><span class="n">has_permission</span><span class="p">(</span><span class="s1">&#39;can_grade_work&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="n">f</span><span class="s1">&#39;User &quot;</span><span class="si">{grader.name}</span><span class="s1">&quot; doesn</span><span class="se">\&#39;</span><span class="s1">t have the required permission&#39;</span><span class="p">,</span>
+            <span class="n">f</span><span class="s1">&#39;User &quot;</span><span class="si">{grader.name}</span><span class="s1">&quot; doesn</span><span class="se">\&#39;</span><span class="s1">t have permission &quot;can_grade_work&quot;&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+
+    <span class="n">work</span><span class="o">.</span><span class="n">assignee</span> <span class="o">=</span> <span class="n">grader</span>
+    <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">set_graders_to_not_done</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">grader</span><span class="o">.</span><span class="n">id</span><span class="p">],</span>
+        <span class="n">send_mail</span><span class="o">=</span><span class="n">grader</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+        <span class="n">ignore_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="delete_submission_grader"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.submissions.delete_submission_grader">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/submissions/&lt;int:submission_id&gt;/grader&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;DELETE&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">delete_submission_grader</span><span class="p">(</span><span class="n">submission_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Change the assigned grader of the given submission.</span>
+
+<span class="sd">    .. :quickref: Submission; Delete grader for the submission.</span>
+
+<span class="sd">    :returns: Empty response and a 204 status.</span>
+
+<span class="sd">    :raises PermissionException: If the logged in user cannot manage the</span>
+<span class="sd">        course of the submission. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">work</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span> <span class="n">submission_id</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_assign_graders&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">work</span><span class="o">.</span><span class="n">assignee</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="get_grade_history"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.submissions.get_grade_history">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/submissions/&lt;int:submission_id&gt;/grade_history/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">get_grade_history</span><span class="p">(</span><span class="n">submission_id</span><span class="p">:</span> <span class="nb">int</span>
+                      <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">GradeHistory</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Get the grade history for the given submission.</span>
+
+<span class="sd">    .. :quickref: Submission; Get the grade history for the given submission.</span>
+
+<span class="sd">    :returns: A list of :class:`.models.GradeHistory` object serialized to</span>
+<span class="sd">        json for the given assignment.</span>
+<span class="sd">    :raises PermissionException: If the current user has no permission to see</span>
+<span class="sd">        the grade history. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">work</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span> <span class="n">submission_id</span><span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_see_grade_history&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">hist</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">MutableSequence</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">GradeHistory</span><span class="p">]</span>
+    <span class="n">hist</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">GradeHistory</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">work_id</span><span class="o">=</span><span class="n">work</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">GradeHistory</span><span class="o">.</span><span class="n">changed_at</span><span class="o">.</span><span class="n">desc</span><span class="p">(),</span>  <span class="c1"># type: ignore</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">hist</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="create_new_file"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.submissions.create_new_file">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/submissions/&lt;int:submission_id&gt;/files/&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">create_new_file</span><span class="p">(</span><span class="n">submission_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Create a new file or directory for the given submission.</span>
+
+<span class="sd">    .. :quickref: Submission; Create a new file or directory for a submission.</span>
+
+<span class="sd">    :param str path: The path of the new file to create. If the path ends in</span>
+<span class="sd">        a forward slash a new directory is created and the body of the request</span>
+<span class="sd">        is ignored, otherwise a regular file is created.</span>
+
+<span class="sd">    :returns: Stat information about the new file, see</span>
+<span class="sd">        :py:func:`.files.get_stat_information`</span>
+
+<span class="sd">    :raises APIException: If the request is bigger than the maximum upload</span>
+<span class="sd">        size. (REQUEST_TOO_LARGE)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">work</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span> <span class="n">submission_id</span><span class="p">)</span>
+    <span class="n">exclude_owner</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">get_exclude_owner</span><span class="p">(</span>
+        <span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span>
+    <span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_edit_work</span><span class="p">(</span><span class="n">work</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">exclude_owner</span> <span class="o">==</span> <span class="n">FileOwner</span><span class="o">.</span><span class="n">teacher</span><span class="p">:</span>  <span class="c1"># we are a student</span>
+        <span class="n">assig</span> <span class="o">=</span> <span class="n">work</span><span class="o">.</span><span class="n">assignment</span>
+        <span class="n">new_owner</span> <span class="o">=</span> <span class="n">FileOwner</span><span class="o">.</span><span class="n">both</span> <span class="k">if</span> <span class="n">assig</span><span class="o">.</span><span class="n">is_open</span> <span class="k">else</span> <span class="n">FileOwner</span><span class="o">.</span><span class="n">student</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">new_owner</span> <span class="o">=</span> <span class="n">FileOwner</span><span class="o">.</span><span class="n">teacher</span>
+
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;path&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+
+    <span class="n">pathname</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;path&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="c1"># `create_dir` means that the last file should be a dir or not.</span>
+    <span class="n">patharr</span><span class="p">,</span> <span class="n">create_dir</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">split_path</span><span class="p">(</span><span class="n">pathname</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="ow">not</span> <span class="n">create_dir</span> <span class="ow">and</span> <span class="n">request</span><span class="o">.</span><span class="n">content_length</span> <span class="ow">and</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">content_length</span> <span class="o">&gt;</span> <span class="n">app</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;MAX_UPLOAD_SIZE&#39;</span><span class="p">]</span>
+    <span class="p">):</span>
+        <span class="n">helpers</span><span class="o">.</span><span class="n">raise_file_too_big_exception</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">patharr</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;Path should contain at least a two parts&#39;</span><span class="p">,</span>
+            <span class="n">f</span><span class="s1">&#39;&quot;</span><span class="si">{pathname}</span><span class="s1">&quot; only contains {len(patharr)} parts&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+
+    <span class="n">parent</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">work_id</span> <span class="o">==</span> <span class="n">submission_id</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">!=</span> <span class="n">exclude_owner</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">patharr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">DbColumn</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">parent_id</span><span class="p">)</span><span class="o">.</span><span class="n">is_</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="n">code</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">end_idx</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">part</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">patharr</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">!=</span> <span class="n">exclude_owner</span><span class="p">,</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">part</span><span class="p">,</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">parent</span> <span class="o">==</span> <span class="n">parent</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="n">end_idx</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">code</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">parent</span> <span class="o">=</span> <span class="n">code</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">end_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">_is_last</span><span class="p">(</span><span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">end_idx</span> <span class="o">+</span> <span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">patharr</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">_is_last</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">parent</span><span class="o">.</span><span class="n">is_directory</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;All part did already exist&#39;</span><span class="p">,</span>
+            <span class="n">f</span><span class="s1">&#39;The path &quot;</span><span class="si">{pathname}</span><span class="s1">&quot; did already exist&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span>
+            <span class="mi">400</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">part</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">patharr</span><span class="p">[</span><span class="n">end_idx</span><span class="p">:]):</span>
+        <span class="k">if</span> <span class="n">_is_last</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">create_dir</span><span class="p">:</span>
+            <span class="n">is_dir</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">d_filename</span><span class="p">,</span> <span class="n">filename</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">random_file_path</span><span class="p">()</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">d_filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">as_text</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">is_dir</span><span class="p">,</span> <span class="n">filename</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">(</span>
+            <span class="n">work_id</span><span class="o">=</span><span class="n">submission_id</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">part</span><span class="p">,</span>
+            <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
+            <span class="n">is_directory</span><span class="o">=</span><span class="n">is_dir</span><span class="p">,</span>
+            <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">,</span>
+            <span class="n">fileowner</span><span class="o">=</span><span class="n">new_owner</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
+        <span class="n">parent</span> <span class="o">=</span> <span class="n">code</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">get_stat_information</span><span class="p">(</span><span class="n">code</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="get_dir_contents"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.submissions.get_dir_contents">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/submissions/&lt;int:submission_id&gt;/files/&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">login_required</span>
+<span class="k">def</span> <span class="nf">get_dir_contents</span><span class="p">(</span><span class="n">submission_id</span><span class="p">:</span> <span class="nb">int</span>
+                     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">JSONResponse</span><span class="p">[</span><span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">FileTree</span><span class="p">],</span>
+                                  <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]]]:</span>
+    <span class="sd">&quot;&quot;&quot;Return the file directory info of a file of the given submission</span>
+<span class="sd">    (:class:`.models.Work`).</span>
+
+<span class="sd">    .. :quickref: Submission; Get the directory contents for a submission.</span>
+
+<span class="sd">    The default file is the root of the submission, but a specific file can be</span>
+<span class="sd">    specified with the file_id argument in the request.</span>
+
+<span class="sd">    :param int submission_id: The id of the submission</span>
+<span class="sd">    :returns: A response with the JSON serialized directory structure as</span>
+<span class="sd">        content and return code 200. For the exact structure see</span>
+<span class="sd">        :py:meth:`.File.list_contents`. If path is given the return value will</span>
+<span class="sd">        be stat datastructure, see :py:func:`.files.get_stat_information`.</span>
+
+<span class="sd">    :query int file_id: The file id of the directory to get. If this is not</span>
+<span class="sd">        given the parent directory for the specified submission is used.</span>
+<span class="sd">    :query str path: The path that should be searched. The ``file_id`` query</span>
+<span class="sd">        parameter is used if both ``file_id`` and ``path`` are present.</span>
+<span class="sd">    :query str owner: The type of files to list, if set to `teacher` only</span>
+<span class="sd">        teacher files will be listed, otherwise only student files will be</span>
+<span class="sd">        listed.</span>
+
+<span class="sd">    :raise APIException: If the submission with the given id does not exist or</span>
+<span class="sd">                         when a file id was specified no file with this id</span>
+<span class="sd">                         exists. (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: wWhen a file id is specified and the submission id</span>
+<span class="sd">                          does not match the submission id of the file.</span>
+<span class="sd">                          (INVALID_URL)</span>
+<span class="sd">    :raises APIException: When a file id is specified and the file with that id</span>
+<span class="sd">                          is not a directory. (OBJECT_WRONG_TYPE)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If submission does not belong to the current</span>
+<span class="sd">                                 user and the user can not view files in the</span>
+<span class="sd">                                 attached course. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">work</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Work</span><span class="p">,</span> <span class="n">submission_id</span><span class="p">)</span>
+
+    <span class="n">file_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;file_id&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;path&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">exclude_owner</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">get_exclude_owner</span><span class="p">(</span>
+        <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;owner&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="n">work</span><span class="o">.</span><span class="n">assignment</span><span class="o">.</span><span class="n">course_id</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_can_view_files</span><span class="p">(</span><span class="n">work</span><span class="p">,</span> <span class="n">exclude_owner</span> <span class="o">==</span> <span class="n">FileOwner</span><span class="o">.</span><span class="n">student</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">file_id</span><span class="p">:</span>
+        <span class="n">file</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">,</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">file_id</span><span class="p">,</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">work_id</span> <span class="o">==</span> <span class="n">work</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">path</span><span class="p">:</span>
+        <span class="n">found_file</span> <span class="o">=</span> <span class="n">work</span><span class="o">.</span><span class="n">search_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">exclude_owner</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">get_stat_information</span><span class="p">(</span><span class="n">found_file</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">file</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">work_id</span> <span class="o">==</span> <span class="n">submission_id</span><span class="p">,</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">DbColumn</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">parent_id</span><span class="p">)</span><span class="o">.</span><span class="n">is_</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="o">.</span><span class="n">fileowner</span> <span class="o">!=</span> <span class="n">exclude_owner</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">file</span><span class="o">.</span><span class="n">is_directory</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;File is not a directory&#39;</span><span class="p">,</span>
+            <span class="n">f</span><span class="s1">&#39;The file with code </span><span class="si">{file.id}</span><span class="s1"> is not a directory&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_WRONG_TYPE</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">list_contents</span><span class="p">(</span><span class="n">exclude_owner</span><span class="p">))</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Schaper.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'1.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

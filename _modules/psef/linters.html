@@ -1,0 +1,542 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>psef.linters &mdash; CodeGra.de 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link href="../../_static/style.css" rel="stylesheet" type="text/css">
+
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> CodeGra.de
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">User Manual CodeGra.de</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code.html">Code documentation of psef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../running.html">How to run CodeGra.de</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CodeGra.de</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../psef.html">psef</a> &raquo;</li>
+        
+      <li>psef.linters</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for psef.linters</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module contains all the linters that are integrated in the service.</span>
+
+<span class="sd">Integrated linters are ran by the :class:`LinterRunner` and thus implement run</span>
+<span class="sd">method.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+
+<span class="kn">import</span> <span class="nn">psef</span>
+<span class="kn">import</span> <span class="nn">psef.files</span>
+<span class="kn">import</span> <span class="nn">psef.models</span> <span class="k">as</span> <span class="nn">models</span>
+<span class="kn">from</span> <span class="nn">psef.models</span> <span class="k">import</span> <span class="n">db</span>
+<span class="kn">from</span> <span class="nn">psef.helpers</span> <span class="k">import</span> <span class="n">get_all_subclasses</span>
+
+
+<div class="viewcode-block" id="init_app"><a class="viewcode-back" href="../../psef_api/psef.html#psef.linters.init_app">[docs]</a><span class="k">def</span> <span class="nf">init_app</span><span class="p">(</span><span class="n">_</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="Linter"><a class="viewcode-back" href="../../psef_api/psef.html#psef.linters.Linter">[docs]</a><span class="k">class</span> <span class="nc">Linter</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;The base class for a linter.</span>
+
+<span class="sd">    Every linter should inherit from this class as they are discovered by</span>
+<span class="sd">    reflecting on subclasses from this class. They should override the ``run``</span>
+<span class="sd">    method, and they may override the ``DEFAULT_OPTIONS`` variable. If</span>
+<span class="sd">    ``RUN_LINTER`` is set to ``False`` we never actually run the linter, but</span>
+<span class="sd">    only create a :py:class:`.models.AssignmentLinter` for this assignment and</span>
+<span class="sd">    a :py:class:`.models.LinterInstance` for each submission.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        If a linter doesn&#39;t override ``DEFAULT_OPTIONS`` the user will not have</span>
+<span class="sd">        the ability to define a custom configuration for the linter in the</span>
+<span class="sd">        frontend.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">DEFAULT_OPTIONS</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">ClassVar</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">RUN_LINTER</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">ClassVar</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">cfg</span>
+
+<div class="viewcode-block" id="Linter.run"><a class="viewcode-back" href="../../psef_api/psef.html#psef.linters.Linter.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tempdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">emit</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="sd">&quot;&quot;&quot;Run the linter on the code in `tempdir`.</span>
+
+<span class="sd">        :param tempdir: The temp directory that should contain the code to</span>
+<span class="sd">                            run the linter on.</span>
+<span class="sd">        :param emit: A callback to emit a line of feedback, where the first</span>
+<span class="sd">                     argument is the filename, the second is the line number,</span>
+<span class="sd">                     the third is the code of the linter error, and the fourth</span>
+<span class="sd">                     and last is the message of the linter.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;A subclass should implement this function!&#39;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="Pylint"><a class="viewcode-back" href="../../psef_api/psef.html#psef.linters.Pylint">[docs]</a><span class="k">class</span> <span class="nc">Pylint</span><span class="p">(</span><span class="n">Linter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The pylint checker.</span>
+
+<span class="sd">    This checks python modules for many common errors. It only works on proper</span>
+<span class="sd">    modules and will display an error on the first line of every file if the</span>
+<span class="sd">    given code was not a proper module.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">DEFAULT_OPTIONS</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">ClassVar</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;Empty config file&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span>
+    <span class="p">}</span>
+
+<div class="viewcode-block" id="Pylint.run"><a class="viewcode-back" href="../../psef_api/psef.html#psef.linters.Pylint.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tempdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="n">emit</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Run the pylinter.</span>
+
+<span class="sd">        Arguments are the same as for :py:meth:`Linter.run`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tempdir</span><span class="p">,</span> <span class="s1">&#39;.__config__&#39;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">config_file</span><span class="p">:</span>
+            <span class="n">config_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+        <span class="n">sep</span> <span class="o">=</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{1}{0}{2}{0}{3}{0}{4}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">sep</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{path}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{line}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{msg_id}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{msg}</span><span class="s1">&#39;</span>
+        <span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="s1">&#39;pylint&#39;</span><span class="p">,</span> <span class="s1">&#39;--rcfile=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cfg</span><span class="p">),</span> <span class="s1">&#39;--msg-template&#39;</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span>
+                <span class="n">tempdir</span>
+            <span class="p">],</span>
+            <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span>
+        <span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf8&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">out</span><span class="o">.</span><span class="n">returncode</span> <span class="o">==</span> <span class="mi">32</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">out</span><span class="o">.</span><span class="n">returncode</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">dir_name</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">tempdir</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">test_file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">test_file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.py&#39;</span><span class="p">):</span>
+                        <span class="n">emit</span><span class="p">(</span>
+                            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dir_name</span><span class="p">,</span> <span class="n">test_file</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;ERR&#39;</span><span class="p">,</span>
+                            <span class="s1">&#39;No init file was found, pylint did not run!&#39;</span>
+                        <span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">sep</span><span class="p">))</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">emit</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="o">*</span><span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">IndexError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+                <span class="k">pass</span></div></div>
+
+
+<div class="viewcode-block" id="Flake8"><a class="viewcode-back" href="../../psef_api/psef.html#psef.linters.Flake8">[docs]</a><span class="k">class</span> <span class="nc">Flake8</span><span class="p">(</span><span class="n">Linter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Run the Flake8 linter.</span>
+
+<span class="sd">    This linter checks for errors in python code and checks the pep8 python</span>
+<span class="sd">    coding standard. All &quot;noqa&quot;s are disabled when running.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">DEFAULT_OPTIONS</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">ClassVar</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;Empty config file&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span>
+    <span class="p">}</span>
+
+<div class="viewcode-block" id="Flake8.run"><a class="viewcode-back" href="../../psef_api/psef.html#psef.linters.Flake8.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tempdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="n">emit</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tempdir</span><span class="p">,</span> <span class="s1">&#39;.flake8&#39;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="c1"># This is not guessable</span>
+        <span class="n">sep</span> <span class="o">=</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%(path)s{0}%(row)d{0}%(code)s{0}%(text)s</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sep</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="s1">&#39;flake8&#39;</span><span class="p">,</span> <span class="s1">&#39;--disable-noqa&#39;</span><span class="p">,</span> <span class="s1">&#39;--config=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cfg</span><span class="p">),</span>
+                <span class="s1">&#39;--format&#39;</span><span class="p">,</span> <span class="n">fmt</span><span class="p">,</span> <span class="n">tempdir</span><span class="p">,</span> <span class="s1">&#39;--exit-zero&#39;</span>
+            <span class="p">],</span>
+            <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span>
+        <span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf8&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">out</span><span class="o">.</span><span class="n">returncode</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">sep</span><span class="p">))</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">emit</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="o">*</span><span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">IndexError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+                <span class="k">pass</span></div></div>
+
+
+<div class="viewcode-block" id="MixedWhitespace"><a class="viewcode-back" href="../../psef_api/psef.html#psef.linters.MixedWhitespace">[docs]</a><span class="k">class</span> <span class="nc">MixedWhitespace</span><span class="p">(</span><span class="n">Linter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Run the MixedWhitespace linter.</span>
+
+<span class="sd">    This linter checks if a file contains mixed indentation on the same line.</span>
+<span class="sd">    It doesn&#39;t catch different types of indentation being used in a file but on</span>
+<span class="sd">    different lines. Instead of adding a comment in the sidebar, the mixed</span>
+<span class="sd">    whitespace will be highlighted in the code.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">RUN_LINTER</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">ClassVar</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="MixedWhitespace.run"><a class="viewcode-back" href="../../psef_api/psef.html#psef.linters.MixedWhitespace.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tempdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">emit</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="c1"># This method should never be called as ``RUN_LINTER`` is set to</span>
+        <span class="c1"># ``false..</span>
+        <span class="k">assert</span> <span class="kc">False</span></div></div>
+
+
+<div class="viewcode-block" id="LinterRunner"><a class="viewcode-back" href="../../psef_api/psef.html#psef.linters.LinterRunner">[docs]</a><span class="k">class</span> <span class="nc">LinterRunner</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;This class is used to run a :class:`Linter` with a specific config on</span>
+<span class="sd">    sets of :class:`models.Work`.</span>
+
+<span class="sd">    .. py:attribute:: linter</span>
+<span class="sd">        The attached :class:`Linter` that will be ran by this class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">Linter</span><span class="p">],</span> <span class="n">cfg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Create a new instance of :class:`LinterRunner`</span>
+
+<span class="sd">        :param Linter cls: The linter to run.</span>
+<span class="sd">        :param str cfg: The config as as `str` to pass to the linter.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">linter</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>  <span class="c1"># type: Linter</span>
+
+<div class="viewcode-block" id="LinterRunner.run"><a class="viewcode-back" href="../../psef_api/psef.html#psef.linters.LinterRunner.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">linter_instance_ids</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Run this linter runner on the given works.</span>
+
+<span class="sd">        .. note:: This method takes a long time to execute, please run it in a</span>
+<span class="sd">                  thread.</span>
+
+<span class="sd">        :param linter_instance_ids: A sequence of all the ids of the linter</span>
+<span class="sd">            instances which should be run. If this linter instance has already</span>
+<span class="sd">            run once its old comments will be removed.</span>
+
+<span class="sd">        :returns: Nothing</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">linter_instance_id</span> <span class="ow">in</span> <span class="n">linter_instance_ids</span><span class="p">:</span>
+            <span class="n">linter_instance</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">LinterInstance</span>
+                                               <span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">linter_instance_id</span><span class="p">)</span>
+
+            <span class="c1"># This should never happen however it is better to check here.</span>
+            <span class="k">if</span> <span class="n">linter_instance</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+                <span class="k">continue</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">test</span><span class="p">(</span><span class="n">linter_instance</span><span class="p">)</span>
+            <span class="c1"># We want to catch all exceptions here as need to set our linter to</span>
+            <span class="c1"># the crashed state.</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># pylint: disable=broad-except</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+                <span class="n">linter_instance</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">LinterState</span><span class="o">.</span><span class="n">crashed</span>
+                <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="LinterRunner.test"><a class="viewcode-back" href="../../psef_api/psef.html#psef.linters.LinterRunner.test">[docs]</a>    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">linter_instance</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">LinterInstance</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Test the given code (:class:`models.Work`) and add generated</span>
+<span class="sd">        comments.</span>
+
+<span class="sd">        :param linter_instance: The linter instance that will be run. This</span>
+<span class="sd">            linter instance is linked to a work from which all files will be</span>
+<span class="sd">            restored and the linter will be run on those files.</span>
+<span class="sd">        :returns: Nothing</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">temp_res</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]]</span>
+        <span class="n">temp_res</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">res</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]]</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">code</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">File</span><span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+            <span class="n">work_id</span><span class="o">=</span><span class="n">linter_instance</span><span class="o">.</span><span class="n">work_id</span><span class="p">,</span>
+            <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">one</span><span class="p">()</span>
+
+        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">tmpdir</span><span class="p">:</span>
+
+            <span class="k">def</span> <span class="nf">__emit</span><span class="p">(</span><span class="n">f</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">code</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">):</span>
+                    <span class="n">f</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
+                <span class="k">if</span> <span class="n">f</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">temp_res</span><span class="p">:</span>
+                    <span class="n">temp_res</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">line</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">line</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">temp_res</span><span class="p">[</span><span class="n">f</span><span class="p">]:</span>
+                    <span class="n">temp_res</span><span class="p">[</span><span class="n">f</span><span class="p">][</span><span class="n">line</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">temp_res</span><span class="p">[</span><span class="n">f</span><span class="p">][</span><span class="n">line</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">code</span><span class="p">,</span> <span class="n">msg</span><span class="p">))</span>
+
+            <span class="n">files</span> <span class="o">=</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">restore_directory_structure</span><span class="p">(</span>
+                <span class="n">code</span><span class="p">,</span>
+                <span class="n">tmpdir</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">linter</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="n">code</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">__emit</span><span class="p">)</span>
+
+        <span class="n">tmpdir</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">def</span> <span class="nf">__do</span><span class="p">(</span><span class="n">tree</span><span class="p">:</span> <span class="n">psef</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">FileTree</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">parent</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">tree</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s1">&#39;entries&#39;</span> <span class="ow">in</span> <span class="n">tree</span><span class="p">:</span>  <span class="c1"># this is dir:</span>
+                <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">tree</span><span class="p">[</span><span class="s1">&#39;entries&#39;</span><span class="p">]:</span>
+                    <span class="n">__do</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">parent</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">parent</span> <span class="ow">in</span> <span class="n">temp_res</span><span class="p">:</span>
+                <span class="n">res</span><span class="p">[</span><span class="n">tree</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">temp_res</span><span class="p">[</span><span class="n">parent</span><span class="p">]</span>
+                <span class="k">del</span> <span class="n">temp_res</span><span class="p">[</span><span class="n">parent</span><span class="p">]</span>
+
+        <span class="n">__do</span><span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="n">models</span><span class="o">.</span><span class="n">LinterComment</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">linter_id</span><span class="o">=</span><span class="n">linter_instance</span><span class="o">.</span><span class="n">id</span>
+                                             <span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">comment</span> <span class="ow">in</span> <span class="n">linter_instance</span><span class="o">.</span><span class="n">add_comments</span><span class="p">(</span><span class="n">res</span><span class="p">):</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">comment</span><span class="p">)</span>
+
+        <span class="n">linter_instance</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">LinterState</span><span class="o">.</span><span class="n">done</span>
+
+        <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="get_all_linters"><a class="viewcode-back" href="../../psef_api/psef.html#psef.linters.get_all_linters">[docs]</a><span class="k">def</span> <span class="nf">get_all_linters</span><span class="p">(</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]]:</span>
+    <span class="sd">&quot;&quot;&quot;Get an overview of all linters.</span>
+
+<span class="sd">    The returned linters are all the subclasses of :class:`Linter`.</span>
+
+<span class="sd">    :returns: A mapping of the name of the linter to a dictionary containing</span>
+<span class="sd">        the description and the default options of the linter with that name</span>
+
+<span class="sd">    .. testsetup::</span>
+
+<span class="sd">        from psef.linters import get_all_linters, Linter</span>
+
+<span class="sd">    .. doctest::</span>
+
+<span class="sd">        &gt;&gt;&gt; class MyLinter(Linter): pass</span>
+<span class="sd">        &gt;&gt;&gt; MyLinter.__doc__ = &quot;Description&quot;</span>
+<span class="sd">        &gt;&gt;&gt; MyLinter.DEFAULT_OPTIONS = {&#39;wow&#39;: &#39;sers&#39;}</span>
+<span class="sd">        &gt;&gt;&gt; all_linters = get_all_linters()</span>
+<span class="sd">        &gt;&gt;&gt; sorted(all_linters.keys())</span>
+<span class="sd">        [&#39;Flake8&#39;, &#39;MixedWhitespace&#39;, &#39;MyLinter&#39;, &#39;Pylint&#39;]</span>
+<span class="sd">        &gt;&gt;&gt; linter = all_linters[&#39;MyLinter&#39;]</span>
+<span class="sd">        &gt;&gt;&gt; linter == {&#39;desc&#39;: &#39;Description&#39;, &#39;opts&#39;: {&#39;wow&#39;: &#39;sers&#39;} }</span>
+<span class="sd">        True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="bp">cls</span> <span class="ow">in</span> <span class="n">get_all_subclasses</span><span class="p">(</span><span class="n">Linter</span><span class="p">):</span>
+        <span class="n">item</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span>
+        <span class="n">item</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;desc&#39;</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">,</span>
+            <span class="s1">&#39;opts&#39;</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="n">DEFAULT_OPTIONS</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">res</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span> <span class="o">=</span> <span class="n">item</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="get_linter_by_name"><a class="viewcode-back" href="../../psef_api/psef.html#psef.linters.get_linter_by_name">[docs]</a><span class="k">def</span> <span class="nf">get_linter_by_name</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Type</span><span class="p">[</span><span class="n">Linter</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Get the linter class associated with the given name.</span>
+
+<span class="sd">    :param str name: The name of the linter wanted.</span>
+<span class="sd">    :returns: The linter with the attribute `__name__` equal to `name`. If</span>
+<span class="sd">        there are multiple linters with the name `name` the result can be any</span>
+<span class="sd">        one of these linters.</span>
+<span class="sd">    :raises ValueError: If the linter with the specified name is not found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">linter</span> <span class="ow">in</span> <span class="n">get_all_subclasses</span><span class="p">(</span><span class="n">Linter</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">linter</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="n">name</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">linter</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No linter with name </span><span class="si">{}</span><span class="s1"> found.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Schaper.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'1.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

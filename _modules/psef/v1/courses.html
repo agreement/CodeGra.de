@@ -1,0 +1,782 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>psef.v1.courses &mdash; CodeGra.de 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link href="../../../_static/style.css" rel="stylesheet" type="text/css">
+
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> CodeGra.de
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">User Manual CodeGra.de</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code.html">Code documentation of psef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../running.html">How to run CodeGra.de</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CodeGra.de</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../psef.html">psef</a> &raquo;</li>
+        
+          <li><a href="../v1.html">psef.v1</a> &raquo;</li>
+        
+      <li>psef.v1.courses</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for psef.v1.courses</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module defines all API routes with the main directory &quot;courses&quot;. The APIs</span>
+<span class="sd">are used to create courses and return information about courses.</span>
+
+<span class="sd">:license: AGPLv3, see LICENSE for details.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+
+<span class="kn">import</span> <span class="nn">sqlalchemy</span>
+<span class="kn">from</span> <span class="nn">flask</span> <span class="k">import</span> <span class="n">request</span>
+<span class="kn">from</span> <span class="nn">mypy_extensions</span> <span class="k">import</span> <span class="n">TypedDict</span>
+
+<span class="kn">import</span> <span class="nn">psef.auth</span> <span class="k">as</span> <span class="nn">auth</span>
+<span class="kn">import</span> <span class="nn">psef.models</span> <span class="k">as</span> <span class="nn">models</span>
+<span class="kn">import</span> <span class="nn">psef.helpers</span> <span class="k">as</span> <span class="nn">helpers</span>
+<span class="kn">from</span> <span class="nn">psef</span> <span class="k">import</span> <span class="n">LTI_ROLE_LOOKUPS</span><span class="p">,</span> <span class="n">current_user</span>
+<span class="kn">from</span> <span class="nn">psef.errors</span> <span class="k">import</span> <span class="n">APICodes</span><span class="p">,</span> <span class="n">APIException</span>
+<span class="kn">from</span> <span class="nn">psef.models</span> <span class="k">import</span> <span class="n">db</span>
+<span class="kn">from</span> <span class="nn">psef.helpers</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">JSONResponse</span><span class="p">,</span> <span class="n">EmptyResponse</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">ensure_json_dict</span><span class="p">,</span>
+    <span class="n">ensure_keys_in_dict</span><span class="p">,</span> <span class="n">make_empty_response</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">api</span>
+
+<span class="n">_UserCourse</span> <span class="o">=</span> <span class="n">TypedDict</span><span class="p">(</span>  <span class="c1"># pylint: disable=invalid-name</span>
+    <span class="s1">&#39;_UserCourse&#39;</span><span class="p">,</span> <span class="p">{</span>
+        <span class="s1">&#39;User&#39;</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span>
+        <span class="s1">&#39;CourseRole&#39;</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="delete_role"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.delete_role">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;/roles/&lt;int:role_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;DELETE&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">delete_role</span><span class="p">(</span><span class="n">course_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">role_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Remove a :class:`.models.CourseRole` from the given</span>
+<span class="sd">    :class:`.models.Course`.</span>
+
+<span class="sd">    .. :quickref: Course; Delete a course role from a course.</span>
+
+<span class="sd">    :param int course_id: The id of the course</span>
+<span class="sd">    :returns: An empty response with return code 204</span>
+
+<span class="sd">    :raises APIException: If the role with the given ids does not exist.</span>
+<span class="sd">        (OBJECT_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: If there are still users with this role.</span>
+<span class="sd">        (INVALID_PARAM)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not manage the course with the</span>
+<span class="sd">        given id. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_edit_course_roles&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">course</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+    <span class="n">role</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">course_id</span> <span class="o">==</span> <span class="n">course_id</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">role_id</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">course</span><span class="o">.</span><span class="n">lti_provider</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s1">&#39;role&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">role</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">LTI_ROLE_LOOKUPS</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;You cannot delete default LTI roles for a LTI course&#39;</span><span class="p">,</span> <span class="p">(</span>
+                    <span class="s1">&#39;The course &quot;</span><span class="si">{}</span><span class="s1">&quot; is an LTI course &#39;</span>
+                    <span class="s1">&#39;so it is impossible to delete role </span><span class="si">{}</span><span class="s1">&#39;</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">course</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">role</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span>
+                <span class="mi">403</span>
+            <span class="p">)</span>
+
+    <span class="n">sql</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">user_course</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">user_course</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_id</span> <span class="o">==</span> <span class="n">role_id</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span><span class="o">.</span><span class="n">scalar</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;There are still users with this role&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;There are still users with role </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">role_id</span><span class="p">),</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">role</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="add_role"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.add_role">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;/roles/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">add_role</span><span class="p">(</span><span class="n">course_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Add a new :class:`.models.CourseRole` to the given</span>
+<span class="sd">    :class:`.models.Course`.</span>
+
+<span class="sd">    .. :quickref: Course; Add a new course role to a course.</span>
+
+<span class="sd">    :param int course_id: The id of the course</span>
+<span class="sd">    :returns: An empty response with return code 204.</span>
+
+<span class="sd">    :&lt;json str name: The name of the new course role.</span>
+
+<span class="sd">    :raises APIException: If the name parameter was not in the request.</span>
+<span class="sd">                          (MISSING_REQUIRED_PARAM)</span>
+<span class="sd">    :raises APIException: If the course with the given id was not found.</span>
+<span class="sd">                          (OBJECT_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: If the course already has a role with the submitted</span>
+<span class="sd">                          name. (INVALID_PARAM)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not manage the course with the</span>
+<span class="sd">                                 given id. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_edit_course_roles&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">content</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
+
+    <span class="n">course</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">course_id</span><span class="o">=</span><span class="n">course_id</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;This course already has a role with this name&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;The course &quot;</span><span class="si">{}</span><span class="s1">&quot; already has a role named &quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">course_id</span><span class="p">,</span> <span class="n">name</span>
+            <span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+
+    <span class="n">role</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">course</span><span class="o">=</span><span class="n">course</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">role</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="update_role"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.update_role">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;/roles/&lt;int:role_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PATCH&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">update_role</span><span class="p">(</span><span class="n">course_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">role_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmptyResponse</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Update the :class:`.models.Permission` of a given</span>
+<span class="sd">    :class:`.models.CourseRole` in the given :class:`.models.Course`.</span>
+
+<span class="sd">    .. :quickref: Course; Update a permission for a certain role.</span>
+
+<span class="sd">    :param int course_id: The id of the course.</span>
+<span class="sd">    :param int role_id: The id of the course role.</span>
+<span class="sd">    :returns: An empty response with return code 204.</span>
+
+<span class="sd">    :&lt;json str permission: The name of the permission to change.</span>
+<span class="sd">    :&lt;json bool value: The value to set the permission to (``True`` means the</span>
+<span class="sd">        specified role has the specified permission).</span>
+
+<span class="sd">    :raises APIException: If the value or permission parameter are not in the</span>
+<span class="sd">                          request. (MISSING_REQUIRED_PARAM)</span>
+<span class="sd">    :raises APIException: If the role with the given id does not exist or the</span>
+<span class="sd">                          permission with the given name does not exist.</span>
+<span class="sd">                          (OBJECT_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not manage the course with the</span>
+<span class="sd">                                 given id. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_edit_course_roles&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="nb">bool</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;permission&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+    <span class="n">permission</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;permission&#39;</span><span class="p">])</span>
+
+    <span class="n">role</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">course_id</span> <span class="o">==</span> <span class="n">course_id</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">role_id</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">perm</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">Permission</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">Permission</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">permission</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">Permission</span><span class="o">.</span><span class="n">course_permission</span> <span class="o">==</span> <span class="kc">True</span><span class="p">,</span>  <span class="c1"># pylint: disable=singleton-comparison</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">current_user</span><span class="o">.</span><span class="n">courses</span><span class="p">[</span><span class="n">course_id</span><span class="p">]</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">role</span><span class="o">.</span><span class="n">id</span> <span class="ow">and</span>
+        <span class="n">perm</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;can_edit_course_roles&#39;</span>
+    <span class="p">):</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;You cannot remove this permission from your own role&#39;</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s1">&#39;The current user is in role </span><span class="si">{}</span><span class="s1"> which&#39;</span>
+                <span class="s1">&#39; cannot remove &quot;can_edit_course_roles&quot;&#39;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">role</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span> <span class="mi">403</span>
+        <span class="p">)</span>
+
+    <span class="n">role</span><span class="o">.</span><span class="n">set_permission</span><span class="p">(</span><span class="n">perm</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">make_empty_response</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="get_all_course_roles"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.get_all_course_roles">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;/roles/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">get_all_course_roles</span><span class="p">(</span><span class="n">course_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span>
+    <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span>
+<span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]]]]]:</span>
+    <span class="sd">&quot;&quot;&quot;Get a list of all :class:`.models.CourseRole` objects of a given</span>
+<span class="sd">    :class:`.models.Course`.</span>
+
+<span class="sd">    .. :quickref: Course; Get all course roles for a single course.</span>
+
+<span class="sd">    :param int course_id: The id of the course to get the roles for.</span>
+<span class="sd">    :returns: An array of all course roles for the given course.</span>
+
+<span class="sd">    :&gt;jsonarr perms: All permissions this role has as returned</span>
+<span class="sd">        by :py:meth:`.models.CourseRole.get_all_permissions`.</span>
+<span class="sd">    :&gt;jsonarrtype perms: :py:class:`t.Mapping[str, bool]`</span>
+<span class="sd">    :&gt;jsonarr bool own: True if the current course role is the current users</span>
+<span class="sd">        course role.</span>
+<span class="sd">    :&gt;jsonarr ``**rest``: The course role as returned by</span>
+<span class="sd">        :py:meth:`.models.CourseRole.__to_json__`</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not manage the course with the</span>
+<span class="sd">                                 given id. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_edit_course_roles&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">course_roles</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">]</span>
+    <span class="n">course_roles</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">course_id</span><span class="o">=</span><span class="n">course_id</span>
+                                                     <span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
+                                                         <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">name</span>
+                                                     <span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;with_roles&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;true&#39;</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">course_role</span> <span class="ow">in</span> <span class="n">course_roles</span><span class="p">:</span>
+            <span class="n">json_course</span> <span class="o">=</span> <span class="n">course_role</span><span class="o">.</span><span class="n">__to_json__</span><span class="p">()</span>
+            <span class="n">json_course</span><span class="p">[</span><span class="s1">&#39;perms&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">course_role</span><span class="o">.</span><span class="n">get_all_permissions</span><span class="p">()</span>
+            <span class="n">json_course</span><span class="p">[</span><span class="s1">&#39;own&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">courses</span><span class="p">[</span><span class="n">course_role</span><span class="o">.</span><span class="n">course_id</span>
+                                                      <span class="p">]</span> <span class="o">==</span> <span class="n">course_role</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">json_course</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">course_roles</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="set_course_permission_user"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.set_course_permission_user">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;/users/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PUT&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">set_course_permission_user</span><span class="p">(</span>
+    <span class="n">course_id</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">EmptyResponse</span><span class="p">,</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">_UserCourse</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Set the :class:`.models.CourseRole` of a :class:`.models.User` in the</span>
+<span class="sd">    given :class:`.models.Course`.</span>
+
+<span class="sd">    .. :quickref: Course; Change the course role for a user.</span>
+
+<span class="sd">    :param int course_id: The id of the course</span>
+<span class="sd">    :returns: If the user_id parameter is set in the request the response will</span>
+<span class="sd">              be empty with return code 204. Otherwise the response will</span>
+<span class="sd">              contain the JSON serialized user and course role with return code</span>
+<span class="sd">              201</span>
+
+<span class="sd">    :raises APIException: If the parameter role_id or not at least one of</span>
+<span class="sd">                          user_id and user_email are in the request.</span>
+<span class="sd">                          (MISSING_REQUIRED_PARAM)</span>
+<span class="sd">    :raises APIException: If no role with the given role_id or no user</span>
+<span class="sd">                          with the supplied parameters exists.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises APIException: If the user was selected by email and the user is</span>
+<span class="sd">                          already in the course. (INVALID_PARAM)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not manage the course with the</span>
+<span class="sd">                                 given id. (INCORRECT_PERMISSION)</span>
+
+<span class="sd">    .. todo::</span>
+<span class="sd">        This function should probability be splitted.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_edit_course_users&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">content</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;role_id&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)])</span>
+    <span class="n">role_id</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;role_id&#39;</span><span class="p">])</span>
+
+    <span class="n">role</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">role_id</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">course_id</span> <span class="o">==</span> <span class="n">course_id</span>
+    <span class="p">)</span>
+
+    <span class="n">res</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">EmptyResponse</span><span class="p">,</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">_UserCourse</span><span class="p">]]</span>
+
+    <span class="k">if</span> <span class="s1">&#39;user_id&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+        <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;user_id&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)])</span>
+        <span class="n">user_id</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;user_id&#39;</span><span class="p">])</span>
+
+        <span class="n">user</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">user_id</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;You cannot change your own role&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;The user requested and the current user are the same&#39;</span><span class="p">,</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INCORRECT_PERMISSION</span><span class="p">,</span> <span class="mi">403</span>
+            <span class="p">)</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="n">make_empty_response</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="s1">&#39;username&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+        <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;username&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+
+        <span class="n">user</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">filter_single_or_404</span><span class="p">(</span>
+            <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">username</span> <span class="o">==</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">course_id</span> <span class="ow">in</span> <span class="n">user</span><span class="o">.</span><span class="n">courses</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+                <span class="s1">&#39;The specified user is already in this course&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;The user </span><span class="si">{}</span><span class="s1"> is in course </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">course_id</span><span class="p">),</span>
+                <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+            <span class="p">)</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="n">jsonify</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s1">&#39;User&#39;</span><span class="p">:</span> <span class="n">user</span><span class="p">,</span>
+                <span class="s1">&#39;CourseRole&#39;</span><span class="p">:</span> <span class="n">role</span><span class="p">,</span>
+            <span class="p">},</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">201</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;None of the keys &quot;user_id&quot; or &quot;role_id&quot; were found&#39;</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s1">&#39;The given content (</span><span class="si">{}</span><span class="s1">)&#39;</span>
+                <span class="s1">&#39; does  not contain &quot;user_id&quot; or &quot;user_email&quot;&#39;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">content</span><span class="p">),</span> <span class="n">APICodes</span><span class="o">.</span><span class="n">MISSING_REQUIRED_PARAM</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+
+    <span class="n">user</span><span class="o">.</span><span class="n">courses</span><span class="p">[</span><span class="n">role</span><span class="o">.</span><span class="n">course_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">role</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="get_all_course_users"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.get_all_course_users">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;/users/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">get_all_course_users</span><span class="p">(</span><span class="n">course_id</span><span class="p">:</span> <span class="nb">int</span>
+                         <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">_UserCourse</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Return a list of all :class:`.models.User` objects and their</span>
+<span class="sd">    :class:`.models.CourseRole` in the given :class:`.models.Course`.</span>
+
+<span class="sd">    .. :quickref: Course; Get all users for a single course.</span>
+
+<span class="sd">    :param int course_id: The id of the course</span>
+<span class="sd">    :returns: A response containing the JSON serialized users and course roles</span>
+
+<span class="sd">    :&gt;jsonarr User:  A member of the given course.</span>
+<span class="sd">    :&gt;jsonarrtype User: :py:class:`~.models.User`</span>
+<span class="sd">    :&gt;jsonarr CourseRole: The role that this user has.</span>
+<span class="sd">    :&gt;jsonarrtype CourseRole: :py:class:`~.models.CourseRole`</span>
+
+<span class="sd">    :raises APIException: If there is no course with the given id.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not manage the course with the</span>
+<span class="sd">                                 given id. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_edit_course_users&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">users</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">sqlalchemy</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">KeyedTuple</span><span class="p">]</span>
+    <span class="n">users</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">user_course</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">user_course</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">user_id</span> <span class="o">==</span> <span class="n">models</span><span class="o">.</span><span class="n">User</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="p">,</span>
+        <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">models</span><span class="o">.</span><span class="n">user_course</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">course_id</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">course_id</span> <span class="o">==</span> <span class="n">course_id</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+    <span class="n">user_course</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">_UserCourse</span><span class="p">]</span>
+    <span class="n">user_course</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s1">&#39;User&#39;</span><span class="p">:</span> <span class="n">user</span><span class="p">,</span>
+            <span class="s1">&#39;CourseRole&#39;</span><span class="p">:</span> <span class="n">crole</span>
+        <span class="p">}</span> <span class="k">for</span> <span class="n">user</span><span class="p">,</span> <span class="n">crole</span> <span class="ow">in</span> <span class="n">users</span>
+    <span class="p">]</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">user_course</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;User&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="get_all_course_assignments"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.get_all_course_assignments">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;/assignments/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">get_all_course_assignments</span><span class="p">(</span>
+    <span class="n">course_id</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Get all :class:`.models.Assignment` objects of the given</span>
+<span class="sd">    :class:`.models.Course`.</span>
+
+<span class="sd">    .. :quickref: Course; Get all assignments for single course.</span>
+
+<span class="sd">    The returned assignments are sorted by deadline.</span>
+
+<span class="sd">    :param int course_id: The id of the course</span>
+<span class="sd">    :returns: A response containing the JSON serialized assignments sorted by</span>
+<span class="sd">        deadline of the assignment. See</span>
+<span class="sd">        :py:func:`.models.Assignment.__to_json__` for the way assignments are</span>
+<span class="sd">        given.</span>
+
+<span class="sd">    :raises APIException: If there is no course with the given id.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not see assignments in the</span>
+<span class="sd">                                 given course. (INCORRECT_PERMISSION)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_see_assignments&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">course</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">course</span><span class="o">.</span><span class="n">get_all_visible_assignments</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="create_new_assignment"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.create_new_assignment">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;/assignments/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">create_new_assignment</span><span class="p">(</span><span class="n">course_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Create a new course for the given assignment.</span>
+
+<span class="sd">    .. :quickref: Course; Create a new assignment in a course.</span>
+
+<span class="sd">    :param int course_id: The course to create an assignment in.</span>
+
+<span class="sd">    :&lt;json str name: The name of the new assignment.</span>
+
+<span class="sd">    :returns: The newly created assignment.</span>
+
+<span class="sd">    :raises PermissionException: If the current user does not have the</span>
+<span class="sd">        ``can_create_assignment`` permission (INCORRECT_PERMISSION).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">auth</span><span class="o">.</span><span class="n">ensure_permission</span><span class="p">(</span><span class="s1">&#39;can_create_assignment&#39;</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="n">content</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
+
+    <span class="n">course</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">course</span><span class="o">.</span><span class="n">lti_course_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+            <span class="s1">&#39;You cannot add assignments to a LTI course&#39;</span><span class="p">,</span>
+            <span class="n">f</span><span class="s1">&#39;The course &quot;</span><span class="si">{course_id}</span><span class="s1">&quot; is a LTI course&#39;</span><span class="p">,</span>
+            <span class="n">APICodes</span><span class="o">.</span><span class="n">INVALID_STATE</span><span class="p">,</span> <span class="mi">400</span>
+        <span class="p">)</span>
+
+    <span class="n">assig</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Assignment</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">course</span><span class="o">=</span><span class="n">course</span><span class="p">,</span> <span class="n">deadline</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">assig</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">assig</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="add_course"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.add_course">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">permission_required</span><span class="p">(</span><span class="s1">&#39;can_create_courses&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">add_course</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Add a new :class:`.models.Course`.</span>
+
+<span class="sd">    .. :quickref: Course; Add a new course.</span>
+
+<span class="sd">    :returns: A response containing the JSON serialization of the new course</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    :raises PermissionException: If the user can not create courses.</span>
+<span class="sd">                                 (INCORRECT_PERMISSION)</span>
+<span class="sd">    :raises APIException: If the parameter &quot;name&quot; is not in the request.</span>
+<span class="sd">        (MISSING_REQUIRED_PARAM)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">ensure_json_dict</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">get_json</span><span class="p">())</span>
+    <span class="n">ensure_keys_in_dict</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="p">[(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)])</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
+
+    <span class="n">new_course</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">new_course</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="n">role</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CourseRole</span><span class="o">.</span><span class="n">get_initial_course_role</span><span class="p">(</span><span class="n">new_course</span><span class="p">)</span>
+    <span class="n">current_user</span><span class="o">.</span><span class="n">courses</span><span class="p">[</span><span class="n">new_course</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">role</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">new_course</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_courses"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.get_courses">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">login_required</span>
+<span class="k">def</span> <span class="nf">get_courses</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]]]:</span>
+    <span class="sd">&quot;&quot;&quot;Return all :class:`.models.Course` objects the current user is a member</span>
+<span class="sd">    of.</span>
+
+<span class="sd">    .. :quickref: Course; Get all courses the current user is enrolled in.</span>
+
+<span class="sd">    :returns: A response containing the JSON serialized courses</span>
+
+<span class="sd">    :param str extended: If set to `true` all the assignments for each course</span>
+<span class="sd">        are also included under the key `assignments`.</span>
+
+<span class="sd">    :&gt;jsonarr str role: The name of the role the current user has in this</span>
+<span class="sd">        course.</span>
+<span class="sd">    :&gt;jsonarr ``**rest``: JSON serialization of :py:class:`psef.models.Course`.</span>
+
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_get_rest</span><span class="p">(</span><span class="n">course</span><span class="p">:</span> <span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;extended&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;true&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s1">&#39;assignments&#39;</span><span class="p">:</span> <span class="n">course</span><span class="o">.</span><span class="n">get_all_visible_assignments</span><span class="p">(),</span>
+                <span class="o">**</span><span class="n">course</span><span class="o">.</span><span class="n">__to_json__</span><span class="p">(),</span>
+            <span class="p">}</span>
+        <span class="k">return</span> <span class="n">course</span><span class="o">.</span><span class="n">__to_json__</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s1">&#39;role&#39;</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">_get_rest</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">course</span><span class="p">),</span>
+            <span class="p">}</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">current_user</span><span class="o">.</span><span class="n">courses</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="p">]</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_course_data"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.get_course_data">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">login_required</span>
+<span class="k">def</span> <span class="nf">get_course_data</span><span class="p">(</span><span class="n">course_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Return course data for a given :class:`.models.Course`.</span>
+
+<span class="sd">    .. :quickref: Course; Get data for a given course.</span>
+
+<span class="sd">    :param int course_id: The id of the course</span>
+
+<span class="sd">    :returns: A response containing the JSON serialized course</span>
+
+<span class="sd">    :&gt;json str role: The name of the role the current user has in this</span>
+<span class="sd">        course.</span>
+<span class="sd">    :&gt;json ``**rest``: JSON serialization of :py:class:`psef.models.Course`.</span>
+
+<span class="sd">    :raises APIException: If there is no course with the given id.</span>
+<span class="sd">                          (OBJECT_ID_NOT_FOUND)</span>
+<span class="sd">    :raises PermissionException: If there is no logged in user. (NOT_LOGGED_IN)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># TODO: Optimize this loop to a single query</span>
+    <span class="k">for</span> <span class="n">course_role</span> <span class="ow">in</span> <span class="n">current_user</span><span class="o">.</span><span class="n">courses</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">course_role</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">course_id</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s1">&#39;role&#39;</span><span class="p">:</span> <span class="n">course_role</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">course_role</span><span class="o">.</span><span class="n">course</span><span class="o">.</span><span class="n">__to_json__</span><span class="p">(),</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+    <span class="k">raise</span> <span class="n">APIException</span><span class="p">(</span>
+        <span class="s1">&#39;Course not found&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;The course with id </span><span class="si">{}</span><span class="s1"> was not found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">course_id</span><span class="p">),</span>
+        <span class="n">APICodes</span><span class="o">.</span><span class="n">OBJECT_ID_NOT_FOUND</span><span class="p">,</span> <span class="mi">404</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_permissions_for_course"><a class="viewcode-back" href="../../../psef_api/psef.v1.html#psef.v1.courses.get_permissions_for_course">[docs]</a><span class="nd">@api</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/courses/&lt;int:course_id&gt;/permissions/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="nd">@auth</span><span class="o">.</span><span class="n">login_required</span>
+<span class="k">def</span> <span class="nf">get_permissions_for_course</span><span class="p">(</span>
+    <span class="n">course_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JSONResponse</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Get all the course :class:`.models.Permission` of the currently logged</span>
+<span class="sd">    in :class:`.models.User`</span>
+
+<span class="sd">    .. :quickref: Course; Get all the course permissions for the current user.</span>
+
+<span class="sd">    :param int course_id: The id of the course of which the permissions should</span>
+<span class="sd">        be retrieved.</span>
+<span class="sd">    :returns: A mapping between the permission name and a boolean indicating if</span>
+<span class="sd">        the currently logged in user has this permission.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">course</span> <span class="o">=</span> <span class="n">helpers</span><span class="o">.</span><span class="n">get_or_404</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Course</span><span class="p">,</span> <span class="n">course_id</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">get_all_permissions</span><span class="p">(</span><span class="n">course</span><span class="p">))</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Schaper.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'1.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>

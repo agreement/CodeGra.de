@@ -1,0 +1,302 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>How to run CodeGra.de &mdash; CodeGra.de 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="psef.v1 package" href="psef_api/psef.v1.html" />
+    <link href="_static/style.css" rel="stylesheet" type="text/css">
+
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> CodeGra.de
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="manual.html">User Manual CodeGra.de</a></li>
+<li class="toctree-l1"><a class="reference internal" href="code.html">Code documentation of psef</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">How to run CodeGra.de</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#general-steps">General steps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dev-mode">Dev. mode</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#production-mode">Production mode</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CodeGra.de</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>How to run CodeGra.de</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/running.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="how-to-run-codegra-de">
+<h1>How to run CodeGra.de<a class="headerlink" href="#how-to-run-codegra-de" title="Permalink to this headline">¶</a></h1>
+<p>This document describes how to run CodeGra.de. CodeGra.de consists of two
+elements, its front-end and its backend. The front-end is build using Vue.JS and
+the back-end is a flask website. This means that the two components have their
+own build and deploy steps for running in the dev and production mode.</p>
+<div class="section" id="general-steps">
+<h2>General steps<a class="headerlink" href="#general-steps" title="Permalink to this headline">¶</a></h2>
+<p>Production and dev mode share a few steps that are relevant for both. The first
+is copying <code class="docutils literal notranslate"><span class="pre">config.ini.example</span></code> to <code class="docutils literal notranslate"><span class="pre">config.ini</span></code>. Now you should read this
+file and make the necessary changes. Especially the part about <code class="docutils literal notranslate"><span class="pre">secret_key</span></code> is
+very important. After reading this you should setup your database, CodeGra.de is
+tested using SQLite and PostgreSQL, but we recommend running with PostgreSQL for
+production. So for this document we will assume that you are using this
+database.</p>
+<p>Now we need to setup celery. Celery can be run using multiple brokers. For this
+application the choice of the broker is important. It is highly recommended that
+you read how celery works and the differences between brokers, however it is not
+required. We recommend using RabbitMQ as the broker. After setting up your
+broker you need to change this information in <code class="docutils literal notranslate"><span class="pre">config.ini</span></code>.</p>
+<p>You should start by creating a new database and user in the postgres console and
+granting the all the rights on the database to the new user. The easiest way to
+grant the privileges is to change the owner of the new database. After doing
+this you should edit <code class="docutils literal notranslate"><span class="pre">config.ini</span></code> with your new database information.</p>
+<p>Now you can optionally create your own privacy statement. Please note that
+CodeGra.de is not responsible for this privacy statement or the default in what
+way whatsoever. Creating a custom privacy statement is done by placing a
+<code class="docutils literal notranslate"><span class="pre">PRIVACY_STATEMENT.md</span></code> in the root of the project directory. Please note that
+after changing this file you need to build or restart the front-end again (this
+step is explained later). Also note that while this file is in markdown, you may
+include literal html tags, but you should not use any JavaScript for security
+reasons.</p>
+<p>After doing this you should setup a virtualenv in the root folder, the minimum
+python version required to run Codegra.de is python 3.6. Now activate this
+environment. After doing this you should install the dependencies, this is done
+by installing <code class="docutils literal notranslate"><span class="pre">postgresql</span></code> and <code class="docutils literal notranslate"><span class="pre">nodejs</span></code>. After doing this you should run
+<code class="docutils literal notranslate"><span class="pre">npm</span> <span class="pre">install</span></code>, <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-r</span> <span class="pre">requirements.txt</span></code> and <code class="docutils literal notranslate"><span class="pre">(</span> <span class="pre">cd</span>
+<span class="pre">static/vendor/pdf.js</span> <span class="pre">&amp;&amp;</span> <span class="pre">npm</span> <span class="pre">install</span> <span class="pre">)</span></code> all from within the project root.</p>
+<p>Now you should create the tables in the database. This is done by running <code class="docutils literal notranslate"><span class="pre">make</span>
+<span class="pre">db_upgrade</span></code>. After this you should populate the database with the seed data,
+this is done by running <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">seed</span></code>.</p>
+</div>
+<div class="section" id="dev-mode">
+<h2>Dev. mode<a class="headerlink" href="#dev-mode" title="Permalink to this headline">¶</a></h2>
+<p>Starting the dev server is quite easy. As the project consists of two parts,
+those two parts should both be running. This can be achieved by running <code class="docutils literal notranslate"><span class="pre">make</span>
+<span class="pre">start_dev_npm</span></code> in a terminal, this starts the front-end. To start the backend
+we first need to run <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">start_dev_celery</span></code> in a terminal and then run <code class="docutils literal notranslate"><span class="pre">make</span>
+<span class="pre">start_dev_server</span></code> in another terminal.</p>
+</div>
+<div class="section" id="production-mode">
+<h2>Production mode<a class="headerlink" href="#production-mode" title="Permalink to this headline">¶</a></h2>
+<p>Running CodeGra.de in production mode is a bit more complicated. The first step
+is starting celery. Running celery is done by executing <code class="docutils literal notranslate"><span class="pre">celery</span> <span class="pre">multi</span> <span class="pre">start</span>
+<span class="pre">psef_celery_worker1</span> <span class="pre">--app=runcelery:celery</span></code> in the virtualenv. Stopping celery
+is done by running <code class="docutils literal notranslate"><span class="pre">celery</span> <span class="pre">multi</span> <span class="pre">stopwait</span>
+<span class="pre">psef_celery_worker1</span> <span class="pre">--app=runcelery:celery</span></code> in the same virtualenv. It is
+important that you restart celery every time you restart the back-end. You can
+configure celery further, see <code class="docutils literal notranslate"><span class="pre">celery</span> <span class="pre">worker</span> <span class="pre">--help</span></code> for more information.</p>
+<p>The second step is building the front-end code. This is done using <code class="docutils literal notranslate"><span class="pre">make</span>
+<span class="pre">build_front-end</span></code>, this builds these files to the <code class="docutils literal notranslate"><span class="pre">dist</span></code> folder. This folder
+should be served by a webserver. This is the only folder that should be server
+by the webserver, however all requests starting with <code class="docutils literal notranslate"><span class="pre">/api/</span></code> should be
+forwarded to our back-end.</p>
+<p>To do this we should first start the back-end in production mode. In the
+example ini file (<code class="docutils literal notranslate"><span class="pre">config.ini.example</span></code>) we use <code class="docutils literal notranslate"><span class="pre">uwsgi</span></code> to do this. If you
+also want to use <code class="docutils literal notranslate"><span class="pre">uwsgi</span></code> you can edit the relevant section and run the
+back-end in production mode by executing <code class="docutils literal notranslate"><span class="pre">uwsgi</span> <span class="pre">--ini</span> <span class="pre">config.ini</span></code> in a
+terminal (or by your favorite init system). This generates a <code class="docutils literal notranslate"><span class="pre">psef.sock</span></code> file
+in the directory you configured as the base directory in <code class="docutils literal notranslate"><span class="pre">psef.ini</span></code>. This
+socket can be used to forward incoming requests in your webserver.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="psef_api/psef.v1.html" class="btn btn-neutral" title="psef.v1 package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Thomas Schaper.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'1.0',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          
+          SphinxRtdTheme.Navigation.enableSticky();
+          
+      });
+  </script> 
+
+</body>
+</html>
